@@ -8,6 +8,6 @@ interface LoginResponse {
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
-  const response = await api.post<LoginResponse>('/auth/login', { username, password });
+  const response = await api.post<LoginResponse>('/auth/login', { username, password, system: 'VRMS' });
   return response.data;
 }
