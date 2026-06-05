@@ -221,6 +221,11 @@ button {
   color: #1d4ed8;
 }
 
+.status-in-progress { background: linear-gradient(90deg, #60a5fa, #2563eb); color: white; }
+.status-pending { background: var(--warning-soft); color: var(--warning); }
+.status-completed { background: var(--success-soft); color: var(--success); }
+.status-cancelled { background: var(--danger-soft); color: var(--danger); }
+
 .status-completed {
   background: var(--success-soft);
   color: var(--success);

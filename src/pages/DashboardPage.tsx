@@ -4,6 +4,7 @@ import { formatDate } from '../lib/utils/format';
 import { StatusBadge } from '../components/shared/StatusBadge';
 import { Button } from '../components/ui/Button';
 import { REPAIR_VOLUME, SAMPLE_REPAIRS, STATUS_DISTRIBUTION } from '../lib/mockData';
+import { downloadRepairsCSV } from '../lib/export';
 import { SAMPLE_AUDITS, REPORT_STATS } from '../lib/mockAudit';
 
 const statusLabels: Record<string, string> = {
@@ -89,7 +90,10 @@ export function DashboardPage() {
             Monitor ticket flow, status changes, and repair costs with temporary preview data.
           </p>
         </div>
-        <Button type="button">Export summary</Button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Button type="button" onClick={() => downloadRepairsCSV(repairs)}>Export CSV</Button>
+          <Button type="button">Export summary</Button>
+        </div>
       </div>
 
       <div className="dashboard-grid">

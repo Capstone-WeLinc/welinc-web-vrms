@@ -1,9 +1,18 @@
-import { buildStatusClass } from '../../lib/utils/format';
+import React from 'react';
 
 interface StatusBadgeProps {
   status: string;
 }
 
+const STATUS_MAP: Record<string, { label: string; cls: string }> = {
+  PENDING: { label: 'Pending', cls: 'status-pending' },
+  IN_PROGRESS: { label: 'In Progress', cls: 'status-in-progress' },
+  FOR_VERIFICATION: { label: 'For Verification', cls: 'status-for-verification' },
+  COMPLETED: { label: 'Completed', cls: 'status-completed' },
+  CANCELLED: { label: 'Cancelled', cls: 'status-cancelled' },
+};
+
 export function StatusBadge({ status }: StatusBadgeProps) {
-  return <span className={buildStatusClass(status)}>{status.replace('_', ' ')}</span>;
+  const meta = STATUS_MAP[status] || { label: status, cls: 'status-pending' };
+  return <span className={`status-chip ${meta.cls}`}>{meta.label}</span>;
 }
