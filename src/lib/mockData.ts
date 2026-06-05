@@ -1,0 +1,86 @@
+import { RepairTicket, RepairStatus } from '../types';
+
+export const SAMPLE_REPAIRS: RepairTicket[] = [
+  {
+    id: '1',
+    repairNumber: 'VRMS-0012',
+    vehiclePlate: 'SL 1920',
+    driverName: 'Pablo Santos',
+    issueDescription: 'Brake fluid leak and worn brake pads',
+    status: 'IN_PROGRESS',
+    createdAt: '2026-06-01T08:15:00.000Z',
+    updatedAt: '2026-06-03T09:45:00.000Z',
+    totalCost: 950,
+  },
+  {
+    id: '2',
+    repairNumber: 'VRMS-0013',
+    vehiclePlate: 'SL 4017',
+    driverName: 'Mara De la Cruz',
+    issueDescription: 'Engine overheating, coolant refill and fan inspection',
+    status: 'FOR_VERIFICATION',
+    createdAt: '2026-06-02T10:30:00.000Z',
+    updatedAt: '2026-06-04T11:20:00.000Z',
+    totalCost: 1220,
+  },
+  {
+    id: '3',
+    repairNumber: 'VRMS-0014',
+    vehiclePlate: 'SL 1256',
+    driverName: 'Janice Ramos',
+    issueDescription: 'Suspension noise and front alignment',
+    status: 'PENDING',
+    createdAt: '2026-06-03T07:50:00.000Z',
+    updatedAt: '2026-06-03T08:05:00.000Z',
+    totalCost: 0,
+  },
+  {
+    id: '4',
+    repairNumber: 'VRMS-0011',
+    vehiclePlate: 'SL 2960',
+    driverName: 'Eduardo Morales',
+    issueDescription: 'Tire replacement and wheel balancing',
+    status: 'COMPLETED',
+    createdAt: '2026-05-29T14:10:00.000Z',
+    updatedAt: '2026-06-01T12:30:00.000Z',
+    totalCost: 650,
+  },
+  {
+    id: '5',
+    repairNumber: 'VRMS-0010',
+    vehiclePlate: 'SL 7721',
+    driverName: 'Lian Santos',
+    issueDescription: 'Electrical diagnostics and battery replacement',
+    status: 'CANCELLED',
+    createdAt: '2026-05-28T09:00:00.000Z',
+    updatedAt: '2026-05-30T16:45:00.000Z',
+    totalCost: 0,
+  },
+  {
+    id: '6',
+    repairNumber: 'VRMS-0015',
+    vehiclePlate: 'SL 9999',
+    driverName: 'Noel Alvarez',
+    issueDescription: 'Hydraulic system leak and pump replacement',
+    status: 'IN_PROGRESS',
+    createdAt: '2026-06-04T08:20:00.000Z',
+    updatedAt: '2026-06-04T09:10:00.000Z',
+    totalCost: 1750,
+  },
+];
+
+export const REPAIR_VOLUME = [
+  { label: 'Week 1', repairs: 18 },
+  { label: 'Week 2', repairs: 24 },
+  { label: 'Week 3', repairs: 31 },
+  { label: 'Week 4', repairs: 28 },
+  { label: 'Week 5', repairs: 34 },
+];
+
+export const STATUS_DISTRIBUTION: Record<RepairStatus, number> = {
+  PENDING: 6,
+  IN_PROGRESS: 12,
+  FOR_VERIFICATION: 5,
+  COMPLETED: 28,
+  CANCELLED: 3,
+};

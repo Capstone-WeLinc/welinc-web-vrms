@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import logo from '../assets/logo.png';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/ui/Button';
 
@@ -29,8 +30,15 @@ export function LoginPage() {
     <div className="login-shell">
       <div className="card login-card">
         <div className="login-brand">
-          <h1>WeLinc VRMS</h1>
-          <p>Admin portal for repair ticket management and analytics.</p>
+          <img src={logo} alt="WeLinc Logistics logo" className="login-logo" />
+          <div>
+            <h1>WeLinc VRMS</h1>
+            <p>Hassle-free repair control for admin and operations.</p>
+          </div>
+        </div>
+
+        <div className="login-welcome">
+          <p>Sign in to monitor repairs, manage tickets, and review live analytics with temporary preview data.</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -67,6 +75,10 @@ export function LoginPage() {
             {isLoading ? 'Signing in…' : 'Sign In'}
           </Button>
         </form>
+
+        <div className="login-footer">
+          <p>Preview credentials: <strong>admin</strong> / <strong>password</strong></p>
+        </div>
       </div>
     </div>
   );
