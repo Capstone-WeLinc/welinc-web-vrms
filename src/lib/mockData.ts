@@ -11,6 +11,7 @@ export const SAMPLE_REPAIRS: RepairTicket[] = [
     createdAt: '2026-06-01T08:15:00.000Z',
     updatedAt: '2026-06-03T09:45:00.000Z',
     totalCost: 950,
+    mechanics: [{ id: 'm1', name: 'Rommel Cruz' }],
   },
   {
     id: '2',
@@ -22,6 +23,7 @@ export const SAMPLE_REPAIRS: RepairTicket[] = [
     createdAt: '2026-06-02T10:30:00.000Z',
     updatedAt: '2026-06-04T11:20:00.000Z',
     totalCost: 1220,
+    mechanics: [{ id: 'm2', name: 'Isabel Reyes' }],
   },
   {
     id: '3',
@@ -66,6 +68,7 @@ export const SAMPLE_REPAIRS: RepairTicket[] = [
     createdAt: '2026-06-04T08:20:00.000Z',
     updatedAt: '2026-06-04T09:10:00.000Z',
     totalCost: 1750,
+    mechanics: [{ id: 'm3', name: 'Carl Santos' }],
   },
 ];
 

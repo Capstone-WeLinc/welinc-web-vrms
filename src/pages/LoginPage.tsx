@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import logo from '../assets/logo.png';
+import logo from '../assets/brand-logo.jpg';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/ui/Button';
 

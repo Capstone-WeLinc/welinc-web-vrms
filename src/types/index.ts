@@ -7,6 +7,29 @@ export interface User {
 }
 
 export type RepairStatus = 'PENDING' | 'IN_PROGRESS' | 'FOR_VERIFICATION' | 'COMPLETED' | 'CANCELLED';
+export type AccountType = 'ONLINE' | 'CORPORATE';
+export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface MechanicAssignment {
+  id: string;
+  name: string;
+  isOutsourced?: boolean;
+  shopName?: string;
+}
+
+export interface RepairIssue {
+  id: string;
+  vehicleSystem: string;
+  rootCause: string;
+  description: string;
+}
+
+export interface ShopChangeLog {
+  changedBy: string;
+  previousValue: string;
+  newValue: string;
+  changedAt: string;
+}
 
 export interface RepairTicket {
   id: string;
@@ -18,6 +41,22 @@ export interface RepairTicket {
   createdAt: string;
   updatedAt: string;
   totalCost?: number;
+  accountType?: AccountType;
+  corporation?: string;
+  garageLocation?: string;
+  odometerReading?: number;
+  mechanics?: MechanicAssignment[];
+  shopName?: string;
+  shopChangeLog?: ShopChangeLog[];
+  priority?: PriorityLevel;
+  issues?: RepairIssue[];
+  targetDueDate?: string;
+  remarks?: string;
+  repairDurationDays?: number;
+  repairDurationHours?: number;
+  cancellationReason?: string;
+  labourCost?: number;
+  partsCost?: number;
 }
 
 export interface CreateRepairPayload {
@@ -25,4 +64,15 @@ export interface CreateRepairPayload {
   driverName: string;
   issueDescription: string;
   status: RepairStatus;
+  accountType: AccountType;
+  corporation?: string;
+  garageLocation: string;
+  odometerReading: number;
+  mechanics: MechanicAssignment[];
+  shopName: string;
+  priority: PriorityLevel;
+  issues: RepairIssue[];
+  repairNumber?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

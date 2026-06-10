@@ -78,6 +78,44 @@ export function DashboardPage() {
     alerts.push(`${summary.pending} ticket${summary.pending === 1 ? '' : 's'} are still pending assignment.`);
   }
 
+  const summaryCards = [
+    {
+      label: 'Total repairs',
+      value: summary.total,
+      note: 'All repair tickets in the current period.',
+    },
+    {
+      label: 'Open tickets',
+      value: summary.open,
+      note: 'Tickets currently in progress or awaiting review.',
+    },
+    {
+      label: 'Pending verification',
+      value: summary.forVerification,
+      note: 'Repairs waiting approval before completion.',
+    },
+    {
+      label: 'Completed',
+      value: summary.completed,
+      note: 'Repair tickets already closed out.',
+    },
+  ];
+
+  const highlightCards = [
+    {
+      label: 'Total repair cost',
+      value: `₱${totalCost.toLocaleString()}`,
+      note: 'Projected spend for all active repair tickets.',
+    },
+    {
+      label: 'Average cost',
+      value: `₱${averageCost.toLocaleString()}`,
+      note: 'Average cost per repair ticket.',
+    },
+  ];
+
+  const reportButtons = ['Daily', 'Monthly', 'Yearly'];
+
   const chartMax = Math.max(...REPAIR_VOLUME.map((item) => item.repairs), 1);
 
   return (
@@ -97,26 +135,13 @@ export function DashboardPage() {
       </div>
 
       <div className="dashboard-grid">
-        <div className="card summary-card">
-          <p className="summary-label">Total repairs</p>
-          <p className="summary-value">{summary.total}</p>
-          <p className="summary-note">All repair tickets in the current period.</p>
-        </div>
-        <div className="card summary-card">
-          <p className="summary-label">Open tickets</p>
-          <p className="summary-value">{summary.open}</p>
-          <p className="summary-note">Tickets currently in progress or awaiting review.</p>
-        </div>
-        <div className="card summary-card">
-          <p className="summary-label">Pending verification</p>
-          <p className="summary-value">{summary.forVerification}</p>
-          <p className="summary-note">Repairs waiting approval before completion.</p>
-        </div>
-        <div className="card summary-card">
-          <p className="summary-label">Completed</p>
-          <p className="summary-value">{summary.completed}</p>
-          <p className="summary-note">Repair tickets already closed out.</p>
-        </div>
+        {summaryCards.map((card) => (
+          <div key={card.label} className="card summary-card">
+            <p className="summary-label">{card.label}</p>
+            <p className="summary-value">{card.value}</p>
+            <p className="summary-note">{card.note}</p>
+          </div>
+        ))}
       </div>
 
       <div className="dashboard-grid dashboard-grid-2">
@@ -169,16 +194,13 @@ export function DashboardPage() {
       )}
 
       <div className="dashboard-grid">
-        <div className="card card-highlight">
-          <p className="summary-label">Total repair cost</p>
-          <p className="summary-value">₱{totalCost.toLocaleString()}</p>
-          <p className="summary-note">Projected spend for all active repair tickets.</p>
-        </div>
-        <div className="card card-highlight">
-          <p className="summary-label">Average cost</p>
-          <p className="summary-value">₱{averageCost.toLocaleString()}</p>
-          <p className="summary-note">Average cost per repair ticket.</p>
-        </div>
+        {highlightCards.map((card) => (
+          <div key={card.label} className="card card-highlight">
+            <p className="summary-label">{card.label}</p>
+            <p className="summary-value">{card.value}</p>
+            <p className="summary-note">{card.note}</p>
+          </div>
+        ))}
       </div>
 
       <div className="dashboard-grid report-grid">
@@ -210,9 +232,11 @@ export function DashboardPage() {
           <h3 className="subheading">Reports & exports</h3>
           <p style={{ color: 'var(--muted)' }}>Generate quick reports for management (dummy preview).</p>
           <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-            <Button type="button">Daily</Button>
-            <Button type="button">Monthly</Button>
-            <Button type="button">Yearly</Button>
+            {reportButtons.map((label) => (
+              <Button key={label} type="button">
+                {label}
+              </Button>
+            ))}
           </div>
 
           <div style={{ marginTop: 14 }}>
@@ -235,7 +259,33 @@ export function DashboardPage() {
         </div>
 
         {loading ? (
-          <p>Loading repair tickets…</p>
+          <div aria-live="polite" aria-busy="true">
+            <div className="skeleton skeleton-line short" />
+            <div className="skeleton skeleton-line" />
+            <div className="skeleton skeleton-line" />
+            <div className="skeleton skeleton-line" />
+            <div className="skeleton-table-row">
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+            </div>
+            <div className="skeleton-table-row">
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+            </div>
+            <div className="skeleton-table-row">
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line" />
+            </div>
+          </div>
         ) : error ? (
           <div className="alert">{error}</div>
         ) : repairs.length === 0 ? (

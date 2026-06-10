@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import logo from '../../assets/logo.png';
+import logo from '../../assets/brand-logo.jpg';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },

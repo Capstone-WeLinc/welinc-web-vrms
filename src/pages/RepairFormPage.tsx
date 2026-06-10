@@ -1,35 +1,220 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createRepair } from '../lib/api/repairApi';
-import { CreateRepairPayload, RepairStatus } from '../types';
+import { CreateRepairPayload, MechanicAssignment, PriorityLevel, RepairStatus } from '../types';
 import { Button } from '../components/ui/Button';
+import {
+  ACCOUNT_TYPE_OPTIONS,
+  CORPORATION_OPTIONS,
+  GARAGE_LOCATION_OPTIONS,
+  MECHANIC_OPTIONS,
+  ROOT_CAUSE_OPTIONS,
+  SHOP_OPTIONS,
+  VEHICLE_PLATE_OPTIONS,
+  VEHICLE_SYSTEM_OPTIONS,
+  PRIORITY_OPTIONS,
+  getActiveMechanicIds,
+  loadDriverNames,
+  saveDriverName,
+} from '../lib/mockConfig';
+import { SAMPLE_REPAIRS } from '../lib/mockData';
+
+function createNewIssue() {
+  return {
+    id: `issue-${Date.now()}-${Math.random().toString(36).slice(-4)}`,
+    vehicleSystem: VEHICLE_SYSTEM_OPTIONS[0],
+    rootCause: ROOT_CAUSE_OPTIONS[0],
+    description: '',
+  };
+}
+
+function generateRepairNumber() {
+  const now = new Date();
+  const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  const time = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+  const suffix = Math.random().toString(36).slice(-4).toUpperCase();
+  return `RL-${date}-${time}-${suffix}`;
+}
 
 export function RepairFormPage() {
   const navigate = useNavigate();
-  const [vehiclePlate, setVehiclePlate] = useState('');
+  const [accountType, setAccountType] = useState<'ONLINE' | 'CORPORATE'>('ONLINE');
+  const [corporation, setCorporation] = useState<string>(CORPORATION_OPTIONS[0]);
+  const [vehiclePlate, setVehiclePlate] = useState<string>(VEHICLE_PLATE_OPTIONS[0]);
   const [driverName, setDriverName] = useState('');
-  const [issueDescription, setIssueDescription] = useState('');
-  const [status, setStatus] = useState<RepairStatus>('PENDING');
+  const [driverSuggestions, setDriverSuggestions] = useState<string[]>([]);
+  const [garageLocation, setGarageLocation] = useState<string>(GARAGE_LOCATION_OPTIONS[0]);
+  const [odometerReading, setOdometerReading] = useState('');
+  const [priority, setPriority] = useState<PriorityLevel>('MEDIUM');
+  const [mechanicSelection, setMechanicSelection] = useState('');
+  const [assignedMechanics, setAssignedMechanics] = useState<MechanicAssignment[]>([]);
+  const [outsourcedMechanicName, setOutsourcedMechanicName] = useState('');
+  const [shopName, setShopName] = useState<string>(SHOP_OPTIONS[0]);
+  const [otherShopName, setOtherShopName] = useState('');
+  const [issues, setIssues] = useState(() => [createNewIssue()]);
+  const [createdAt] = useState(() => new Date());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [issueError, setIssueError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDriverSuggestions(loadDriverNames());
+  }, []);
+
+  const unavailableMechanicIds = useMemo(() => getActiveMechanicIds(SAMPLE_REPAIRS), []);
+
+  const assignedMechanicIds = useMemo(() => new Set(assignedMechanics.map((mechanic) => mechanic.id)), [assignedMechanics]);
+
+  const handleAddMechanic = () => {
+    setError(null);
+
+    if (mechanicSelection === '') {
+      setError('Select a mechanic or choose Other.');
+      return;
+    }
+
+    if (mechanicSelection === 'OTHER') {
+      const name = outsourcedMechanicName.trim();
+      if (!name) {
+        setError('Enter the outsourced mechanic or shop name.');
+        return;
+      }
+      setAssignedMechanics((current) => [
+        ...current,
+        { id: `other-${Date.now()}`, name, isOutsourced: true, shopName: name },
+      ]);
+      setOutsourcedMechanicName('');
+      setMechanicSelection('');
+      return;
+    }
+
+    const mechanic = MECHANIC_OPTIONS.find((item) => item.id === mechanicSelection);
+    if (!mechanic) {
+      setError('Select a valid mechanic.');
+      return;
+    }
+
+    if (assignedMechanicIds.has(mechanic.id)) {
+      setError('Mechanic is already assigned.');
+      return;
+    }
+
+    setAssignedMechanics((current) => [...current, { id: mechanic.id, name: mechanic.name }]);
+    setMechanicSelection('');
+  };
+
+  const handleRemoveMechanic = (id: string) => {
+    setAssignedMechanics((current) => current.filter((mechanic) => mechanic.id !== id));
+  };
+
+  const handleUpdateIssue = (issueId: string, field: 'vehicleSystem' | 'rootCause' | 'description', value: string) => {
+    setIssues((current) =>
+      current.map((issue) => (issue.id === issueId ? { ...issue, [field]: value } : issue)),
+    );
+  };
+
+  const handleAddIssue = () => {
+    if (issues.length >= 10) {
+      return;
+    }
+    setIssues((current) => [...current, createNewIssue()]);
+  };
+
+  const handleRemoveIssue = (issueId: string) => {
+    if (issues.length <= 1) {
+      return;
+    }
+    setIssues((current) => current.filter((issue) => issue.id !== issueId));
+  };
+
+  const validateForm = () => {
+    setError(null);
+    setIssueError(null);
+
+    if (!driverName.trim()) {
+      setError('Driver name is required.');
+      return false;
+    }
+    if (driverName.trim().length > 100) {
+      setError('Driver name must be 100 characters or fewer.');
+      return false;
+    }
+    if (accountType === 'CORPORATE' && !corporation) {
+      setError('Select a corporation for corporate accounts.');
+      return false;
+    }
+    if (!garageLocation) {
+      setError('Garage location is required.');
+      return false;
+    }
+    if (!odometerReading.trim()) {
+      setError('Odometer reading is required.');
+      return false;
+    }
+    if (Number.isNaN(Number(odometerReading))) {
+      setError('Odometer reading must be numeric.');
+      return false;
+    }
+    if (assignedMechanics.length === 0) {
+      setError('At least one mechanic must be assigned.');
+      return false;
+    }
+    if (shopName === 'OTHER' && !otherShopName.trim()) {
+      setError('Please enter the external shop name for Other.');
+      return false;
+    }
+
+    const invalidIssue = issues.find(
+      (issue) =>
+        !issue.vehicleSystem ||
+        !issue.rootCause ||
+        !issue.description.trim() ||
+        issue.description.trim().length > 500,
+    );
+
+    if (invalidIssue) {
+      setIssueError('All issue entries require a system, root cause, and description up to 500 characters.');
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setIssueError(null);
 
+    if (!validateForm()) {
+      return;
+    }
+
+    const createdAtIso = createdAt.toISOString();
     const payload: CreateRepairPayload = {
       vehiclePlate,
-      driverName,
-      issueDescription,
-      status,
+      driverName: driverName.trim(),
+      issueDescription: issues[0]?.description.trim() || 'Repair ticket created',
+      status: 'PENDING',
+      accountType,
+      corporation: accountType === 'CORPORATE' ? corporation : undefined,
+      garageLocation,
+      odometerReading: Number(odometerReading),
+      mechanics: assignedMechanics,
+      shopName: shopName === 'OTHER' ? otherShopName.trim() : shopName,
+      priority,
+      issues,
+      repairNumber: generateRepairNumber(),
+      createdAt: createdAtIso,
+      updatedAt: createdAtIso,
     };
 
     try {
       setSaving(true);
       await createRepair(payload);
+      saveDriverName(driverName.trim());
       navigate('/repairs');
     } catch (err) {
-      setError('Could not create repair ticket.');
+      setError('Unable to create repair ticket. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -38,69 +223,337 @@ export function RepairFormPage() {
   return (
     <div>
       <h2 className="page-title">New Repair Ticket</h2>
-      <div className="card" style={{ maxWidth: 700 }}>
+      <div className="card" style={{ maxWidth: 940 }}>
         <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label className="label" htmlFor="vehiclePlate">
-              Vehicle Plate
-            </label>
-            <input
-              id="vehiclePlate"
-              className="input"
-              value={vehiclePlate}
-              onChange={(event) => setVehiclePlate(event.target.value)}
-              placeholder="ABX-1234"
-            />
+          <div className="field-grid">
+            <div className="input-group">
+              <label className="label" htmlFor="accountType">
+                Account type
+              </label>
+              <select
+                id="accountType"
+                className="select"
+                value={accountType}
+                onChange={(event) => setAccountType(event.target.value as 'ONLINE' | 'CORPORATE')}
+              >
+                {ACCOUNT_TYPE_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {accountType === 'CORPORATE' && (
+              <div className="input-group">
+                <label className="label" htmlFor="corporation">
+                  Corporation
+                </label>
+                <select
+                  id="corporation"
+                  className="select"
+                  value={corporation}
+                  onChange={(event) => setCorporation(event.target.value)}
+                >
+                  {CORPORATION_OPTIONS.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="input-group">
+              <label className="label" htmlFor="vehiclePlate">
+                Plate number
+              </label>
+              <select
+                id="vehiclePlate"
+                className="select"
+                value={vehiclePlate}
+                onChange={(event) => setVehiclePlate(event.target.value)}
+              >
+                {VEHICLE_PLATE_OPTIONS.map((plate) => (
+                  <option key={plate} value={plate}>
+                    {plate}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="input-group">
+              <label className="label" htmlFor="driverName">
+                Driver name
+              </label>
+              <input
+                id="driverName"
+                list="driverNames"
+                className="input"
+                value={driverName}
+                maxLength={100}
+                onChange={(event) => setDriverName(event.target.value)}
+                placeholder="Juan Dela Cruz"
+              />
+              <datalist id="driverNames">
+                {driverSuggestions.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+              <p className="small-note">Select a previously entered driver or type a new name (up to 100 characters).</p>
+            </div>
+
+            <div className="input-group">
+              <label className="label" htmlFor="garageLocation">
+                Garage location
+              </label>
+              <select
+                id="garageLocation"
+                className="select"
+                value={garageLocation}
+                onChange={(event) => setGarageLocation(event.target.value)}
+              >
+                {GARAGE_LOCATION_OPTIONS.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="input-group">
+              <label className="label" htmlFor="odometerReading">
+                Odometer reading
+              </label>
+              <input
+                id="odometerReading"
+                type="number"
+                min="0"
+                inputMode="numeric"
+                className="input"
+                value={odometerReading}
+                onChange={(event) => setOdometerReading(event.target.value)}
+                placeholder="123456"
+              />
+            </div>
+
+            <div className="input-group">
+              <label className="label" htmlFor="priority">
+                Priority level
+              </label>
+              <select
+                id="priority"
+                className="select"
+                value={priority}
+                onChange={(event) => setPriority(event.target.value as PriorityLevel)}
+              >
+                {PRIORITY_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="input-group">
+              <p className="label">Recorded date and time</p>
+              <div className="readonly-field">{createdAt.toLocaleString()}</div>
+            </div>
           </div>
 
-          <div className="input-group">
-            <label className="label" htmlFor="driverName">
-              Driver Name
-            </label>
-            <input
-              id="driverName"
-              className="input"
-              value={driverName}
-              onChange={(event) => setDriverName(event.target.value)}
-              placeholder="Juan Dela Cruz"
-            />
+          <div className="section-divider" />
+
+          <div>
+            <h3 className="section-title">Mechanic assignment</h3>
+            <div className="field-grid">
+              <div className="input-group">
+                <label className="label" htmlFor="mechanicSelection">
+                  Select mechanic
+                </label>
+                <select
+                  id="mechanicSelection"
+                  className="select"
+                  value={mechanicSelection}
+                  onChange={(event) => setMechanicSelection(event.target.value)}
+                >
+                  <option value="">Choose a mechanic</option>
+                  {MECHANIC_OPTIONS.map((mechanic) => (
+                    <option
+                      key={mechanic.id}
+                      value={mechanic.id}
+                      disabled={unavailableMechanicIds.includes(mechanic.id)}
+                    >
+                      {mechanic.name}
+                      {unavailableMechanicIds.includes(mechanic.id) ? ' (assigned)' : ''}
+                    </option>
+                  ))}
+                  <option value="OTHER">Other (Outsourced)</option>
+                </select>
+              </div>
+
+              {mechanicSelection === 'OTHER' && (
+                <div className="input-group">
+                  <label className="label" htmlFor="outsourcedMechanicName">
+                    Outsourced mechanic / shop
+                  </label>
+                  <input
+                    id="outsourcedMechanicName"
+                    className="input"
+                    value={outsourcedMechanicName}
+                    maxLength={100}
+                    onChange={(event) => setOutsourcedMechanicName(event.target.value)}
+                    placeholder="Enter shop name or independent mechanic"
+                  />
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <Button type="button" onClick={handleAddMechanic} disabled={!mechanicSelection || (mechanicSelection === 'OTHER' && !outsourcedMechanicName.trim())}>
+                Add mechanic
+              </Button>
+            </div>
+            <div className="mechanic-list">
+              {assignedMechanics.map((mechanic) => (
+                <div key={mechanic.id} className="tag-pill">
+                  {mechanic.name}
+                  {mechanic.isOutsourced ? ' (outsourced)' : ''}
+                  <button
+                    type="button"
+                    style={{ marginLeft: 10, border: 'none', background: 'transparent', color: '#1d4ed8', cursor: 'pointer' }}
+                    onClick={() => handleRemoveMechanic(mechanic.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="input-group">
-            <label className="label" htmlFor="issueDescription">
-              Issue Description
-            </label>
-            <textarea
-              id="issueDescription"
-              className="textarea"
-              rows={4}
-              value={issueDescription}
-              onChange={(event) => setIssueDescription(event.target.value)}
-              placeholder="Describe the reported issue"
-            />
+          <div className="section-divider" />
+
+          <div className="field-grid">
+            <div className="input-group">
+              <label className="label" htmlFor="shopName">
+                Repair shop
+              </label>
+              <select
+                id="shopName"
+                className="select"
+                value={shopName}
+                onChange={(event) => setShopName(event.target.value)}
+              >
+                {SHOP_OPTIONS.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+                <option value="OTHER">Other</option>
+              </select>
+              <p className="small-note">Select from managed shops or pick Other to enter a new name.</p>
+            </div>
+            {shopName === 'OTHER' && (
+              <div className="input-group">
+                <label className="label" htmlFor="otherShopName">
+                  Other shop name
+                </label>
+                <input
+                  id="otherShopName"
+                  className="input"
+                  maxLength={100}
+                  value={otherShopName}
+                  onChange={(event) => setOtherShopName(event.target.value)}
+                  placeholder="Enter new shop name"
+                />
+              </div>
+            )}
           </div>
 
-          <div className="input-group">
-            <label className="label" htmlFor="status">
-              Initial Status
-            </label>
-            <select
-              id="status"
-              className="select"
-              value={status}
-              onChange={(event) => setStatus(event.target.value as RepairStatus)}
-            >
-              <option value="PENDING">Pending</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="FOR_VERIFICATION">For Verification</option>
-            </select>
+          <div className="section-divider" />
+
+          <div>
+            <h3 className="section-title">Repair issue logging</h3>
+            {issues.map((issue, index) => (
+              <div key={issue.id} className="issue-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <h4>Issue {index + 1}</h4>
+                  {issues.length > 1 && (
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      onClick={() => handleRemoveIssue(issue.id)}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <div className="field-grid" style={{ marginTop: 16 }}>
+                  <div className="input-group">
+                    <label className="label" htmlFor={`vehicleSystem-${issue.id}`}>
+                      Vehicle system
+                    </label>
+                    <select
+                      id={`vehicleSystem-${issue.id}`}
+                      className="select"
+                      value={issue.vehicleSystem}
+                      onChange={(event) => handleUpdateIssue(issue.id, 'vehicleSystem', event.target.value)}
+                    >
+                      {VEHICLE_SYSTEM_OPTIONS.map((system) => (
+                        <option key={system} value={system}>
+                          {system}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="input-group">
+                    <label className="label" htmlFor={`rootCause-${issue.id}`}>
+                      Root cause
+                    </label>
+                    <select
+                      id={`rootCause-${issue.id}`}
+                      className="select"
+                      value={issue.rootCause}
+                      onChange={(event) => handleUpdateIssue(issue.id, 'rootCause', event.target.value)}
+                    >
+                      {ROOT_CAUSE_OPTIONS.map((cause) => (
+                        <option key={cause} value={cause}>
+                          {cause}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="input-group" style={{ marginTop: 16 }}>
+                  <label className="label" htmlFor={`issueDescription-${issue.id}`}>
+                    Repair description
+                  </label>
+                  <textarea
+                    id={`issueDescription-${issue.id}`}
+                    className="textarea"
+                    rows={4}
+                    maxLength={500}
+                    value={issue.description}
+                    onChange={(event) => handleUpdateIssue(issue.id, 'description', event.target.value)}
+                    placeholder="Enter a detailed issue description"
+                  />
+                  <p className="small-note">Maximum 500 characters per issue.</p>
+                </div>
+              </div>
+            ))}
+            <div style={{ marginTop: 14, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <Button type="button" onClick={handleAddIssue} disabled={issues.length >= 10}>
+                Add another issue
+              </Button>
+              <p className="small-note">You can add up to 10 issue entries in one ticket.</p>
+            </div>
           </div>
 
-          {error ? <div className="alert" style={{ marginBottom: 16 }}>{error}</div> : null}
+          {issueError ? <div className="alert" style={{ marginTop: 18 }}>{issueError}</div> : null}
+          {error ? <div className="alert" style={{ marginTop: 18 }}>{error}</div> : null}
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Button type="submit" disabled={saving || !vehiclePlate || !driverName || !issueDescription}>
-              {saving ? 'Saving…' : 'Create Repair Ticket'}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Submitting…' : 'Submit repair ticket'}
             </Button>
             <Button type="button" variant="secondary" onClick={() => navigate('/repairs')}>
               Cancel

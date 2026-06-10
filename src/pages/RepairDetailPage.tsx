@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getRepair, updateRepairStatus } from '../lib/api/repairApi';
 import { RepairTicket, RepairStatus } from '../types';
@@ -47,6 +47,8 @@ export function RepairDetailPage() {
     load();
   }, [repairId, navigate]);
 
+  const mechanics = useMemo(() => repair?.mechanics ?? [], [repair]);
+
   const handleStatusChange = async () => {
     if (!repairId) return;
     setSaving(true);
@@ -78,36 +80,116 @@ export function RepairDetailPage() {
       ) : error ? (
         <div className="card alert">{error}</div>
       ) : repair ? (
-        <div className="card" style={{ maxWidth: 760 }}>
-          <div style={{ display: 'grid', gap: 16 }}>
+        <div className="card" style={{ maxWidth: 900 }}>
+          <div style={{ display: 'grid', gap: 20 }}>
             <div>
               <p style={{ margin: 0, color: '#6b7280', fontSize: 12 }}>Repair Number</p>
               <h3 style={{ margin: '8px 0 0' }}>{repair.repairNumber}</h3>
             </div>
+
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               <StatusBadge status={repair.status} />
               <p style={{ margin: 0, color: '#475569' }}>
                 Updated {formatDate(repair.updatedAt)}
               </p>
+              <p style={{ margin: 0, color: '#475569' }}>
+                Created {formatDate(repair.createdAt)}
+              </p>
             </div>
-            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+
+            <div className="detail-grid">
               <div>
-                <p className="label">Vehicle Plate</p>
-                <p>{repair.vehiclePlate}</p>
+                <p className="label">Account type</p>
+                <p>{repair.accountType ?? 'Online'}</p>
+              </div>
+              {repair.corporation ? (
+                <div>
+                  <p className="label">Corporation</p>
+                  <p>{repair.corporation}</p>
+                </div>
+              ) : null}
+              <div>
+                <p className="label">Garage location</p>
+                <p>{repair.garageLocation ?? 'Not assigned'}</p>
               </div>
               <div>
-                <p className="label">Driver</p>
-                <p>{repair.driverName}</p>
+                <p className="label">Odometer</p>
+                <p>{repair.odometerReading != null ? `${repair.odometerReading.toLocaleString()} km` : 'Not recorded'}</p>
+              </div>
+              <div>
+                <p className="label">Priority</p>
+                <p>{repair.priority ?? 'Medium'}</p>
+              </div>
+              <div>
+                <p className="label">Shop name</p>
+                <p>{repair.shopName ?? 'Not assigned'}</p>
               </div>
             </div>
+
             <div>
-              <p className="label">Issue Description</p>
+              <p className="label">Vehicle plate</p>
+              <p>{repair.vehiclePlate}</p>
+            </div>
+
+            <div>
+              <p className="label">Driver</p>
+              <p>{repair.driverName}</p>
+            </div>
+
+            <div>
+              <p className="label">Issue description</p>
               <p>{repair.issueDescription}</p>
             </div>
-            <div>
-              <p className="label">Total Cost</p>
-              <p>{repair.totalCost != null ? `₱ ${repair.totalCost.toFixed(2)}` : 'Unassigned'}</p>
-            </div>
+
+            {mechanics.length > 0 && (
+              <div>
+                <p className="label">Assigned mechanics</p>
+                <div className="mechanic-list">
+                  {mechanics.map((mechanic) => (
+                    <span key={mechanic.id} className="tag-pill">
+                      {mechanic.name}{mechanic.isOutsourced ? ' (outsourced)' : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {repair.issues && repair.issues.length > 0 && (
+              <div>
+                <p className="label">Logged issues</p>
+                <div style={{ display: 'grid', gap: 14 }}>
+                  {repair.issues.map((issue, index) => (
+                    <div key={issue.id} className="issue-card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <strong>Issue {index + 1}</strong>
+                        <span className="tag-pill">{issue.vehicleSystem}</span>
+                      </div>
+                      <p style={{ margin: '10px 0 2px' }}><strong>Root cause:</strong> {issue.rootCause}</p>
+                      <p style={{ margin: 0 }}>{issue.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {repair.shopChangeLog && repair.shopChangeLog.length > 0 && (
+              <div>
+                <p className="label">Shop change history</p>
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {repair.shopChangeLog.map((entry, index) => (
+                    <div key={`${entry.changedAt}-${index}`} className="issue-card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <span>{entry.changedBy}</span>
+                        <span style={{ color: '#475569', fontSize: 12 }}>{formatDate(entry.changedAt)}</span>
+                      </div>
+                      <p style={{ margin: '8px 0 2px' }}><strong>Before:</strong> {entry.previousValue}</p>
+                      <p style={{ margin: 0 }}><strong>After:</strong> {entry.newValue}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="input-group">
               <label className="label" htmlFor="status">
                 Update status
@@ -125,6 +207,7 @@ export function RepairDetailPage() {
                 ))}
               </select>
             </div>
+
             {error ? <div className="alert">{error}</div> : null}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <Button onClick={handleStatusChange} disabled={saving || status === repair.status}>
