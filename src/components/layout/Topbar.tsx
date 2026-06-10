@@ -8,21 +8,23 @@ export function Topbar() {
 
   return (
     <div className="topbar">
-      <div>
+      <div className="topbar-copy">
         <h2 className="page-title">VRMS Admin</h2>
         <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>Overview & analytics</div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>Total tickets</div>
-          <div style={{ fontWeight: 700 }}>{total}</div>
+      <div className="topbar-actions">
+        <div className="topbar-stat">
+          <span>Total tickets</span>
+          <strong>{total}</strong>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>Open</div>
-          <div style={{ fontWeight: 700, color: 'var(--primary-strong)' }}>{open}</div>
+        <div className="topbar-stat">
+          <span>Open</span>
+          <strong>{open}</strong>
         </div>
         <div className="topbar-user">
-          {user ? `${user.name} (${user.role})` : 'Not signed in'}
+          <span className="topbar-user-label">Signed in</span>
+          <strong>{user ? user.name : 'Not signed in'}</strong>
+          <span>{user ? user.role.replace('_', ' ') : 'Session unavailable'}</span>
         </div>
       </div>
     </div>
