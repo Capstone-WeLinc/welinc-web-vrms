@@ -12,7 +12,6 @@ export function Topbar() {
         <h2 className="page-title">VRMS Admin</h2>
         <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>Overview & analytics</div>
       </div>
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>Total tickets</div>
@@ -23,7 +22,7 @@ export function Topbar() {
           <div style={{ fontWeight: 700, color: 'var(--primary-strong)' }}>{open}</div>
         </div>
         <div className="topbar-user">
-          {user ? `Signed in as ${user.username}` : 'Not signed in'}
+          {user ? `${user.name} (${user.role})` : 'Not signed in'}
         </div>
       </div>
     </div>

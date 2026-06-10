@@ -6,16 +6,15 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { RepairDetailPage } from './pages/RepairDetailPage';
 import { RepairFormPage } from './pages/RepairFormPage';
 import { RepairListPage } from './pages/RepairListPage';
+import { UsersPage } from './pages/UsersPage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
-
-const bypassAuth = true; // TEMPORARY: disable auth checks so all pages can be previewed
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = useAuthStore((state) => state.token);
   const location = useLocation();
 
-  if (!bypassAuth && !token) {
+  if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -40,6 +39,7 @@ function App() {
         <Route path="repairs/new" element={<RepairFormPage />} />
         <Route path="repairs/:repairId" element={<RepairDetailPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="users" element={<UsersPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

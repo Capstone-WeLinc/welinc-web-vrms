@@ -1,9 +1,44 @@
 export type UserRole = 'ADMIN' | 'MECHANIC' | 'CUSTOMER_SUPPORT' | 'OPERATIONS';
+export type SystemType = 'VRMS' | 'VMMS' | 'BMS' | 'SHARED';
+
+export interface UserRoleAssignment {
+  role: UserRole;
+  system: SystemType;
+}
 
 export interface User {
   id: string;
+  name: string;
   username: string;
   role: UserRole;
+  system: SystemType;
+  roles?: UserRoleAssignment[];
+}
+
+export interface ManagedUser {
+  id: string;
+  name: string;
+  username: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  roles: UserRoleAssignment[];
+}
+
+export interface CreateUserPayload {
+  name: string;
+  username: string;
+  password: string;
+  isActive?: boolean;
+  roleAssignments: UserRoleAssignment[];
+}
+
+export interface UpdateUserPayload {
+  name?: string;
+  username?: string;
+  password?: string;
+  isActive?: boolean;
+  roleAssignments?: UserRoleAssignment[];
 }
 
 export type RepairStatus = 'PENDING' | 'IN_PROGRESS' | 'FOR_VERIFICATION' | 'COMPLETED' | 'CANCELLED';

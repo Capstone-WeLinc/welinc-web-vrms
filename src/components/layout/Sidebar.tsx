@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import logo from '../../assets/brand-logo.jpg';
 
@@ -11,6 +11,15 @@ const navItems = [
 
 export function Sidebar() {
   const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
+  const visibleNavItems =
+    user?.role === 'ADMIN' ? [...navItems, { to: '/users', label: 'Users' }] : navItems;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <aside className="sidebar">
@@ -23,7 +32,7 @@ export function Sidebar() {
       </div>
 
       <nav style={{ marginTop: 8 }}>
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -35,7 +44,7 @@ export function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <button className="button secondary" type="button" onClick={logout}>
+        <button className="button secondary" type="button" onClick={handleLogout}>
           Sign out
         </button>
       </div>

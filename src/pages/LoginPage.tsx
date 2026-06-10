@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/brand-logo.jpg';
 import { useAuthStore } from '../store/authStore';
@@ -7,12 +7,20 @@ import { Button } from '../components/ui/Button';
 export function LoginPage() {
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
+  const token = useAuthStore((state) => state.token);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: Location })?.from?.pathname || '/dashboard';
+
+  useEffect(() => {
+    if (token) {
+      navigate(from, { replace: true });
+    }
+  }, [from, navigate, token]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -38,7 +46,7 @@ export function LoginPage() {
         </div>
 
         <div className="login-welcome">
-          <p>Sign in to monitor repairs, manage tickets, and review live analytics with temporary preview data.</p>
+          <p>Sign in to monitor repairs, manage tickets, and review live analytics.</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -59,14 +67,24 @@ export function LoginPage() {
             <label className="label" htmlFor="password">
               Password
             </label>
-            <input
-              className="input"
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••"
-            />
+            <div className="password-field">
+              <input
+                className="input password-input"
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           {error ? <div className="alert" style={{ marginBottom: 16 }}>{error}</div> : null}
@@ -76,9 +94,9 @@ export function LoginPage() {
           </Button>
         </form>
 
-        <div className="login-footer">
-          <p>Preview credentials: <strong>admin</strong> / <strong>password</strong></p>
-        </div>
+        <p style={{ textAlign: 'center', marginTop: 32, color: '#475569' }}>
+          Credentials: <strong>admin / admin1234</strong>
+        </p>
       </div>
     </div>
   );

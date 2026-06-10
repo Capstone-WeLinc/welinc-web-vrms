@@ -34,4 +34,187 @@ export const VEHICLE_PROFITABILITY_DATA: VehicleProfitability[] = [
     isProfitable: true,
     frequentRepairs: true,
     repairCount: 7,
-  },\n  {\n    vehiclePlate: 'SL 4017',\n    driverName: 'Mara De la Cruz',\n    totalEarnings: 15800,\n    totalRepairCost: 3500,\n    netProfit: 12300,\n    isProfitable: true,\n    frequentRepairs: false,\n    repairCount: 2,\n  },\n  {\n    vehiclePlate: 'SL 1256',\n    driverName: 'Janice Ramos',\n    totalEarnings: 8900,\n    totalRepairCost: 9200,\n    netProfit: -300,\n    isProfitable: false,\n    frequentRepairs: false,\n    repairCount: 3,\n  },\n  {\n    vehiclePlate: 'SL 2960',\n    driverName: 'Eduardo Morales',\n    totalEarnings: 18200,\n    totalRepairCost: 2100,\n    netProfit: 16100,\n    isProfitable: true,\n    frequentRepairs: false,\n    repairCount: 1,\n  },\n  {\n    vehiclePlate: 'SL 9999',\n    driverName: 'Noel Alvarez',\n    totalEarnings: 11500,\n    totalRepairCost: 3950,\n    netProfit: 7550,\n    isProfitable: true,\n    frequentRepairs: false,\n    repairCount: 2,\n  },\n  {\n    vehiclePlate: 'SL 5821',\n    driverName: 'Fernando Gutierrez',\n    totalEarnings: 14200,\n    totalRepairCost: 5670,\n    netProfit: 8530,\n    isProfitable: true,\n    frequentRepairs: false,\n    repairCount: 3,\n  },\n];\n\n/**\n * Repair Frequency - Flags trucks with frequent repairs for preventive maintenance\n */\nexport const REPAIR_FREQUENCY_DATA: RepairFrequency[] = [\n  {\n    vehiclePlate: 'SL 1920',\n    repairCount: 7,\n    isFlagged: true,\n    lastRepairDate: '2026-06-03T09:45:00.000Z',\n  },\n  {\n    vehiclePlate: 'SL 4017',\n    repairCount: 2,\n    isFlagged: false,\n    lastRepairDate: '2026-06-04T11:20:00.000Z',\n  },\n  {\n    vehiclePlate: 'SL 1256',\n    repairCount: 3,\n    isFlagged: false,\n    lastRepairDate: '2026-06-03T08:05:00.000Z',\n  },\n  {\n    vehiclePlate: 'SL 2960',\n    repairCount: 1,\n    isFlagged: false,\n    lastRepairDate: '2026-06-01T12:30:00.000Z',\n  },\n  {\n    vehiclePlate: 'SL 9999',\n    repairCount: 2,\n    isFlagged: false,\n    lastRepairDate: '2026-06-04T09:10:00.000Z',\n  },\n  {\n    vehiclePlate: 'SL 5821',\n    repairCount: 3,\n    isFlagged: false,\n    lastRepairDate: '2026-06-05T08:30:00.000Z',\n  },\n];\n\n/**\n * Monthly Report Summary - Generated automatically on first day of each month\n */\nexport const MONTHLY_REPORT = {\n  month: 'June 2026',\n  totalCompletedRepairs: 32,\n  totalCancelledRepairs: 2,\n  totalRepairCost: 45680,\n  averageRepairCost: 1427,\n  highestCostRepair: 3450,\n  mostFrequentIssue: 'Engine/Cooling System',\n  garageSummary: [\n    {\n      garageLocation: 'North Garage',\n      completedRepairs: 12,\n      totalCost: 18500,\n    },\n    {\n      garageLocation: 'South Garage',\n      completedRepairs: 10,\n      totalCost: 14200,\n    },\n    {\n      garageLocation: 'East Garage',\n      completedRepairs: 7,\n      totalCost: 8920,\n    },\n    {\n      garageLocation: 'West Garage',\n      completedRepairs: 3,\n      totalCost: 4060,\n    },\n  ],\n};\n\n/**\n * Daily Report - Active repairs and overdue tickets\n */\nexport const DAILY_REPORT = {\n  date: '2026-06-05',\n  activeRepairs: 5,\n  pendingRepairs: 1,\n  overdueRepairs: 1,\n  cancelledToday: 0,\n  completedToday: 1,\n  truckStatus: [\n    { vehiclePlate: 'SL 1920', status: 'UNDER_REPAIR', since: '2 days 4 hours' },\n    { vehiclePlate: 'SL 4017', status: 'UNDER_REPAIR', since: '1 day 8 hours' },\n    { vehiclePlate: 'SL 1256', status: 'UNDER_REPAIR', since: '2 days 2 hours' },\n    { vehiclePlate: 'SL 9999', status: 'UNDER_REPAIR', since: '1 day 1 hour' },\n    { vehiclePlate: 'SL 5821', status: 'UNDER_REPAIR', since: '20 hours' },\n  ],\n};\n\n/**\n * Yearly Report Summary - Generated at year-end\n */\nexport const YEARLY_REPORT_TEMPLATE = {\n  year: 2026,\n  totalRepairs: 487,\n  totalCompletedRepairs: 468,\n  totalCancelledRepairs: 19,\n  totalRepairCost: 534200,\n  averageRepairCost: 1098,\n  highestCostRepair: 5800,\n  totalTrucksServiced: 18,\n  garagePerformance: [\n    {\n      garageLocation: 'North Garage',\n      totalRepairs: 145,\n      totalCost: 165300,\n    },\n    {\n      garageLocation: 'South Garage',\n      totalRepairs: 138,\n      totalCost: 152800,\n    },\n    {\n      garageLocation: 'East Garage',\n      totalRepairs: 114,\n      totalCost: 128200,\n    },\n    {\n      garageLocation: 'West Garage',\n      totalRepairs: 90,\n      totalCost: 87900,\n    },\n  ],\n};\n"
+  },
+  {
+    vehiclePlate: 'SL 4017',
+    driverName: 'Mara De la Cruz',
+    totalEarnings: 15800,
+    totalRepairCost: 3500,
+    netProfit: 12300,
+    isProfitable: true,
+    frequentRepairs: false,
+    repairCount: 2,
+  },
+  {
+    vehiclePlate: 'SL 1256',
+    driverName: 'Janice Ramos',
+    totalEarnings: 8900,
+    totalRepairCost: 9200,
+    netProfit: -300,
+    isProfitable: false,
+    frequentRepairs: false,
+    repairCount: 3,
+  },
+  {
+    vehiclePlate: 'SL 2960',
+    driverName: 'Eduardo Morales',
+    totalEarnings: 18200,
+    totalRepairCost: 2100,
+    netProfit: 16100,
+    isProfitable: true,
+    frequentRepairs: false,
+    repairCount: 1,
+  },
+  {
+    vehiclePlate: 'SL 9999',
+    driverName: 'Noel Alvarez',
+    totalEarnings: 11500,
+    totalRepairCost: 3950,
+    netProfit: 7550,
+    isProfitable: true,
+    frequentRepairs: false,
+    repairCount: 2,
+  },
+  {
+    vehiclePlate: 'SL 5821',
+    driverName: 'Fernando Gutierrez',
+    totalEarnings: 14200,
+    totalRepairCost: 5670,
+    netProfit: 8530,
+    isProfitable: true,
+    frequentRepairs: false,
+    repairCount: 3,
+  },
+];
+
+/**
+ * Repair Frequency - Flags trucks with frequent repairs for preventive maintenance
+ */
+export const REPAIR_FREQUENCY_DATA: RepairFrequency[] = [
+  {
+    vehiclePlate: 'SL 1920',
+    repairCount: 7,
+    isFlagged: true,
+    lastRepairDate: '2026-06-03T09:45:00.000Z',
+  },
+  {
+    vehiclePlate: 'SL 4017',
+    repairCount: 2,
+    isFlagged: false,
+    lastRepairDate: '2026-06-04T11:20:00.000Z',
+  },
+  {
+    vehiclePlate: 'SL 1256',
+    repairCount: 3,
+    isFlagged: false,
+    lastRepairDate: '2026-06-03T08:05:00.000Z',
+  },
+  {
+    vehiclePlate: 'SL 2960',
+    repairCount: 1,
+    isFlagged: false,
+    lastRepairDate: '2026-06-01T12:30:00.000Z',
+  },
+  {
+    vehiclePlate: 'SL 9999',
+    repairCount: 2,
+    isFlagged: false,
+    lastRepairDate: '2026-06-04T09:10:00.000Z',
+  },
+  {
+    vehiclePlate: 'SL 5821',
+    repairCount: 3,
+    isFlagged: false,
+    lastRepairDate: '2026-06-05T08:30:00.000Z',
+  },
+];
+
+/**
+ * Monthly Report Summary - Generated automatically on first day of each month
+ */
+export const MONTHLY_REPORT = {
+  month: 'June 2026',
+  totalCompletedRepairs: 32,
+  totalCancelledRepairs: 2,
+  totalRepairCost: 45680,
+  averageRepairCost: 1427,
+  highestCostRepair: 3450,
+  mostFrequentIssue: 'Engine/Cooling System',
+  garageSummary: [
+    {
+      garageLocation: 'North Garage',
+      completedRepairs: 12,
+      totalCost: 18500,
+    },
+    {
+      garageLocation: 'South Garage',
+      completedRepairs: 10,
+      totalCost: 14200,
+    },
+    {
+      garageLocation: 'East Garage',
+      completedRepairs: 7,
+      totalCost: 8920,
+    },
+    {
+      garageLocation: 'West Garage',
+      completedRepairs: 3,
+      totalCost: 4060,
+    },
+  ],
+};
+
+/**
+ * Daily Report - Active repairs and overdue tickets
+ */
+export const DAILY_REPORT = {
+  date: '2026-06-05',
+  activeRepairs: 5,
+  pendingRepairs: 1,
+  overdueRepairs: 1,
+  cancelledToday: 0,
+  completedToday: 1,
+  truckStatus: [
+    { vehiclePlate: 'SL 1920', status: 'UNDER_REPAIR', since: '2 days 4 hours' },
+    { vehiclePlate: 'SL 4017', status: 'UNDER_REPAIR', since: '1 day 8 hours' },
+    { vehiclePlate: 'SL 1256', status: 'UNDER_REPAIR', since: '2 days 2 hours' },
+    { vehiclePlate: 'SL 9999', status: 'UNDER_REPAIR', since: '1 day 1 hour' },
+    { vehiclePlate: 'SL 5821', status: 'UNDER_REPAIR', since: '20 hours' },
+  ],
+};
+
+/**
+ * Yearly Report Summary - Generated at year-end
+ */
+export const YEARLY_REPORT_TEMPLATE = {
+  year: 2026,
+  totalRepairs: 487,
+  totalCompletedRepairs: 468,
+  totalCancelledRepairs: 19,
+  totalRepairCost: 534200,
+  averageRepairCost: 1098,
+  highestCostRepair: 5800,
+  totalTrucksServiced: 18,
+  garagePerformance: [
+    {
+      garageLocation: 'North Garage',
+      totalRepairs: 145,
+      totalCost: 165300,
+    },
+    {
+      garageLocation: 'South Garage',
+      totalRepairs: 138,
+      totalCost: 152800,
+    },
+    {
+      garageLocation: 'East Garage',
+      totalRepairs: 114,
+      totalCost: 128200,
+    },
+    {
+      garageLocation: 'West Garage',
+      totalRepairs: 90,
+      totalCost: 87900,
+    },
+  ],
+};
