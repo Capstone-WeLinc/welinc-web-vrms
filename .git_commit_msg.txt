@@ -1,0 +1,14 @@
+feat(vrms): Phase 1 & 2 - dynamic config API client, live form data, locked account UI
+
+Phase 1 - Dynamic Config & Mechanic Availability:
+- Add vrmsConfigApi.ts with getGarages(), getVehicles(), getAvailableMechanics()
+- RepairFormPage now fetches garage/vehicle/mechanic lists from live API on mount
+- Vehicle dropdown shows plate number with model name
+- Mechanic dropdown disables entries where isAvailable is false (already on active ticket)
+- Shows loading state while config fetches, graceful error fallback
+
+Phase 2 - Login Lockout UI (VRMS025):
+- ManagedUser type now includes isLocked: boolean and lockedAt: string|null
+- authApi.ts: add unlockUser() calling PATCH /auth/users/:id/unlock
+- UsersPage: show amber Locked badge next to status pill for locked accounts
+- UsersPage: show amber Unlock button in actions column for locked accounts

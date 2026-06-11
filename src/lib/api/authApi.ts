@@ -43,3 +43,8 @@ export async function resetUserPassword(userId: string, password: string): Promi
   const response = await api.patch<ManagedUser>(`/auth/users/${userId}/password`, { password });
   return response.data;
 }
+
+export async function unlockUser(userId: string): Promise<ManagedUser> {
+  const response = await api.patch<ManagedUser>(`/auth/users/${userId}/unlock`);
+  return response.data;
+}

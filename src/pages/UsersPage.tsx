@@ -5,6 +5,7 @@ import {
   getUsers,
   resetUserPassword,
   setUserStatus,
+  unlockUser,
   updateUser,
 } from '../lib/api/authApi';
 import { ManagedUser, UserRole, UserRoleAssignment } from '../types';
@@ -226,6 +227,24 @@ export function UsersPage() {
     }
   };
 
+  const handleUnlock = async (user: ManagedUser) => {
+    if (!window.confirm(`Unlock account for ${user.username}?`)) return;
+
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const updated = await unlockUser(user.id);
+      setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setMessage(`Account for ${user.username} has been unlocked.`);
+    } catch (err) {
+      setError('Unable to unlock account.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="card">
@@ -402,6 +421,9 @@ export function UsersPage() {
                         <span className={`status-pill ${user.isActive ? 'active' : 'inactive'}`}>
                           {user.isActive ? 'Active' : 'Inactive'}
                         </span>
+                        {user.isLocked && (
+                          <span className="status-pill" style={{ marginLeft: 6, background: '#fde68a', color: '#92400e' }}>Locked</span>
+                        )}
                       </td>
                       <td>
                         <div className="role-tags">
@@ -434,6 +456,17 @@ export function UsersPage() {
                           >
                             Reset
                           </button>
+                          {user.isLocked && (
+                            <button
+                              type="button"
+                              className="text-button"
+                              style={{ color: '#d97706' }}
+                              onClick={() => handleUnlock(user)}
+                              disabled={saving}
+                            >
+                              Unlock
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
