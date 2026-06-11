@@ -31,6 +31,8 @@ export const GARAGE_LOCATION_OPTIONS = [
 ] as const;
 
 export const MECHANIC_OPTIONS = [
+  { id: 'm-juan', name: 'Juan dela Cruz' },
+  { id: 'm-pedro', name: 'Pedro Santos' },
   { id: 'm1', name: 'Rommel Cruz' },
   { id: 'm2', name: 'Isabel Reyes' },
   { id: 'm3', name: 'Carl Santos' },

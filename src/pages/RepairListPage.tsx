@@ -4,6 +4,7 @@ import { getRepairs } from '../lib/api/repairApi';
 import { RepairStatus, RepairTicket } from '../types';
 import { buildStatusClass, formatDate } from '../lib/utils/format';
 import { Button } from '../components/ui/Button';
+import { useAuthStore } from '../store/authStore';
 
 const statusOptions: Array<{ value: RepairStatus | ''; label: string }> = [
   { value: '', label: 'All statuses' },
@@ -15,6 +16,8 @@ const statusOptions: Array<{ value: RepairStatus | ''; label: string }> = [
 ];
 
 export function RepairListPage() {
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'ADMIN';
   const [repairs, setRepairs] = useState<RepairTicket[]>([]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<RepairStatus | ''>('');
@@ -45,11 +48,15 @@ export function RepairListPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
         <div>
           <h2 className="page-title">Repair Tickets</h2>
-          <p style={{ margin: 0, color: '#374151' }}>Open repair tickets for VRMS.</p>
+          <p style={{ margin: 0, color: '#374151' }}>
+            {isAdmin ? 'Open repair tickets for VRMS.' : 'Your assigned repair tickets.'}
+          </p>
         </div>
-        <Link to="/repairs/new" className="button">
-          New Repair Ticket
-        </Link>
+        {isAdmin && (
+          <Link to="/repairs/new" className="button">
+            New Repair Ticket
+          </Link>
+        )}
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>

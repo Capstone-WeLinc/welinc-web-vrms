@@ -21,7 +21,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
 
         try {
-          const response = await loginApi(username, password);
+          const response = await loginApi(username.trim(), password.trim());
 
           set({
             token: response.accessToken,

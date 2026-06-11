@@ -6,8 +6,9 @@ import { buildStatusClass, formatDate } from '../lib/utils/format';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/layout/PageHeader';
 import { StatusBadge } from '../components/shared/StatusBadge';
+import { useAuthStore } from '../store/authStore';
 
-const statusOptions: Array<{ value: RepairStatus; label: string }> = [
+const allStatusOptions: Array<{ value: RepairStatus; label: string }> = [
   { value: 'PENDING', label: 'Pending' },
   { value: 'IN_PROGRESS', label: 'In Progress' },
   { value: 'FOR_VERIFICATION', label: 'For Verification' },
@@ -15,9 +16,20 @@ const statusOptions: Array<{ value: RepairStatus; label: string }> = [
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
+const mechanicStatusOptions: Array<{ value: RepairStatus; label: string }> = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'FOR_VERIFICATION', label: 'For Verification' },
+];
+
+const TERMINAL: RepairStatus[] = ['COMPLETED', 'CANCELLED'];
+
 export function RepairDetailPage() {
   const { repairId } = useParams<{ repairId: string }>();
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'ADMIN';
+  const statusOptions = isAdmin ? allStatusOptions : mechanicStatusOptions;
   const [repair, setRepair] = useState<RepairTicket | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -190,33 +202,45 @@ export function RepairDetailPage() {
               </div>
             )}
 
-            <div className="input-group">
-              <label className="label" htmlFor="status">
-                Update status
-              </label>
-              <select
-                id="status"
-                className="select"
-                value={status}
-                onChange={(event) => setStatus(event.target.value as RepairStatus)}
-              >
-                {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Status controls — hidden for terminal tickets; mechanics can't complete/cancel */}
+            {!TERMINAL.includes(repair.status) && (
+              <>
+                <div className="input-group">
+                  <label className="label" htmlFor="status">
+                    Update status
+                  </label>
+                  <select
+                    id="status"
+                    className="select"
+                    value={status}
+                    onChange={(event) => setStatus(event.target.value as RepairStatus)}
+                  >
+                    {statusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {error ? <div className="alert">{error}</div> : null}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Button onClick={handleStatusChange} disabled={saving || status === repair.status}>
-                {saving ? 'Saving…' : 'Save status'}
-              </Button>
-              <Link to="/repairs" className="button secondary">
-                Cancel
-              </Link>
-            </div>
+                {error ? <div className="alert">{error}</div> : null}
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <Button onClick={handleStatusChange} disabled={saving || status === repair.status}>
+                    {saving ? 'Saving…' : 'Save status'}
+                  </Button>
+                  <Link to="/repairs" className="button secondary">
+                    Back
+                  </Link>
+                </div>
+              </>
+            )}
+            {TERMINAL.includes(repair.status) && (
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <Link to="/repairs" className="button secondary">
+                  Back to repairs
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       ) : (

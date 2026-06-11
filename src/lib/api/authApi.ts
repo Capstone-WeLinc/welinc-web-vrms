@@ -1,5 +1,5 @@
 import api from './axios';
-import { User } from '../../types';
+import { CreateUserPayload, ManagedUser, SystemType, UpdateUserPayload, User } from '../../types';
 
 interface LoginResponse {
   accessToken: string;
@@ -9,5 +9,37 @@ interface LoginResponse {
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
   const response = await api.post<LoginResponse>('/auth/login', { username, password, system: 'VRMS' });
+  return response.data;
+}
+
+export async function getCurrentUser(): Promise<ManagedUser> {
+  const response = await api.get<ManagedUser>('/auth/me');
+  return response.data;
+}
+
+export async function getUsers(system: SystemType = 'VRMS'): Promise<ManagedUser[]> {
+  const response = await api.get<ManagedUser[]>('/auth/users', {
+    params: { system },
+  });
+  return response.data;
+}
+
+export async function createUser(payload: CreateUserPayload): Promise<ManagedUser> {
+  const response = await api.post<ManagedUser>('/auth/users', payload);
+  return response.data;
+}
+
+export async function updateUser(userId: string, payload: UpdateUserPayload): Promise<ManagedUser> {
+  const response = await api.patch<ManagedUser>(`/auth/users/${userId}`, payload);
+  return response.data;
+}
+
+export async function setUserStatus(userId: string, isActive: boolean): Promise<ManagedUser> {
+  const response = await api.patch<ManagedUser>(`/auth/users/${userId}/status`, { isActive });
+  return response.data;
+}
+
+export async function resetUserPassword(userId: string, password: string): Promise<ManagedUser> {
+  const response = await api.patch<ManagedUser>(`/auth/users/${userId}/password`, { password });
   return response.data;
 }

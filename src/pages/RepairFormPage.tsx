@@ -213,8 +213,14 @@ export function RepairFormPage() {
       await createRepair(payload);
       saveDriverName(driverName.trim());
       navigate('/repairs');
-    } catch (err) {
-      setError('Unable to create repair ticket. Please try again.');
+    } catch (err: any) {
+      console.error('Failed to create repair ticket:', err);
+      const serverMessage = err.response?.data?.message;
+      setError(
+        serverMessage
+          ? `Unable to create repair ticket: ${Array.isArray(serverMessage) ? serverMessage.join(', ') : serverMessage}`
+          : 'Unable to create repair ticket. Please try again.'
+      );
     } finally {
       setSaving(false);
     }
