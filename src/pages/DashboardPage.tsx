@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { RepairTicket } from '../types';
 import { formatDate } from '../lib/utils/format';
 import { StatusBadge } from '../components/shared/StatusBadge';
@@ -6,6 +7,8 @@ import { Button } from '../components/ui/Button';
 import { REPAIR_VOLUME, SAMPLE_REPAIRS, STATUS_DISTRIBUTION } from '../lib/mockData';
 import { downloadRepairsCSV } from '../lib/export';
 import { SAMPLE_AUDITS, REPORT_STATS } from '../lib/mockAudit';
+import { useAuthStore } from '../store/authStore';
+import { getRepairs } from '../lib/api/repairApi';
 
 const statusLabels: Record<string, string> = {
   PENDING: 'Pending',
@@ -23,7 +26,7 @@ const orderedStatus: Array<keyof typeof STATUS_DISTRIBUTION> = [
   'CANCELLED',
 ];
 
-export function DashboardPage() {
+function AdminDashboard() {
   const [repairs, setRepairs] = useState<RepairTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -336,4 +339,142 @@ export function DashboardPage() {
       </div>
     </div>
   );
+}
+
+// ── Mechanic Dashboard ────────────────────────────────────────────────────────
+
+function MechanicDashboard() {
+  const user = useAuthStore((state) => state.user);
+  const [repairs, setRepairs] = useState<RepairTicket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getRepairs();
+        setRepairs(data);
+      } catch {
+        setError('Unable to load your assigned repairs.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const activeRepairs = useMemo(
+    () => repairs.filter((r) => r.status === 'PENDING' || r.status === 'IN_PROGRESS'),
+    [repairs],
+  );
+
+  const pendingCount = repairs.filter((r) => r.status === 'PENDING').length;
+  const inProgressCount = repairs.filter((r) => r.status === 'IN_PROGRESS').length;
+  const forVerificationCount = repairs.filter((r) => r.status === 'FOR_VERIFICATION').length;
+
+  const overdue = useMemo(
+    () =>
+      repairs.filter(
+        (r) =>
+          r.targetDueDate &&
+          new Date(r.targetDueDate) < new Date() &&
+          r.status !== 'COMPLETED' &&
+          r.status !== 'CANCELLED',
+      ),
+    [repairs],
+  );
+
+  return (
+    <div className="dashboard-page">
+      <div className="dashboard-header">
+        <div>
+          <p className="eyebrow">Mechanic dashboard</p>
+          <h2 className="page-title">My assigned repairs</h2>
+          <p className="page-subtitle">
+            Welcome back, <strong>{user?.name ?? 'Mechanic'}</strong>. Here are your current assignments.
+          </p>
+        </div>
+      </div>
+
+      <div className="dashboard-grid">
+        {[
+          { label: 'Pending', value: pendingCount, note: 'Not yet started.' },
+          { label: 'In Progress', value: inProgressCount, note: 'Currently being worked on.' },
+          { label: 'For Verification', value: forVerificationCount, note: 'Awaiting admin sign-off.' },
+          { label: 'Total Active', value: activeRepairs.length, note: 'All tickets assigned to you.' },
+        ].map((card) => (
+          <div key={card.label} className="card summary-card">
+            <p className="summary-label">{card.label}</p>
+            <p className="summary-value">{card.value}</p>
+            <p className="summary-note">{card.note}</p>
+          </div>
+        ))}
+      </div>
+
+      {overdue.length > 0 && (
+        <div className="alert">
+          <strong>Overdue:</strong>{' '}
+          {overdue.length} ticket{overdue.length === 1 ? '' : 's'} passed their target due date.
+        </div>
+      )}
+
+      <div className="card">
+        <div className="page-header">
+          <div>
+            <h3>My active tickets</h3>
+            <p className="page-subtitle">Tickets currently assigned to you.</p>
+          </div>
+          <Link to="/repairs" className="button secondary">
+            View all
+          </Link>
+        </div>
+
+        {loading ? (
+          <p>Loading your repairs…</p>
+        ) : error ? (
+          <div className="alert">{error}</div>
+        ) : activeRepairs.length === 0 ? (
+          <p style={{ color: 'var(--muted)' }}>No active repairs assigned to you right now.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Repair #</th>
+                <th>Vehicle</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeRepairs.map((repair) => (
+                <tr key={repair.id}>
+                  <td>{repair.repairNumber}</td>
+                  <td>{repair.vehiclePlate}</td>
+                  <td>
+                    <StatusBadge status={repair.status} />
+                  </td>
+                  <td>{formatDate(repair.updatedAt)}</td>
+                  <td>
+                    <Link to={`/repairs/${repair.id}`} style={{ color: '#1d4ed8', fontWeight: 700 }}>
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Role-switching entry point ─────────────────────────────────────────────────
+
+export function DashboardPage() {
+  const user = useAuthStore((state) => state.user);
+  return user?.role === 'MECHANIC' ? <MechanicDashboard /> : <AdminDashboard />;
 }

@@ -9,6 +9,7 @@ import { RepairListPage } from './pages/RepairListPage';
 import { UsersPage } from './pages/UsersPage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
+import { UserRole } from './types';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = useAuthStore((state) => state.token);
@@ -16,6 +17,16 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+}
+
+function RequireRole({ role, children }: { role: UserRole; children: JSX.Element }) {
+  const user = useAuthStore((state) => state.user);
+
+  if (!user || user.role !== role) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
@@ -36,10 +47,24 @@ function App() {
         <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="repairs" element={<RepairListPage />} />
-        <Route path="repairs/new" element={<RepairFormPage />} />
+        <Route
+          path="repairs/new"
+          element={
+            <RequireRole role="ADMIN">
+              <RepairFormPage />
+            </RequireRole>
+          }
+        />
         <Route path="repairs/:repairId" element={<RepairDetailPage />} />
         <Route path="history" element={<HistoryPage />} />
-        <Route path="users" element={<UsersPage />} />
+        <Route
+          path="users"
+          element={
+            <RequireRole role="ADMIN">
+              <UsersPage />
+            </RequireRole>
+          }
+        />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
