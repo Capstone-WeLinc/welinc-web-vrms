@@ -1,23 +1,19 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createRepair } from '../lib/api/repairApi';
-import { CreateRepairPayload, MechanicAssignment, PriorityLevel, RepairStatus } from '../types';
+import { getGarages, getVehicles, getAvailableMechanics, GarageOption, VehicleOption, MechanicOption } from '../lib/api/vrmsConfigApi';
+import { CreateRepairPayload, MechanicAssignment, PriorityLevel } from '../types';
 import { Button } from '../components/ui/Button';
 import {
   ACCOUNT_TYPE_OPTIONS,
   CORPORATION_OPTIONS,
-  GARAGE_LOCATION_OPTIONS,
-  MECHANIC_OPTIONS,
   ROOT_CAUSE_OPTIONS,
   SHOP_OPTIONS,
-  VEHICLE_PLATE_OPTIONS,
   VEHICLE_SYSTEM_OPTIONS,
   PRIORITY_OPTIONS,
-  getActiveMechanicIds,
   loadDriverNames,
   saveDriverName,
 } from '../lib/mockConfig';
-import { SAMPLE_REPAIRS } from '../lib/mockData';
 
 function createNewIssue() {
   return {
@@ -40,10 +36,18 @@ export function RepairFormPage() {
   const navigate = useNavigate();
   const [accountType, setAccountType] = useState<'ONLINE' | 'CORPORATE'>('ONLINE');
   const [corporation, setCorporation] = useState<string>(CORPORATION_OPTIONS[0]);
-  const [vehiclePlate, setVehiclePlate] = useState<string>(VEHICLE_PLATE_OPTIONS[0]);
+
+  // --- Live data from API ---
+  const [garages, setGarages] = useState<GarageOption[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+  const [mechanicOptions, setMechanicOptions] = useState<MechanicOption[]>([]);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [configError, setConfigError] = useState<string | null>(null);
+
+  const [vehiclePlate, setVehiclePlate] = useState<string>('');
   const [driverName, setDriverName] = useState('');
   const [driverSuggestions, setDriverSuggestions] = useState<string[]>([]);
-  const [garageLocation, setGarageLocation] = useState<string>(GARAGE_LOCATION_OPTIONS[0]);
+  const [garageLocation, setGarageLocation] = useState<string>('');
   const [odometerReading, setOdometerReading] = useState('');
   const [priority, setPriority] = useState<PriorityLevel>('MEDIUM');
   const [mechanicSelection, setMechanicSelection] = useState('');
@@ -57,11 +61,36 @@ export function RepairFormPage() {
   const [error, setError] = useState<string | null>(null);
   const [issueError, setIssueError] = useState<string | null>(null);
 
+  // Load driver suggestions from localStorage
   useEffect(() => {
     setDriverSuggestions(loadDriverNames());
   }, []);
 
-  const unavailableMechanicIds = useMemo(() => getActiveMechanicIds(SAMPLE_REPAIRS), []);
+  // Load live config from API
+  useEffect(() => {
+    let cancelled = false;
+    setConfigLoading(true);
+    setConfigError(null);
+
+    Promise.all([getGarages(), getVehicles(), getAvailableMechanics()])
+      .then(([garageData, vehicleData, mechanicData]) => {
+        if (cancelled) return;
+        setGarages(garageData);
+        setVehicles(vehicleData);
+        setMechanicOptions(mechanicData);
+        // Set defaults once data arrives
+        if (vehicleData.length > 0) setVehiclePlate(vehicleData[0].plateNumber);
+        if (garageData.length > 0) setGarageLocation(garageData[0].name);
+      })
+      .catch(() => {
+        if (!cancelled) setConfigError('Failed to load form options. Please refresh and try again.');
+      })
+      .finally(() => {
+        if (!cancelled) setConfigLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   const assignedMechanicIds = useMemo(() => new Set(assignedMechanics.map((mechanic) => mechanic.id)), [assignedMechanics]);
 
@@ -88,7 +117,7 @@ export function RepairFormPage() {
       return;
     }
 
-    const mechanic = MECHANIC_OPTIONS.find((item) => item.id === mechanicSelection);
+    const mechanic = mechanicOptions.find((item) => item.id === mechanicSelection);
     if (!mechanic) {
       setError('Select a valid mechanic.');
       return;
@@ -229,6 +258,11 @@ export function RepairFormPage() {
   return (
     <div>
       <h2 className="page-title">New Repair Ticket</h2>
+      {configLoading ? (
+        <div className="card"><p>Loading form options...</p></div>
+      ) : configError ? (
+        <div className="card"><div className="alert">{configError}</div></div>
+      ) : (
       <div className="card" style={{ maxWidth: 940 }}>
         <form onSubmit={handleSubmit}>
           <div className="field-grid">
@@ -280,9 +314,9 @@ export function RepairFormPage() {
                 value={vehiclePlate}
                 onChange={(event) => setVehiclePlate(event.target.value)}
               >
-                {VEHICLE_PLATE_OPTIONS.map((plate) => (
-                  <option key={plate} value={plate}>
-                    {plate}
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.plateNumber}>
+                    {v.plateNumber} — {v.model}
                   </option>
                 ))}
               </select>
@@ -319,9 +353,9 @@ export function RepairFormPage() {
                 value={garageLocation}
                 onChange={(event) => setGarageLocation(event.target.value)}
               >
-                {GARAGE_LOCATION_OPTIONS.map((location) => (
-                  <option key={location} value={location}>
-                    {location}
+                {garages.map((g) => (
+                  <option key={g.id} value={g.name}>
+                    {g.name}
                   </option>
                 ))}
               </select>
@@ -383,14 +417,14 @@ export function RepairFormPage() {
                   onChange={(event) => setMechanicSelection(event.target.value)}
                 >
                   <option value="">Choose a mechanic</option>
-                  {MECHANIC_OPTIONS.map((mechanic) => (
+                  {mechanicOptions.map((mechanic) => (
                     <option
                       key={mechanic.id}
                       value={mechanic.id}
-                      disabled={unavailableMechanicIds.includes(mechanic.id)}
+                      disabled={!mechanic.isAvailable || assignedMechanicIds.has(mechanic.id)}
                     >
                       {mechanic.name}
-                      {unavailableMechanicIds.includes(mechanic.id) ? ' (assigned)' : ''}
+                      {!mechanic.isAvailable ? ' (assigned)' : ''}
                     </option>
                   ))}
                   <option value="OTHER">Other (Outsourced)</option>
@@ -567,6 +601,7 @@ export function RepairFormPage() {
           </div>
         </form>
       </div>
+      )}
     </div>
   );
 }

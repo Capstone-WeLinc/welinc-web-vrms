@@ -20,6 +20,8 @@ export interface ManagedUser {
   name: string;
   username: string;
   isActive: boolean;
+  isLocked: boolean;
+  lockedAt: string | null;
   createdAt: string;
   updatedAt: string;
   roles: UserRoleAssignment[];
