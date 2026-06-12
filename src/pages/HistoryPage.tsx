@@ -3,8 +3,17 @@ import { Link } from 'react-router-dom';
 import { getRepairHistory } from '../lib/api/repairApi';
 import { RepairTicket } from '../types';
 import { buildStatusClass, formatDate } from '../lib/utils/format';
+import { useAuthStore } from '../store/authStore';
+
+function formatCurrency(val?: number | null): string {
+  if (val == null) return '—';
+  return `₱${val.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+}
 
 export function HistoryPage() {
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'ADMIN';
+
   const [repairs, setRepairs] = useState<RepairTicket[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -57,25 +66,41 @@ export function HistoryPage() {
               <tr>
                 <th>Repair #</th>
                 <th>Vehicle</th>
+                <th>Driver</th>
+                <th>Garage</th>
                 <th>Status</th>
+                {isAdmin && <th>Total Cost</th>}
                 <th>Closed At</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {repairs.map((repair) => (
                 <tr key={repair.id}>
                   <td>
-                    <Link to={`/repairs/${repair.id}`} style={{ color: '#1d4ed8' }}>
+                    <Link to={`/repairs/${repair.id}`} style={{ color: '#1d4ed8', fontWeight: 600 }}>
                       {repair.repairNumber}
                     </Link>
                   </td>
                   <td>{repair.vehiclePlate}</td>
+                  <td>{repair.driverName}</td>
+                  <td>{repair.garageLocation ?? '—'}</td>
                   <td>
                     <span className={buildStatusClass(repair.status)}>
-                      {repair.status.replace('_', ' ')}
+                      {repair.status.replace(/_/g, ' ')}
                     </span>
                   </td>
-                  <td>{formatDate(repair.updatedAt)}</td>
+                  {isAdmin && <td>{formatCurrency(repair.totalCost)}</td>}
+                  <td>{formatDate(repair.completedAt ?? repair.updatedAt)}</td>
+                  <td>
+                    <Link
+                      to={`/repairs/${repair.id}`}
+                      className="button secondary"
+                      style={{ fontSize: 12, padding: '4px 12px' }}
+                    >
+                      View
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

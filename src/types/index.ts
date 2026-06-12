@@ -68,6 +68,24 @@ export interface ShopChangeLog {
   changedAt: string;
 }
 
+export interface RepairPart {
+  id: string;
+  description: string;
+  unitCost: number;
+  quantity: number;
+  subtotal: number;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  username: string;
+  action: string;
+  fieldName?: string;
+  previousValue?: string;
+  newValue?: string;
+  createdAt: string;
+}
+
 export interface RepairTicket {
   id: string;
   repairNumber: string;
@@ -77,7 +95,8 @@ export interface RepairTicket {
   status: RepairStatus;
   createdAt: string;
   updatedAt: string;
-  totalCost?: number;
+  completedAt?: string | null;
+  totalCost?: number | null;
   accountType?: AccountType;
   corporation?: string;
   garageLocation?: string;
@@ -92,8 +111,15 @@ export interface RepairTicket {
   repairDurationDays?: number;
   repairDurationHours?: number;
   cancellationReason?: string;
-  labourCost?: number;
-  partsCost?: number;
+  failedVerificationReason?: string;
+  laborCost?: number | null;
+  partsCost?: number | null;
+  isLumpSum?: boolean;
+  isUnlocked?: boolean;
+  unlockReason?: string;
+  driverIsVerified?: boolean;
+  repairParts?: RepairPart[];
+  auditLog?: AuditLogEntry[];
 }
 
 export interface CreateRepairPayload {
