@@ -1,14 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { 
+  Wrench, 
+  ClipboardList, 
+  AlertTriangle, 
+  CheckCircle2, 
+  DollarSign, 
+  TrendingUp, 
+  Truck,
+  LayoutDashboard
+} from 'lucide-react';
 import { RepairTicket } from '../types';
 import { formatDate } from '../lib/utils/format';
 import { StatusBadge } from '../components/shared/StatusBadge';
 import { Button } from '../components/ui/Button';
 import { REPAIR_VOLUME, SAMPLE_REPAIRS, STATUS_DISTRIBUTION } from '../lib/mockData';
-import { downloadRepairsCSV } from '../lib/export';
-import { SAMPLE_AUDITS, REPORT_STATS } from '../lib/mockAudit';
+import { downloadRepairsCSV, downloadSummaryCSV } from '../lib/export';
+import { SAMPLE_AUDITS } from '../lib/mockAudit';
 import { useAuthStore } from '../store/authStore';
-import { getRepairs } from '../lib/api/repairApi';
+import { getRepairs, getRepairHistory } from '../lib/api/repairApi';
+import { PageHeader } from '../components/layout/PageHeader';
 
 const statusLabels: Record<string, string> = {
   PENDING: 'Pending',
@@ -18,7 +29,7 @@ const statusLabels: Record<string, string> = {
   CANCELLED: 'Cancelled',
 };
 
-const orderedStatus: Array<keyof typeof STATUS_DISTRIBUTION> = [
+const orderedStatus: Array<string> = [
   'PENDING',
   'IN_PROGRESS',
   'FOR_VERIFICATION',
@@ -32,13 +43,23 @@ function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setRepairs(SAMPLE_REPAIRS);
-      setLoading(false);
+    async function load() {
+      setLoading(true);
       setError(null);
-    }, 260);
-
-    return () => window.clearTimeout(timer);
+      try {
+        const [activeData, historyData] = await Promise.all([
+          getRepairs(),
+          getRepairHistory(),
+        ]);
+        setRepairs([...activeData, ...historyData]);
+      } catch (err) {
+        console.error('Failed to load repairs:', err);
+        setError('Unable to load repair tickets.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
   const summary = useMemo(
@@ -70,8 +91,63 @@ function AdminDashboard() {
     [repairs],
   );
 
-  const auditCount = REPORT_STATS.audits;
-  const lastAudit = REPORT_STATS.lastAudit ? new Date(REPORT_STATS.lastAudit) : null;
+  const latestRepairs = useMemo(
+    () => [...repairs].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 8),
+    [repairs],
+  );
+
+  const statusDistribution = useMemo(() => {
+    const dist: Record<string, number> = {
+      PENDING: 0,
+      IN_PROGRESS: 0,
+      FOR_VERIFICATION: 0,
+      COMPLETED: 0,
+      CANCELLED: 0,
+    };
+    repairs.forEach((r) => {
+      if (r.status in dist) {
+        dist[r.status]++;
+      }
+    });
+    return dist;
+  }, [repairs]);
+
+  const repairVolume = useMemo(() => {
+    const weeks = [
+      { label: 'Week 1', repairs: 0 },
+      { label: 'Week 2', repairs: 0 },
+      { label: 'Week 3', repairs: 0 },
+      { label: 'Week 4', repairs: 0 },
+      { label: 'Week 5', repairs: 0 },
+    ];
+    repairs.forEach((r) => {
+      const date = new Date(r.createdAt);
+      const day = date.getDate();
+      if (day <= 7) weeks[0].repairs++;
+      else if (day <= 14) weeks[1].repairs++;
+      else if (day <= 21) weeks[2].repairs++;
+      else if (day <= 28) weeks[3].repairs++;
+      else weeks[4].repairs++;
+    });
+    return weeks;
+  }, [repairs]);
+
+  const monthlyStats = useMemo(() => {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const currentMonthRepairs = repairs.filter((r) => {
+      const date = new Date(r.createdAt);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+    const totalCost = currentMonthRepairs.reduce((sum, r) => sum + (r.totalCost ?? 0), 0);
+    return {
+      count: currentMonthRepairs.length,
+      cost: totalCost,
+    };
+  }, [repairs]);
+
+  const auditCount = SAMPLE_AUDITS.length;
+  const lastAudit = SAMPLE_AUDITS[0] ? new Date(SAMPLE_AUDITS[0].timestamp) : null;
 
   const alerts: string[] = [];
   if (summary.forVerification > 0) {
@@ -86,21 +162,33 @@ function AdminDashboard() {
       label: 'Total repairs',
       value: summary.total,
       note: 'All repair tickets in the current period.',
+      icon: Wrench,
+      color: 'var(--primary)',
+      bgColor: 'var(--primary-soft)',
     },
     {
       label: 'Open tickets',
       value: summary.open,
       note: 'Tickets currently in progress or awaiting review.',
+      icon: ClipboardList,
+      color: 'var(--warning)',
+      bgColor: 'var(--warning-soft)',
     },
     {
       label: 'Pending verification',
       value: summary.forVerification,
       note: 'Repairs waiting approval before completion.',
+      icon: AlertTriangle,
+      color: 'var(--danger)',
+      bgColor: 'var(--danger-soft)',
     },
     {
       label: 'Completed',
       value: summary.completed,
       note: 'Repair tickets already closed out.',
+      icon: CheckCircle2,
+      color: 'var(--success)',
+      bgColor: 'var(--success-soft)',
     },
   ];
 
@@ -109,42 +197,57 @@ function AdminDashboard() {
       label: 'Total repair cost',
       value: `₱${totalCost.toLocaleString()}`,
       note: 'Projected spend for all active repair tickets.',
+      icon: DollarSign,
+      color: '#8b5cf6',
+      bgColor: 'rgba(139, 92, 246, 0.1)',
     },
     {
       label: 'Average cost',
       value: `₱${averageCost.toLocaleString()}`,
       note: 'Average cost per repair ticket.',
+      icon: TrendingUp,
+      color: '#3b82f6',
+      bgColor: 'rgba(59, 130, 246, 0.1)',
     },
   ];
 
   const reportButtons = ['Daily', 'Monthly', 'Yearly'];
 
-  const chartMax = Math.max(...REPAIR_VOLUME.map((item) => item.repairs), 1);
+  const chartMax = Math.max(...repairVolume.map((item) => item.repairs), 1);
 
   return (
     <div className="dashboard-page">
-      <div className="dashboard-header">
-        <div>
-          <p className="eyebrow">Operations dashboard</p>
-          <h2 className="page-title">Vehicle repair management</h2>
-          <p className="page-subtitle">
-            Monitor ticket flow, status changes, and repair costs with temporary preview data.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Button type="button" onClick={() => downloadRepairsCSV(repairs)}>Export CSV</Button>
-          <Button type="button">Export summary</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Vehicle Repair Management"
+        subtitle="Monitor ticket flow, status changes, and repair costs with live data."
+        icon={LayoutDashboard}
+        action={
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Button type="button" onClick={() => downloadRepairsCSV(repairs)}>Export CSV</Button>
+            <Button type="button" onClick={() => downloadSummaryCSV({ ...summary, totalCost, averageCost })}>Export summary</Button>
+          </div>
+        }
+      />
 
       <div className="dashboard-grid">
-        {summaryCards.map((card) => (
-          <div key={card.label} className="card summary-card">
-            <p className="summary-label">{card.label}</p>
-            <p className="summary-value">{card.value}</p>
-            <p className="summary-note">{card.note}</p>
-          </div>
-        ))}
+        {summaryCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div key={card.label} className="card summary-card" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="stat-card-header">
+                <div 
+                  className="stat-card-icon-container" 
+                  style={{ background: card.bgColor, color: card.color }}
+                >
+                  <Icon size={20} strokeWidth={1.8} />
+                </div>
+              </div>
+              <div className="stat-card-value">{card.value}</div>
+              <div className="stat-card-label">{card.label}</div>
+              <div className="stat-card-note">{card.note}</div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="dashboard-grid dashboard-grid-2">
@@ -156,7 +259,7 @@ function AdminDashboard() {
             </div>
           </div>
           <div className="chart-card">
-            {REPAIR_VOLUME.map((item) => (
+            {repairVolume.map((item) => (
               <div key={item.label} className="chart-row">
                 <span className="chart-label">{item.label}</span>
                 <div className="chart-track">
@@ -179,7 +282,7 @@ function AdminDashboard() {
             {orderedStatus.map((statusKey) => (
               <div key={statusKey} className="status-summary-card">
                 <p className="status-name">{statusLabels[statusKey]}</p>
-                <p className="status-value">{STATUS_DISTRIBUTION[statusKey]}</p>
+                <p className="status-value">{statusDistribution[statusKey]}</p>
               </div>
             ))}
           </div>
@@ -197,13 +300,24 @@ function AdminDashboard() {
       )}
 
       <div className="dashboard-grid">
-        {highlightCards.map((card) => (
-          <div key={card.label} className="card card-highlight">
-            <p className="summary-label">{card.label}</p>
-            <p className="summary-value">{card.value}</p>
-            <p className="summary-note">{card.note}</p>
-          </div>
-        ))}
+        {highlightCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div key={card.label} className="card card-highlight" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="stat-card-header">
+                <div 
+                  className="stat-card-icon-container" 
+                  style={{ background: card.bgColor, color: card.color }}
+                >
+                  <Icon size={20} strokeWidth={1.8} />
+                </div>
+              </div>
+              <div className="stat-card-value">{card.value}</div>
+              <div className="stat-card-label">{card.label}</div>
+              <div className="stat-card-note">{card.note}</div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="dashboard-grid report-grid">
@@ -233,7 +347,7 @@ function AdminDashboard() {
 
         <div className="card report-card">
           <h3 className="subheading">Reports & exports</h3>
-          <p style={{ color: 'var(--muted)' }}>Generate quick reports for management (dummy preview).</p>
+          <p style={{ color: 'var(--muted)' }}>Generate quick reports for management.</p>
           <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
             {reportButtons.map((label) => (
               <Button key={label} type="button">
@@ -244,8 +358,8 @@ function AdminDashboard() {
 
           <div style={{ marginTop: 14 }}>
             <p style={{ margin: 0, color: 'var(--muted)' }}>This preview shows monthly repair volume and cost estimates.</p>
-            <p style={{ marginTop: 6, fontWeight: 700 }}>Repairs this month: {REPORT_STATS.monthlyRepairs}</p>
-            <p style={{ margin: 0, color: 'var(--muted)' }}>Estimated cost: ₱{REPORT_STATS.monthlyCost.toLocaleString()}</p>
+            <p style={{ marginTop: 6, fontWeight: 700 }}>Repairs this month: {monthlyStats.count}</p>
+            <p style={{ margin: 0, color: 'var(--muted)' }}>Estimated cost: ₱{monthlyStats.cost.toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -256,9 +370,9 @@ function AdminDashboard() {
             <h3>Latest repair tickets</h3>
             <p className="page-subtitle">Recent tickets, status, and cost snapshot.</p>
           </div>
-          <Button variant="secondary" type="button">
+          <Link to="/history" className="button secondary">
             View all history
-          </Button>
+          </Link>
         </div>
 
         {loading ? (
@@ -306,7 +420,7 @@ function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {repairs.slice(0, 8).map((repair) => (
+              {latestRepairs.map((repair) => (
                 <tr key={repair.id}>
                   <td>{repair.repairNumber}</td>
                   <td>{repair.vehiclePlate}</td>
@@ -366,7 +480,10 @@ function MechanicDashboard() {
   }, []);
 
   const activeRepairs = useMemo(
-    () => repairs.filter((r) => r.status === 'PENDING' || r.status === 'IN_PROGRESS'),
+    () =>
+      repairs
+        .filter((r) => r.status === 'PENDING' || r.status === 'IN_PROGRESS')
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
     [repairs],
   );
 
@@ -386,31 +503,68 @@ function MechanicDashboard() {
     [repairs],
   );
 
+  const mechanicSummaryCards = [
+    {
+      label: 'Pending',
+      value: pendingCount,
+      note: 'Not yet started.',
+      icon: ClipboardList,
+      color: 'var(--warning)',
+      bgColor: 'var(--warning-soft)',
+    },
+    {
+      label: 'In Progress',
+      value: inProgressCount,
+      note: 'Currently being worked on.',
+      icon: Wrench,
+      color: '#3b82f6',
+      bgColor: 'rgba(59, 130, 246, 0.1)',
+    },
+    {
+      label: 'For Verification',
+      value: forVerificationCount,
+      note: 'Awaiting admin sign-off.',
+      icon: AlertTriangle,
+      color: 'var(--danger)',
+      bgColor: 'var(--danger-soft)',
+    },
+    {
+      label: 'Total Active',
+      value: activeRepairs.length,
+      note: 'All tickets assigned to you.',
+      icon: Truck,
+      color: 'var(--primary)',
+      bgColor: 'var(--primary-soft)',
+    },
+  ];
+
   return (
     <div className="dashboard-page">
-      <div className="dashboard-header">
-        <div>
-          <p className="eyebrow">Mechanic dashboard</p>
-          <h2 className="page-title">My assigned repairs</h2>
-          <p className="page-subtitle">
-            Welcome back, <strong>{user?.name ?? 'Mechanic'}</strong>. Here are your current assignments.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="My Assigned Repairs"
+        subtitle={`Welcome back, ${user?.name ?? 'Mechanic'}. Here are your current assignments.`}
+        icon={LayoutDashboard}
+      />
 
       <div className="dashboard-grid">
-        {[
-          { label: 'Pending', value: pendingCount, note: 'Not yet started.' },
-          { label: 'In Progress', value: inProgressCount, note: 'Currently being worked on.' },
-          { label: 'For Verification', value: forVerificationCount, note: 'Awaiting admin sign-off.' },
-          { label: 'Total Active', value: activeRepairs.length, note: 'All tickets assigned to you.' },
-        ].map((card) => (
-          <div key={card.label} className="card summary-card">
-            <p className="summary-label">{card.label}</p>
-            <p className="summary-value">{card.value}</p>
-            <p className="summary-note">{card.note}</p>
-          </div>
-        ))}
+        {mechanicSummaryCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div key={card.label} className="card summary-card" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="stat-card-header">
+                <div 
+                  className="stat-card-icon-container" 
+                  style={{ background: card.bgColor, color: card.color }}
+                >
+                  <Icon size={20} strokeWidth={1.8} />
+                </div>
+              </div>
+              <div className="stat-card-value">{card.value}</div>
+              <div className="stat-card-label">{card.label}</div>
+              <div className="stat-card-note">{card.note}</div>
+            </div>
+          );
+        })}
       </div>
 
       {overdue.length > 0 && (

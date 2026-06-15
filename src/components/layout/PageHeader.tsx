@@ -1,19 +1,26 @@
 import { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
+  icon: LucideIcon;
   action?: ReactNode;
 }
 
-export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, icon: Icon, action }: PageHeaderProps) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 24 }}>
-      <div>
-        <h2 className="page-title">{title}</h2>
-        {subtitle ? <p style={{ margin: 0, color: '#475569' }}>{subtitle}</p> : null}
+    <header className="page-header-container">
+      <div className="page-header-left">
+        <div className="page-header-icon-box">
+          <Icon size={24} strokeWidth={1.8} />
+        </div>
+        <div className="page-header-text">
+          <h1 className="page-header-title">{title}</h1>
+          {subtitle && <p className="page-header-subtitle">{subtitle}</p>}
+        </div>
       </div>
-      {action ? <div>{action}</div> : null}
-    </div>
+      {action && <div className="page-header-action">{action}</div>}
+    </header>
   );
 }

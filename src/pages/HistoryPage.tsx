@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { History } from 'lucide-react';
 import { getRepairHistory } from '../lib/api/repairApi';
 import { RepairTicket } from '../types';
-import { buildStatusClass, formatDate } from '../lib/utils/format';
+import { formatDate } from '../lib/utils/format';
 import { useAuthStore } from '../store/authStore';
+import { PageHeader } from '../components/layout/PageHeader';
+import { StatusBadge } from '../components/shared/StatusBadge';
 
 function formatCurrency(val?: number | null): string {
   if (val == null) return '—';
@@ -38,7 +41,11 @@ export function HistoryPage() {
 
   return (
     <div>
-      <h2 className="page-title">Repair History</h2>
+      <PageHeader
+        title="Repair History"
+        subtitle="Historical log of all completed and cancelled repairs."
+        icon={History}
+      />
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="input-group">
           <label className="label" htmlFor="historySearch">
@@ -78,7 +85,7 @@ export function HistoryPage() {
               {repairs.map((repair) => (
                 <tr key={repair.id}>
                   <td>
-                    <Link to={`/repairs/${repair.id}`} style={{ color: '#1d4ed8', fontWeight: 600 }}>
+                    <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
                       {repair.repairNumber}
                     </Link>
                   </td>
@@ -86,9 +93,7 @@ export function HistoryPage() {
                   <td>{repair.driverName}</td>
                   <td>{repair.garageLocation ?? '—'}</td>
                   <td>
-                    <span className={buildStatusClass(repair.status)}>
-                      {repair.status.replace(/_/g, ' ')}
-                    </span>
+                    <StatusBadge status={repair.status} />
                   </td>
                   {isAdmin && <td>{formatCurrency(repair.totalCost)}</td>}
                   <td>{formatDate(repair.completedAt ?? repair.updatedAt)}</td>

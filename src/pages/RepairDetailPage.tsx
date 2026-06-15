@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Wrench } from 'lucide-react';
 import {
   getRepair,
   updateRepairStatus,
@@ -248,7 +249,7 @@ export function RepairDetailPage() {
   if (loading) {
     return (
       <div>
-        <PageHeader title="Repair Details" subtitle="Loading…" action={<Button onClick={() => navigate('/repairs')} variant="secondary">Back</Button>} />
+        <PageHeader title="Repair Details" subtitle="Loading…" icon={Wrench} action={<Button onClick={() => navigate('/repairs')} variant="secondary">Back</Button>} />
         <div className="card">Loading repair details…</div>
       </div>
     );
@@ -257,7 +258,7 @@ export function RepairDetailPage() {
   if (error && !repair) {
     return (
       <div>
-        <PageHeader title="Repair Details" subtitle="" action={<Button onClick={() => navigate('/repairs')} variant="secondary">Back</Button>} />
+        <PageHeader title="Repair Details" subtitle="" icon={Wrench} action={<Button onClick={() => navigate('/repairs')} variant="secondary">Back</Button>} />
         <div className="card alert">{error}</div>
       </div>
     );
@@ -272,11 +273,12 @@ export function RepairDetailPage() {
       <PageHeader
         title="Repair Details"
         subtitle="View or update a repair ticket."
+        icon={Wrench}
         action={
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {isAdmin && isTerminal && !repair.isUnlocked && (
               <Button onClick={() => setShowUnlockModal(true)} variant="secondary">
-                🔓 Unlock Ticket
+                Unlock Ticket
               </Button>
             )}
             <Button onClick={() => navigate('/repairs')} variant="secondary">
@@ -299,7 +301,7 @@ export function RepairDetailPage() {
             <StatusBadge status={repair.status} />
             {repair.isUnlocked && (
               <span style={{ background: '#fef3c7', color: '#92400e', padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
-                🔓 Unlocked for editing
+                Unlocked for editing
               </span>
             )}
             <p style={{ margin: 0, color: '#475569' }}>Updated {formatDate(repair.updatedAt)}</p>
@@ -433,7 +435,7 @@ export function RepairDetailPage() {
           {/* ── Cost Encoding Panel (Admin only, available at FOR_VERIFICATION+) ─ */}
           {showCostPanel && (
             <div className="issue-card" style={{ border: '1px solid #3b82f6', background: '#eff6ff' }}>
-              <p className="label" style={{ marginTop: 0, color: '#1d4ed8' }}>💰 Cost Encoding</p>
+              <p className="label" style={{ marginTop: 0, color: '#1d4ed8' }}>Cost Encoding</p>
 
               {/* Mode toggle */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -709,7 +711,7 @@ export function RepairDetailPage() {
           {isLocked && (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16 }}>
               <p style={{ margin: 0, color: '#64748b', fontSize: 14 }}>
-                🔒 This ticket is <strong>locked</strong> (status: {repair.status.replace('_', ' ')}).
+                This ticket is <strong>locked</strong> (status: {repair.status.replace('_', ' ')}).
                 {isAdmin && ' Use the "Unlock Ticket" button above to make edits (reason required).'}
               </p>
               <div style={{ marginTop: 12 }}>
@@ -736,7 +738,7 @@ export function RepairDetailPage() {
               maxWidth: 480, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
             }}
           >
-            <h3 style={{ margin: '0 0 8px' }}>🔓 Unlock Ticket</h3>
+            <h3 style={{ margin: '0 0 8px' }}>Unlock Ticket</h3>
             <p style={{ color: '#64748b', marginBottom: 20, fontSize: 14 }}>
               You are about to unlock this <strong>{repair.status.replace('_', ' ')}</strong> ticket for editing.
               This action will be permanently recorded in the audit log.

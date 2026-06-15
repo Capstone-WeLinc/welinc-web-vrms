@@ -1,102 +1,110 @@
-import { FormEvent, useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import logo from '../assets/brand-logo.jpg';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { Button } from '../components/ui/Button';
+
+function decodeJwt<T>(token: string): T {
+  const [, payload] = token.split('.');
+  if (!payload) {
+    throw new Error('Invalid token');
+  }
+  const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+  const json = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join(''),
+  );
+  return JSON.parse(json) as T;
+}
 
 export function LoginPage() {
-  const login = useAuthStore((state) => state.login);
-  const isLoading = useAuthStore((state) => state.isLoading);
-  const token = useAuthStore((state) => state.token);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: Location })?.from?.pathname || '/dashboard';
+  const [searchParams] = useSearchParams();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (token) {
-      navigate(from, { replace: true });
+    const ssoToken = searchParams.get('token');
+    if (!ssoToken) {
+      // Redirect directly to the portal login
+      const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
+      window.location.href = `${portalUrl}/login`;
+      return;
     }
-  }, [from, navigate, token]);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
 
     try {
-      await login(username, password);
-      navigate(from, { replace: true });
+      const decoded = decodeJwt<{ sub: string; username: string; roles: any[] }>(ssoToken);
+      
+      // Look for VRMS role assignment
+      const primaryRoleAssignment = decoded.roles?.find(
+        (r) => r.system.toUpperCase() === 'VRMS'
+      ) || decoded.roles?.[0];
+
+      if (!primaryRoleAssignment) {
+        setError('Your account does not have access to the Vehicle Repair Management System (VRMS).');
+        localStorage.clear();
+        return;
+      }
+
+      const user = {
+        id: decoded.sub,
+        username: decoded.username,
+        name: decoded.username,
+        role: (primaryRoleAssignment.role || 'MECHANIC') as any,
+        system: 'VRMS' as any,
+        roles: decoded.roles || [],
+      };
+
+      // Set Zustand store and local storage
+      useAuthStore.setState({ token: ssoToken, user });
+      localStorage.setItem('welinc_token', ssoToken);
+      localStorage.setItem('welinc_user', JSON.stringify(user));
+      
+      navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError('Login failed. Check your credentials and try again.');
+      console.error('Failed to parse SSO token:', err);
+      setError('Invalid or expired authentication token.');
+      localStorage.clear();
     }
-  };
+  }, [searchParams, navigate]);
 
   return (
-    <div className="login-shell">
-      <div className="card login-card">
-        <div className="login-brand">
-          <img src={logo} alt="WeLinc Logistics logo" className="login-logo" />
-          <div>
-            <h1>WeLinc VRMS</h1>
-            <p>Hassle-free repair control for admin and operations.</p>
-          </div>
-        </div>
-
-        <div className="login-welcome">
-          <p>Sign in to monitor repairs, manage tickets, and review live analytics.</p>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label className="label" htmlFor="username">
-              Username
-            </label>
-            <input
-              className="input"
-              id="username"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              placeholder="admin"
-            />
-          </div>
-
-          <div className="input-group">
-            <label className="label" htmlFor="password">
-              Password
-            </label>
-            <div className="password-field">
-              <input
-                className="input password-input"
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword((current) => !current)}
-                aria-pressed={showPassword}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
+    <div className="login-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg)' }}>
+      <div className="card" style={{ maxWidth: 400, width: '100%', padding: 32, textAlign: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}>
+        {error ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ color: 'var(--danger)', display: 'flex', justifyContent: 'center' }}>
+              <AlertCircle size={48} />
             </div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Authentication Failed</h2>
+            <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>{error}</p>
+            <button
+              onClick={() => {
+                const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
+                window.location.href = `${portalUrl}/login`;
+              }}
+              style={{
+                marginTop: 8,
+                backgroundColor: 'var(--primary)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '10px 16px',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              Back to Portal Login
+            </button>
           </div>
-
-          {error ? <div className="alert" style={{ marginBottom: 16 }}>{error}</div> : null}
-
-          <Button type="submit" disabled={isLoading || !username || !password}>
-            {isLoading ? 'Signing in…' : 'Sign In'}
-          </Button>
-        </form>
-
-        <p style={{ textAlign: 'center', marginTop: 32, color: '#475569' }}>
-          Credentials: <strong>admin / admin1234</strong>
-        </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
+            <Loader2 className="animate-spin" style={{ color: 'var(--primary)' }} size={40} />
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Verifying SSO Session</h2>
+            <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>Please wait while we redirect you to your dashboard.</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,19 +1,34 @@
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { 
+  LayoutGrid, 
+  LogOut, 
+  Sun, 
+  Moon, 
+  LayoutDashboard, 
+  Wrench, 
+  PlusCircle, 
+  History, 
+  Users, 
+  PanelLeftClose, 
+  PanelLeftOpen, 
+  User 
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import logo from '../../assets/brand-logo.jpg';
 
 const adminNavItems = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/repairs', label: 'Repair Tickets' },
-  { to: '/repairs/new', label: 'New Repair' },
-  { to: '/history', label: 'Repair History' },
-  { to: '/users', label: 'Users' },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/repairs', label: 'Repair Tickets', icon: Wrench },
+  { to: '/repairs/new', label: 'New Repair', icon: PlusCircle },
+  { to: '/history', label: 'Repair History', icon: History },
+  { to: '/users', label: 'Users', icon: Users },
 ];
 
 const mechanicNavItems = [
-  { to: '/dashboard', label: 'My Dashboard' },
-  { to: '/repairs', label: 'My Repairs' },
-  { to: '/history', label: 'Repair History' },
+  { to: '/dashboard', label: 'My Dashboard', icon: LayoutDashboard },
+  { to: '/repairs', label: 'My Repairs', icon: Wrench },
+  { to: '/history', label: 'Repair History', icon: History },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -23,10 +38,40 @@ const ROLE_LABELS: Record<string, string> = {
   CUSTOMER_SUPPORT: 'Customer Support',
 };
 
-export function Sidebar() {
+interface SidebarProps {
+  onCollapse?: (collapsed: boolean) => void;
+}
+
+export function Sidebar({ onCollapse }: SidebarProps) {
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
+
+  const [collapsed, setCollapsed] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('vrms_theme') || 'light';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('vrms_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const toggleCollapse = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    onCollapse?.(next);
+  };
 
   const navItems = user?.role === 'ADMIN' ? adminNavItems : mechanicNavItems;
   const roleLabel = user?.role ? (ROLE_LABELS[user.role] ?? user.role) : '';
@@ -36,39 +81,103 @@ export function Sidebar() {
     navigate('/login', { replace: true });
   };
 
+  const handleBackToPortal = () => {
+    const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
+    window.location.href = portalUrl;
+  };
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
-          <img src={logo} alt="WeLinc" style={{ width: 46, height: 46, borderRadius: 10 }} />
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>WeLinc VRMS</div>
-            <div style={{ fontSize: 12, color: '#94a3b8' }}>Vehicle Repair System</div>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <img src={logo} alt="WeLinc" style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0 }} />
+          {!collapsed && (
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text)', whiteSpace: 'nowrap' }}>WeLinc VRMS</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Vehicle Repair System</div>
+            </div>
+          )}
         </div>
 
+        {/* User profile layout placed at the top (like VMMS) */}
+        {user && (
+          <div className="sidebar-profile" style={{ display: 'flex', gap: 10, alignItems: 'center', padding: collapsed ? '10px' : '12px 14px' }}>
+            <div className="sidebar-avatar" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: 36,
+              width: 36,
+              borderRadius: 8,
+              background: 'var(--primary)',
+              color: 'white',
+              flexShrink: 0
+            }}>
+              <User size={18} strokeWidth={1.8} />
+            </div>
+            {!collapsed && (
+              <div style={{ minWidth: 0 }}>
+                <div className="sidebar-profile-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+                <div className="sidebar-profile-role" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{roleLabel}</div>
+              </div>
+            )}
+          </div>
+        )}
+
         <nav style={{ marginTop: 8 }}>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-            >
-              {item.label}
-            </NavLink>
-          ))}
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+                title={collapsed ? item.label : undefined}
+              >
+                <Icon size={18} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+                {!collapsed && <span>{item.label}</span>}
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
 
-      <div className="sidebar-footer">
-        {user && (
-          <div style={{ marginBottom: 14, padding: '12px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.07)' }}>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f1f5f9' }}>{user.name}</div>
-            <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: 2 }}>{roleLabel}</div>
-          </div>
-        )}
-        <button className="button secondary" type="button" onClick={handleLogout} style={{ width: '100%' }}>
-          Sign out
+      <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <button 
+          className="sidebar-btn" 
+          type="button" 
+          onClick={toggleTheme}
+          title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+        >
+          {theme === 'light' ? <Moon size={16} style={{ flexShrink: 0 }} /> : <Sun size={16} style={{ flexShrink: 0 }} />}
+          {!collapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
+        </button>
+        <button 
+          className="sidebar-btn" 
+          type="button" 
+          onClick={handleBackToPortal}
+          title="Switch Subsystem"
+        >
+          <LayoutGrid size={16} style={{ flexShrink: 0 }} />
+          {!collapsed && <span>Switch Subsystem</span>}
+        </button>
+        <button 
+          className="sidebar-btn" 
+          type="button" 
+          onClick={toggleCollapse}
+          title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+        >
+          {collapsed ? <PanelLeftOpen size={16} style={{ flexShrink: 0 }} /> : <PanelLeftClose size={16} style={{ flexShrink: 0 }} />}
+          {!collapsed && <span>Collapse</span>}
+        </button>
+        <button 
+          className="sidebar-btn" 
+          type="button" 
+          onClick={handleLogout}
+          title="Sign out"
+        >
+          <LogOut size={16} style={{ flexShrink: 0 }} />
+          {!collapsed && <span>Sign out</span>}
         </button>
       </div>
     </aside>

@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Users } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { PageHeader } from '../components/layout/PageHeader';
 import {
   createUser,
   getUsers,
@@ -248,25 +250,29 @@ export function UsersPage() {
   if (!isAdmin) {
     return (
       <div className="card">
-        <h2 className="page-title">Account Management</h2>
-        <p style={{ color: 'var(--muted)' }}>Admin access is required.</p>
+        <PageHeader
+          title="Account Management"
+          subtitle="Admin access is required."
+          icon={Users}
+        />
       </div>
     );
   }
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">Account Management</h2>
-          <p className="page-subtitle">Create accounts, manage role assignments, and reset passwords.</p>
-        </div>
+      <PageHeader
+        title="Account Management"
+        subtitle="Create accounts, manage role assignments, and reset passwords."
+        icon={Users}
+        action={
           <div className="user-summary">
             <span>{summary.total} total</span>
             <span>{summary.active} active</span>
             <span>{summary.inactive} inactive</span>
           </div>
-      </div>
+        }
+      />
 
       <div className="account-grid">
         <section className="card">
