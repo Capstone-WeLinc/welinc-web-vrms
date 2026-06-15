@@ -1,7 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Wrench } from 'lucide-react';
 import { createRepair } from '../lib/api/repairApi';
 import { getGarages, getVehicles, getAvailableMechanics, GarageOption, VehicleOption, MechanicOption } from '../lib/api/vrmsConfigApi';
+import { PageHeader } from '../components/layout/PageHeader';
 import { CreateRepairPayload, MechanicAssignment, PriorityLevel } from '../types';
 import { Button } from '../components/ui/Button';
 import {
@@ -257,7 +259,11 @@ export function RepairFormPage() {
 
   return (
     <div>
-      <h2 className="page-title">New Repair Ticket</h2>
+      <PageHeader
+        title="New Repair Ticket"
+        subtitle="Log a new vehicle repair ticket in the system."
+        icon={Wrench}
+      />
       {configLoading ? (
         <div className="card"><p>Loading form options...</p></div>
       ) : configError ? (

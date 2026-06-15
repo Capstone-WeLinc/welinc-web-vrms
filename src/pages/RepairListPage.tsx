@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Wrench } from 'lucide-react';
 import { getRepairs } from '../lib/api/repairApi';
 import { RepairStatus, RepairTicket } from '../types';
-import { buildStatusClass, formatDate } from '../lib/utils/format';
+import { formatDate } from '../lib/utils/format';
 import { Button } from '../components/ui/Button';
 import { useAuthStore } from '../store/authStore';
+import { PageHeader } from '../components/layout/PageHeader';
+import { StatusBadge } from '../components/shared/StatusBadge';
 
 const statusOptions: Array<{ value: RepairStatus | ''; label: string }> = [
   { value: '', label: 'All statuses' },
@@ -45,19 +48,16 @@ export function RepairListPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div>
-          <h2 className="page-title">Repair Tickets</h2>
-          <p style={{ margin: 0, color: '#374151' }}>
-            {isAdmin ? 'Open repair tickets for VRMS.' : 'Your assigned repair tickets.'}
-          </p>
-        </div>
-        {isAdmin && (
+      <PageHeader
+        title="Repair Tickets"
+        subtitle={isAdmin ? 'Open repair tickets for VRMS.' : 'Your assigned repair tickets.'}
+        icon={Wrench}
+        action={isAdmin ? (
           <Link to="/repairs/new" className="button">
             New Repair Ticket
           </Link>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       <div className="card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1.5fr 1fr', alignItems: 'flex-end' }}>
@@ -119,14 +119,14 @@ export function RepairListPage() {
                 {repairs.map((repair) => (
                   <tr key={repair.id}>
                     <td>
-                      <Link to={`/repairs/${repair.id}`} style={{ color: '#1d4ed8' }}>
+                      <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
                         {repair.repairNumber}
                       </Link>
                     </td>
                     <td>{repair.vehiclePlate}</td>
                     <td>{repair.issueDescription}</td>
                     <td>
-                      <span className={buildStatusClass(repair.status)}>{repair.status.replace('_', ' ')}</span>
+                      <StatusBadge status={repair.status} />
                     </td>
                     <td>{formatDate(repair.updatedAt)}</td>
                   </tr>
