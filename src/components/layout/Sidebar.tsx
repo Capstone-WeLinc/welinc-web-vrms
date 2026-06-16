@@ -91,8 +91,7 @@ export function Sidebar({ onCollapse }: SidebarProps) {
       if (!token) return 0;
       const [, payload] = token.split('.');
       if (!payload) return 0;
-      let base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-      base64 = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
       const json = decodeURIComponent(
         atob(base64)
           .split('')
@@ -113,12 +112,6 @@ export function Sidebar({ onCollapse }: SidebarProps) {
 
   const hasMultipleSystems = getSubsystemCount() > 1;
 
-  const getPortalUrl = () => {
-    const envUrl = (import.meta.env as any).VITE_PORTAL_URL;
-    if (envUrl) return envUrl;
-    return `${window.location.protocol}//${window.location.hostname}:5176`;
-  };
-
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
@@ -126,11 +119,13 @@ export function Sidebar({ onCollapse }: SidebarProps) {
 
   const handleSignOut = () => {
     logout();
-    window.location.href = `${getPortalUrl()}/login?logout=true`;
+    const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
+    window.location.href = `${portalUrl}/login?logout=true`;
   };
 
   const handleBackToPortal = () => {
-    window.location.href = getPortalUrl();
+    const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
+    window.location.href = portalUrl;
   };
 
   return (
