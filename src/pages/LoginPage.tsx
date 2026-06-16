@@ -25,6 +25,13 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (searchParams.get('logout') === 'true') {
+      useAuthStore.getState().logout();
+      const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
+      window.location.href = `${portalUrl}/login?logout=true`;
+      return;
+    }
+
     const ssoToken = searchParams.get('token');
     if (!ssoToken) {
       const existingToken = useAuthStore.getState().token;
