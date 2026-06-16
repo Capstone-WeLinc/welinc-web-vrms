@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { History } from 'lucide-react';
+import { History, Lock } from 'lucide-react';
 import { getRepairHistory } from '../lib/api/repairApi';
 import { RepairTicket } from '../types';
 import { formatDate } from '../lib/utils/format';
@@ -82,32 +82,38 @@ export function HistoryPage() {
               </tr>
             </thead>
             <tbody>
-              {repairs.map((repair) => (
-                <tr key={repair.id}>
-                  <td>
-                    <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
-                      {repair.repairNumber}
-                    </Link>
-                  </td>
-                  <td>{repair.vehiclePlate}</td>
-                  <td>{repair.driverName}</td>
-                  <td>{repair.garageLocation ?? '—'}</td>
-                  <td>
-                    <StatusBadge status={repair.status} />
-                  </td>
-                  {isAdmin && <td>{formatCurrency(repair.totalCost)}</td>}
-                  <td>{formatDate(repair.completedAt ?? repair.updatedAt)}</td>
-                  <td>
-                    <Link
-                      to={`/repairs/${repair.id}`}
-                      className="button secondary"
-                      style={{ fontSize: 12, padding: '4px 12px' }}
-                    >
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {repairs.map((repair) => {
+                const isLocked = repair.status === 'COMPLETED' || repair.status === 'CANCELLED';
+                return (
+                  <tr key={repair.id} style={isLocked ? { opacity: 0.65 } : undefined}>
+                    <td>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                          {repair.repairNumber}
+                        </Link>
+                        {isLocked && <Lock size={12} style={{ color: 'var(--muted)' }} />}
+                      </div>
+                    </td>
+                    <td>{repair.vehiclePlate}</td>
+                    <td>{repair.driverName}</td>
+                    <td>{repair.garageLocation ?? '—'}</td>
+                    <td>
+                      <StatusBadge status={repair.status} />
+                    </td>
+                    {isAdmin && <td>{formatCurrency(repair.totalCost)}</td>}
+                    <td>{formatDate(repair.completedAt ?? repair.updatedAt)}</td>
+                    <td>
+                      <Link
+                        to={`/repairs/${repair.id}`}
+                        className="button secondary"
+                        style={{ fontSize: 12, padding: '4px 12px' }}
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

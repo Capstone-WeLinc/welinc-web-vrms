@@ -141,13 +141,12 @@ export function RepairDetailPage() {
   const isTerminal = repair ? TERMINAL.includes(repair.status) : false;
   const isLocked = isTerminal && !repair?.isUnlocked;
 
-  // Cost panel visible when FOR_VERIFICATION, COMPLETED, or unlocked CANCELLED
+  // Cost panel visible when FOR_VERIFICATION, or terminal tickets (COMPLETED/CANCELLED) that are unlocked
   const showCostPanel =
     isAdmin &&
     repair &&
     (repair.status === 'FOR_VERIFICATION' ||
-      repair.status === 'COMPLETED' ||
-      (repair.status === 'CANCELLED' && repair.isUnlocked));
+      (isTerminal && repair.isUnlocked));
 
   // ── Computed totals ──────────────────────────────────────────────────────
 

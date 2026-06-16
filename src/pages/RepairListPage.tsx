@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Wrench } from 'lucide-react';
+import { Wrench, Lock } from 'lucide-react';
 import { getRepairs } from '../lib/api/repairApi';
 import { RepairStatus, RepairTicket } from '../types';
 import { formatDate } from '../lib/utils/format';
@@ -116,21 +116,27 @@ export function RepairListPage() {
                 </tr>
               </thead>
               <tbody>
-                {repairs.map((repair) => (
-                  <tr key={repair.id}>
-                    <td>
-                      <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
-                        {repair.repairNumber}
-                      </Link>
-                    </td>
-                    <td>{repair.vehiclePlate}</td>
-                    <td>{repair.issueDescription}</td>
-                    <td>
-                      <StatusBadge status={repair.status} />
-                    </td>
-                    <td>{formatDate(repair.updatedAt)}</td>
-                  </tr>
-                ))}
+                {repairs.map((repair) => {
+                  const isLocked = repair.status === 'COMPLETED' || repair.status === 'CANCELLED';
+                  return (
+                    <tr key={repair.id} style={isLocked ? { opacity: 0.65 } : undefined}>
+                      <td>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                            {repair.repairNumber}
+                          </Link>
+                          {isLocked && <Lock size={12} style={{ color: 'var(--muted)' }} />}
+                        </div>
+                      </td>
+                      <td>{repair.vehiclePlate}</td>
+                      <td>{repair.issueDescription}</td>
+                      <td>
+                        <StatusBadge status={repair.status} />
+                      </td>
+                      <td>{formatDate(repair.updatedAt)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </>

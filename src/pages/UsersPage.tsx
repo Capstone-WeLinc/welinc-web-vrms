@@ -41,6 +41,26 @@ function getVrmsRoleAssignments(roleAssignments: UserRoleAssignment[]) {
   return roleAssignments.filter((assignment) => assignment.system === 'VRMS');
 }
 
+function validatePassword(password: string): string | null {
+  const trimmed = password.trim();
+  if (trimmed.length < 12) {
+    return 'Password must be at least 12 characters.';
+  }
+  if (!/[A-Z]/.test(trimmed)) {
+    return 'Password must include at least one uppercase letter.';
+  }
+  if (!/[a-z]/.test(trimmed)) {
+    return 'Password must include at least one lowercase letter.';
+  }
+  if (!/\d/.test(trimmed)) {
+    return 'Password must include at least one number.';
+  }
+  if (!/[^A-Za-z0-9]/.test(trimmed)) {
+    return 'Password must include at least one special character.';
+  }
+  return null;
+}
+
 export function UsersPage() {
   const currentUser = useAuthStore((state) => state.user);
   const [users, setUsers] = useState<ManagedUser[]>([]);
@@ -118,10 +138,17 @@ export function UsersPage() {
   };
 
   const addRoleAssignment = () => {
-    setForm((current) => ({
-      ...current,
-      roleAssignments: [...current.roleAssignments, { role: 'MECHANIC', system: 'VRMS' }],
-    }));
+    setForm((current) => {
+      if (current.roleAssignments.length >= roleOptions.length) {
+        return current;
+      }
+      const existingRoles = current.roleAssignments.map((a) => a.role);
+      const remainingRole = roleOptions.find((r) => !existingRoles.includes(r)) || 'MECHANIC';
+      return {
+        ...current,
+        roleAssignments: [...current.roleAssignments, { role: remainingRole, system: 'VRMS' }],
+      };
+    });
   };
 
   const removeRoleAssignment = (index: number) => {
@@ -150,10 +177,20 @@ export function UsersPage() {
       return;
     }
 
-    if (!editingUserId && trimmedPassword.length < 6) {
-      setError('Password must be at least 6 characters.');
-      setSaving(false);
-      return;
+    if (!editingUserId) {
+      const pwError = validatePassword(trimmedPassword);
+      if (pwError) {
+        setError(pwError);
+        setSaving(false);
+        return;
+      }
+    } else if (trimmedPassword) {
+      const pwError = validatePassword(trimmedPassword);
+      if (pwError) {
+        setError(pwError);
+        setSaving(false);
+        return;
+      }
     }
 
     try {
@@ -182,8 +219,13 @@ export function UsersPage() {
       setMessage(editingUserId ? 'User account updated.' : 'User account created.');
       setEditingUserId(null);
       setForm(emptyForm);
-    } catch (err) {
-      setError('Unable to save user account.');
+    } catch (err: any) {
+      const msg = err.response?.data?.message;
+      if (Array.isArray(msg)) {
+        setError(msg.join(', '));
+      } else {
+        setError(msg || 'Unable to save user account.');
+      }
     } finally {
       setSaving(false);
     }
@@ -209,8 +251,9 @@ export function UsersPage() {
     const password = window.prompt(`Enter a new password for ${user.username}.`);
     if (password == null) return;
 
-    if (password.trim().length < 6) {
-      setError('Password must be at least 6 characters.');
+    const pwError = validatePassword(password);
+    if (pwError) {
+      setError(pwError);
       return;
     }
 
@@ -222,8 +265,13 @@ export function UsersPage() {
       const updated = await resetUserPassword(user.id, password.trim());
       setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       setMessage('Password reset saved.');
-    } catch (err) {
-      setError('Unable to reset password.');
+    } catch (err: any) {
+      const msg = err.response?.data?.message;
+      if (Array.isArray(msg)) {
+        setError(msg.join(', '));
+      } else {
+        setError(msg || 'Unable to reset password.');
+      }
     } finally {
       setSaving(false);
     }
@@ -333,9 +381,11 @@ export function UsersPage() {
             <div className="role-editor">
               <div className="role-editor-header">
                 <span className="label">Role assignments</span>
-                <button type="button" className="text-button" onClick={addRoleAssignment}>
-                  Add role
-                </button>
+                {form.roleAssignments.length < roleOptions.length && (
+                  <button type="button" className="text-button" onClick={addRoleAssignment}>
+                    Add role
+                  </button>
+                )}
               </div>
               <p className="help-text">Only ADMIN and MECHANIC roles can be assigned for VRMS users.</p>
 
@@ -346,11 +396,16 @@ export function UsersPage() {
                     value={assignment.role}
                     onChange={(event) => updateRoleAssignment(index, event.target.value as UserRole)}
                   >
-                    {roleOptions.map((role) => (
-                      <option key={role} value={role}>
-                        {role.replace('_', ' ')}
-                      </option>
-                    ))}
+                    {roleOptions.map((role) => {
+                      const isChosenElsewhere = form.roleAssignments.some(
+                        (a, i) => i !== index && a.role === role
+                      );
+                      return (
+                        <option key={role} value={role} disabled={isChosenElsewhere}>
+                          {role.replace('_', ' ')}
+                        </option>
+                      );
+                    })}
                   </select>
 
                   <div className="role-assignment-system">
@@ -392,9 +447,26 @@ export function UsersPage() {
 
         <section className="card">
           <div className="page-header" style={{ marginBottom: 12 }}>
-            <div>
-              <h3 style={{ margin: 0 }}>Users</h3>
-              <p style={{ margin: '8px 0 0', color: 'var(--muted)' }}>VRMS role holders and retained system roles</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div>
+                <h3 style={{ margin: 0 }}>Users</h3>
+                <p style={{ margin: '8px 0 0', color: 'var(--muted)' }}>VRMS role holders and retained system roles</p>
+              </div>
+              {!loading && (
+                <span style={{ 
+                  fontSize: '11px', 
+                  color: 'var(--muted)', 
+                  fontWeight: 600,
+                  backgroundColor: 'var(--surface-alt)',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border)',
+                  alignSelf: 'center',
+                  marginTop: 6
+                }}>
+                  {users.length} records
+                </span>
+              )}
             </div>
             <Button type="button" variant="secondary" onClick={loadUsers} disabled={loading}>
               Refresh
@@ -406,7 +478,7 @@ export function UsersPage() {
           ) : users.length === 0 ? (
             <p>No user accounts found.</p>
           ) : (
-            <div className="table-scroll">
+            <div className="table-scroll" style={{ maxHeight: '480px', overflowY: 'auto' }}>
               <table className="table">
                 <thead>
                   <tr>

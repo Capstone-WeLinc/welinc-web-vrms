@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { DashboardPage } from './pages/DashboardPage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -7,9 +8,11 @@ import { RepairDetailPage } from './pages/RepairDetailPage';
 import { RepairFormPage } from './pages/RepairFormPage';
 import { RepairListPage } from './pages/RepairListPage';
 import { UsersPage } from './pages/UsersPage';
+import { AuditLogsPage } from './pages/AuditLogsPage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
 import { UserRole } from './types';
+import { getCurrentUser } from './lib/api/authApi';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = useAuthStore((state) => state.token);
@@ -33,6 +36,38 @@ function RequireRole({ role, children }: { role: UserRole; children: JSX.Element
 }
 
 function App() {
+  const token = useAuthStore((state) => state.token);
+  const setUser = (user: any) => useAuthStore.setState({ user });
+
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token' || e.key === 'welinc_token' || e.key === 'accessToken' || e.key === 'welinc_user') {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  useEffect(() => {
+    if (token) {
+      getCurrentUser()
+        .then((fullUser) => {
+          const currentUser = useAuthStore.getState().user;
+          if (currentUser) {
+            const updated = {
+              ...currentUser,
+              name: fullUser.name || currentUser.name || currentUser.username,
+              username: fullUser.username || currentUser.username,
+            };
+            setUser(updated);
+            localStorage.setItem('welinc_user', JSON.stringify(updated));
+          }
+        })
+        .catch((err) => console.error('Failed to sync user details on mount:', err));
+    }
+  }, [token]);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
@@ -62,6 +97,14 @@ function App() {
           element={
             <RequireRole role="ADMIN">
               <UsersPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="audit-logs"
+          element={
+            <RequireRole role="ADMIN">
+              <AuditLogsPage />
             </RequireRole>
           }
         />

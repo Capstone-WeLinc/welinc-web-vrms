@@ -66,3 +66,16 @@ export async function unlockRepairTicket(
   });
   return response.data;
 }
+
+export interface AuditEntry {
+  id: string;
+  user: string;
+  action: string;
+  timestamp: string;
+  ticketId?: string | null;
+}
+
+export async function getAuditLogs(): Promise<AuditEntry[]> {
+  const response = await api.get<AuditEntry[]>('/vrms/repairs/audit-logs/all');
+  return response.data;
+}
