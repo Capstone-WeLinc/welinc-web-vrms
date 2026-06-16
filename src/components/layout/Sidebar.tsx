@@ -12,7 +12,8 @@ import {
   Users, 
   PanelLeftClose, 
   PanelLeftOpen, 
-  User 
+  User,
+  ClipboardList
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import logo from '../../assets/brand-logo.jpg';
@@ -22,6 +23,7 @@ const adminNavItems = [
   { to: '/repairs', label: 'Repair Tickets', icon: Wrench },
   { to: '/repairs/new', label: 'New Repair', icon: PlusCircle },
   { to: '/history', label: 'Repair History', icon: History },
+  { to: '/audit-logs', label: 'Audit Logs', icon: ClipboardList },
   { to: '/users', label: 'Users', icon: Users },
 ];
 
@@ -89,14 +91,36 @@ export function Sidebar({ onCollapse }: SidebarProps) {
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <img src={logo} alt="WeLinc" style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0 }} />
-          {!collapsed && (
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text)', whiteSpace: 'nowrap' }}>WeLinc VRMS</div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Vehicle Repair System</div>
-            </div>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            <img src={logo} alt="WeLinc" style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0 }} />
+            {!collapsed && (
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>WeLinc VRMS</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Vehicle Repair System</div>
+              </div>
+            )}
+          </div>
+          <button 
+            type="button" 
+            onClick={toggleCollapse}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '6px',
+              borderRadius: '6px',
+              transition: 'all 0.2s',
+              alignSelf: 'center',
+            }}
+            title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
         </div>
 
         {/* User profile layout placed at the top (like VMMS) */}
@@ -160,24 +184,6 @@ export function Sidebar({ onCollapse }: SidebarProps) {
         >
           <LayoutGrid size={16} style={{ flexShrink: 0 }} />
           {!collapsed && <span>Switch Subsystem</span>}
-        </button>
-        <button 
-          className="sidebar-btn" 
-          type="button" 
-          onClick={toggleCollapse}
-          title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-        >
-          {collapsed ? <PanelLeftOpen size={16} style={{ flexShrink: 0 }} /> : <PanelLeftClose size={16} style={{ flexShrink: 0 }} />}
-          {!collapsed && <span>Collapse</span>}
-        </button>
-        <button 
-          className="sidebar-btn" 
-          type="button" 
-          onClick={handleLogout}
-          title="Sign out"
-        >
-          <LogOut size={16} style={{ flexShrink: 0 }} />
-          {!collapsed && <span>Sign out</span>}
         </button>
       </div>
     </aside>

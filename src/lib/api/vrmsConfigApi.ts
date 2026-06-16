@@ -32,3 +32,14 @@ export async function getAvailableMechanics(): Promise<MechanicOption[]> {
   const response = await api.get<MechanicOption[]>('/vrms/mechanics/available');
   return response.data;
 }
+
+export interface DriverOption {
+  id: string;
+  name: string;
+  licenseNumber: string;
+}
+
+export async function getDrivers(): Promise<DriverOption[]> {
+  const response = await api.get<DriverOption[]>('/drivers');
+  return response.data;
+}

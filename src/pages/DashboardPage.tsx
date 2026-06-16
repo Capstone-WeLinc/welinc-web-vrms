@@ -8,7 +8,8 @@ import {
   DollarSign, 
   TrendingUp, 
   Truck,
-  LayoutDashboard
+  LayoutDashboard,
+  Lock
 } from 'lucide-react';
 import { RepairTicket } from '../types';
 import { formatDate } from '../lib/utils/format';
@@ -18,7 +19,7 @@ import { REPAIR_VOLUME, SAMPLE_REPAIRS, STATUS_DISTRIBUTION } from '../lib/mockD
 import { downloadRepairsCSV, downloadSummaryCSV } from '../lib/export';
 import { SAMPLE_AUDITS } from '../lib/mockAudit';
 import { useAuthStore } from '../store/authStore';
-import { getRepairs, getRepairHistory } from '../lib/api/repairApi';
+import { getRepairs, getRepairHistory, getAuditLogs, AuditEntry } from '../lib/api/repairApi';
 import { PageHeader } from '../components/layout/PageHeader';
 
 const statusLabels: Record<string, string> = {
@@ -39,6 +40,7 @@ const orderedStatus: Array<string> = [
 
 function AdminDashboard() {
   const [repairs, setRepairs] = useState<RepairTicket[]>([]);
+  const [audits, setAudits] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,11 +49,13 @@ function AdminDashboard() {
       setLoading(true);
       setError(null);
       try {
-        const [activeData, historyData] = await Promise.all([
+        const [activeData, historyData, auditData] = await Promise.all([
           getRepairs(),
           getRepairHistory(),
+          getAuditLogs().catch(() => []),
         ]);
         setRepairs([...activeData, ...historyData]);
+        setAudits(auditData);
       } catch (err) {
         console.error('Failed to load repairs:', err);
         setError('Unable to load repair tickets.');
@@ -146,8 +150,8 @@ function AdminDashboard() {
     };
   }, [repairs]);
 
-  const auditCount = SAMPLE_AUDITS.length;
-  const lastAudit = SAMPLE_AUDITS[0] ? new Date(SAMPLE_AUDITS[0].timestamp) : null;
+  const auditCount = audits.length;
+  const lastAudit = audits[0] ? new Date(audits[0].timestamp) : null;
 
   const alerts: string[] = [];
   if (summary.forVerification > 0) {
@@ -321,27 +325,88 @@ function AdminDashboard() {
       </div>
 
       <div className="dashboard-grid report-grid">
-        <div className="card report-card">
-          <h3 className="subheading">Audit trail</h3>
-          <p style={{ marginTop: 8, marginBottom: 6, color: 'var(--muted)' }}>Recent system audit activity</p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="card report-card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--divider)', paddingBottom: 12, marginBottom: 16 }}>
             <div>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: 20 }}>{auditCount}</p>
-              <p style={{ margin: 6, color: 'var(--muted)' }}>audit entries</p>
+              <h3 className="subheading" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                Audit Trail
+                <span style={{ 
+                  backgroundColor: 'var(--primary-soft)', 
+                  color: 'var(--primary)', 
+                  padding: '2px 8px', 
+                  borderRadius: 12, 
+                  fontSize: 12, 
+                  fontWeight: 600 
+                }}>
+                  {auditCount}
+                </span>
+              </h3>
+              <p style={{ margin: '4px 0 0 0', color: 'var(--muted)', fontSize: 13 }}>Recent system activities & security events</p>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ margin: 0, color: 'var(--muted)' }}>Last activity</p>
-              <p style={{ margin: 6, fontWeight: 700 }}>{lastAudit ? lastAudit.toLocaleString() : '—'}</p>
-            </div>
-          </div>
-          <div style={{ marginTop: 12 }}>
-            {SAMPLE_AUDITS.slice(0, 3).map((a) => (
-              <div key={a.id} style={{ padding: '10px 0', borderBottom: '1px solid #eef2f7' }}>
-                <div style={{ fontWeight: 700 }}>{a.user}</div>
-                <div style={{ color: 'var(--muted)' }}>{a.action}</div>
-                <div style={{ color: 'var(--muted)', fontSize: 12 }}>{new Date(a.timestamp).toLocaleString()}</div>
+            {lastAudit && (
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ margin: 0, color: 'var(--muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Last Event</p>
+                <p style={{ margin: '2px 0 0 0', fontWeight: 600, fontSize: 12, color: 'var(--text)' }}>{lastAudit.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
-            ))}
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, position: 'relative', paddingLeft: 16, borderLeft: '2px solid #e2e8f0' }}>
+            {audits.length === 0 ? (
+              <p style={{ color: 'var(--muted)', fontSize: 14, margin: '20px 0', textAlign: 'center' }}>No audit trail entries recorded yet.</p>
+            ) : (
+              audits.slice(0, 4).map((a) => {
+                // Determine bullet indicator colors based on action type
+                let indicatorColor = 'var(--primary)';
+                if (a.action.includes('COMPLETED') || a.action.includes('Verification')) {
+                  indicatorColor = 'var(--success)';
+                } else if (a.action.includes('Unlock') || a.action.includes('unlocked')) {
+                  indicatorColor = 'var(--warning)';
+                } else if (a.action.includes('Cancelled') || a.action.includes('lockout')) {
+                  indicatorColor = 'var(--danger)';
+                }
+
+                return (
+                  <div key={a.id} style={{ position: 'relative' }}>
+                    {/* Timeline bullet node */}
+                    <div style={{
+                      position: 'absolute',
+                      left: -23,
+                      top: 4,
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      backgroundColor: indicatorColor,
+                      border: '2px solid white',
+                      boxShadow: '0 0 0 1px #cbd5e1'
+                    }} />
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>@{a.user}</span>
+                          <span style={{ 
+                            fontSize: 10, 
+                            backgroundColor: '#f1f5f9', 
+                            color: '#475569', 
+                            padding: '1px 6px', 
+                            borderRadius: 4, 
+                            fontWeight: 600,
+                            textTransform: 'uppercase'
+                          }}>
+                            {a.action.split(' ')[0]}
+                          </span>
+                        </div>
+                        <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4, lineHeight: 1.4 }}>{a.action}</div>
+                      </div>
+                      <div style={{ color: 'var(--muted)', fontSize: 11, whiteSpace: 'nowrap' }}>
+                        {new Date(a.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -420,18 +485,28 @@ function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {latestRepairs.map((repair) => (
-                <tr key={repair.id}>
-                  <td>{repair.repairNumber}</td>
-                  <td>{repair.vehiclePlate}</td>
-                  <td>{repair.driverName}</td>
-                  <td>₱{(repair.totalCost ?? 0).toLocaleString()}</td>
-                  <td>
-                    <StatusBadge status={repair.status} />
-                  </td>
-                  <td>{formatDate(repair.updatedAt)}</td>
-                </tr>
-              ))}
+              {latestRepairs.map((repair) => {
+                const isLocked = repair.status === 'COMPLETED' || repair.status === 'CANCELLED';
+                return (
+                  <tr key={repair.id} style={isLocked ? { opacity: 0.65 } : undefined}>
+                    <td>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                          {repair.repairNumber}
+                        </Link>
+                        {isLocked && <Lock size={12} style={{ color: 'var(--muted)' }} />}
+                      </div>
+                    </td>
+                    <td>{repair.vehiclePlate}</td>
+                    <td>{repair.driverName}</td>
+                    <td>₱{(repair.totalCost ?? 0).toLocaleString()}</td>
+                    <td>
+                      <StatusBadge status={repair.status} />
+                    </td>
+                    <td>{formatDate(repair.updatedAt)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

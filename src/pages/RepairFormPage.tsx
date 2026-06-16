@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wrench } from 'lucide-react';
 import { createRepair } from '../lib/api/repairApi';
-import { getGarages, getVehicles, getAvailableMechanics, GarageOption, VehicleOption, MechanicOption } from '../lib/api/vrmsConfigApi';
+import { getGarages, getVehicles, getAvailableMechanics, getDrivers, GarageOption, VehicleOption, MechanicOption, DriverOption } from '../lib/api/vrmsConfigApi';
 import { PageHeader } from '../components/layout/PageHeader';
 import { CreateRepairPayload, MechanicAssignment, PriorityLevel } from '../types';
 import { Button } from '../components/ui/Button';
@@ -74,12 +74,19 @@ export function RepairFormPage() {
     setConfigLoading(true);
     setConfigError(null);
 
-    Promise.all([getGarages(), getVehicles(), getAvailableMechanics()])
-      .then(([garageData, vehicleData, mechanicData]) => {
+    Promise.all([getGarages(), getVehicles(), getAvailableMechanics(), getDrivers()])
+      .then(([garageData, vehicleData, mechanicData, driverData]) => {
         if (cancelled) return;
         setGarages(garageData);
         setVehicles(vehicleData);
         setMechanicOptions(mechanicData);
+        
+        // Merge persistent drivers from db and local storage entries
+        const dbDriverNames = driverData.map(d => d.name);
+        const localNames = loadDriverNames();
+        const combined = Array.from(new Set([...dbDriverNames, ...localNames]));
+        setDriverSuggestions(combined);
+
         // Set defaults once data arrives
         if (vehicleData.length > 0) setVehiclePlate(vehicleData[0].plateNumber);
         if (garageData.length > 0) setGarageLocation(garageData[0].name);

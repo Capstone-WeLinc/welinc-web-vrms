@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { getCurrentUser } from '../lib/api/authApi';
 
 function decodeJwt<T>(token: string): T {
   const [, payload] = token.split('.');
@@ -26,6 +27,11 @@ export function LoginPage() {
   useEffect(() => {
     const ssoToken = searchParams.get('token');
     if (!ssoToken) {
+      const existingToken = useAuthStore.getState().token;
+      if (existingToken) {
+        navigate('/dashboard', { replace: true });
+        return;
+      }
       // Redirect directly to the portal login
       const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
       window.location.href = `${portalUrl}/login`;
@@ -46,21 +52,39 @@ export function LoginPage() {
         return;
       }
 
-      const user = {
-        id: decoded.sub,
-        username: decoded.username,
-        name: decoded.username,
-        role: (primaryRoleAssignment.role || 'MECHANIC') as any,
-        system: 'VRMS' as any,
-        roles: decoded.roles || [],
-      };
-
-      // Set Zustand store and local storage
-      useAuthStore.setState({ token: ssoToken, user });
+      // Store token first so API requests include it
       localStorage.setItem('welinc_token', ssoToken);
-      localStorage.setItem('welinc_user', JSON.stringify(user));
-      
-      navigate('/dashboard', { replace: true });
+
+      // Fetch full user details from backend to get the real Name
+      getCurrentUser()
+        .then((fullUser) => {
+          const user = {
+            id: decoded.sub,
+            username: decoded.username,
+            name: fullUser.name || decoded.username, // Real full name!
+            role: (primaryRoleAssignment.role || 'MECHANIC') as any,
+            system: 'VRMS' as any,
+            roles: decoded.roles || [],
+          };
+          useAuthStore.setState({ token: ssoToken, user });
+          localStorage.setItem('welinc_user', JSON.stringify(user));
+          navigate('/dashboard', { replace: true });
+        })
+        .catch((err) => {
+          console.error('Failed to fetch user details:', err);
+          // Fallback to username if backend fails
+          const user = {
+            id: decoded.sub,
+            username: decoded.username,
+            name: decoded.username,
+            role: (primaryRoleAssignment.role || 'MECHANIC') as any,
+            system: 'VRMS' as any,
+            roles: decoded.roles || [],
+          };
+          useAuthStore.setState({ token: ssoToken, user });
+          localStorage.setItem('welinc_user', JSON.stringify(user));
+          navigate('/dashboard', { replace: true });
+        });
     } catch (err) {
       console.error('Failed to parse SSO token:', err);
       setError('Invalid or expired authentication token.');
