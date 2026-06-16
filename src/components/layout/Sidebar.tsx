@@ -78,9 +78,49 @@ export function Sidebar({ onCollapse }: SidebarProps) {
   const navItems = user?.role === 'ADMIN' ? adminNavItems : mechanicNavItems;
   const roleLabel = user?.role ? (ROLE_LABELS[user.role] ?? user.role) : '';
 
+  const getSubsystemCount = () => {
+    if (user?.roles && Array.isArray(user.roles)) {
+      const subsystemRoles = user.roles.filter((r: any) =>
+        ['VRMS', 'VMMS', 'BMS'].includes(r.system.toUpperCase())
+      );
+      const uniqueSystems = new Set(subsystemRoles.map((r: any) => r.system.toUpperCase()));
+      return uniqueSystems.size;
+    }
+    try {
+      const token = localStorage.getItem('welinc_token') || localStorage.getItem('token');
+      if (!token) return 0;
+      const [, payload] = token.split('.');
+      if (!payload) return 0;
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join(''),
+      );
+      const decoded = JSON.parse(json) as { roles?: { system: string }[] };
+      const subsystemRoles = (decoded.roles || []).filter((r) =>
+        ['VRMS', 'VMMS', 'BMS'].includes(r.system.toUpperCase())
+      );
+      const uniqueSystems = new Set(subsystemRoles.map(r => r.system.toUpperCase()));
+      return uniqueSystems.size;
+    } catch (err) {
+      console.error('Error parsing token to count subsystems:', err);
+      return 2;
+    }
+  };
+
+  const hasMultipleSystems = getSubsystemCount() > 1;
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
+  };
+
+  const handleSignOut = () => {
+    logout();
+    const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
+    window.location.href = `${portalUrl}/login?logout=true`;
   };
 
   const handleBackToPortal = () => {
@@ -176,15 +216,28 @@ export function Sidebar({ onCollapse }: SidebarProps) {
           {theme === 'light' ? <Moon size={16} style={{ flexShrink: 0 }} /> : <Sun size={16} style={{ flexShrink: 0 }} />}
           {!collapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
         </button>
-        <button 
-          className="sidebar-btn" 
-          type="button" 
-          onClick={handleBackToPortal}
-          title="Switch Subsystem"
-        >
-          <LayoutGrid size={16} style={{ flexShrink: 0 }} />
-          {!collapsed && <span>Switch Subsystem</span>}
-        </button>
+        {hasMultipleSystems ? (
+          <button 
+            className="sidebar-btn" 
+            type="button" 
+            onClick={handleBackToPortal}
+            title="Switch Subsystem"
+          >
+            <LayoutGrid size={16} style={{ flexShrink: 0 }} />
+            {!collapsed && <span>Switch Subsystem</span>}
+          </button>
+        ) : (
+          <button 
+            className="sidebar-btn" 
+            type="button" 
+            onClick={handleSignOut}
+            title="Sign Out"
+            style={{ color: 'var(--danger)' }}
+          >
+            <LogOut size={16} style={{ flexShrink: 0 }} />
+            {!collapsed && <span>Sign Out</span>}
+          </button>
+        )}
       </div>
     </aside>
   );
