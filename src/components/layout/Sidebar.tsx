@@ -113,6 +113,12 @@ export function Sidebar({ onCollapse }: SidebarProps) {
 
   const hasMultipleSystems = getSubsystemCount() > 1;
 
+  const getPortalUrl = () => {
+    const envUrl = (import.meta.env as any).VITE_PORTAL_URL;
+    if (envUrl) return envUrl;
+    return `${window.location.protocol}//${window.location.hostname}:5176`;
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
@@ -120,13 +126,11 @@ export function Sidebar({ onCollapse }: SidebarProps) {
 
   const handleSignOut = () => {
     logout();
-    const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
-    window.location.href = `${portalUrl}/login?logout=true`;
+    window.location.href = `${getPortalUrl()}/login?logout=true`;
   };
 
   const handleBackToPortal = () => {
-    const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
-    window.location.href = portalUrl;
+    window.location.href = getPortalUrl();
   };
 
   return (

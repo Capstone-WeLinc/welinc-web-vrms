@@ -24,11 +24,16 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
+  const getPortalUrl = () => {
+    const envUrl = (import.meta.env as any).VITE_PORTAL_URL;
+    if (envUrl) return envUrl;
+    return `${window.location.protocol}//${window.location.hostname}:5176`;
+  };
+
   useEffect(() => {
     if (searchParams.get('logout') === 'true') {
       useAuthStore.getState().logout();
-      const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
-      window.location.href = `${portalUrl}/login?logout=true`;
+      window.location.href = `${getPortalUrl()}/login?logout=true`;
       return;
     }
 
@@ -40,8 +45,7 @@ export function LoginPage() {
         return;
       }
       // Redirect directly to the portal login
-      const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
-      window.location.href = `${portalUrl}/login`;
+      window.location.href = `${getPortalUrl()}/login`;
       return;
     }
 
@@ -111,8 +115,7 @@ export function LoginPage() {
             <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>{error}</p>
             <button
               onClick={() => {
-                const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
-                window.location.href = `${portalUrl}/login`;
+                window.location.href = `${getPortalUrl()}/login`;
               }}
               style={{
                 marginTop: 8,
