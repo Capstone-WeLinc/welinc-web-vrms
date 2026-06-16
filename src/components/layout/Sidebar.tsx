@@ -91,7 +91,8 @@ export function Sidebar({ onCollapse }: SidebarProps) {
       if (!token) return 0;
       const [, payload] = token.split('.');
       if (!payload) return 0;
-      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      let base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      base64 = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
       const json = decodeURIComponent(
         atob(base64)
           .split('')
