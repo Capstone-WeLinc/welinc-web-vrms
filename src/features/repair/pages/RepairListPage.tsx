@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Wrench, Lock } from 'lucide-react';
-import { getRepairs } from '../lib/api/repairApi';
-import { RepairStatus, RepairTicket } from '../types';
-import { formatDate } from '../lib/utils/format';
-import { Button } from '../components/ui/Button';
-import { useAuthStore } from '../store/authStore';
-import { PageHeader } from '../components/layout/PageHeader';
-import { StatusBadge } from '../components/shared/StatusBadge';
+import { Wrench, Lock, Search } from 'lucide-react';
+import { getRepairs } from '../../../lib/api/repairApi';
+import { RepairStatus, RepairTicket } from '../../../types';
+import { formatDate } from '../../../lib/utils/format';
+import { Button } from '../../../components/ui/Button';
+import { useAuthStore } from '../../../store/authStore';
+import { PageHeader } from '../../../components/layout/PageHeader';
+import { StatusBadge } from '../../../components/shared/StatusBadge';
 
 const statusOptions: Array<{ value: RepairStatus | ''; label: string }> = [
   { value: '', label: 'All statuses' },
@@ -26,6 +26,8 @@ export function RepairListPage() {
   const [status, setStatus] = useState<RepairStatus | ''>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     async function load() {
@@ -44,7 +46,18 @@ export function RepairListPage() {
     load();
   }, [search, status]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, status]);
+
   const filteredCount = useMemo(() => repairs.length, [repairs]);
+
+  const paginatedRepairs = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return repairs.slice(start, start + itemsPerPage);
+  }, [repairs, currentPage]);
+
+  const totalPages = Math.ceil(repairs.length / itemsPerPage);
 
   return (
     <div>
@@ -65,13 +78,17 @@ export function RepairListPage() {
             <label className="label" htmlFor="search">
               Search repairs
             </label>
-            <input
-              id="search"
-              className="input"
-              placeholder="Search by repair number, vehicle, or driver"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+            <div style={{ position: 'relative' }}>
+              <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
+              <input
+                id="search"
+                className="input"
+                style={{ paddingLeft: 38 }}
+                placeholder="Search by repair number, vehicle, or driver"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
           </div>
           <div className="input-group">
             <label className="label" htmlFor="statusFilter">
@@ -116,7 +133,7 @@ export function RepairListPage() {
                 </tr>
               </thead>
               <tbody>
-                {repairs.map((repair) => {
+                {paginatedRepairs.map((repair) => {
                   const isLocked = repair.status === 'COMPLETED' || repair.status === 'CANCELLED';
                   return (
                     <tr key={repair.id} style={isLocked ? { opacity: 0.65 } : undefined}>
@@ -139,6 +156,29 @@ export function RepairListPage() {
                 })}
               </tbody>
             </table>
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 20 }}>
+                <Button
+                  variant="secondary"
+                  style={{ padding: '6px 12px', fontSize: 13 }}
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                >
+                  Previous
+                </Button>
+                <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="secondary"
+                  style={{ padding: '6px 12px', fontSize: 13 }}
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>

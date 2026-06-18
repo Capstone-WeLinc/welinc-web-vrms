@@ -5,22 +5,18 @@ import {
   ClipboardList, 
   AlertTriangle, 
   CheckCircle2, 
-  DollarSign, 
-  TrendingUp, 
-  Truck,
+  Coins,
+  TrendingUp,
   LayoutDashboard,
   Lock
 } from 'lucide-react';
-import { RepairTicket } from '../types';
-import { formatDate } from '../lib/utils/format';
-import { StatusBadge } from '../components/shared/StatusBadge';
-import { Button } from '../components/ui/Button';
-import { REPAIR_VOLUME, SAMPLE_REPAIRS, STATUS_DISTRIBUTION } from '../lib/mockData';
-import { downloadRepairsCSV, downloadSummaryCSV } from '../lib/export';
-import { SAMPLE_AUDITS } from '../lib/mockAudit';
-import { useAuthStore } from '../store/authStore';
-import { getRepairs, getRepairHistory, getAuditLogs, AuditEntry } from '../lib/api/repairApi';
-import { PageHeader } from '../components/layout/PageHeader';
+import { RepairTicket } from '../../../types';
+import { formatDate } from '../../../lib/utils/format';
+import { StatusBadge } from '../../../components/shared/StatusBadge';
+import { Button } from '../../../components/ui/Button';
+import { downloadRepairsCSV, downloadSummaryCSV } from '../../../lib/export';
+import { getRepairs, getRepairHistory, getAuditLogs, AuditEntry } from '../../../lib/api/repairApi';
+import { PageHeader } from '../../../components/layout/PageHeader';
 
 const statusLabels: Record<string, string> = {
   PENDING: 'Pending',
@@ -38,7 +34,7 @@ const orderedStatus: Array<string> = [
   'CANCELLED',
 ];
 
-function AdminDashboard() {
+export function AdminDashboard() {
   const [repairs, setRepairs] = useState<RepairTicket[]>([]);
   const [audits, setAudits] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -201,7 +197,7 @@ function AdminDashboard() {
       label: 'Total repair cost',
       value: `₱${totalCost.toLocaleString()}`,
       note: 'Projected spend for all active repair tickets.',
-      icon: DollarSign,
+      icon: Coins,
       color: '#8b5cf6',
       bgColor: 'rgba(139, 92, 246, 0.1)',
     },
@@ -356,7 +352,6 @@ function AdminDashboard() {
               <p style={{ color: 'var(--muted)', fontSize: 14, margin: '20px 0', textAlign: 'center' }}>No audit trail entries recorded yet.</p>
             ) : (
               audits.slice(0, 4).map((a) => {
-                // Determine bullet indicator colors based on action type
                 let indicatorColor = 'var(--primary)';
                 if (a.action.includes('COMPLETED') || a.action.includes('Verification')) {
                   indicatorColor = 'var(--success)';
@@ -368,7 +363,6 @@ function AdminDashboard() {
 
                 return (
                   <div key={a.id} style={{ position: 'relative' }}>
-                    {/* Timeline bullet node */}
                     <div style={{
                       position: 'absolute',
                       left: -23,
@@ -453,20 +447,6 @@ function AdminDashboard() {
               <div className="skeleton skeleton-line" />
               <div className="skeleton skeleton-line" />
             </div>
-            <div className="skeleton-table-row">
-              <div className="skeleton skeleton-line" />
-              <div className="skeleton skeleton-line" />
-              <div className="skeleton skeleton-line" />
-              <div className="skeleton skeleton-line" />
-              <div className="skeleton skeleton-line" />
-            </div>
-            <div className="skeleton-table-row">
-              <div className="skeleton skeleton-line" />
-              <div className="skeleton skeleton-line" />
-              <div className="skeleton skeleton-line" />
-              <div className="skeleton skeleton-line" />
-              <div className="skeleton skeleton-line" />
-            </div>
           </div>
         ) : error ? (
           <div className="alert">{error}</div>
@@ -528,182 +508,4 @@ function AdminDashboard() {
       </div>
     </div>
   );
-}
-
-// ── Mechanic Dashboard ────────────────────────────────────────────────────────
-
-function MechanicDashboard() {
-  const user = useAuthStore((state) => state.user);
-  const [repairs, setRepairs] = useState<RepairTicket[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getRepairs();
-        setRepairs(data);
-      } catch {
-        setError('Unable to load your assigned repairs.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
-
-  const activeRepairs = useMemo(
-    () =>
-      repairs
-        .filter((r) => r.status === 'PENDING' || r.status === 'IN_PROGRESS')
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
-    [repairs],
-  );
-
-  const pendingCount = repairs.filter((r) => r.status === 'PENDING').length;
-  const inProgressCount = repairs.filter((r) => r.status === 'IN_PROGRESS').length;
-  const forVerificationCount = repairs.filter((r) => r.status === 'FOR_VERIFICATION').length;
-
-  const overdue = useMemo(
-    () =>
-      repairs.filter(
-        (r) =>
-          r.targetDueDate &&
-          new Date(r.targetDueDate) < new Date() &&
-          r.status !== 'COMPLETED' &&
-          r.status !== 'CANCELLED',
-      ),
-    [repairs],
-  );
-
-  const mechanicSummaryCards = [
-    {
-      label: 'Pending',
-      value: pendingCount,
-      note: 'Not yet started.',
-      icon: ClipboardList,
-      color: 'var(--warning)',
-      bgColor: 'var(--warning-soft)',
-    },
-    {
-      label: 'In Progress',
-      value: inProgressCount,
-      note: 'Currently being worked on.',
-      icon: Wrench,
-      color: '#3b82f6',
-      bgColor: 'rgba(59, 130, 246, 0.1)',
-    },
-    {
-      label: 'For Verification',
-      value: forVerificationCount,
-      note: 'Awaiting admin sign-off.',
-      icon: AlertTriangle,
-      color: 'var(--danger)',
-      bgColor: 'var(--danger-soft)',
-    },
-    {
-      label: 'Total Active',
-      value: activeRepairs.length,
-      note: 'All tickets assigned to you.',
-      icon: Truck,
-      color: 'var(--primary)',
-      bgColor: 'var(--primary-soft)',
-    },
-  ];
-
-  return (
-    <div className="dashboard-page">
-      <PageHeader
-        title="My Assigned Repairs"
-        subtitle={`Welcome back, ${user?.name ?? 'Mechanic'}. Here are your current assignments.`}
-        icon={LayoutDashboard}
-      />
-
-      <div className="dashboard-grid">
-        {mechanicSummaryCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div key={card.label} className="card summary-card" style={{ display: 'flex', flexDirection: 'column' }}>
-              <div className="stat-card-header">
-                <div 
-                  className="stat-card-icon-container" 
-                  style={{ background: card.bgColor, color: card.color }}
-                >
-                  <Icon size={20} strokeWidth={1.8} />
-                </div>
-              </div>
-              <div className="stat-card-value">{card.value}</div>
-              <div className="stat-card-label">{card.label}</div>
-              <div className="stat-card-note">{card.note}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {overdue.length > 0 && (
-        <div className="alert">
-          <strong>Overdue:</strong>{' '}
-          {overdue.length} ticket{overdue.length === 1 ? '' : 's'} passed their target due date.
-        </div>
-      )}
-
-      <div className="card">
-        <div className="page-header">
-          <div>
-            <h3>My active tickets</h3>
-            <p className="page-subtitle">Tickets currently assigned to you.</p>
-          </div>
-          <Link to="/repairs" className="button secondary">
-            View all
-          </Link>
-        </div>
-
-        {loading ? (
-          <p>Loading your repairs…</p>
-        ) : error ? (
-          <div className="alert">{error}</div>
-        ) : activeRepairs.length === 0 ? (
-          <p style={{ color: 'var(--muted)' }}>No active repairs assigned to you right now.</p>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Repair #</th>
-                <th>Vehicle</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeRepairs.map((repair) => (
-                <tr key={repair.id}>
-                  <td>{repair.repairNumber}</td>
-                  <td>{repair.vehiclePlate}</td>
-                  <td>
-                    <StatusBadge status={repair.status} />
-                  </td>
-                  <td>{formatDate(repair.updatedAt)}</td>
-                  <td>
-                    <Link to={`/repairs/${repair.id}`} style={{ color: '#1d4ed8', fontWeight: 700 }}>
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Role-switching entry point ─────────────────────────────────────────────────
-
-export function DashboardPage() {
-  const user = useAuthStore((state) => state.user);
-  return user?.role === 'MECHANIC' ? <MechanicDashboard /> : <AdminDashboard />;
 }

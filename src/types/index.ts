@@ -9,7 +9,7 @@ export interface UserRoleAssignment {
 export interface User {
   id: string;
   name: string;
-  username: string;
+  email: string;
   role: UserRole;
   system: SystemType;
   roles?: UserRoleAssignment[];
@@ -18,7 +18,7 @@ export interface User {
 export interface ManagedUser {
   id: string;
   name: string;
-  username: string;
+  email: string;
   isActive: boolean;
   isLocked: boolean;
   lockedAt: string | null;
@@ -29,15 +29,15 @@ export interface ManagedUser {
 
 export interface CreateUserPayload {
   name: string;
-  username: string;
-  password: string;
+  email: string;
+  password?: string;
   isActive?: boolean;
   roleAssignments: UserRoleAssignment[];
 }
 
 export interface UpdateUserPayload {
   name?: string;
-  username?: string;
+  email?: string;
   password?: string;
   isActive?: boolean;
   roleAssignments?: UserRoleAssignment[];
@@ -78,7 +78,7 @@ export interface RepairPart {
 
 export interface AuditLogEntry {
   id: string;
-  username: string;
+  email: string;
   action: string;
   fieldName?: string;
   previousValue?: string;

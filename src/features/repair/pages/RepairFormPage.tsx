@@ -1,21 +1,25 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wrench } from 'lucide-react';
-import { createRepair } from '../lib/api/repairApi';
-import { getGarages, getVehicles, getAvailableMechanics, getDrivers, GarageOption, VehicleOption, MechanicOption, DriverOption } from '../lib/api/vrmsConfigApi';
-import { PageHeader } from '../components/layout/PageHeader';
-import { CreateRepairPayload, MechanicAssignment, PriorityLevel } from '../types';
-import { Button } from '../components/ui/Button';
+import { createRepair } from '../../../lib/api/repairApi';
+import { getGarages, getVehicles, getAvailableMechanics, getDrivers, GarageOption, VehicleOption, MechanicOption } from '../../../lib/api/vrmsConfigApi';
+import { PageHeader } from '../../../components/layout/PageHeader';
+import { CreateRepairPayload, MechanicAssignment, PriorityLevel, RepairIssue } from '../../../types';
+import { Button } from '../../../components/ui/Button';
+import { MechanicAssignmentSection } from '../components/MechanicAssignmentSection';
+import { IssueLoggingSection } from '../components/IssueLoggingSection';
 import {
   ACCOUNT_TYPE_OPTIONS,
   CORPORATION_OPTIONS,
-  ROOT_CAUSE_OPTIONS,
   SHOP_OPTIONS,
   VEHICLE_SYSTEM_OPTIONS,
+  ROOT_CAUSE_OPTIONS,
   PRIORITY_OPTIONS,
   loadDriverNames,
   saveDriverName,
-} from '../lib/mockConfig';
+} from '../../../lib/mockConfig';
+import { useToast } from '../../../context/ToastContext';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 function createNewIssue() {
   return {
@@ -29,9 +33,8 @@ function createNewIssue() {
 function generateRepairNumber() {
   const now = new Date();
   const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-  const time = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
   const suffix = Math.random().toString(36).slice(-4).toUpperCase();
-  return `RL-${date}-${time}-${suffix}`;
+  return `REP-${date}-${suffix}`;
 }
 
 export function RepairFormPage() {
@@ -52,16 +55,28 @@ export function RepairFormPage() {
   const [garageLocation, setGarageLocation] = useState<string>('');
   const [odometerReading, setOdometerReading] = useState('');
   const [priority, setPriority] = useState<PriorityLevel>('MEDIUM');
-  const [mechanicSelection, setMechanicSelection] = useState('');
   const [assignedMechanics, setAssignedMechanics] = useState<MechanicAssignment[]>([]);
-  const [outsourcedMechanicName, setOutsourcedMechanicName] = useState('');
   const [shopName, setShopName] = useState<string>(SHOP_OPTIONS[0]);
   const [otherShopName, setOtherShopName] = useState('');
-  const [issues, setIssues] = useState(() => [createNewIssue()]);
+  const [issues, setIssues] = useState<RepairIssue[]>(() => [createNewIssue()]);
   const [createdAt] = useState(() => new Date());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [issueError, setIssueError] = useState<string | null>(null);
+  const { showToast } = useToast();
+
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Load driver suggestions from localStorage
   useEffect(() => {
@@ -100,70 +115,6 @@ export function RepairFormPage() {
 
     return () => { cancelled = true; };
   }, []);
-
-  const assignedMechanicIds = useMemo(() => new Set(assignedMechanics.map((mechanic) => mechanic.id)), [assignedMechanics]);
-
-  const handleAddMechanic = () => {
-    setError(null);
-
-    if (mechanicSelection === '') {
-      setError('Select a mechanic or choose Other.');
-      return;
-    }
-
-    if (mechanicSelection === 'OTHER') {
-      const name = outsourcedMechanicName.trim();
-      if (!name) {
-        setError('Enter the outsourced mechanic or shop name.');
-        return;
-      }
-      setAssignedMechanics((current) => [
-        ...current,
-        { id: `other-${Date.now()}`, name, isOutsourced: true, shopName: name },
-      ]);
-      setOutsourcedMechanicName('');
-      setMechanicSelection('');
-      return;
-    }
-
-    const mechanic = mechanicOptions.find((item) => item.id === mechanicSelection);
-    if (!mechanic) {
-      setError('Select a valid mechanic.');
-      return;
-    }
-
-    if (assignedMechanicIds.has(mechanic.id)) {
-      setError('Mechanic is already assigned.');
-      return;
-    }
-
-    setAssignedMechanics((current) => [...current, { id: mechanic.id, name: mechanic.name }]);
-    setMechanicSelection('');
-  };
-
-  const handleRemoveMechanic = (id: string) => {
-    setAssignedMechanics((current) => current.filter((mechanic) => mechanic.id !== id));
-  };
-
-  const handleUpdateIssue = (issueId: string, field: 'vehicleSystem' | 'rootCause' | 'description', value: string) => {
-    setIssues((current) =>
-      current.map((issue) => (issue.id === issueId ? { ...issue, [field]: value } : issue)),
-    );
-  };
-
-  const handleAddIssue = () => {
-    if (issues.length >= 10) {
-      return;
-    }
-    setIssues((current) => [...current, createNewIssue()]);
-  };
-
-  const handleRemoveIssue = (issueId: string) => {
-    if (issues.length <= 1) {
-      return;
-    }
-    setIssues((current) => current.filter((issue) => issue.id !== issueId));
-  };
 
   const validateForm = () => {
     setError(null);
@@ -218,15 +169,7 @@ export function RepairFormPage() {
     return true;
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setIssueError(null);
-
-    if (!validateForm()) {
-      return;
-    }
-
+  const executeSubmit = async () => {
     const createdAtIso = createdAt.toISOString();
     const payload: CreateRepairPayload = {
       vehiclePlate,
@@ -250,18 +193,37 @@ export function RepairFormPage() {
       setSaving(true);
       await createRepair(payload);
       saveDriverName(driverName.trim());
+      showToast('Repair ticket created successfully.', 'success');
       navigate('/repairs');
     } catch (err: any) {
       console.error('Failed to create repair ticket:', err);
       const serverMessage = err.response?.data?.message;
-      setError(
-        serverMessage
-          ? `Unable to create repair ticket: ${Array.isArray(serverMessage) ? serverMessage.join(', ') : serverMessage}`
-          : 'Unable to create repair ticket. Please try again.'
-      );
+      const displayMsg = serverMessage
+        ? `Unable to create repair ticket: ${Array.isArray(serverMessage) ? serverMessage.join(', ') : serverMessage}`
+        : 'Unable to create repair ticket. Please try again.';
+      setError(displayMsg);
+      showToast(displayMsg, 'error');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setIssueError(null);
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setConfirmState({
+      isOpen: true,
+      title: 'Submit Repair Ticket?',
+      message: 'Are you sure you want to submit this new repair ticket?',
+      confirmText: 'Submit Ticket',
+      onConfirm: executeSubmit,
+    });
   };
 
   return (
@@ -337,7 +299,7 @@ export function RepairFormPage() {
 
             <div className="input-group">
               <label className="label" htmlFor="driverName">
-                Driver name
+                Driver name <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <input
                 id="driverName"
@@ -376,7 +338,7 @@ export function RepairFormPage() {
 
             <div className="input-group">
               <label className="label" htmlFor="odometerReading">
-                Odometer reading
+                Odometer reading <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <input
                 id="odometerReading"
@@ -416,71 +378,12 @@ export function RepairFormPage() {
 
           <div className="section-divider" />
 
-          <div>
-            <h3 className="section-title">Mechanic assignment</h3>
-            <div className="field-grid">
-              <div className="input-group">
-                <label className="label" htmlFor="mechanicSelection">
-                  Select mechanic
-                </label>
-                <select
-                  id="mechanicSelection"
-                  className="select"
-                  value={mechanicSelection}
-                  onChange={(event) => setMechanicSelection(event.target.value)}
-                >
-                  <option value="">Choose a mechanic</option>
-                  {mechanicOptions.map((mechanic) => (
-                    <option
-                      key={mechanic.id}
-                      value={mechanic.id}
-                      disabled={!mechanic.isAvailable || assignedMechanicIds.has(mechanic.id)}
-                    >
-                      {mechanic.name}
-                      {!mechanic.isAvailable ? ' (assigned)' : ''}
-                    </option>
-                  ))}
-                  <option value="OTHER">Other (Outsourced)</option>
-                </select>
-              </div>
-
-              {mechanicSelection === 'OTHER' && (
-                <div className="input-group">
-                  <label className="label" htmlFor="outsourcedMechanicName">
-                    Outsourced mechanic / shop
-                  </label>
-                  <input
-                    id="outsourcedMechanicName"
-                    className="input"
-                    value={outsourcedMechanicName}
-                    maxLength={100}
-                    onChange={(event) => setOutsourcedMechanicName(event.target.value)}
-                    placeholder="Enter shop name or independent mechanic"
-                  />
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <Button type="button" onClick={handleAddMechanic} disabled={!mechanicSelection || (mechanicSelection === 'OTHER' && !outsourcedMechanicName.trim())}>
-                Add mechanic
-              </Button>
-            </div>
-            <div className="mechanic-list">
-              {assignedMechanics.map((mechanic) => (
-                <div key={mechanic.id} className="tag-pill">
-                  {mechanic.name}
-                  {mechanic.isOutsourced ? ' (outsourced)' : ''}
-                  <button
-                    type="button"
-                    style={{ marginLeft: 10, border: 'none', background: 'transparent', color: '#1d4ed8', cursor: 'pointer' }}
-                    onClick={() => handleRemoveMechanic(mechanic.id)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <MechanicAssignmentSection
+            mechanicOptions={mechanicOptions}
+            assignedMechanics={assignedMechanics}
+            setAssignedMechanics={setAssignedMechanics}
+            setError={setError}
+          />
 
           <div className="section-divider" />
 
@@ -507,7 +410,7 @@ export function RepairFormPage() {
             {shopName === 'OTHER' && (
               <div className="input-group">
                 <label className="label" htmlFor="otherShopName">
-                  Other shop name
+                  Other shop name <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   id="otherShopName"
@@ -523,98 +426,34 @@ export function RepairFormPage() {
 
           <div className="section-divider" />
 
-          <div>
-            <h3 className="section-title">Repair issue logging</h3>
-            {issues.map((issue, index) => (
-              <div key={issue.id} className="issue-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <h4>Issue {index + 1}</h4>
-                  {issues.length > 1 && (
-                    <button
-                      type="button"
-                      className="button secondary small"
-                      onClick={() => handleRemoveIssue(issue.id)}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-                <div className="field-grid" style={{ marginTop: 16 }}>
-                  <div className="input-group">
-                    <label className="label" htmlFor={`vehicleSystem-${issue.id}`}>
-                      Vehicle system
-                    </label>
-                    <select
-                      id={`vehicleSystem-${issue.id}`}
-                      className="select"
-                      value={issue.vehicleSystem}
-                      onChange={(event) => handleUpdateIssue(issue.id, 'vehicleSystem', event.target.value)}
-                    >
-                      {VEHICLE_SYSTEM_OPTIONS.map((system) => (
-                        <option key={system} value={system}>
-                          {system}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="input-group">
-                    <label className="label" htmlFor={`rootCause-${issue.id}`}>
-                      Root cause
-                    </label>
-                    <select
-                      id={`rootCause-${issue.id}`}
-                      className="select"
-                      value={issue.rootCause}
-                      onChange={(event) => handleUpdateIssue(issue.id, 'rootCause', event.target.value)}
-                    >
-                      {ROOT_CAUSE_OPTIONS.map((cause) => (
-                        <option key={cause} value={cause}>
-                          {cause}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="input-group" style={{ marginTop: 16 }}>
-                  <label className="label" htmlFor={`issueDescription-${issue.id}`}>
-                    Repair description
-                  </label>
-                  <textarea
-                    id={`issueDescription-${issue.id}`}
-                    className="textarea"
-                    rows={4}
-                    maxLength={500}
-                    value={issue.description}
-                    onChange={(event) => handleUpdateIssue(issue.id, 'description', event.target.value)}
-                    placeholder="Enter a detailed issue description"
-                  />
-                  <p className="small-note">Maximum 500 characters per issue.</p>
-                </div>
-              </div>
-            ))}
-            <div style={{ marginTop: 14, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Button type="button" onClick={handleAddIssue} disabled={issues.length >= 10}>
-                Add another issue
-              </Button>
-              <p className="small-note">You can add up to 10 issue entries in one ticket.</p>
-            </div>
-          </div>
+          <IssueLoggingSection
+            issues={issues}
+            setIssues={setIssues}
+            createNewIssue={createNewIssue}
+          />
 
           {issueError ? <div className="alert" style={{ marginTop: 18 }}>{issueError}</div> : null}
           {error ? <div className="alert" style={{ marginTop: 18 }}>{error}</div> : null}
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Submitting…' : 'Submit repair ticket'}
-            </Button>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24, justifyContent: 'flex-end' }}>
             <Button type="button" variant="secondary" onClick={() => navigate('/repairs')}>
               Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Submitting…' : 'Submit repair ticket'}
             </Button>
           </div>
         </form>
       </div>
       )}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

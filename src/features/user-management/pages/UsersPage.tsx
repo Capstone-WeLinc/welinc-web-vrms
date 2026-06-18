@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Users } from 'lucide-react';
-import { Button } from '../components/ui/Button';
-import { PageHeader } from '../components/layout/PageHeader';
+import { Button } from '../../../components/ui/Button';
+import { PageHeader } from '../../../components/layout/PageHeader';
 import {
   createUser,
   getUsers,
@@ -9,28 +9,30 @@ import {
   setUserStatus,
   unlockUser,
   updateUser,
-} from '../lib/api/authApi';
-import { ManagedUser, UserRole, UserRoleAssignment } from '../types';
-import { useAuthStore } from '../store/authStore';
-import { formatDate } from '../lib/utils/format';
+} from '../../../lib/api/authApi';
+import { ManagedUser, UserRole, UserRoleAssignment } from '../../../types';
+import { useAuthStore } from '../../../store/authStore';
+import { formatDate } from '../../../lib/utils/format';
+import { useToast } from '../../../context/ToastContext';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 const roleOptions: UserRole[] = ['ADMIN', 'MECHANIC'];
 const defaultRoleAssignments: UserRoleAssignment[] = [{ role: 'ADMIN', system: 'VRMS' }];
 
 type UserFormState = {
   name: string;
-  username: string;
+  email: string;
   password: string;
   isActive: boolean;
-  roleAssignments: UserRoleAssignment[];
+  role: UserRole;
 };
 
 const emptyForm: UserFormState = {
   name: '',
-  username: '',
+  email: '',
   password: '',
   isActive: true,
-  roleAssignments: defaultRoleAssignments,
+  role: 'MECHANIC',
 };
 
 function formatRoleAssignment(assignment: UserRoleAssignment) {
@@ -43,8 +45,8 @@ function getVrmsRoleAssignments(roleAssignments: UserRoleAssignment[]) {
 
 function validatePassword(password: string): string | null {
   const trimmed = password.trim();
-  if (trimmed.length < 12) {
-    return 'Password must be at least 12 characters.';
+  if (trimmed.length < 8) {
+    return 'Password must be at least 8 characters.';
   }
   if (!/[A-Z]/.test(trimmed)) {
     return 'Password must include at least one uppercase letter.';
@@ -63,13 +65,51 @@ function validatePassword(password: string): string | null {
 
 export function UsersPage() {
   const currentUser = useAuthStore((state) => state.user);
+  const { showToast } = useToast();
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [form, setForm] = useState<UserFormState>(emptyForm);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+    type: 'default' | 'danger' | 'warning';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'default',
+  });
+
+  const triggerConfirm = (options: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+    type?: 'default' | 'danger' | 'warning';
+  }) => {
+    setConfirmState({
+      isOpen: true,
+      title: options.title,
+      message: options.message,
+      confirmText: options.confirmText,
+      cancelText: options.cancelText,
+      onConfirm: () => {
+        options.onConfirm();
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      },
+      type: options.type || 'default',
+    });
+  };
 
   const isAdmin = currentUser?.role === 'ADMIN';
 
@@ -100,6 +140,7 @@ export function UsersPage() {
       setUsers(data);
     } catch (err) {
       setError('Unable to load user accounts.');
+      showToast('Unable to load user accounts.', 'error');
     } finally {
       setLoading(false);
     }
@@ -108,106 +149,44 @@ export function UsersPage() {
   const resetForm = () => {
     setEditingUserId(null);
     setForm(emptyForm);
-    setMessage(null);
     setError(null);
   };
 
   const handleEdit = (user: ManagedUser) => {
     setEditingUserId(user.id);
+    const vrmsRole = getVrmsRoleAssignments(user.roles)[0]?.role || 'MECHANIC';
     setForm({
       name: user.name,
-      username: user.username,
+      email: user.email,
       password: '',
       isActive: user.isActive,
-      roleAssignments:
-        getVrmsRoleAssignments(user.roles).length > 0
-          ? getVrmsRoleAssignments(user.roles)
-          : defaultRoleAssignments,
+      role: vrmsRole,
     });
-    setMessage(null);
     setError(null);
   };
 
-  const updateRoleAssignment = (index: number, role: UserRole) => {
-    setForm((current) => ({
-      ...current,
-      roleAssignments: current.roleAssignments.map((assignment, assignmentIndex) =>
-        assignmentIndex === index ? { ...assignment, role } : assignment,
-      ),
-    }));
-  };
-
-  const addRoleAssignment = () => {
-    setForm((current) => {
-      if (current.roleAssignments.length >= roleOptions.length) {
-        return current;
-      }
-      const existingRoles = current.roleAssignments.map((a) => a.role);
-      const remainingRole = roleOptions.find((r) => !existingRoles.includes(r)) || 'MECHANIC';
-      return {
-        ...current,
-        roleAssignments: [...current.roleAssignments, { role: remainingRole, system: 'VRMS' }],
-      };
-    });
-  };
-
-  const removeRoleAssignment = (index: number) => {
-    setForm((current) => ({
-      ...current,
-      roleAssignments:
-        current.roleAssignments.length === 1
-          ? current.roleAssignments
-          : current.roleAssignments.filter((_, assignmentIndex) => assignmentIndex !== index),
-    }));
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const executeSave = async () => {
     setSaving(true);
-    setMessage(null);
     setError(null);
 
     const trimmedName = form.name.trim();
-    const trimmedUsername = form.username.trim();
+    const trimmedEmail = form.email.trim().toLowerCase();
     const trimmedPassword = form.password.trim();
-
-    if (!trimmedName || !trimmedUsername) {
-      setError('Name and username are required.');
-      setSaving(false);
-      return;
-    }
-
-    if (!editingUserId) {
-      const pwError = validatePassword(trimmedPassword);
-      if (pwError) {
-        setError(pwError);
-        setSaving(false);
-        return;
-      }
-    } else if (trimmedPassword) {
-      const pwError = validatePassword(trimmedPassword);
-      if (pwError) {
-        setError(pwError);
-        setSaving(false);
-        return;
-      }
-    }
 
     try {
       const savedUser = editingUserId
         ? await updateUser(editingUserId, {
             name: trimmedName,
-            username: trimmedUsername,
+            email: trimmedEmail,
             ...(trimmedPassword ? { password: trimmedPassword } : {}),
             isActive: form.isActive,
-            roleAssignments: getVrmsRoleAssignments(form.roleAssignments),
+            roleAssignments: [{ role: form.role, system: 'VRMS' }],
           })
         : await createUser({
             name: trimmedName,
-            username: trimmedUsername,
-            password: trimmedPassword,
+            email: trimmedEmail,
             isActive: form.isActive,
-            roleAssignments: getVrmsRoleAssignments(form.roleAssignments),
+            roleAssignments: [{ role: form.role, system: 'VRMS' }],
           });
 
       setUsers((current) => {
@@ -216,83 +195,128 @@ export function UsersPage() {
           ? current.map((user) => (user.id === savedUser.id ? savedUser : user))
           : [savedUser, ...current];
       });
-      setMessage(editingUserId ? 'User account updated.' : 'User account created.');
+
+      showToast(
+        editingUserId 
+          ? `User account for ${trimmedEmail} updated successfully.` 
+          : `User account for ${trimmedEmail} created successfully.`, 
+        'success'
+      );
       setEditingUserId(null);
       setForm(emptyForm);
     } catch (err: any) {
       const msg = err.response?.data?.message;
-      if (Array.isArray(msg)) {
-        setError(msg.join(', '));
-      } else {
-        setError(msg || 'Unable to save user account.');
-      }
+      const displayMsg = Array.isArray(msg) ? msg.join(', ') : (msg || 'Unable to save user account.');
+      setError(displayMsg);
+      showToast(displayMsg, 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleStatusToggle = async (user: ManagedUser) => {
-    setSaving(true);
-    setMessage(null);
-    setError(null);
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-    try {
-      const updated = await setUserStatus(user.id, !user.isActive);
-      setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setMessage(updated.isActive ? 'User account reactivated.' : 'User account deactivated.');
-    } catch (err) {
-      setError('Unable to update account status.');
-    } finally {
-      setSaving(false);
+    const trimmedName = form.name.trim();
+    const trimmedEmail = form.email.trim().toLowerCase();
+    const trimmedPassword = form.password.trim();
+
+    if (!trimmedName || !trimmedEmail) {
+      setError('Name and email are required.');
+      return;
     }
+
+    if (editingUserId && trimmedPassword) {
+      const pwError = validatePassword(trimmedPassword);
+      if (pwError) {
+        setError(pwError);
+        return;
+      }
+    }
+
+    triggerConfirm({
+      title: editingUserId ? 'Update User Details?' : 'Create User Account?',
+      message: editingUserId 
+        ? `Are you sure you want to save changes to the account for ${trimmedEmail}?` 
+        : `Are you sure you want to create a new user account for ${trimmedEmail}?`,
+      confirmText: editingUserId ? 'Save Changes' : 'Create Account',
+      onConfirm: executeSave,
+    });
+  };
+
+  const handleStatusToggle = (user: ManagedUser) => {
+    triggerConfirm({
+      title: user.isActive ? 'Deactivate Account?' : 'Reactivate Account?',
+      message: user.isActive 
+        ? `Are you sure you want to deactivate ${user.email}? They will no longer be able to log in.`
+        : `Are you sure you want to reactivate ${user.email}?`,
+      confirmText: user.isActive ? 'Deactivate' : 'Reactivate',
+      type: user.isActive ? 'danger' : 'default',
+      onConfirm: async () => {
+        setSaving(true);
+        setError(null);
+        try {
+          const updated = await setUserStatus(user.id, !user.isActive);
+          setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+          showToast(updated.isActive ? 'User account reactivated.' : 'User account deactivated.', 'success');
+        } catch (err) {
+          setError('Unable to update account status.');
+          showToast('Unable to update account status.', 'error');
+        } finally {
+          setSaving(false);
+        }
+      }
+    });
   };
 
   const handlePasswordReset = async (user: ManagedUser) => {
-    const password = window.prompt(`Enter a new password for ${user.username}.`);
+    const password = window.prompt(`Enter a new password for ${user.email}.`);
     if (password == null) return;
 
     const pwError = validatePassword(password);
     if (pwError) {
       setError(pwError);
+      showToast(pwError, 'error');
       return;
     }
 
     setSaving(true);
-    setMessage(null);
     setError(null);
 
     try {
       const updated = await resetUserPassword(user.id, password.trim());
       setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setMessage('Password reset saved.');
+      showToast('Password reset saved successfully.', 'success');
     } catch (err: any) {
       const msg = err.response?.data?.message;
-      if (Array.isArray(msg)) {
-        setError(msg.join(', '));
-      } else {
-        setError(msg || 'Unable to reset password.');
-      }
+      const displayMsg = Array.isArray(msg) ? msg.join(', ') : (msg || 'Unable to reset password.');
+      setError(displayMsg);
+      showToast(displayMsg, 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleUnlock = async (user: ManagedUser) => {
-    if (!window.confirm(`Unlock account for ${user.username}?`)) return;
-
-    setSaving(true);
-    setMessage(null);
-    setError(null);
-
-    try {
-      const updated = await unlockUser(user.id);
-      setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setMessage(`Account for ${user.username} has been unlocked.`);
-    } catch (err) {
-      setError('Unable to unlock account.');
-    } finally {
-      setSaving(false);
-    }
+  const handleUnlock = (user: ManagedUser) => {
+    triggerConfirm({
+      title: 'Unlock User Account?',
+      message: `Are you sure you want to unlock the login session for ${user.email}?`,
+      confirmText: 'Unlock',
+      onConfirm: async () => {
+        setSaving(true);
+        setError(null);
+        try {
+          const updated = await unlockUser(user.id);
+          setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+          showToast(`Account for ${user.email} has been unlocked successfully.`, 'success');
+        } catch (err) {
+          setError('Unable to unlock account.');
+          showToast('Unable to unlock account.', 'error');
+        } finally {
+          setSaving(false);
+        }
+      }
+    });
   };
 
   if (!isAdmin) {
@@ -331,7 +355,7 @@ export function UsersPage() {
           <form onSubmit={handleSubmit}>
             <div className="input-group">
               <label className="label" htmlFor="name">
-                Name
+                Name <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <input
                 id="name"
@@ -343,31 +367,34 @@ export function UsersPage() {
             </div>
 
             <div className="input-group">
-              <label className="label" htmlFor="username">
-                Username
+              <label className="label" htmlFor="email">
+                Email Address <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <input
-                id="username"
+                id="email"
+                type="email"
                 className="input"
-                value={form.username}
-                onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
-                placeholder="admin"
+                value={form.email}
+                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                placeholder="user@welinc.com"
               />
             </div>
 
-            <div className="input-group">
-              <label className="label" htmlFor="password">
-                {editingUserId ? 'New password' : 'Password'}
-              </label>
-              <input
-                id="password"
-                className="input"
-                type="password"
-                value={form.password}
-                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                placeholder={editingUserId ? 'Leave blank to keep current password' : 'At least 6 characters'}
-              />
-            </div>
+            {editingUserId ? (
+              <div className="input-group">
+                <label className="label" htmlFor="password">
+                  New password
+                </label>
+                <input
+                  id="password"
+                  className="input"
+                  type="password"
+                  value={form.password}
+                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                  placeholder="Leave blank to keep current password"
+                />
+              </div>
+            ) : null}
 
             <label className="checkbox-row">
               <input
@@ -378,59 +405,25 @@ export function UsersPage() {
               Active account
             </label>
 
-            <div className="role-editor">
-              <div className="role-editor-header">
-                <span className="label">Role assignments</span>
-                {form.roleAssignments.length < roleOptions.length && (
-                  <button type="button" className="text-button" onClick={addRoleAssignment}>
-                    Add role
-                  </button>
-                )}
-              </div>
-              <p className="help-text">Only ADMIN and MECHANIC roles can be assigned for VRMS users.</p>
-
-              {form.roleAssignments.map((assignment, index) => (
-                <div className="role-assignment-row" key={`${assignment.role}-${assignment.system}-${index}`}>
-                  <select
-                    className="select"
-                    value={assignment.role}
-                    onChange={(event) => updateRoleAssignment(index, event.target.value as UserRole)}
-                  >
-                    {roleOptions.map((role) => {
-                      const isChosenElsewhere = form.roleAssignments.some(
-                        (a, i) => i !== index && a.role === role
-                      );
-                      return (
-                        <option key={role} value={role} disabled={isChosenElsewhere}>
-                          {role.replace('_', ' ')}
-                        </option>
-                      );
-                    })}
-                  </select>
-
-                  <div className="role-assignment-system">
-                    <span className="system-pill">VRMS</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="icon-action"
-                    onClick={() => removeRoleAssignment(index)}
-                    disabled={form.roleAssignments.length === 1}
-                    aria-label="Remove role assignment"
-                  >
-                    x
-                  </button>
-                </div>
-              ))}
+            <div className="input-group">
+              <label className="label" htmlFor="role">
+                Role <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <select
+                id="role"
+                className="select"
+                value={form.role}
+                onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as UserRole }))}
+              >
+                {roleOptions.map((role) => (
+                  <option key={role} value={role}>
+                    {role.replace('_', ' ')}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {error ? <div className="alert" style={{ marginTop: 16 }}>{error}</div> : null}
-            {message ? (
-              <div className="alert success-alert" style={{ marginTop: 16 }}>
-                {message}
-              </div>
-            ) : null}
 
             <div className="form-actions">
               <Button type="submit" disabled={saving}>
@@ -483,7 +476,7 @@ export function UsersPage() {
                 <thead>
                   <tr>
                     <th>Name</th>
-                    <th>Username</th>
+                    <th>Email Address</th>
                     <th>Status</th>
                     <th>Roles</th>
                     <th>Updated</th>
@@ -494,7 +487,7 @@ export function UsersPage() {
                   {users.map((user) => (
                     <tr key={user.id}>
                       <td>{user.name}</td>
-                      <td>{user.username}</td>
+                      <td>{user.email}</td>
                       <td>
                         <span className={`status-pill ${user.isActive ? 'active' : 'inactive'}`}>
                           {user.isActive ? 'Active' : 'Inactive'}
@@ -555,6 +548,16 @@ export function UsersPage() {
           )}
         </section>
       </div>
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

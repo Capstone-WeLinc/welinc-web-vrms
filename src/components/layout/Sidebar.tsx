@@ -1,10 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
-  LayoutGrid, 
-  LogOut, 
-  Sun, 
-  Moon, 
+  LogOut,
   LayoutDashboard, 
   Wrench, 
   PlusCircle, 
@@ -13,10 +10,15 @@ import {
   PanelLeftClose, 
   PanelLeftOpen, 
   User,
-  ClipboardList
+  ClipboardList,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import logo from '../../assets/brand-logo.jpg';
+import ConfirmModal from '../ConfirmModal';
+
+const PORTAL_URL = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:8000';
+const VMMS_URL = (import.meta.env as any).VITE_VMMS_URL || 'http://localhost:8002';
 
 const adminNavItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -50,24 +52,7 @@ export function Sidebar({ onCollapse }: SidebarProps) {
   const navigate = useNavigate();
 
   const [collapsed, setCollapsed] = useState(false);
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('vrms_theme') || 'light';
-  });
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.add('light');
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('vrms_theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
+  const [showConfirmLogout, setShowConfirmLogout] = useState(false);
 
   const toggleCollapse = () => {
     const next = !collapsed;
@@ -79,58 +64,43 @@ export function Sidebar({ onCollapse }: SidebarProps) {
   const roleLabel = user?.role ? (ROLE_LABELS[user.role] ?? user.role) : '';
 
   const getSubsystemCount = () => {
-    if (user?.roles && Array.isArray(user.roles)) {
-      const subsystemRoles = user.roles.filter((r: any) =>
-        ['VRMS', 'VMMS', 'BMS'].includes(r.system.toUpperCase())
-      );
-      const uniqueSystems = new Set(subsystemRoles.map((r: any) => r.system.toUpperCase()));
-      return uniqueSystems.size;
-    }
     try {
-      const token = localStorage.getItem('welinc_token') || localStorage.getItem('token');
-      if (!token) return 0;
-      const [, payload] = token.split('.');
-      if (!payload) return 0;
-      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const json = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join(''),
+      const roles = user?.roles || [];
+      const subsystemRoles = (roles as any[]).filter((r) =>
+        ['VRMS', 'VMMS', 'BMS'].includes(r.system?.toUpperCase())
       );
-      const decoded = JSON.parse(json) as { roles?: { system: string }[] };
-      const subsystemRoles = (decoded.roles || []).filter((r) =>
-        ['VRMS', 'VMMS', 'BMS'].includes(r.system.toUpperCase())
-      );
-      const uniqueSystems = new Set(subsystemRoles.map(r => r.system.toUpperCase()));
+      const uniqueSystems = new Set(subsystemRoles.map((r) => r.system.toUpperCase()));
       return uniqueSystems.size;
     } catch (err) {
-      console.error('Error parsing token to count subsystems:', err);
-      return 2;
+      console.error('Error counting subsystems in VRMS sidebar:', err);
+      return 1;
     }
   };
 
   const hasMultipleSystems = getSubsystemCount() > 1;
 
+  const handleSwitchToVmms = () => {
+    const token = useAuthStore.getState().token || localStorage.getItem('welinc_token');
+    if (token) {
+      window.location.href = `${VMMS_URL}/login?token=${token}`;
+    } else {
+      window.location.href = VMMS_URL;
+    }
+  };
+
   const handleLogout = () => {
-    logout();
-    navigate('/login', { replace: true });
+    setShowConfirmLogout(true);
   };
 
-  const handleSignOut = () => {
+  const executeLogout = () => {
     logout();
-    const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
-    window.location.href = `${portalUrl}/login?logout=true`;
-  };
-
-  const handleBackToPortal = () => {
-    const portalUrl = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:5176';
-    window.location.href = portalUrl;
+    window.location.href = `${PORTAL_URL}/login?logout=true`;
   };
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div>
+        {/* Brand Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
             <img src={logo} alt="WeLinc" style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0 }} />
@@ -155,7 +125,6 @@ export function Sidebar({ onCollapse }: SidebarProps) {
               padding: '6px',
               borderRadius: '6px',
               transition: 'all 0.2s',
-              alignSelf: 'center',
             }}
             title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
@@ -163,7 +132,7 @@ export function Sidebar({ onCollapse }: SidebarProps) {
           </button>
         </div>
 
-        {/* User profile layout placed at the top (like VMMS) */}
+        {/* User Profile */}
         {user && (
           <div className="sidebar-profile" style={{ display: 'flex', gap: 10, alignItems: 'center', padding: collapsed ? '10px' : '12px 14px' }}>
             <div className="sidebar-avatar" style={{
@@ -188,6 +157,7 @@ export function Sidebar({ onCollapse }: SidebarProps) {
           </div>
         )}
 
+        {/* Navigation */}
         <nav style={{ marginTop: 8 }}>
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -206,39 +176,45 @@ export function Sidebar({ onCollapse }: SidebarProps) {
         </nav>
       </div>
 
+      {/* Footer Actions */}
       <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <button 
-          className="sidebar-btn" 
-          type="button" 
-          onClick={toggleTheme}
-          title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-        >
-          {theme === 'light' ? <Moon size={16} style={{ flexShrink: 0 }} /> : <Sun size={16} style={{ flexShrink: 0 }} />}
-          {!collapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
-        </button>
-        {hasMultipleSystems ? (
+        {/* Show "Switch to VMMS" only for users with multiple systems */}
+        {hasMultipleSystems && (
           <button 
+            id="sidebar-switch-vmms"
             className="sidebar-btn" 
             type="button" 
-            onClick={handleBackToPortal}
-            title="Switch Subsystem"
+            onClick={handleSwitchToVmms}
+            title="Switch to VMMS"
           >
-            <LayoutGrid size={16} style={{ flexShrink: 0 }} />
-            {!collapsed && <span>Switch Subsystem</span>}
-          </button>
-        ) : (
-          <button 
-            className="sidebar-btn" 
-            type="button" 
-            onClick={handleSignOut}
-            title="Sign Out"
-            style={{ color: 'var(--danger)' }}
-          >
-            <LogOut size={16} style={{ flexShrink: 0 }} />
-            {!collapsed && <span>Sign Out</span>}
+            <ArrowRightLeft size={16} style={{ flexShrink: 0 }} />
+            {!collapsed && <span>Switch to VMMS</span>}
           </button>
         )}
+
+        {/* Logout — always visible */}
+        <button 
+          id="sidebar-logout"
+          className="sidebar-btn" 
+          type="button" 
+          onClick={handleLogout}
+          title="Logout"
+          style={{ color: 'var(--danger)' }}
+        >
+          <LogOut size={16} style={{ flexShrink: 0 }} />
+          {!collapsed && <span>Logout</span>}
+        </button>
       </div>
+      <ConfirmModal
+        isOpen={showConfirmLogout}
+        title="Sign Out?"
+        message="Are you sure you want to sign out of WeLinc VRMS?"
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        type="warning"
+        onConfirm={executeLogout}
+        onCancel={() => setShowConfirmLogout(false)}
+      />
     </aside>
   );
 }
