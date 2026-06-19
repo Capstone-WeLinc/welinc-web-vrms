@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Wrench } from 'lucide-react';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
+import { Wrench, ArrowLeft } from 'lucide-react';
 import { getRepair, updateRepairStatus } from '../../../lib/api/repairApi';
 import { RepairTicket, RepairStatus } from '../../../types';
 import { formatDate } from '../../../lib/utils/format';
@@ -13,6 +13,7 @@ import { AuditLogCollapsible } from '../components/AuditLogCollapsible';
 import { UnlockTicketModal } from '../components/UnlockTicketModal';
 import { useToast } from '../../../context/ToastContext';
 import ConfirmModal from '../../../components/ConfirmModal';
+import { useConfirm } from '../../../hooks/useConfirm';
 
 const allStatusOptions: Array<{ value: RepairStatus; label: string }> = [
   { value: 'PENDING', label: 'Pending' },
@@ -59,36 +60,7 @@ export function RepairDetailPage() {
   const [showUnlockModal, setShowUnlockModal] = useState(false);
 
   const { showToast } = useToast();
-  const [confirmState, setConfirmState] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    confirmText?: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-  });
-
-  const triggerConfirm = (options: {
-    title: string;
-    message: string;
-    confirmText?: string;
-    onConfirm: () => void;
-  }) => {
-    setConfirmState({
-      isOpen: true,
-      title: options.title,
-      message: options.message,
-      confirmText: options.confirmText,
-      onConfirm: () => {
-        options.onConfirm();
-        setConfirmState((prev) => ({ ...prev, isOpen: false }));
-      },
-    });
-  };
+  const { confirmState, triggerConfirm, closeConfirm } = useConfirm();
 
   useEffect(() => {
     async function load() {
@@ -161,7 +133,12 @@ export function RepairDetailPage() {
   if (loading) {
     return (
       <div>
-        <PageHeader title="Repair Details" subtitle="Loading…" icon={Wrench} action={<Button onClick={() => navigate('/repairs')} variant="secondary">Back</Button>} />
+        <div style={{ marginBottom: 16 }}>
+          <button onClick={() => navigate('/repairs')} className="sidebar-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px' }}>
+             <ArrowLeft size={16} /> Back to repairs
+          </button>
+        </div>
+        <PageHeader title="Repair Details" subtitle="Loading…" icon={Wrench} />
         <div className="card">Loading repair details…</div>
       </div>
     );
@@ -170,7 +147,12 @@ export function RepairDetailPage() {
   if (error && !repair) {
     return (
       <div>
-        <PageHeader title="Repair Details" subtitle="" icon={Wrench} action={<Button onClick={() => navigate('/repairs')} variant="secondary">Back</Button>} />
+        <div style={{ marginBottom: 16 }}>
+          <button onClick={() => navigate('/repairs')} className="sidebar-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px' }}>
+             <ArrowLeft size={16} /> Back to repairs
+          </button>
+        </div>
+        <PageHeader title="Repair Details" subtitle="" icon={Wrench} />
         <div className="card alert">{error}</div>
       </div>
     );
@@ -182,6 +164,11 @@ export function RepairDetailPage() {
 
   return (
     <div>
+      <div style={{ marginBottom: 16 }}>
+        <button onClick={() => navigate('/repairs')} className="sidebar-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px' }}>
+           <ArrowLeft size={16} /> Back to repairs
+        </button>
+      </div>
       <PageHeader
         title="Repair Details"
         subtitle="View or update a repair ticket."
@@ -193,9 +180,6 @@ export function RepairDetailPage() {
                 Unlock Ticket
               </Button>
             )}
-            <Button onClick={() => navigate(isReadOnlyMode ? '/history' : '/repairs')} variant="secondary">
-              {isReadOnlyMode ? 'Back to history' : 'Back to repairs'}
-            </Button>
           </div>
         }
       />
@@ -471,7 +455,7 @@ export function RepairDetailPage() {
         message={confirmState.message}
         confirmText={confirmState.confirmText}
         onConfirm={confirmState.onConfirm}
-        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onCancel={closeConfirm}
       />
     </div>
   );

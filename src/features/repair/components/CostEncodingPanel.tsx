@@ -18,6 +18,8 @@ export function CostEncodingPanel({
   onSaveSuccess,
   formatCurrency,
 }: CostEncodingPanelProps) {
+  const hasExistingCost = repair.partsCost != null || repair.laborCost != null || (repair.repairParts && repair.repairParts.length > 0);
+  const [isEditMode, setIsEditMode] = useState(!hasExistingCost);
   const [costMode, setCostMode] = useState<'lump' | 'itemized'>('lump');
   const [lumpPartsCost, setLumpPartsCost] = useState('');
   const [laborCost, setLaborCost] = useState('');
@@ -91,6 +93,7 @@ export function CostEncodingPanel({
       onSaveSuccess(updated);
       showToast('Repair costs updated successfully.', 'success');
       setCostSuccess(true);
+      setIsEditMode(false);
       setTimeout(() => setCostSuccess(false), 3000);
     } catch (err: any) {
       const displayMsg = err?.response?.data?.message ?? 'Unable to save costs.';
@@ -140,10 +143,38 @@ export function CostEncodingPanel({
 
   return (
     <div className="issue-card" style={{ border: '1px solid #3b82f6', background: '#eff6ff' }}>
-      <p className="label" style={{ marginTop: 0, color: '#1d4ed8' }}>Cost Encoding</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <p className="label" style={{ margin: 0, color: '#1d4ed8' }}>Cost Encoding</p>
+        {hasExistingCost && !isEditMode && (
+          <button
+            type="button"
+            onClick={() => setIsEditMode(true)}
+            style={{ padding: '4px 12px', border: '1px solid #3b82f6', background: '#fff', color: '#3b82f6', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+          >
+            Edit Costs
+          </button>
+        )}
+      </div>
 
-      {/* Mode toggle */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      {!isEditMode ? (
+        <div style={{ display: 'grid', gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#475569' }}>Parts Cost:</span>
+            <strong>{formatCurrency(repair.partsCost)}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#475569' }}>Labor Cost:</span>
+            <strong>{formatCurrency(repair.laborCost)}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid #bfdbfe' }}>
+            <span style={{ color: '#1d4ed8', fontWeight: 600 }}>Total Cost:</span>
+            <span style={{ color: '#1d4ed8', fontWeight: 700, fontSize: 16 }}>{formatCurrency(repair.totalCost)}</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Mode toggle */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         <button
           type="button"
           id="cost-mode-lump"
@@ -275,10 +306,18 @@ export function CostEncodingPanel({
       {costError && <div className="alert" style={{ marginTop: 8 }}>{costError}</div>}
       {costSuccess && <div style={{ color: '#16a34a', fontWeight: 600, fontSize: 13, marginTop: 8 }}>✓ Costs saved successfully.</div>}
 
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
         <Button id="save-costs-btn" onClick={handleSaveCosts} disabled={savingCosts}>
           {savingCosts ? 'Saving…' : 'Save costs'}
         </Button>
+        {hasExistingCost && (
+          <Button variant="secondary" onClick={() => {
+            setIsEditMode(false);
+            setCostError(null);
+          }}>
+            Cancel
+          </Button>
+        )}
       </div>
       <ConfirmModal
         isOpen={confirmState.isOpen}
@@ -287,6 +326,8 @@ export function CostEncodingPanel({
         onConfirm={confirmState.onConfirm}
         onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
       />
+        </>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, Search, History } from 'lucide-react';
 import { AuditLogEntry } from '../../../types';
 
 interface AuditLogCollapsibleProps {
@@ -30,7 +30,7 @@ export function AuditLogCollapsible({ auditLog, formatDate }: AuditLogCollapsibl
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', marginBottom: 16 }}>
       <button
         type="button"
         id="audit-log-toggle"
@@ -38,24 +38,26 @@ export function AuditLogCollapsible({ auditLog, formatDate }: AuditLogCollapsibl
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          background: 'var(--surface-alt, #f1f5f9)',
-          border: '1px solid var(--border, #cbd5e1)',
-          borderRadius: '8px',
-          padding: '8px 16px',
+          justifyContent: 'space-between',
+          width: '100%',
+          background: 'var(--surface-alt)',
+          padding: '12px 16px',
           fontWeight: 600,
-          fontSize: 13,
-          color: 'var(--text, #334155)',
+          fontSize: 14,
+          color: 'var(--text)',
+          border: 'none',
           cursor: 'pointer',
-          transition: 'all 0.2s',
-          marginBottom: 10
+          transition: 'background 0.2s',
         }}
       >
-        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        Audit Log ({auditLog.length} {auditLog.length === 1 ? 'entry' : 'entries'})
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Search size={16} style={{ color: 'var(--muted)' }} />
+          Audit Log <span style={{ color: 'var(--muted)', fontWeight: 400, fontSize: 13 }}>({auditLog.length} {auditLog.length === 1 ? 'entry' : 'entries'})</span>
+        </div>
+        <ChevronDown size={18} style={{ color: 'var(--muted)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
       </button>
       {expanded && (
-        <div style={{ marginTop: 8, overflowX: 'auto' }}>
+        <div style={{ overflowX: 'auto', borderTop: '1px solid var(--border)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>

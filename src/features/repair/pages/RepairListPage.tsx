@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Wrench, Lock, Search } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Wrench, Lock, Search, MoreVertical, Settings, Eye } from 'lucide-react';
 import { getRepairs } from '../../../lib/api/repairApi';
 import { RepairStatus, RepairTicket } from '../../../types';
 import { formatDate } from '../../../lib/utils/format';
@@ -27,6 +27,8 @@ export function RepairListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -72,42 +74,33 @@ export function RepairListPage() {
         ) : undefined}
       />
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1.5fr 1fr', alignItems: 'flex-end' }}>
-          <div className="input-group">
-            <label className="label" htmlFor="search">
-              Search repairs
-            </label>
-            <div style={{ position: 'relative' }}>
-              <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
-              <input
-                id="search"
-                className="input"
-                style={{ paddingLeft: 38 }}
-                placeholder="Search by repair number, vehicle, or driver"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
-          </div>
-          <div className="input-group">
-            <label className="label" htmlFor="statusFilter">
-              Status filter
-            </label>
-            <select
-              id="statusFilter"
-              className="select"
-              value={status}
-              onChange={(event) => setStatus(event.target.value as RepairStatus | '')}
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+         <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
+           <div style={{ position: 'relative', flex: 1 }}>
+             <Search size={18} style={{ position: 'absolute', left: 12, top: 14, color: 'var(--muted)' }} />
+             <input
+               id="search"
+               className="input"
+               style={{ paddingLeft: 38 }}
+               placeholder="Search by repair number, vehicle, or driver"
+               value={search}
+               onChange={(event) => setSearch(event.target.value)}
+             />
+           </div>
+           <select
+             id="statusFilter"
+             className="select"
+             value={status}
+             onChange={(event) => setStatus(event.target.value as RepairStatus | '')}
+             style={{ width: '160px' }}
+           >
+             {statusOptions.map((option) => (
+               <option key={option.value} value={option.value}>
+                 {option.label}
+               </option>
+             ))}
+           </select>
+         </div>
       </div>
 
       <div className="card">
@@ -130,6 +123,7 @@ export function RepairListPage() {
                   <th>Issue</th>
                   <th>Status</th>
                   <th>Updated</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -151,32 +145,69 @@ export function RepairListPage() {
                         <StatusBadge status={repair.status} />
                       </td>
                       <td>{formatDate(repair.updatedAt)}</td>
+                      <td>
+                        <div style={{ position: 'relative' }}>
+                          <button
+                            className="button-icon"
+                            onClick={() => setOpenMenuId(openMenuId === repair.id ? null : repair.id)}
+                            onBlur={() => setTimeout(() => setOpenMenuId(null), 150)}
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+
+                          {openMenuId === repair.id && (
+                            <div style={{
+                              position: 'absolute',
+                              right: 0,
+                              top: '100%',
+                              zIndex: 10,
+                              background: 'var(--surface)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '8px',
+                              boxShadow: 'var(--elevation)',
+                              padding: '4px',
+                              minWidth: '160px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '2px'
+                            }}>
+                              <button
+                                className="sidebar-btn"
+                                style={{ padding: '8px 12px', fontSize: '13px' }}
+                                onClick={() => { navigate(`/repairs/${repair.id}`); setOpenMenuId(null); }}
+                              >
+                                {isLocked ? <><Eye size={14} /> View Details</> : <><Settings size={14} /> Edit Ticket</>}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
             {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 20 }}>
-                <Button
-                  variant="secondary"
-                  style={{ padding: '6px 12px', fontSize: 13 }}
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                >
-                  Previous
-                </Button>
-                <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
-                  Page {currentPage} of {totalPages}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 14px', borderTop: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>
+                  Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredCount)} of {filteredCount})
                 </span>
-                <Button
-                  variant="secondary"
-                  style={{ padding: '6px 12px', fontSize: 13 }}
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                >
-                  Next
-                </Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    className="button secondary small"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    className="button secondary small"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </>

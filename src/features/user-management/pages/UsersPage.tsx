@@ -1,562 +1,289 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Users } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
+import { FormEvent, useState, useMemo } from 'react';
+import { Users as UsersIcon, Search } from 'lucide-react';
+import { ManagedUser } from '../../../types';
 import { PageHeader } from '../../../components/layout/PageHeader';
-import {
-  createUser,
-  getUsers,
-  resetUserPassword,
-  setUserStatus,
-  unlockUser,
-  updateUser,
-} from '../../../lib/api/authApi';
-import { ManagedUser, UserRole, UserRoleAssignment } from '../../../types';
-import { useAuthStore } from '../../../store/authStore';
-import { formatDate } from '../../../lib/utils/format';
 import { useToast } from '../../../context/ToastContext';
 import ConfirmModal from '../../../components/ConfirmModal';
-
-const roleOptions: UserRole[] = ['ADMIN', 'MECHANIC'];
-const defaultRoleAssignments: UserRoleAssignment[] = [{ role: 'ADMIN', system: 'VRMS' }];
-
-type UserFormState = {
-  name: string;
-  email: string;
-  password: string;
-  isActive: boolean;
-  role: UserRole;
-};
-
-const emptyForm: UserFormState = {
-  name: '',
-  email: '',
-  password: '',
-  isActive: true,
-  role: 'MECHANIC',
-};
-
-function formatRoleAssignment(assignment: UserRoleAssignment) {
-  return assignment.role.replace('_', ' ');
-}
-
-function getVrmsRoleAssignments(roleAssignments: UserRoleAssignment[]) {
-  return roleAssignments.filter((assignment) => assignment.system === 'VRMS');
-}
-
-function validatePassword(password: string): string | null {
-  const trimmed = password.trim();
-  if (trimmed.length < 8) {
-    return 'Password must be at least 8 characters.';
-  }
-  if (!/[A-Z]/.test(trimmed)) {
-    return 'Password must include at least one uppercase letter.';
-  }
-  if (!/[a-z]/.test(trimmed)) {
-    return 'Password must include at least one lowercase letter.';
-  }
-  if (!/\d/.test(trimmed)) {
-    return 'Password must include at least one number.';
-  }
-  if (!/[^A-Za-z0-9]/.test(trimmed)) {
-    return 'Password must include at least one special character.';
-  }
-  return null;
-}
+import {
+  useUsersManager,
+  UserFormState,
+  emptyForm,
+  getVrmsRoleAssignments,
+  validatePassword,
+  validateEmail,
+} from '../hooks/useUsersManager';
+import { UserForm } from '../components/UserForm';
+import { UsersTable } from '../components/UsersTable';
+import { useConfirm } from '../../../hooks/useConfirm';
+import { Button } from '../../../components/ui/Button';
 
 export function UsersPage() {
-  const currentUser = useAuthStore((state) => state.user);
+  const {
+    isAdmin,
+    users,
+    loading,
+    error: usersError,
+    saveUser,
+    toggleUserStatus,
+    resetPassword,
+    unlockUserAccount,
+  } = useUsersManager();
+  
+  const { confirmState, triggerConfirm, closeConfirm } = useConfirm();
   const { showToast } = useToast();
-  const [users, setUsers] = useState<ManagedUser[]>([]);
+
   const [form, setForm] = useState<UserFormState>(emptyForm);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('ALL');
+  const [filterStatus, setFilterStatus] = useState('ALL');
 
-  const [confirmState, setConfirmState] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    confirmText?: string;
-    cancelText?: string;
-    onConfirm: () => void;
-    type: 'default' | 'danger' | 'warning';
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-    type: 'default',
-  });
-
-  const triggerConfirm = (options: {
-    title: string;
-    message: string;
-    confirmText?: string;
-    cancelText?: string;
-    onConfirm: () => void;
-    type?: 'default' | 'danger' | 'warning';
-  }) => {
-    setConfirmState({
-      isOpen: true,
-      title: options.title,
-      message: options.message,
-      confirmText: options.confirmText,
-      cancelText: options.cancelText,
-      onConfirm: () => {
-        options.onConfirm();
-        setConfirmState((prev) => ({ ...prev, isOpen: false }));
-      },
-      type: options.type || 'default',
-    });
-  };
-
-  const isAdmin = currentUser?.role === 'ADMIN';
-
-  const summary = useMemo(
-    () => ({
-      total: users.length,
-      active: users.filter((user) => user.isActive).length,
-      inactive: users.filter((user) => !user.isActive).length,
-    }),
-    [users],
-  );
-
-  useEffect(() => {
-    if (!isAdmin) {
-      setLoading(false);
-      return;
-    }
-
-    loadUsers();
-  }, [isAdmin]);
-
-  const loadUsers = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await getUsers('VRMS');
-      setUsers(data);
-    } catch (err) {
-      setError('Unable to load user accounts.');
-      showToast('Unable to load user accounts.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setEditingUserId(null);
-    setForm(emptyForm);
-    setError(null);
-  };
+  if (!isAdmin) {
+    return (
+      <div>
+        <PageHeader title="Access Denied" subtitle="" icon={UsersIcon} />
+        <div className="card alert">You do not have permission to view this page.</div>
+      </div>
+    );
+  }
 
   const handleEdit = (user: ManagedUser) => {
+    const vrmsRoles = getVrmsRoleAssignments(user.roles);
+    const role = vrmsRoles.length > 0 ? vrmsRoles[0].role : 'MECHANIC';
+
     setEditingUserId(user.id);
-    const vrmsRole = getVrmsRoleAssignments(user.roles)[0]?.role || 'MECHANIC';
     setForm({
       name: user.name,
       email: user.email,
       password: '',
       isActive: user.isActive,
-      role: vrmsRole,
+      role: role,
     });
-    setError(null);
+    setFormError(null);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const executeSave = async () => {
-    setSaving(true);
-    setError(null);
-
-    const trimmedName = form.name.trim();
-    const trimmedEmail = form.email.trim().toLowerCase();
-    const trimmedPassword = form.password.trim();
-
-    try {
-      const savedUser = editingUserId
-        ? await updateUser(editingUserId, {
-            name: trimmedName,
-            email: trimmedEmail,
-            ...(trimmedPassword ? { password: trimmedPassword } : {}),
-            isActive: form.isActive,
-            roleAssignments: [{ role: form.role, system: 'VRMS' }],
-          })
-        : await createUser({
-            name: trimmedName,
-            email: trimmedEmail,
-            isActive: form.isActive,
-            roleAssignments: [{ role: form.role, system: 'VRMS' }],
-          });
-
-      setUsers((current) => {
-        const exists = current.some((user) => user.id === savedUser.id);
-        return exists
-          ? current.map((user) => (user.id === savedUser.id ? savedUser : user))
-          : [savedUser, ...current];
-      });
-
-      showToast(
-        editingUserId 
-          ? `User account for ${trimmedEmail} updated successfully.` 
-          : `User account for ${trimmedEmail} created successfully.`, 
-        'success'
-      );
-      setEditingUserId(null);
-      setForm(emptyForm);
-    } catch (err: any) {
-      const msg = err.response?.data?.message;
-      const displayMsg = Array.isArray(msg) ? msg.join(', ') : (msg || 'Unable to save user account.');
-      setError(displayMsg);
-      showToast(displayMsg, 'error');
-    } finally {
-      setSaving(false);
-    }
+  const handleCancel = () => {
+    setEditingUserId(null);
+    setForm(emptyForm);
+    setFormError(null);
+    setShowForm(false);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setFormError(null);
 
-    const trimmedName = form.name.trim();
-    const trimmedEmail = form.email.trim().toLowerCase();
-    const trimmedPassword = form.password.trim();
-
-    if (!trimmedName || !trimmedEmail) {
-      setError('Name and email are required.');
+    if (!form.name.trim() || !form.email.trim()) {
+      setFormError('Name and email are required.');
       return;
     }
 
-    if (editingUserId && trimmedPassword) {
-      const pwError = validatePassword(trimmedPassword);
-      if (pwError) {
-        setError(pwError);
+    const emailError = validateEmail(form.email);
+    if (emailError) {
+      setFormError(emailError);
+      return;
+    }
+
+    if (!editingUserId && !form.password.trim()) {
+      setFormError('A password is required for new accounts.');
+      return;
+    }
+
+    if (form.password.trim()) {
+      const validationError = validatePassword(form.password);
+      if (validationError) {
+        setFormError(validationError);
         return;
       }
     }
 
-    triggerConfirm({
-      title: editingUserId ? 'Update User Details?' : 'Create User Account?',
-      message: editingUserId 
-        ? `Are you sure you want to save changes to the account for ${trimmedEmail}?` 
-        : `Are you sure you want to create a new user account for ${trimmedEmail}?`,
-      confirmText: editingUserId ? 'Save Changes' : 'Create Account',
-      onConfirm: executeSave,
-    });
-  };
-
-  const handleStatusToggle = (user: ManagedUser) => {
-    triggerConfirm({
-      title: user.isActive ? 'Deactivate Account?' : 'Reactivate Account?',
-      message: user.isActive 
-        ? `Are you sure you want to deactivate ${user.email}? They will no longer be able to log in.`
-        : `Are you sure you want to reactivate ${user.email}?`,
-      confirmText: user.isActive ? 'Deactivate' : 'Reactivate',
-      type: user.isActive ? 'danger' : 'default',
-      onConfirm: async () => {
-        setSaving(true);
-        setError(null);
-        try {
-          const updated = await setUserStatus(user.id, !user.isActive);
-          setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-          showToast(updated.isActive ? 'User account reactivated.' : 'User account deactivated.', 'success');
-        } catch (err) {
-          setError('Unable to update account status.');
-          showToast('Unable to update account status.', 'error');
-        } finally {
-          setSaving(false);
-        }
-      }
-    });
-  };
-
-  const handlePasswordReset = async (user: ManagedUser) => {
-    const password = window.prompt(`Enter a new password for ${user.email}.`);
-    if (password == null) return;
-
-    const pwError = validatePassword(password);
-    if (pwError) {
-      setError(pwError);
-      showToast(pwError, 'error');
-      return;
-    }
-
     setSaving(true);
-    setError(null);
-
     try {
-      const updated = await resetUserPassword(user.id, password.trim());
-      setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      showToast('Password reset saved successfully.', 'success');
+      await saveUser(editingUserId, form);
+      showToast(editingUserId ? 'User account updated successfully.' : 'User account created successfully.', 'success');
+      handleCancel();
     } catch (err: any) {
-      const msg = err.response?.data?.message;
-      const displayMsg = Array.isArray(msg) ? msg.join(', ') : (msg || 'Unable to reset password.');
-      setError(displayMsg);
-      showToast(displayMsg, 'error');
+      setFormError(err.response?.data?.message ?? 'Failed to save user account.');
+      showToast('Failed to save user account.', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleUnlock = (user: ManagedUser) => {
+  const confirmToggleStatus = (user: ManagedUser) => {
     triggerConfirm({
-      title: 'Unlock User Account?',
-      message: `Are you sure you want to unlock the login session for ${user.email}?`,
-      confirmText: 'Unlock',
+      title: user.isActive ? 'Deactivate Account?' : 'Activate Account?',
+      message: `Are you sure you want to ${user.isActive ? 'deactivate' : 'activate'} the account for ${user.name}?`,
+      confirmText: user.isActive ? 'Deactivate' : 'Activate',
+      type: user.isActive ? 'danger' : 'default',
       onConfirm: async () => {
-        setSaving(true);
-        setError(null);
         try {
-          const updated = await unlockUser(user.id);
-          setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-          showToast(`Account for ${user.email} has been unlocked successfully.`, 'success');
-        } catch (err) {
-          setError('Unable to unlock account.');
-          showToast('Unable to unlock account.', 'error');
-        } finally {
-          setSaving(false);
+          await toggleUserStatus(user);
+          showToast(`Account ${user.isActive ? 'deactivated' : 'activated'} successfully.`, 'success');
+        } catch {
+          showToast('Failed to update account status.', 'error');
         }
-      }
+      },
     });
   };
 
-  if (!isAdmin) {
-    return (
-      <div className="card">
-        <PageHeader
-          title="Account Management"
-          subtitle="Admin access is required."
-          icon={Users}
-        />
-      </div>
-    );
-  }
+  const confirmResetPassword = (user: ManagedUser) => {
+    const defaultPassword = 'Password123!';
+    triggerConfirm({
+      title: 'Reset User Password?',
+      message: `Are you sure you want to reset the password for ${user.name} to the system default (${defaultPassword})? They will be required to change it on their next login.`,
+      confirmText: 'Reset Password',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await resetPassword(user, defaultPassword);
+          showToast(`Password reset successfully for ${user.name}.`, 'success');
+        } catch {
+          showToast('Failed to reset password.', 'error');
+        }
+      },
+    });
+  };
+
+  const confirmUnlockAccount = (user: ManagedUser) => {
+    triggerConfirm({
+      title: 'Unlock Account?',
+      message: `The account for ${user.name} is currently locked due to multiple failed login attempts. Are you sure you want to unlock it?`,
+      confirmText: 'Unlock Account',
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          await unlockUserAccount(user);
+          showToast(`Account for ${user.name} has been unlocked.`, 'success');
+        } catch {
+          showToast('Failed to unlock account.', 'error');
+        }
+      },
+    });
+  };
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      let matchesRole = true;
+      if (filterRole !== 'ALL') {
+        const vrmsRoles = getVrmsRoleAssignments(user.roles);
+        const primaryRole = vrmsRoles.length > 0 ? vrmsRoles[0].role : 'NO_ACCESS';
+        matchesRole = primaryRole === filterRole;
+      }
+
+      let matchesStatus = true;
+      if (filterStatus !== 'ALL') {
+        matchesStatus = (filterStatus === 'ACTIVE' && user.isActive) || 
+                        (filterStatus === 'INACTIVE' && !user.isActive);
+      }
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, searchTerm, filterRole, filterStatus]);
 
   return (
     <div>
       <PageHeader
-        title="Account Management"
-        subtitle="Create accounts, manage role assignments, and reset passwords."
-        icon={Users}
-        action={
-          <div className="user-summary">
-            <span>{summary.total} total</span>
-            <span>{summary.active} active</span>
-            <span>{summary.inactive} inactive</span>
-          </div>
-        }
+        title="User Management"
+        subtitle="Manage VRMS administrator and mechanic access."
+        icon={UsersIcon}
       />
 
-      <div className="account-grid">
-        <section className="card">
-          <div className="section-heading">
-            <h3 style={{ margin: 0 }}>{editingUserId ? 'Edit account' : 'New account'}</h3>
-            <p style={{ margin: 0, color: 'var(--muted)' }}>VRMS accounts only</p>
-          </div>
-          <form onSubmit={handleSubmit}>
-            <div className="input-group">
-              <label className="label" htmlFor="name">
-                Name <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <input
-                id="name"
-                className="input"
-                value={form.name}
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                placeholder="WeLinc Admin"
-              />
-            </div>
-
-            <div className="input-group">
-              <label className="label" htmlFor="email">
-                Email Address <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <input
-                id="email"
-                type="email"
-                className="input"
-                value={form.email}
-                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                placeholder="user@welinc.com"
-              />
-            </div>
-
-            {editingUserId ? (
-              <div className="input-group">
-                <label className="label" htmlFor="password">
-                  New password
-                </label>
-                <input
-                  id="password"
-                  className="input"
-                  type="password"
-                  value={form.password}
-                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                  placeholder="Leave blank to keep current password"
-                />
-              </div>
-            ) : null}
-
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))}
-              />
-              Active account
-            </label>
-
-            <div className="input-group">
-              <label className="label" htmlFor="role">
-                Role <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <select
-                id="role"
-                className="select"
-                value={form.role}
-                onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as UserRole }))}
-              >
-                {roleOptions.map((role) => (
-                  <option key={role} value={role}>
-                    {role.replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {error ? <div className="alert" style={{ marginTop: 16 }}>{error}</div> : null}
-
-            <div className="form-actions">
-              <Button type="submit" disabled={saving}>
-                {saving ? 'Saving...' : editingUserId ? 'Save changes' : 'Create account'}
-              </Button>
-              {editingUserId ? (
-                <Button type="button" variant="secondary" onClick={resetForm}>
-                  Cancel
-                </Button>
-              ) : null}
-            </div>
-          </form>
-        </section>
-
-        <section className="card">
-          <div className="page-header" style={{ marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div>
-                <h3 style={{ margin: 0 }}>Users</h3>
-                <p style={{ margin: '8px 0 0', color: 'var(--muted)' }}>VRMS role holders and retained system roles</p>
-              </div>
-              {!loading && (
-                <span style={{ 
-                  fontSize: '11px', 
-                  color: 'var(--muted)', 
-                  fontWeight: 600,
-                  backgroundColor: 'var(--surface-alt)',
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border)',
-                  alignSelf: 'center',
-                  marginTop: 6
-                }}>
-                  {users.length} records
-                </span>
-              )}
-            </div>
-            <Button type="button" variant="secondary" onClick={loadUsers} disabled={loading}>
-              Refresh
-            </Button>
-          </div>
-
-          {loading ? (
-            <p>Loading accounts...</p>
-          ) : users.length === 0 ? (
-            <p>No user accounts found.</p>
-          ) : (
-            <div className="table-scroll" style={{ maxHeight: '480px', overflowY: 'auto' }}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email Address</th>
-                    <th>Status</th>
-                    <th>Roles</th>
-                    <th>Updated</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id}>
-                      <td>{user.name}</td>
-                      <td>{user.email}</td>
-                      <td>
-                        <span className={`status-pill ${user.isActive ? 'active' : 'inactive'}`}>
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                        {user.isLocked && (
-                          <span className="status-pill" style={{ marginLeft: 6, background: '#fde68a', color: '#92400e' }}>Locked</span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="role-tags">
-                          {getVrmsRoleAssignments(user.roles).map((assignment) => (
-                            <span className="role-tag" key={`${user.id}-${assignment.role}-${assignment.system}`}>
-                              {formatRoleAssignment(assignment)}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td>{formatDate(user.updatedAt)}</td>
-                      <td>
-                        <div className="row-actions">
-                          <button type="button" className="text-button" onClick={() => handleEdit(user)}>
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="text-button"
-                            onClick={() => handleStatusToggle(user)}
-                            disabled={saving}
-                          >
-                            {user.isActive ? 'Deactivate' : 'Reactivate'}
-                          </button>
-                          <button
-                            type="button"
-                            className="text-button"
-                            onClick={() => handlePasswordReset(user)}
-                            disabled={saving}
-                          >
-                            Reset
-                          </button>
-                          {user.isLocked && (
-                            <button
-                              type="button"
-                              className="text-button"
-                              style={{ color: '#d97706' }}
-                              onClick={() => handleUnlock(user)}
-                              disabled={saving}
-                            >
-                              Unlock
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+      <div className="dashboard-grid" style={{ marginBottom: 24 }}>
+        <div className="card summary-card">
+          <div className="stat-card-value">{users.length}</div>
+          <div className="stat-card-label">Total Users</div>
+        </div>
+        <div className="card summary-card">
+          <div className="stat-card-value">{users.filter(u => u.isActive).length}</div>
+          <div className="stat-card-label">Active Users</div>
+        </div>
+        <div className="card summary-card">
+          <div className="stat-card-value">{users.filter(u => !u.isActive).length}</div>
+          <div className="stat-card-label">Inactive Users</div>
+        </div>
+        <div className="card summary-card">
+          <div className="stat-card-value">{users.filter(u => u.isLocked).length}</div>
+          <div className="stat-card-label">Locked Accounts</div>
+        </div>
       </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+         <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
+           <div style={{ position: 'relative', flex: 1 }}>
+             <Search size={18} style={{ position: 'absolute', left: 12, top: 14, color: 'var(--muted)' }} />
+             <input 
+               className="input" 
+               placeholder="Search by name or email..." 
+               value={searchTerm} 
+               onChange={e => setSearchTerm(e.target.value)} 
+               style={{ paddingLeft: '38px' }}
+             />
+           </div>
+           <select className="select" value={filterRole} onChange={e => setFilterRole(e.target.value)} style={{ width: '160px' }}>
+             <option value="ALL">All Roles</option>
+             <option value="ADMIN">Admin</option>
+             <option value="MECHANIC">Mechanic</option>
+           </select>
+           <select className="select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: '160px' }}>
+             <option value="ALL">All Status</option>
+             <option value="ACTIVE">Active</option>
+             <option value="INACTIVE">Inactive</option>
+           </select>
+         </div>
+         <Button onClick={() => setShowForm(true)}>+ New User Account</Button>
+      </div>
+
+      {showForm && (
+        <div style={{ marginBottom: 24 }}>
+          <UserForm
+            form={form}
+            setForm={setForm}
+            editingUserId={editingUserId}
+            saving={saving}
+            error={formError}
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+          />
+        </div>
+      )}
+
+      <section className="card" style={{ flex: 1 }}>
+        <div className="section-heading">
+          <h3 style={{ margin: 0 }}>Registered users</h3>
+          <p style={{ margin: 0, color: 'var(--muted)' }}>Manage existing VRMS accounts</p>
+        </div>
+
+        {loading ? (
+          <p>Loading users...</p>
+        ) : usersError ? (
+          <div className="alert">{usersError}</div>
+        ) : (
+          <UsersTable
+            users={filteredUsers}
+            onEditUser={handleEdit}
+            onResetPassword={confirmResetPassword}
+            onToggleStatus={confirmToggleStatus}
+            onUnlockAccount={confirmUnlockAccount}
+          />
+        )}
+      </section>
+
       <ConfirmModal
         isOpen={confirmState.isOpen}
         title={confirmState.title}
         message={confirmState.message}
         confirmText={confirmState.confirmText}
-        cancelText={confirmState.cancelText}
-        type={confirmState.type}
         onConfirm={confirmState.onConfirm}
-        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onCancel={closeConfirm}
       />
     </div>
   );

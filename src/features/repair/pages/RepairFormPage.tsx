@@ -20,6 +20,7 @@ import {
 } from '../../../lib/mockConfig';
 import { useToast } from '../../../context/ToastContext';
 import ConfirmModal from '../../../components/ConfirmModal';
+import { useConfirm } from '../../../hooks/useConfirm';
 
 function createNewIssue() {
   return {
@@ -41,6 +42,7 @@ export function RepairFormPage() {
   const navigate = useNavigate();
   const [accountType, setAccountType] = useState<'ONLINE' | 'CORPORATE'>('ONLINE');
   const [corporation, setCorporation] = useState<string>(CORPORATION_OPTIONS[0]);
+  const [showDriverSuggestions, setShowDriverSuggestions] = useState(false);
 
   // --- Live data from API ---
   const [garages, setGarages] = useState<GarageOption[]>([]);
@@ -65,18 +67,7 @@ export function RepairFormPage() {
   const [issueError, setIssueError] = useState<string | null>(null);
   const { showToast } = useToast();
 
-  const [confirmState, setConfirmState] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    confirmText?: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-  });
+  const { confirmState, triggerConfirm, closeConfirm } = useConfirm();
 
   // Load driver suggestions from localStorage
   useEffect(() => {
@@ -153,6 +144,13 @@ export function RepairFormPage() {
       return false;
     }
 
+    // Plate number regex validation (alphanumeric and dashes, 4 to 12 chars)
+    const plateRegex = /^[A-Za-z0-9\s-]{4,12}$/;
+    if (!plateRegex.test(vehiclePlate)) {
+      setError('Please enter a valid vehicle plate number (e.g. ABC-1234).');
+      return false;
+    }
+
     const invalidIssue = issues.find(
       (issue) =>
         !issue.vehicleSystem ||
@@ -217,8 +215,7 @@ export function RepairFormPage() {
       return;
     }
 
-    setConfirmState({
-      isOpen: true,
+    triggerConfirm({
       title: 'Submit Repair Ticket?',
       message: 'Are you sure you want to submit this new repair ticket?',
       confirmText: 'Submit Ticket',
@@ -257,6 +254,7 @@ export function RepairFormPage() {
                   </option>
                 ))}
               </select>
+              <p className="small-note">Type of account to bill the repair to.</p>
             </div>
 
             {accountType === 'CORPORATE' && (
@@ -276,45 +274,70 @@ export function RepairFormPage() {
                     </option>
                   ))}
                 </select>
+                <p className="small-note">Select the corporate entity.</p>
               </div>
             )}
 
             <div className="input-group">
               <label className="label" htmlFor="vehiclePlate">
-                Plate number
+                Plate number <span style={{ color: '#dc2626' }}>*</span>
               </label>
-              <select
+              <input
                 id="vehiclePlate"
-                className="select"
+                className="input"
+                list="vehiclePlates"
                 value={vehiclePlate}
-                onChange={(event) => setVehiclePlate(event.target.value)}
-              >
+                onChange={(event) => setVehiclePlate(event.target.value.toUpperCase())}
+                placeholder="ABC-1234"
+              />
+              <datalist id="vehiclePlates">
                 {vehicles.map((v) => (
                   <option key={v.id} value={v.plateNumber}>
-                    {v.plateNumber} — {v.model}
+                    {v.model}
                   </option>
                 ))}
-              </select>
+              </datalist>
+              <p className="small-note">Select a registered vehicle or type a new plate number.</p>
             </div>
 
             <div className="input-group">
               <label className="label" htmlFor="driverName">
                 Driver name <span style={{ color: '#dc2626' }}>*</span>
               </label>
-              <input
-                id="driverName"
-                list="driverNames"
-                className="input"
-                value={driverName}
-                maxLength={100}
-                onChange={(event) => setDriverName(event.target.value)}
-                placeholder="Juan Dela Cruz"
-              />
-              <datalist id="driverNames">
-                {driverSuggestions.map((name) => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="driverName"
+                  className="input"
+                  value={driverName}
+                  maxLength={100}
+                  onChange={(event) => {
+                    setDriverName(event.target.value);
+                    setShowDriverSuggestions(true);
+                  }}
+                  onFocus={() => setShowDriverSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowDriverSuggestions(false), 200)}
+                  placeholder="Juan Dela Cruz"
+                  autoComplete="off"
+                />
+                {showDriverSuggestions && driverSuggestions.filter(n => n.toLowerCase().includes(driverName.toLowerCase())).length > 0 && (
+                  <ul style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px', margin: 0, listStyle: 'none', zIndex: 50, maxHeight: 200, overflowY: 'auto', boxShadow: 'var(--elevation)' }}>
+                    {driverSuggestions.filter(n => n.toLowerCase().includes(driverName.toLowerCase())).map(name => (
+                      <li
+                        key={name}
+                        style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4, fontSize: 14 }}
+                        onMouseDown={() => {
+                          setDriverName(name);
+                          setShowDriverSuggestions(false);
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-alt)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        {name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <p className="small-note">Select a previously entered driver or type a new name (up to 100 characters).</p>
             </div>
 
@@ -334,6 +357,7 @@ export function RepairFormPage() {
                   </option>
                 ))}
               </select>
+              <p className="small-note">Physical location where the vehicle is stored or repaired.</p>
             </div>
 
             <div className="input-group">
@@ -350,6 +374,7 @@ export function RepairFormPage() {
                 onChange={(event) => setOdometerReading(event.target.value)}
                 placeholder="123456"
               />
+              <p className="small-note">Current odometer reading in kilometers.</p>
             </div>
 
             <div className="input-group">
@@ -368,6 +393,7 @@ export function RepairFormPage() {
                   </option>
                 ))}
               </select>
+              <p className="small-note">Select priority level for this repair.</p>
             </div>
 
             <div className="input-group">
@@ -452,7 +478,7 @@ export function RepairFormPage() {
         message={confirmState.message}
         confirmText={confirmState.confirmText}
         onConfirm={confirmState.onConfirm}
-        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onCancel={closeConfirm}
       />
     </div>
   );

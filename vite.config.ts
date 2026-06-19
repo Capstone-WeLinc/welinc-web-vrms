@@ -6,6 +6,9 @@ export default defineConfig({
   server: {
     port: 8001,
     host: true, // Bind to 0.0.0.0 — required for Docker
+    watch: {
+      usePolling: true, // Fix for Windows/WSL docker hot-reload
+    },
   },
   define: {
     'process.env': {},

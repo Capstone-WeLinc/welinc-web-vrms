@@ -35,10 +35,10 @@ export function IssueLoggingSection({
   };
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <h3 className="section-title">Repair issue logging</h3>
       {issues.map((issue, index) => (
-        <div key={issue.id} className="issue-card">
+        <div key={issue.id} className="issue-card" style={{ padding: '20px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--surface-alt)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
             <h4>Issue {index + 1}</h4>
             {issues.length > 1 && (
@@ -101,15 +101,25 @@ export function IssueLoggingSection({
               onChange={(event) => handleUpdateIssue(issue.id, 'description', event.target.value)}
               placeholder="Enter a detailed issue description"
             />
-            <p className="small-note">Maximum 500 characters per issue.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+              <p className="small-note" style={{ margin: 0 }}>Please provide specific details about the issue.</p>
+              <p className="small-note" style={{ margin: 0, color: issue.description.length > 450 ? '#dc2626' : 'var(--muted)', textAlign: 'right' }}>
+                {issue.description.length} / 500 characters
+              </p>
+            </div>
           </div>
         </div>
       ))}
-      <div style={{ marginTop: 14, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <Button type="button" onClick={handleAddIssue} disabled={issues.length >= 10}>
-          Add another issue
-        </Button>
-        <p className="small-note">You can add up to 10 issue entries in one ticket.</p>
+      <div style={{ marginTop: 14, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={handleAddIssue}
+          disabled={issues.length >= 10}
+          style={{ padding: '8px 16px', border: '1px dashed var(--primary, #3b82f6)', background: 'transparent', color: 'var(--primary, #3b82f6)', borderRadius: 6, cursor: issues.length >= 10 ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: issues.length >= 10 ? 0.5 : 1 }}
+        >
+          + Add another issue
+        </button>
+        <p className="small-note" style={{ margin: 0 }}>You can add up to 10 issue entries in one ticket.</p>
       </div>
     </div>
   );

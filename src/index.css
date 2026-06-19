@@ -97,9 +97,9 @@ button {
 .app-shell {
   display: block;
   min-height: 100vh;
-  margin-left: 280px;
+  margin-left: 90px;
   background: var(--bg);
-  transition: background 0.3s;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .main-content {
@@ -251,28 +251,27 @@ button {
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
-  color: var(--muted);
+  padding: 12px 10px;
+  color: rgba(255, 255, 255, 0.7);
   border-radius: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   font-weight: 600;
   transition: all 0.2s ease;
 }
 
 .nav-link:hover {
-  background: var(--surface-alt);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .nav-link.active {
-  background: var(--primary);
-  color: white;
+  background: var(--warning);
+  color: var(--brand-dark, #151b4f);
 }
 
 .nav-link.active:hover {
-  background: var(--primary-strong);
-  color: white;
+  background: #facc15;
+  color: var(--brand-dark, #151b4f);
 }
 
 .sidebar {
@@ -282,16 +281,54 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  width: 280px;
+  width: 90px;
   height: 100vh;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  color: var(--text);
-  padding: 32px 24px;
+  background: var(--brand-dark, #151b4f);
+  border-right: none;
+  color: white;
+  padding: 32px 12px;
   overflow: hidden;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.03);
-  transition: width 0.3s ease-in-out, padding 0.3s ease-in-out, background 0.3s, border-color 0.3s;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease-in-out;
   z-index: 50;
+}
+
+.sidebar:hover {
+  width: 280px;
+  padding: 32px 16px;
+}
+
+.sidebar .sidebar-text,
+.sidebar .sidebar-profile-info {
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: none;
+}
+
+.sidebar:hover .sidebar-text,
+.sidebar:hover .sidebar-profile-info {
+  opacity: 1;
+  display: block;
+}
+
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  padding: 12px 10px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.sidebar-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .sidebar h1 {
@@ -303,27 +340,27 @@ button {
 .sidebar-footer {
   margin-top: auto;
   font-size: 0.95rem;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .sidebar-profile {
   margin-bottom: 20px;
-  padding: 12px 14px;
+  padding: 12px 10px;
   border-radius: 12px;
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: background 0.3s, border-color 0.3s;
 }
 
 .sidebar-profile-name {
   font-weight: 700;
   font-size: 0.92rem;
-  color: var(--text);
+  color: white;
 }
 
 .sidebar-profile-role {
   font-size: 0.8rem;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.7);
   margin-top: 2px;
 }
 

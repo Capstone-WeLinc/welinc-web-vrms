@@ -84,19 +84,20 @@ export function AuditLogsPage() {
         icon={ClipboardList}
       />
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div className="input-group" style={{ margin: 0 }}>
-          <label className="label" htmlFor="auditSearch" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Search size={16} /> Search logs
-          </label>
-          <input
-            id="auditSearch"
-            className="input"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by email address or action details..."
-          />
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+         <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
+           <div style={{ position: 'relative', flex: 1 }}>
+             <Search size={18} style={{ position: 'absolute', left: 12, top: 14, color: 'var(--muted)' }} />
+             <input
+               id="auditSearch"
+               className="input"
+               style={{ paddingLeft: 38 }}
+               value={search}
+               onChange={(event) => setSearch(event.target.value)}
+               placeholder="Search by email address or action details..."
+             />
+           </div>
+         </div>
       </div>
 
       <div className="card">

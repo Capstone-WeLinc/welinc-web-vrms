@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { 
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import {
   LogOut,
-  LayoutDashboard, 
-  Wrench, 
-  PlusCircle, 
-  History, 
-  Users, 
-  PanelLeftClose, 
-  PanelLeftOpen, 
+  LayoutDashboard,
+  Wrench,
+  PlusCircle,
+  History,
+  Users,
+  PanelLeftClose,
+  PanelLeftOpen,
   User,
   ClipboardList,
   ArrowRightLeft,
@@ -16,6 +16,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import logo from '../../assets/brand-logo.jpg';
 import ConfirmModal from '../ConfirmModal';
+import { useToast } from '../../context/ToastContext';
 
 const PORTAL_URL = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:8000';
 const VMMS_URL = (import.meta.env as any).VITE_VMMS_URL || 'http://localhost:8002';
@@ -42,23 +43,14 @@ const ROLE_LABELS: Record<string, string> = {
   CUSTOMER_SUPPORT: 'Customer Support',
 };
 
-interface SidebarProps {
-  onCollapse?: (collapsed: boolean) => void;
-}
-
-export function Sidebar({ onCollapse }: SidebarProps) {
+export function Sidebar() {
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { showToast } = useToast();
 
-  const [collapsed, setCollapsed] = useState(false);
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
-
-  const toggleCollapse = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    onCollapse?.(next);
-  };
 
   const navItems = user?.role === 'ADMIN' ? adminNavItems : mechanicNavItems;
   const roleLabel = user?.role ? (ROLE_LABELS[user.role] ?? user.role) : '';
@@ -94,66 +86,47 @@ export function Sidebar({ onCollapse }: SidebarProps) {
 
   const executeLogout = () => {
     logout();
-    window.location.href = `${PORTAL_URL}/login?logout=true`;
+    showToast('Logged out successfully.', 'success');
+    setTimeout(() => {
+      window.location.href = `${PORTAL_URL}/login?logout=true`;
+    }, 500);
   };
 
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside className="sidebar">
       <div>
         {/* Brand Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-            <img src={logo} alt="WeLinc" style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0 }} />
-            {!collapsed && (
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>WeLinc VRMS</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Vehicle Repair System</div>
-              </div>
-            )}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 28, padding: '0 10px' }}>
+          <div style={{ width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 12 }}>
+            <img src={logo} alt="WeLinc" style={{ width: 42, height: 42, borderRadius: 10 }} />
           </div>
-          <button 
-            type="button" 
-            onClick={toggleCollapse}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '6px',
-              borderRadius: '6px',
-              transition: 'all 0.2s',
-            }}
-            title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-          >
-            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-          </button>
+          <div className="sidebar-text" style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 18, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>WeLinc VRMS</div>
+            <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Vehicle Repair System</div>
+          </div>
         </div>
 
         {/* User Profile */}
         {user && (
-          <div className="sidebar-profile" style={{ display: 'flex', gap: 10, alignItems: 'center', padding: collapsed ? '10px' : '12px 14px' }}>
-            <div className="sidebar-avatar" style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: 36,
-              width: 36,
-              borderRadius: 8,
-              background: 'var(--primary)',
-              color: 'white',
-              flexShrink: 0
-            }}>
-              <User size={18} strokeWidth={1.8} />
-            </div>
-            {!collapsed && (
-              <div style={{ minWidth: 0 }}>
-                <div className="sidebar-profile-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-                <div className="sidebar-profile-role" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{roleLabel}</div>
+          <div className="sidebar-profile" style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ width: 46, display: 'flex', justifyContent: 'center', flexShrink: 0, marginRight: 12 }}>
+              <div className="sidebar-avatar" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 36,
+                width: 36,
+                borderRadius: 8,
+                background: 'var(--warning)',
+                color: 'var(--brand-dark, #151b4f)',
+              }}>
+                <User size={18} strokeWidth={1.8} />
               </div>
-            )}
+            </div>
+            <div className="sidebar-profile-info" style={{ minWidth: 0 }}>
+              <div className="sidebar-profile-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+              <div className="sidebar-profile-role" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{roleLabel}</div>
+            </div>
           </div>
         )}
 
@@ -165,11 +138,27 @@ export function Sidebar({ onCollapse }: SidebarProps) {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-                title={collapsed ? item.label : undefined}
+                className={() => {
+                  let isActive = location.pathname.startsWith(item.to);
+                  // Special case: /repairs should not be active if we are on /repairs/new
+                  // because /repairs/new has its own sidebar item.
+                  if (item.to === '/repairs' && location.pathname === '/repairs/new') {
+                    isActive = false;
+                  }
+                  // Exact match for others just in case
+                  if (item.to === '/dashboard' && location.pathname !== '/dashboard') isActive = false;
+                  if (item.to === '/history' && location.pathname !== '/history') isActive = false;
+                  if (item.to === '/audit-logs' && location.pathname !== '/audit-logs') isActive = false;
+                  if (item.to === '/users' && location.pathname !== '/users') isActive = false;
+
+                  return `nav-link${isActive ? ' active' : ''}`;
+                }}
+                title={item.label}
               >
-                <Icon size={18} strokeWidth={1.8} style={{ flexShrink: 0 }} />
-                {!collapsed && <span>{item.label}</span>}
+                <div style={{ width: 46, display: 'flex', justifyContent: 'center', flexShrink: 0, marginRight: 12 }}>
+                  <Icon size={20} strokeWidth={1.8} />
+                </div>
+                <span className="sidebar-text">{item.label}</span>
               </NavLink>
             );
           })}
@@ -180,29 +169,37 @@ export function Sidebar({ onCollapse }: SidebarProps) {
       <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {/* Show "Switch to VMMS" only for users with multiple systems */}
         {hasMultipleSystems && (
-          <button 
+          <button
             id="sidebar-switch-vmms"
-            className="sidebar-btn" 
-            type="button" 
+            className="sidebar-btn"
+            type="button"
             onClick={handleSwitchToVmms}
             title="Switch to VMMS"
           >
-            <ArrowRightLeft size={16} style={{ flexShrink: 0 }} />
-            {!collapsed && <span>Switch to VMMS</span>}
+            <div style={{ width: 46, display: 'flex', justifyContent: 'center', flexShrink: 0, marginRight: 12 }}>
+              <ArrowRightLeft size={18} strokeWidth={1.8} />
+            </div>
+            <span className="sidebar-text">Switch to VMMS</span>
           </button>
         )}
 
         {/* Logout — always visible */}
-        <button 
+        <button
           id="sidebar-logout"
-          className="sidebar-btn" 
-          type="button" 
+          className="sidebar-btn"
+          type="button"
           onClick={handleLogout}
           title="Logout"
-          style={{ color: 'var(--danger)' }}
+          style={{
+            background: 'var(--danger)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '999px',
+            justifyContent: 'center'
+          }}
         >
-          <LogOut size={16} style={{ flexShrink: 0 }} />
-          {!collapsed && <span>Logout</span>}
+          <LogOut size={18} strokeWidth={1.8} />
+          <span className="sidebar-text" style={{ marginLeft: 10 }}>Logout</span>
         </button>
       </div>
       <ConfirmModal
