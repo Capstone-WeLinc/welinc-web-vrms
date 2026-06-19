@@ -19,6 +19,7 @@ export function HistoryPage() {
   const isAdmin = user?.role === 'ADMIN';
 
   const [repairs, setRepairs] = useState<RepairTicket[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +33,9 @@ export function HistoryPage() {
       setError(null);
       setLoading(true);
       try {
-        const data = await getRepairHistory(search);
-        setRepairs(data);
+        const response = await getRepairHistory(search, currentPage, itemsPerPage);
+        setRepairs(response.data);
+        setTotalCount(response.total);
       } catch (err) {
         setError('Unable to load repair history.');
       } finally {
@@ -42,18 +44,13 @@ export function HistoryPage() {
     }
 
     loadHistory();
-  }, [search]);
+  }, [search, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [search]);
 
-  const paginatedRepairs = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return repairs.slice(start, start + itemsPerPage);
-  }, [repairs, currentPage]);
-
-  const totalPages = Math.ceil(repairs.length / itemsPerPage);
+  const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
 
   return (
     <div>
@@ -100,7 +97,7 @@ export function HistoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedRepairs.map((repair) => {
+                {repairs.map((repair) => {
                   const isLocked = repair.status === 'COMPLETED' || repair.status === 'CANCELLED';
                   return (
                     <tr key={repair.id} style={isLocked ? { opacity: 0.65 } : undefined}>
@@ -162,10 +159,10 @@ export function HistoryPage() {
                 })}
               </tbody>
             </table>
-            {totalPages > 1 && (
+            {totalCount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 14px', borderTop: '1px solid var(--border)' }}>
                 <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>
-                  Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, repairs.length)} of {repairs.length})
+                  Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount})
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button

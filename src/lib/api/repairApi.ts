@@ -1,22 +1,32 @@
 import api from './axios';
 import { CreateRepairPayload, RepairPart, RepairStatus, RepairTicket } from '../../types';
 
-export async function getRepairs(search?: string, status?: RepairStatus): Promise<RepairTicket[]> {
-  const response = await api.get<RepairTicket[]>('/vrms/repairs', {
+export async function getRepairs(search?: string, status?: RepairStatus, page?: number, limit?: number): Promise<{ data: RepairTicket[], total: number }> {
+  const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs', {
     params: {
       search,
       status,
+      page,
+      limit,
     },
   });
+  if (Array.isArray(response.data)) {
+    return { data: response.data, total: response.data.length };
+  }
   return response.data;
 }
 
-export async function getRepairHistory(search?: string): Promise<RepairTicket[]> {
-  const response = await api.get<RepairTicket[]>('/vrms/repairs/history', {
+export async function getRepairHistory(search?: string, page?: number, limit?: number): Promise<{ data: RepairTicket[], total: number }> {
+  const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs/history', {
     params: {
       search,
+      page,
+      limit,
     },
   });
+  if (Array.isArray(response.data)) {
+    return { data: response.data, total: response.data.length };
+  }
   return response.data;
 }
 

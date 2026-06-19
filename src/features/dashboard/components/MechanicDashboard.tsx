@@ -25,8 +25,8 @@ export function MechanicDashboard() {
       setLoading(true);
       setError(null);
       try {
-        const data = await getRepairs();
-        setRepairs(data);
+        const resp = await getRepairs();
+        setRepairs(resp.data);
       } catch {
         setError('Unable to load your assigned repairs.');
       } finally {
