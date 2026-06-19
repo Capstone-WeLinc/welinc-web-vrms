@@ -343,7 +343,7 @@ export function RepairFormPage() {
 
             <div className="input-group">
               <label className="label" htmlFor="garageLocation">
-                Garage location
+                Garage location <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <select
                 id="garageLocation"

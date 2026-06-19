@@ -79,6 +79,7 @@ export function CostEncodingPanel({
       const payload: UpdateCostsPayload = {
         isLumpSum: costMode === 'lump',
         laborCost: parseFloat(laborCost) || 0,
+        lastUpdatedAt: repair.updatedAt,
       };
       if (costMode === 'lump') {
         payload.partsCost = parseFloat(lumpPartsCost) || 0;
@@ -206,7 +207,7 @@ export function CostEncodingPanel({
       {/* Lump sum mode */}
       {costMode === 'lump' && (
         <div className="input-group">
-          <label className="label" htmlFor="lump-parts-cost">Parts cost (₱)</label>
+          <label className="label" htmlFor="lump-parts-cost">Parts cost (₱) <span style={{ color: '#dc2626' }}>*</span></label>
           <input
             id="lump-parts-cost"
             type="number"
@@ -226,7 +227,7 @@ export function CostEncodingPanel({
           {itemParts.map((p, idx) => (
             <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px auto', gap: 8, alignItems: 'end' }}>
               <div className="input-group" style={{ margin: 0 }}>
-                {idx === 0 && <label className="label" htmlFor={`part-desc-${idx}`}>Description</label>}
+                {idx === 0 && <label className="label" htmlFor={`part-desc-${idx}`}>Description <span style={{ color: '#dc2626' }}>*</span></label>}
                 <input
                   id={`part-desc-${idx}`}
                   className="input"
@@ -236,7 +237,7 @@ export function CostEncodingPanel({
                 />
               </div>
               <div className="input-group" style={{ margin: 0 }}>
-                {idx === 0 && <label className="label">Unit Cost (₱)</label>}
+                {idx === 0 && <label className="label">Unit Cost (₱) <span style={{ color: '#dc2626' }}>*</span></label>}
                 <input
                   className="input"
                   type="number"
@@ -281,7 +282,7 @@ export function CostEncodingPanel({
 
       {/* Labor cost */}
       <div className="input-group" style={{ marginTop: 16 }}>
-        <label className="label" htmlFor="labor-cost">Labor cost (₱)</label>
+        <label className="label" htmlFor="labor-cost">Labor cost (₱) <span style={{ color: '#dc2626' }}>*</span></label>
         <input
           id="labor-cost"
           type="number"

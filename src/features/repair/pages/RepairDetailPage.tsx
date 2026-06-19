@@ -99,6 +99,7 @@ export function RepairDetailPage() {
       const updated = await updateRepairStatus(repairId, status, {
         cancellationReason: status === 'CANCELLED' ? cancellationReason : undefined,
         remarks: remarks.trim() || undefined,
+        lastUpdatedAt: repair?.updatedAt,
       });
       setRepair(updated);
       setRemarks('');

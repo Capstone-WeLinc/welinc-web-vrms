@@ -39,7 +39,7 @@ export async function getRepair(repairId: string): Promise<RepairTicket> {
 export async function updateRepairStatus(
   repairId: string,
   status: RepairStatus,
-  extras?: { cancellationReason?: string; failedVerificationReason?: string; remarks?: string },
+  extras?: { cancellationReason?: string; failedVerificationReason?: string; remarks?: string; lastUpdatedAt?: string },
 ): Promise<RepairTicket> {
   const response = await api.patch<RepairTicket>(`/vrms/repairs/${repairId}/status`, {
     status,
@@ -58,6 +58,7 @@ export interface UpdateCostsPayload {
   partsCost?: number;
   laborCost?: number;
   parts?: { description: string; unitCost: number; quantity: number }[];
+  lastUpdatedAt?: string;
 }
 
 export async function updateRepairCosts(

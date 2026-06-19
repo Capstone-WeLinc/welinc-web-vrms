@@ -32,6 +32,7 @@ export function HistoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [goToInput, setGoToInput] = useState('1');
   const navigate = useNavigate();
   const itemsPerPage = 10;
 
@@ -56,6 +57,10 @@ export function HistoryPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [search, status]);
+
+  useEffect(() => {
+    setGoToInput(currentPage.toString());
+  }, [currentPage]);
 
   const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
 
@@ -86,7 +91,7 @@ export function HistoryPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
          <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
            <div style={{ position: 'relative', flex: 1 }}>
-             <Search size={18} style={{ position: 'absolute', left: 12, top: 14, color: 'var(--muted)' }} />
+             <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
              <input
                id="historySearch"
                className="input"
@@ -111,7 +116,7 @@ export function HistoryPage() {
            </select>
          </div>
       </div>
-      <div className="card">
+      <div className="card" style={{ minHeight: '400px' }}>
         {loading ? (
           <p>Loading completed repairs…</p>
         ) : error ? (
@@ -210,7 +215,7 @@ export function HistoryPage() {
                 <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>
                   Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount})
                 </span>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <button
                     className="button secondary small"
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -234,6 +239,30 @@ export function HistoryPage() {
                   >
                     Next
                   </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>Go to:</span>
+                    <input
+                      type="text"
+                      value={goToInput}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setGoToInput('');
+                          return;
+                        }
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num) && num >= 1 && num <= totalPages) {
+                          setGoToInput(val);
+                          setCurrentPage(num);
+                        }
+                      }}
+                      onBlur={() => {
+                        setGoToInput(currentPage.toString());
+                      }}
+                      className="input"
+                      style={{ width: '45px', padding: '4px', textAlign: 'center', height: '30px', fontSize: '13px', borderRadius: '6px' }}
+                    />
+                  </div>
                 </div>
               </div>
             )}

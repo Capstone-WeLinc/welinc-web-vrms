@@ -21,19 +21,31 @@ export function MechanicDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
+    async function load(silent = false) {
+      if (!silent) {
+        setLoading(true);
+      }
       setError(null);
       try {
         const resp = await getRepairs();
         setRepairs(resp.data);
       } catch {
-        setError('Unable to load your assigned repairs.');
+        if (!silent) {
+          setError('Unable to load your assigned repairs.');
+        }
       } finally {
-        setLoading(false);
+        if (!silent) {
+          setLoading(false);
+        }
       }
     }
-    load();
+    load(false);
+
+    const interval = setInterval(() => {
+      load(true);
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const activeRepairs = useMemo(
