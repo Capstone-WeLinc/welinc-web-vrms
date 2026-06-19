@@ -1,274 +1,225 @@
-import { Link } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import { 
-  Wrench, 
-  ClipboardList, 
-  AlertTriangle, 
-  CheckCircle2, 
-  TrendingUp,
   LayoutDashboard,
   PhilippinePeso,
-  ChevronDown
+  TrendingUp,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { useDashboardMetrics } from '../hooks/useDashboardMetrics';
+import { RepairProgressChart } from './RepairProgressChart';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import { useDashboardMetrics } from '../hooks/useDashboardMetrics';
-import { AuditTrailWidget } from './AuditTrailWidget';
-import { RecentRepairsTable } from './RecentRepairsTable';
-import { RepairProgressChart } from './RepairProgressChart';
 
 export function AdminDashboard() {
   const {
     repairs,
-    audits,
     loading,
     error,
-    summary,
-    totalCost,
-    averageCost,
-    topRepairs,
-    latestRepairs,
-    monthlyStats,
   } = useDashboardMetrics();
 
-  const alerts: string[] = [];
-  if (summary.forVerification > 0) {
-    alerts.push(`${summary.forVerification} ticket${summary.forVerification === 1 ? '' : 's'} require verification.`);
-  }
-  if (summary.pending > 0) {
-    alerts.push(`${summary.pending} ticket${summary.pending === 1 ? '' : 's'} are still pending assignment.`);
-  }
+  const [costTimeframe, setCostTimeframe] = useState<'1m' | '3m' | '1y' | 'all'>('1m');
 
-  const summaryCards = [
-    {
-      label: 'Total repairs',
-      value: summary.total,
-      note: 'All repair tickets in the current period.',
-      icon: Wrench,
-      color: 'var(--primary)',
-      bgColor: 'var(--primary-soft)',
-      link: '/repairs',
-    },
-    {
-      label: 'Open tickets',
-      value: summary.open,
-      note: 'Tickets currently in progress or awaiting review.',
-      icon: ClipboardList,
-      color: 'var(--warning)',
-      bgColor: 'var(--warning-soft)',
-      link: '/repairs',
-    },
-    {
-      label: 'Pending verification',
-      value: summary.forVerification,
-      note: 'Repairs waiting approval before completion.',
-      icon: AlertTriangle,
-      color: 'var(--danger)',
-      bgColor: 'var(--danger-soft)',
-      link: '/repairs',
-    },
-    {
-      label: 'Completed',
-      value: summary.completed,
-      note: 'Repair tickets already closed out.',
-      icon: CheckCircle2,
-      color: 'var(--success)',
-      bgColor: 'var(--success-soft)',
-      link: '/repairs',
-    },
-  ];
+  const filteredRepairsForCost = useMemo(() => {
+    const now = new Date();
+    return repairs.filter((r) => {
+      const createdDate = new Date(r.createdAt);
+      if (costTimeframe === '1m') {
+        return createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear();
+      } else if (costTimeframe === '3m') {
+        const limitDate = new Date();
+        limitDate.setDate(now.getDate() - 90);
+        return createdDate >= limitDate;
+      } else if (costTimeframe === '1y') {
+        const limitDate = new Date();
+        limitDate.setDate(now.getDate() - 365);
+        return createdDate >= limitDate;
+      }
+      return true; // all-time
+    });
+  }, [repairs, costTimeframe]);
 
-  const highlightCards = [
-    {
-      label: 'Total repair cost',
-      value: `₱${totalCost.toLocaleString()}`,
-      note: 'Projected spend for all active repair tickets.',
-      icon: PhilippinePeso,
-      color: '#8b5cf6',
-      bgColor: 'rgba(139, 92, 246, 0.1)',
-    },
-    {
-      label: 'Average cost',
-      value: `₱${averageCost.toLocaleString()}`,
-      note: 'Average cost per repair ticket.',
-      icon: TrendingUp,
-      color: '#3b82f6',
-      bgColor: 'rgba(59, 130, 246, 0.1)',
-    },
-  ];
+  const filteredTotalCost = useMemo(() => {
+    return filteredRepairsForCost.reduce((sum, r) => sum + (r.totalCost ?? 0), 0);
+  }, [filteredRepairsForCost]);
 
-  const reportButtons = ['Daily', 'Monthly', 'Yearly'];
+  const filteredAverageCost = useMemo(() => {
+    const costed = filteredRepairsForCost.filter((r) => r.totalCost && r.totalCost > 0);
+    if (!costed.length) return 0;
+    return Math.round(costed.reduce((sum, r) => sum + (r.totalCost ?? 0), 0) / costed.length);
+  }, [filteredRepairsForCost]);
 
-  const handleExport = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const format = e.target.value;
-    if (!format) return;
+  const handleExportExcel = () => {
+    const data = filteredRepairsForCost.map(r => ({
+      'Repair Number': r.repairNumber,
+      'Vehicle Plate': r.vehiclePlate,
+      'Driver Name': r.driverName,
+      'Garage Location': r.garageLocation,
+      'Odometer Reading': r.odometerReading,
+      'Status': r.status,
+      'Parts Cost': r.partsCost || 0,
+      'Labor Cost': r.laborCost || 0,
+      'Total Cost': r.totalCost || 0,
+      'Date Logged': new Date(r.createdAt).toLocaleDateString(),
+      'Completion Date': r.completedAt ? new Date(r.completedAt).toLocaleDateString() : 'N/A'
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Repairs Report");
+    XLSX.writeFile(workbook, `vrms_repairs_report_${costTimeframe}_${new Date().getTime()}.xlsx`);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("WeLinc VRMS Repairs Report", 14, 18);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Timeframe: ${costTimeframe === '1m' ? 'This Month' : costTimeframe === '3m' ? 'Last 3 Months' : costTimeframe === '1y' ? 'Last 1 Year' : 'All Time'} | Generated: ${new Date().toLocaleString()}`, 14, 25);
     
-    if (format === 'excel') {
-      const data = repairs.map(r => ({
-        'Repair #': r.repairNumber,
-        'Vehicle': r.vehiclePlate,
-        'Driver': r.driverName,
-        'Status': r.status,
-        'Total Cost': r.totalCost || 0,
-        'Date': new Date(r.createdAt).toLocaleDateString()
-      }));
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Repairs");
-      XLSX.writeFile(workbook, `vrms_report_${new Date().getTime()}.xlsx`);
-    } else if (format === 'pdf') {
-      const doc = new jsPDF();
-      doc.text("VRMS Repairs Report", 14, 15);
-      autoTable(doc, {
-        head: [['Repair #', 'Vehicle', 'Driver', 'Status', 'Cost', 'Date']],
-        body: repairs.map(r => [
-          r.repairNumber,
-          r.vehiclePlate,
-          r.driverName,
-          r.status,
-          r.totalCost ? `PHP ${r.totalCost.toLocaleString()}` : '0',
-          new Date(r.createdAt).toLocaleDateString()
-        ]),
-        startY: 20,
-      });
-      doc.save(`vrms_report_${new Date().getTime()}.pdf`);
-    }
-
-    // Reset dropdown
-    e.target.value = '';
+    autoTable(doc, {
+      head: [['Repair #', 'Vehicle', 'Driver', 'Garage', 'Status', 'Total Cost', 'Date Logged']],
+      body: filteredRepairsForCost.map(r => [
+        r.repairNumber || '',
+        r.vehiclePlate || '',
+        r.driverName || '',
+        r.garageLocation || '',
+        r.status || '',
+        r.totalCost ? `PHP ${r.totalCost.toLocaleString()}` : 'PHP 0',
+        new Date(r.createdAt).toLocaleDateString()
+      ]),
+      startY: 30,
+    });
+    
+    doc.save(`vrms_repairs_report_${costTimeframe}_${new Date().getTime()}.pdf`);
   };
 
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page animate-fade-in">
       <PageHeader
         title="Vehicle Repair Management"
         subtitle="Monitor ticket flow, status changes, and repair costs with live data."
         icon={LayoutDashboard}
-        action={
-          <div style={{ position: 'relative' }}>
-            <select 
-              className="select" 
-              style={{ appearance: 'none', paddingRight: '36px', cursor: 'pointer', background: 'var(--surface)', fontWeight: 600 }}
-              defaultValue=""
-              onChange={handleExport}
-            >
-              <option value="" disabled>Export Reports...</option>
-              <option value="excel">Export to Excel</option>
-              <option value="pdf">Export to PDF</option>
-            </select>
-            <div style={{ position: 'absolute', right: 12, top: 14, pointerEvents: 'none', color: 'var(--muted)' }}>
-              <ChevronDown size={18} />
-            </div>
-          </div>
-        }
       />
 
-      <div className="dashboard-grid">
-        {summaryCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Link key={card.label} to={card.link} className="card summary-card" style={{ display: 'flex', flexDirection: 'column', textDecoration: 'none' }}>
-              <div className="stat-card-header">
-                <div 
-                  className="stat-card-icon-container" 
-                  style={{ background: card.bgColor, color: card.color }}
-                >
-                  <Icon size={20} strokeWidth={1.8} />
+      {loading ? (
+        <div className="premium-card"><p>Loading dashboard metrics...</p></div>
+      ) : error ? (
+        <div className="premium-card"><div className="alert">{error}</div></div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          {/* Repair Pipeline Progress */}
+          <RepairProgressChart repairs={repairs} />
+
+          {/* Spend Analytics and Exports Side-by-Side */}
+          <div style={{ display: 'flex', gap: '28px', flexWrap: 'wrap' }}>
+            {/* Spend Analytics */}
+            <div className="premium-card" style={{ flex: '1.4 1 500px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3 className="subheading" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Repair Spend Analytics</h3>
+                  <p className="page-subtitle" style={{ margin: '4px 0 0', fontSize: '0.875rem' }}>Review financial metrics and average cost distribution.</p>
+                </div>
+                <div className="timeframe-pill-container">
+                  <button
+                    type="button"
+                    className={`timeframe-pill ${costTimeframe === '1m' ? 'active' : ''}`}
+                    onClick={() => setCostTimeframe('1m')}
+                  >
+                    1M
+                  </button>
+                  <button
+                    type="button"
+                    className={`timeframe-pill ${costTimeframe === '3m' ? 'active' : ''}`}
+                    onClick={() => setCostTimeframe('3m')}
+                  >
+                    3M
+                  </button>
+                  <button
+                    type="button"
+                    className={`timeframe-pill ${costTimeframe === '1y' ? 'active' : ''}`}
+                    onClick={() => setCostTimeframe('1y')}
+                  >
+                    1Y
+                  </button>
+                  <button
+                    type="button"
+                    className={`timeframe-pill ${costTimeframe === 'all' ? 'active' : ''}`}
+                    onClick={() => setCostTimeframe('all')}
+                  >
+                    ALL
+                  </button>
                 </div>
               </div>
-              <div className="stat-card-value">{card.value}</div>
-              <div className="stat-card-label">{card.label}</div>
-              <div className="stat-card-note">{card.note}</div>
-            </Link>
-          );
-        })}
-      </div>
 
-      <RepairProgressChart repairs={repairs} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginTop: '12px' }}>
+                <div className="spend-metric-card total-cost">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                    <PhilippinePeso size={24} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 700 }}>Total Repair Cost</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text)', marginTop: '4px', letterSpacing: '-0.025em' }}>₱{filteredTotalCost.toLocaleString()}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>Spend for selected timeframe.</div>
+                  </div>
+                </div>
 
-      {alerts.length > 0 ? (
-        <div className="alert dashboard-alert">
-          <strong>Action required:</strong> {alerts.join(' ')}
-        </div>
-      ) : (
-        <div className="alert dashboard-alert info-alert">
-          No active operational alerts at the moment. System status is stable.
+                <div className="spend-metric-card avg-cost">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                    <TrendingUp size={24} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 700 }}>Average Cost</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text)', marginTop: '4px', letterSpacing: '-0.025em' }}>₱{filteredAverageCost.toLocaleString()}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>Average per repair ticket.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Document Downloads (renamed to Exports) */}
+            <div className="premium-card" style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <h3 className="subheading" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Exports</h3>
+                <p className="page-subtitle" style={{ margin: '4px 0 0', fontSize: '0.875rem' }}>Export tabular data into standard file formats.</p>
+              </div>
+
+              <div className="download-grid-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 0 }}>
+                <button
+                  type="button"
+                  className="download-card excel"
+                  onClick={handleExportExcel}
+                  style={{ padding: '12px 16px' }}
+                >
+                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileSpreadsheet size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: '0.9rem' }}>Export Excel File (.xlsx)</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="download-card pdf"
+                  onClick={handleExportPDF}
+                  style={{ padding: '12px 16px' }}
+                >
+                  <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: '0.9rem' }}>Export PDF Report (.pdf)</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
-
-      <div className="dashboard-grid">
-        {highlightCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div key={card.label} className="card card-highlight" style={{ display: 'flex', flexDirection: 'column' }}>
-              <div className="stat-card-header">
-                <div 
-                  className="stat-card-icon-container" 
-                  style={{ background: card.bgColor, color: card.color }}
-                >
-                  <Icon size={20} strokeWidth={1.8} />
-                </div>
-              </div>
-              <div className="stat-card-value">{card.value}</div>
-              <div className="stat-card-label">{card.label}</div>
-              <div className="stat-card-note">{card.note}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="dashboard-grid report-grid">
-        <AuditTrailWidget audits={audits} />
-
-        <div className="card report-card">
-          <h3 className="subheading">Reports & exports</h3>
-          <p style={{ color: 'var(--muted)' }}>Generate quick reports for management.</p>
-          <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-            {reportButtons.map((label) => (
-              <Button key={label} type="button">
-                {label}
-              </Button>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <p style={{ margin: 0, color: 'var(--muted)' }}>This preview shows monthly repair volume and cost estimates.</p>
-            <p style={{ marginTop: 6, fontWeight: 700 }}>Repairs this month: {monthlyStats.count}</p>
-            <p style={{ margin: 0, color: 'var(--muted)' }}>Estimated cost: ₱{monthlyStats.cost.toLocaleString()}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="page-header">
-          <div>
-            <h3>Latest repair tickets</h3>
-            <p className="page-subtitle">Recent tickets, status, and cost snapshot.</p>
-          </div>
-          <Link to="/history" className="button secondary">
-            View all history
-          </Link>
-        </div>
-
-        <RecentRepairsTable repairs={latestRepairs} loading={loading} error={error} />
-      </div>
-
-      <div className="card">
-        <h3 className="subheading" style={{ marginBottom: 14 }}>Top cost repairs</h3>
-        <div className="top-repair-list">
-          {topRepairs.map((repair) => (
-            <div key={repair.id} className="top-repair-item">
-              <div>
-                <p className="top-repair-name">{repair.repairNumber}</p>
-                <p className="summary-note">{repair.vehiclePlate} • {repair.driverName}</p>
-              </div>
-              <div className="top-repair-cost">₱{(repair.totalCost ?? 0).toLocaleString()}</div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

@@ -6,9 +6,18 @@ import { formatDate } from '../../../lib/utils/format';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { Button } from '../../../components/ui/Button';
 
+const actionFilterOptions = [
+  { value: '', label: 'All Actions' },
+  { value: 'status', label: 'Status Changes' },
+  { value: 'costs', label: 'Cost Updates' },
+  { value: 'unlock', label: 'Unlocks' },
+  { value: 'create', label: 'Creations' },
+];
+
 export function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [search, setSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,16 +42,32 @@ export function AuditLogsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, actionFilter]);
 
   const filteredLogs = useMemo(() => {
     const term = search.toLowerCase().trim();
-    if (!term) return logs;
-    return logs.filter((log) => 
-      log.user.toLowerCase().includes(term) ||
-      log.action.toLowerCase().includes(term)
-    );
-  }, [logs, search]);
+    let result = logs;
+
+    if (actionFilter) {
+      result = result.filter((log) => {
+        const actionLower = log.action.toLowerCase();
+        if (actionFilter === 'status') return actionLower.includes('status') || actionLower.includes('changed status');
+        if (actionFilter === 'costs') return actionLower.includes('cost');
+        if (actionFilter === 'unlock') return actionLower.includes('unlock');
+        if (actionFilter === 'create') return actionLower.includes('create') || actionLower.includes('created');
+        return true;
+      });
+    }
+
+    if (term) {
+      result = result.filter((log) => 
+        log.user.toLowerCase().includes(term) ||
+        log.action.toLowerCase().includes(term)
+      );
+    }
+
+    return result;
+  }, [logs, search, actionFilter]);
 
   const paginatedLogs = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -97,6 +122,19 @@ export function AuditLogsPage() {
                placeholder="Search by email address or action details..."
              />
            </div>
+           <select
+             id="auditActionFilter"
+             className="select"
+             value={actionFilter}
+             onChange={(event) => setActionFilter(event.target.value)}
+             style={{ width: '160px' }}
+           >
+             {actionFilterOptions.map((option) => (
+               <option key={option.value} value={option.value}>
+                 {option.label}
+               </option>
+             ))}
+           </select>
          </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { History, Lock, Search, MoreVertical, Eye } from 'lucide-react';
+import { History, Lock, Search, MoreVertical, Eye, Settings } from 'lucide-react';
 import { getRepairHistory } from '../../../lib/api/repairApi';
 import { RepairTicket } from '../../../types';
 import { formatDate } from '../../../lib/utils/format';
@@ -14,6 +14,12 @@ function formatCurrency(val?: number | null): string {
   return `₱${val.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 }
 
+const statusOptions: Array<{ value: 'COMPLETED' | 'CANCELLED' | ''; label: string }> = [
+  { value: '', label: 'All statuses' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+];
+
 export function HistoryPage() {
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'ADMIN';
@@ -21,6 +27,7 @@ export function HistoryPage() {
   const [repairs, setRepairs] = useState<RepairTicket[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<'COMPLETED' | 'CANCELLED' | ''>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,7 +40,7 @@ export function HistoryPage() {
       setError(null);
       setLoading(true);
       try {
-        const response = await getRepairHistory(search, currentPage, itemsPerPage);
+        const response = await getRepairHistory(search, status || undefined, currentPage, itemsPerPage);
         setRepairs(response.data);
         setTotalCount(response.total);
       } catch (err) {
@@ -44,11 +51,11 @@ export function HistoryPage() {
     }
 
     loadHistory();
-  }, [search, currentPage]);
+  }, [search, status, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, status]);
 
   const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
 
@@ -72,6 +79,19 @@ export function HistoryPage() {
                placeholder="Search by repair #, vehicle, or driver"
              />
            </div>
+           <select
+             id="historyStatusFilter"
+             className="select"
+             value={status}
+             onChange={(event) => setStatus(event.target.value as 'COMPLETED' | 'CANCELLED' | '')}
+             style={{ width: '160px' }}
+           >
+             {statusOptions.map((option) => (
+               <option key={option.value} value={option.value}>
+                 {option.label}
+               </option>
+             ))}
+           </select>
          </div>
       </div>
       <div className="card">
@@ -98,25 +118,25 @@ export function HistoryPage() {
               </thead>
               <tbody>
                 {repairs.map((repair) => {
-                  const isLocked = repair.status === 'COMPLETED' || repair.status === 'CANCELLED';
+                  const isLocked = (repair.status === 'COMPLETED' || repair.status === 'CANCELLED') && !repair.isUnlocked;
                   return (
-                    <tr key={repair.id} style={isLocked ? { opacity: 0.65 } : undefined}>
-                      <td>
+                    <tr key={repair.id}>
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <Link to={`/repairs/${repair.id}?mode=readonly`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                          <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
                             {repair.repairNumber}
                           </Link>
                           {isLocked && <Lock size={12} style={{ color: 'var(--muted)' }} />}
                         </div>
                       </td>
-                      <td>{repair.vehiclePlate}</td>
-                      <td>{repair.driverName}</td>
-                      <td>{repair.garageLocation ?? '—'}</td>
-                      <td>
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{repair.vehiclePlate}</td>
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{repair.driverName}</td>
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{repair.garageLocation ?? '—'}</td>
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>
                         <StatusBadge status={repair.status} />
                       </td>
-                      {isAdmin && <td>{formatCurrency(repair.totalCost)}</td>}
-                      <td>{formatDate(repair.completedAt ?? repair.updatedAt)}</td>
+                      {isAdmin && <td style={isLocked ? { opacity: 0.65 } : undefined}>{formatCurrency(repair.totalCost)}</td>}
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{formatDate(repair.completedAt ?? repair.updatedAt)}</td>
                       <td>
                         <div style={{ position: 'relative' }}>
                           <button
@@ -145,11 +165,20 @@ export function HistoryPage() {
                             }}>
                               <button
                                 className="sidebar-btn"
-                                style={{ padding: '8px 12px', fontSize: '13px' }}
+                                style={{ padding: '8px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
                                 onClick={() => { navigate(`/repairs/${repair.id}?mode=readonly`); setOpenMenuId(null); }}
                               >
                                 <Eye size={14} /> View Details
                               </button>
+                              {(!isLocked || isAdmin) && (
+                                <button
+                                  className="sidebar-btn"
+                                  style={{ padding: '8px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                  onClick={() => { navigate(`/repairs/${repair.id}`); setOpenMenuId(null); }}
+                                >
+                                  <Settings size={14} /> Edit Ticket
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>

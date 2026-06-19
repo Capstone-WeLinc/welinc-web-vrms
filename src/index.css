@@ -169,6 +169,20 @@ button {
   background: var(--surface);
 }
 
+/* Custom styling for inputs with datalists to match select dropdown arrows */
+input[list] {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+input[list]::-webkit-calendar-picker-indicator {
+  opacity: 0 !important;
+  cursor: pointer;
+}
+
 .password-field {
   position: relative;
 }
@@ -217,6 +231,7 @@ button {
   transform: translateY(-1px);
   background: var(--primary-strong);
   box-shadow: 0 6px 18px rgba(26, 31, 110, 0.18);
+  color: white !important;
 }
 
 .button:active:not(:disabled) {
@@ -1290,3 +1305,146 @@ button {
 .animate-slide-in {
   animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ==========================================================================
+   PREMIUM DASHBOARD CUSTOM STYLING
+   ========================================================================== */
+
+.premium-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease;
+}
+
+.premium-card:hover {
+  border-color: rgba(26, 31, 110, 0.25);
+}
+
+/* Pipeline state cards */
+.pipeline-stage-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  transition: border-color 0.2s ease;
+}
+
+.pipeline-stage-card:hover {
+  border-color: rgba(26, 31, 110, 0.2);
+}
+
+/* Timeframe Pill Buttons */
+.timeframe-pill-container {
+  display: flex;
+  background: var(--surface-alt);
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  gap: 2px;
+  align-items: center;
+}
+
+.timeframe-pill {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.timeframe-pill:hover {
+  color: var(--text);
+}
+
+.timeframe-pill.active {
+  color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Spend metric cards */
+.spend-metric-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  transition: border-color 0.2s ease;
+}
+
+.spend-metric-card.total-cost {
+  background: rgba(139, 92, 246, 0.03);
+  border-color: rgba(139, 92, 246, 0.1);
+}
+
+.spend-metric-card.total-cost:hover {
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.spend-metric-card.avg-cost {
+  background: rgba(59, 130, 246, 0.03);
+  border-color: rgba(59, 130, 246, 0.1);
+}
+
+.spend-metric-card.avg-cost:hover {
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+/* Download card styles */
+.download-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.download-card {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.download-card.excel {
+  border-color: rgba(16, 185, 129, 0.15);
+}
+
+.download-card.excel:hover {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.02);
+}
+
+.download-card.pdf {
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+.download-card.pdf:hover {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.02);
+}
+
+/* Progress bar container and glow */
+.progress-bar-glow-container {
+  border: 1px solid var(--border);
+}
+

@@ -16,10 +16,11 @@ export async function getRepairs(search?: string, status?: RepairStatus, page?: 
   return response.data;
 }
 
-export async function getRepairHistory(search?: string, page?: number, limit?: number): Promise<{ data: RepairTicket[], total: number }> {
+export async function getRepairHistory(search?: string, status?: RepairStatus, page?: number, limit?: number): Promise<{ data: RepairTicket[], total: number }> {
   const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs/history', {
     params: {
       search,
+      status,
       page,
       limit,
     },

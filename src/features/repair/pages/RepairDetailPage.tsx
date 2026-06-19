@@ -165,8 +165,8 @@ export function RepairDetailPage() {
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <button onClick={() => navigate('/repairs')} className="sidebar-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px' }}>
-           <ArrowLeft size={16} /> Back to repairs
+        <button onClick={() => navigate(isTerminal ? '/history' : '/repairs')} className="sidebar-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px' }}>
+           <ArrowLeft size={16} /> Back to {isTerminal ? 'history' : 'repairs'}
         </button>
       </div>
       <PageHeader

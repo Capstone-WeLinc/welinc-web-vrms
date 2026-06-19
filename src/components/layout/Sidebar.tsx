@@ -12,6 +12,7 @@ import {
   User,
   ClipboardList,
   ArrowRightLeft,
+  FileDown,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import logo from '../../assets/brand-logo.jpg';
@@ -46,6 +47,7 @@ const adminNavSections: NavSection[] = [
       { to: '/repairs', label: 'Repair Tickets', icon: Wrench },
       { to: '/repairs/new', label: 'New Repair', icon: PlusCircle },
       { to: '/history', label: 'Repair History', icon: History },
+      { to: '/reports', label: 'Reports & Exports', icon: FileDown },
     ],
   },
   {
@@ -183,6 +185,7 @@ export function Sidebar() {
                       if (item.to === '/dashboard' && location.pathname !== '/dashboard') isActive = false;
                       if (item.to === '/history' && location.pathname !== '/history') isActive = false;
                       if (item.to === '/profile' && location.pathname !== '/profile') isActive = false;
+                      if (item.to === '/reports' && location.pathname !== '/reports') isActive = false;
                       if (item.to === '/audit-logs' && location.pathname !== '/audit-logs') isActive = false;
                       if (item.to === '/users' && location.pathname !== '/users') isActive = false;
 

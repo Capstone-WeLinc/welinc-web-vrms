@@ -124,10 +124,10 @@ export function RepairListPage() {
               </thead>
               <tbody>
                 {repairs.map((repair) => {
-                  const isLocked = repair.status === 'COMPLETED' || repair.status === 'CANCELLED';
+                  const isLocked = (repair.status === 'COMPLETED' || repair.status === 'CANCELLED') && !repair.isUnlocked;
                   return (
-                    <tr key={repair.id} style={isLocked ? { opacity: 0.65 } : undefined}>
-                      <td>
+                    <tr key={repair.id}>
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
                             {repair.repairNumber}
@@ -135,12 +135,12 @@ export function RepairListPage() {
                           {isLocked && <Lock size={12} style={{ color: 'var(--muted)' }} />}
                         </div>
                       </td>
-                      <td>{repair.vehiclePlate}</td>
-                      <td>{repair.issueDescription}</td>
-                      <td>
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{repair.vehiclePlate}</td>
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{repair.issueDescription}</td>
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>
                         <StatusBadge status={repair.status} />
                       </td>
-                      <td>{formatDate(repair.updatedAt)}</td>
+                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{formatDate(repair.updatedAt)}</td>
                       <td>
                         <div style={{ position: 'relative' }}>
                           <button
@@ -169,11 +169,20 @@ export function RepairListPage() {
                             }}>
                               <button
                                 className="sidebar-btn"
-                                style={{ padding: '8px 12px', fontSize: '13px' }}
-                                onClick={() => { navigate(`/repairs/${repair.id}`); setOpenMenuId(null); }}
+                                style={{ padding: '8px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                onClick={() => { navigate(`/repairs/${repair.id}?mode=readonly`); setOpenMenuId(null); }}
                               >
-                                {isLocked ? <><Eye size={14} /> View Details</> : <><Settings size={14} /> Edit Ticket</>}
+                                <Eye size={14} /> View Details
                               </button>
+                              {(!isLocked || isAdmin) && (
+                                <button
+                                  className="sidebar-btn"
+                                  style={{ padding: '8px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                  onClick={() => { navigate(`/repairs/${repair.id}`); setOpenMenuId(null); }}
+                                >
+                                  <Settings size={14} /> Edit Ticket
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
