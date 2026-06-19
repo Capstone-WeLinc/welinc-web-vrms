@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { DashboardPage } from './features/dashboard/pages/DashboardPage';
-import { ReportsPage } from './features/dashboard/pages/ReportsPage';
 import { HistoryPage } from './features/repair/pages/HistoryPage';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -98,14 +97,6 @@ function App() {
           />
           <Route path="repairs/:repairId" element={<RepairDetailPage />} />
           <Route path="history" element={<HistoryPage />} />
-          <Route
-            path="reports"
-            element={
-              <RequireRole role="ADMIN">
-                <ReportsPage />
-              </RequireRole>
-            }
-          />
           <Route path="profile" element={<ProfilePage />} />
           <Route
             path="users"
