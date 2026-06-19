@@ -21,21 +21,57 @@ import { useToast } from '../../context/ToastContext';
 const PORTAL_URL = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:8000';
 const VMMS_URL = (import.meta.env as any).VITE_VMMS_URL || 'http://localhost:8002';
 
-const adminNavItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/repairs', label: 'Repair Tickets', icon: Wrench },
-  { to: '/repairs/new', label: 'New Repair', icon: PlusCircle },
-  { to: '/history', label: 'Repair History', icon: History },
-  { to: '/audit-logs', label: 'Audit Logs', icon: ClipboardList },
-  { to: '/users', label: 'Users', icon: Users },
-  { to: '/profile', label: 'Profile', icon: User },
+interface NavItem {
+  to: string;
+  label: string;
+  icon: any;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const adminNavSections: NavSection[] = [
+  {
+    title: 'GENERAL',
+    items: [
+      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/profile', label: 'Profile', icon: User },
+    ],
+  },
+  {
+    title: 'VEHICLE REPAIRS',
+    items: [
+      { to: '/repairs', label: 'Repair Tickets', icon: Wrench },
+      { to: '/repairs/new', label: 'New Repair', icon: PlusCircle },
+      { to: '/history', label: 'Repair History', icon: History },
+    ],
+  },
+  {
+    title: 'ADMINISTRATION',
+    items: [
+      { to: '/users', label: 'Users', icon: Users },
+      { to: '/audit-logs', label: 'Audit Logs', icon: ClipboardList },
+    ],
+  },
 ];
 
-const mechanicNavItems = [
-  { to: '/dashboard', label: 'My Dashboard', icon: LayoutDashboard },
-  { to: '/repairs', label: 'My Repairs', icon: Wrench },
-  { to: '/history', label: 'Repair History', icon: History },
-  { to: '/profile', label: 'Profile', icon: User },
+const mechanicNavSections: NavSection[] = [
+  {
+    title: 'GENERAL',
+    items: [
+      { to: '/dashboard', label: 'My Dashboard', icon: LayoutDashboard },
+      { to: '/profile', label: 'Profile', icon: User },
+    ],
+  },
+  {
+    title: 'VEHICLE REPAIRS',
+    items: [
+      { to: '/repairs', label: 'My Repairs', icon: Wrench },
+      { to: '/history', label: 'Repair History', icon: History },
+    ],
+  },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -54,7 +90,7 @@ export function Sidebar() {
 
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
 
-  const navItems = user?.role === 'ADMIN' ? adminNavItems : mechanicNavItems;
+  const navSections = user?.role === 'ADMIN' ? adminNavSections : mechanicNavSections;
   const roleLabel = user?.role ? (ROLE_LABELS[user.role] ?? user.role) : '';
 
   const getSubsystemCount = () => {
@@ -107,37 +143,62 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav style={{ marginTop: 8 }}>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={() => {
-                  let isActive = location.pathname.startsWith(item.to);
-                  // Special case: /repairs should not be active if we are on /repairs/new
-                  // because /repairs/new has its own sidebar item.
-                  if (item.to === '/repairs' && location.pathname === '/repairs/new') {
-                    isActive = false;
-                  }
-                  // Exact match for others just in case
-                  if (item.to === '/dashboard' && location.pathname !== '/dashboard') isActive = false;
-                  if (item.to === '/history' && location.pathname !== '/history') isActive = false;
-                  if (item.to === '/profile' && location.pathname !== '/profile') isActive = false;
-                  if (item.to === '/audit-logs' && location.pathname !== '/audit-logs') isActive = false;
-                  if (item.to === '/users' && location.pathname !== '/users') isActive = false;
-
-                  return `nav-link${isActive ? ' active' : ''}`;
+          {navSections.map((section, idx) => (
+            <div key={section.title} className="sidebar-section" style={{ marginTop: idx > 0 ? 12 : 0 }}>
+              {/* Section Header / Divider */}
+              <div 
+                className="sidebar-section-header"
+                style={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  minHeight: 28,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: 'rgba(255, 255, 255, 0.4)',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  padding: '8px 10px 4px'
                 }}
-                title={item.label}
               >
-                <div style={{ width: 46, display: 'flex', justifyContent: 'center', flexShrink: 0, marginRight: 12 }}>
-                  <Icon size={20} strokeWidth={1.8} />
-                </div>
-                <span className="sidebar-text">{item.label}</span>
-              </NavLink>
-            );
-          })}
+                <span className="sidebar-text">{section.title}</span>
+                {idx > 0 && (
+                  <div className="sidebar-divider-collapsed" />
+                )}
+              </div>
+
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={() => {
+                      let isActive = location.pathname.startsWith(item.to);
+                      // Special case: /repairs should not be active if we are on /repairs/new
+                      // because /repairs/new has its own sidebar item.
+                      if (item.to === '/repairs' && location.pathname === '/repairs/new') {
+                        isActive = false;
+                      }
+                      // Exact match for others just in case
+                      if (item.to === '/dashboard' && location.pathname !== '/dashboard') isActive = false;
+                      if (item.to === '/history' && location.pathname !== '/history') isActive = false;
+                      if (item.to === '/profile' && location.pathname !== '/profile') isActive = false;
+                      if (item.to === '/audit-logs' && location.pathname !== '/audit-logs') isActive = false;
+                      if (item.to === '/users' && location.pathname !== '/users') isActive = false;
+
+                      return `nav-link${isActive ? ' active' : ''}`;
+                    }}
+                    title={item.label}
+                  >
+                    <div style={{ width: 46, display: 'flex', justifyContent: 'center', flexShrink: 0, marginRight: 12 }}>
+                      <Icon size={20} strokeWidth={1.8} />
+                    </div>
+                    <span className="sidebar-text">{item.label}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </div>
 

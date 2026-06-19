@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { AlertTriangle, LogOut, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertTriangle, Clock } from 'lucide-react';
 
 export default function SessionMonitor() {
   const [showWarning, setShowWarning] = useState(false);
@@ -8,13 +8,15 @@ export default function SessionMonitor() {
   // We check if a token exists. If not, we don't monitor inactivity
   const token = localStorage.getItem('welinc_token');
 
-  // Ref to track last active timestamp (in milliseconds)
-  const lastActiveRef = useRef<number>(Date.now());
-
   useEffect(() => {
     if (!token) {
       setShowWarning(false);
       return;
+    }
+
+    // Initialize last active if not present
+    if (!localStorage.getItem('welinc_last_active')) {
+      localStorage.setItem('welinc_last_active', Date.now().toString());
     }
 
     const getInactivityLimit = () => {
@@ -35,11 +37,20 @@ export default function SessionMonitor() {
     };
 
     const handleUserActivity = () => {
-      lastActiveRef.current = Date.now();
-      // If warning is currently visible, clicking/moving resets it
-      if (showWarning) {
-        handleExtend();
+      if (showWarning) return;
+      const lastActiveVal = localStorage.getItem('welinc_last_active');
+      const lastActive = lastActiveVal ? parseInt(lastActiveVal, 10) : Date.now();
+      const limit = getInactivityLimit();
+      const warningPeriod = getWarningPeriod(limit);
+      const timeSinceLastActive = Date.now() - lastActive;
+
+      // If we are already within the warning period, don't reset the timer
+      // on automatic events. The user must click the button to extend!
+      if (timeSinceLastActive >= limit - warningPeriod) {
+        return;
       }
+
+      localStorage.setItem('welinc_last_active', Date.now().toString());
     };
 
     // Listen to all major user interaction events
@@ -52,7 +63,9 @@ export default function SessionMonitor() {
     const checkInterval = setInterval(() => {
       const limit = getInactivityLimit();
       const warningPeriod = getWarningPeriod(limit);
-      const timeSinceLastActive = Date.now() - lastActiveRef.current;
+      const lastActiveVal = localStorage.getItem('welinc_last_active');
+      const lastActive = lastActiveVal ? parseInt(lastActiveVal, 10) : Date.now();
+      const timeSinceLastActive = Date.now() - lastActive;
 
       if (timeSinceLastActive >= limit) {
         // Exceeded limit: perform auto logout
@@ -78,7 +91,7 @@ export default function SessionMonitor() {
   }, [token, showWarning]);
 
   const handleExtend = () => {
-    lastActiveRef.current = Date.now();
+    localStorage.setItem('welinc_last_active', Date.now().toString());
     setShowWarning(false);
   };
 
@@ -89,12 +102,6 @@ export default function SessionMonitor() {
     window.location.href = 'http://localhost:8000/login?inactivity=true';
   };
 
-  const handleManualLogout = () => {
-    localStorage.clear();
-    setShowWarning(false);
-    // Redirect to Portal with logout query parameter
-    window.location.href = 'http://localhost:8000/login?logout=true';
-  };
 
   if (!token || !showWarning) return null;
 
@@ -120,19 +127,12 @@ export default function SessionMonitor() {
           <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">seconds</span>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={handleManualLogout}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 border border-white/10 text-white/70 hover:text-white rounded-xl text-sm font-semibold hover:bg-white/5 transition-all cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
+        <div className="flex justify-center">
           <button
             onClick={handleExtend}
-            className="flex-2 inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#e8b800] hover:bg-[#d4a600] text-[#1a1f6e] rounded-xl text-sm font-bold transition-all cursor-pointer shadow-lg shadow-amber-500/10"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#e8b800] hover:bg-[#d4a600] text-[#1a1f6e] rounded-xl text-sm font-bold transition-all cursor-pointer shadow-lg shadow-amber-500/10"
           >
-            Extend Session
+            I'm still here
           </button>
         </div>
       </div>
