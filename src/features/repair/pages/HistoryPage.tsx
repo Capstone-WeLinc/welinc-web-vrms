@@ -59,6 +59,23 @@ export function HistoryPage() {
 
   const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
 
+  const pageNumbers = useMemo(() => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = startPage + maxVisiblePages - 1;
+
+    if (endPage > totalPages) {
+      endPage = totalPages;
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }, [currentPage, totalPages]);
+
   return (
     <div>
       <PageHeader
@@ -201,6 +218,15 @@ export function HistoryPage() {
                   >
                     Previous
                   </button>
+                  {pageNumbers.map(page => (
+                    <button
+                      key={page}
+                      className={currentPage === page ? "button small" : "button secondary small"}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </button>
+                  ))}
                   <button
                     className="button secondary small"
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}

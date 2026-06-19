@@ -76,6 +76,23 @@ export function AuditLogsPage() {
 
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
 
+  const pageNumbers = useMemo(() => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = startPage + maxVisiblePages - 1;
+
+    if (endPage > totalPages) {
+      endPage = totalPages;
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }, [currentPage, totalPages]);
+
   const renderActionText = (log: AuditEntry) => {
     const match = log.action.match(/(REP-\d{8}-\d{4})/);
     if (match && log.ticketId) {
@@ -222,26 +239,38 @@ export function AuditLogsPage() {
               </table>
             </div>
             {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 20 }}>
-                <Button
-                  variant="secondary"
-                  style={{ padding: '6px 12px', fontSize: 13 }}
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                >
-                  Previous
-                </Button>
-                <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
-                  Page {currentPage} of {totalPages}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 14px', borderTop: '1px solid var(--border)', marginTop: 20 }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>
+                  Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length})
                 </span>
-                <Button
-                  variant="secondary"
-                  style={{ padding: '6px 12px', fontSize: 13 }}
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                >
-                  Next
-                </Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    className="button secondary small"
+                    style={{ padding: '6px 12px', fontSize: 13 }}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </button>
+                  {pageNumbers.map(page => (
+                    <button
+                      key={page}
+                      className={currentPage === page ? "button small" : "button secondary small"}
+                      style={{ padding: '6px 12px', fontSize: 13 }}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    className="button secondary small"
+                    style={{ padding: '6px 12px', fontSize: 13 }}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </>
