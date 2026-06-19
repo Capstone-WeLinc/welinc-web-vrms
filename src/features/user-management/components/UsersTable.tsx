@@ -47,10 +47,10 @@ export function UsersTable({
       <table className="table" style={{ marginTop: 0 }}>
         <thead>
           <tr>
-            <th>User Details</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th style={{ textAlign: 'left' }}>User Details</th>
+            <th style={{ textAlign: 'left' }}>Role</th>
+            <th style={{ textAlign: 'left' }}>Status</th>
+            <th style={{ textAlign: 'left' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -60,22 +60,22 @@ export function UsersTable({
             const primaryRole = vrmsRoles.length > 0 ? vrmsRoles[0].role : 'NO_ACCESS';
 
             return (
-              <tr key={user.id} style={{ opacity: user.isActive ? 1 : 0.6 }}>
-                <td>
+              <tr key={user.id}>
+                <td style={!user.isActive ? { opacity: 0.6 } : undefined}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{user.name}</span>
                     <span style={{ fontSize: 13, color: 'var(--muted)' }}>{user.email}</span>
                   </div>
                 </td>
-                <td>
+                <td style={!user.isActive ? { opacity: 0.6 } : undefined}>
                   <span className="tag-pill">
                     {primaryRole === 'ADMIN' && <Shield size={12} style={{ marginRight: 4, display: 'inline-block' }} />}
                     {primaryRole.replace('_', ' ')}
                   </span>
                 </td>
-                <td>
+                <td style={!user.isActive ? { opacity: 0.6 } : undefined}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <StatusBadge status={!user.emailVerified ? 'PENDING_VERIFICATION' : (user.isActive ? 'COMPLETED' : 'CANCELLED')} />
+                    <StatusBadge status={!user.emailVerified ? 'PENDING_VERIFICATION' : (user.isActive ? 'ACTIVE' : 'INACTIVE')} />
                     {isLocked && (
                       <span title="Account locked due to 5 failed login attempts">
                         <AlertTriangle size={16} color="var(--danger)" />

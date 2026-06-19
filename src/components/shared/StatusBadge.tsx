@@ -11,6 +11,8 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   FOR_VERIFICATION: { label: 'For Verification', cls: 'status-for-verification' },
   COMPLETED: { label: 'Completed', cls: 'status-completed' },
   CANCELLED: { label: 'Cancelled', cls: 'status-cancelled' },
+  ACTIVE: { label: 'Active', cls: 'status-completed' },
+  INACTIVE: { label: 'Inactive', cls: 'status-cancelled' },
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
