@@ -117,14 +117,14 @@ export function HistoryPage() {
          </div>
       </div>
       <div className="card" style={{ minHeight: '400px' }}>
-        {loading ? (
+        {loading && repairs.length === 0 ? (
           <p>Loading completed repairs…</p>
         ) : error ? (
           <div className="alert">{error}</div>
         ) : repairs.length === 0 ? (
           <p>No history records available.</p>
         ) : (
-          <>
+          <div style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.15s ease' }}>
             <table className="table">
               <thead>
                 <tr>
@@ -157,7 +157,11 @@ export function HistoryPage() {
                       <td style={isLocked ? { opacity: 0.65 } : undefined}>
                         <StatusBadge status={repair.status} />
                       </td>
-                      {isAdmin && <td style={isLocked ? { opacity: 0.65 } : undefined}>{formatCurrency(repair.totalCost)}</td>}
+                      {isAdmin && (
+                        <td style={isLocked ? { opacity: 0.65 } : undefined}>
+                          {formatCurrency(repair.totalCost)}
+                        </td>
+                      )}
                       <td style={isLocked ? { opacity: 0.65 } : undefined}>{formatDate(repair.completedAt ?? repair.updatedAt)}</td>
                       <td>
                         <div style={{ position: 'relative' }}>
@@ -192,7 +196,7 @@ export function HistoryPage() {
                               >
                                 <Eye size={14} /> View Details
                               </button>
-                              {(!isLocked || isAdmin) && (
+                              {isAdmin && (
                                 <button
                                   className="sidebar-btn"
                                   style={{ padding: '8px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -266,7 +270,7 @@ export function HistoryPage() {
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

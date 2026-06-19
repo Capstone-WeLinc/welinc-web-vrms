@@ -80,7 +80,7 @@ export function UsersTable({
                 </td>
                 <td style={!user.isActive ? { opacity: 0.6 } : undefined}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <StatusBadge status={!user.emailVerified ? 'PENDING_VERIFICATION' : (user.isActive ? 'ACTIVE' : 'INACTIVE')} />
+                    <StatusBadge status={!user.emailVerified ? 'PENDING_VERIFICATION' : (!user.isActive ? 'INACTIVE' : (isLocked ? 'LOCKED' : 'ACTIVE'))} />
                     {isLocked && (
                       <span title="Account locked due to 5 failed login attempts">
                         <AlertTriangle size={16} color="var(--danger)" />

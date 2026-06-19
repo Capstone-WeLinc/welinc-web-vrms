@@ -13,6 +13,7 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   CANCELLED: { label: 'Cancelled', cls: 'status-cancelled' },
   ACTIVE: { label: 'Active', cls: 'status-completed' },
   INACTIVE: { label: 'Inactive', cls: 'status-cancelled' },
+  LOCKED: { label: 'Locked', cls: 'status-cancelled' },
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {

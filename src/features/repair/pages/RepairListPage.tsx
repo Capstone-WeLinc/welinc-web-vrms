@@ -122,14 +122,14 @@ export function RepairListPage() {
       </div>
 
       <div className="card" style={{ minHeight: '400px' }}>
-        {loading ? (
+        {loading && repairs.length === 0 ? (
           <p>Loading repair tickets…</p>
         ) : error ? (
           <div className="alert">{error}</div>
         ) : repairs.length === 0 ? (
           <p>No tickets found.</p>
         ) : (
-          <>
+          <div style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.15s ease' }}>
             <p style={{ marginTop: 0, marginBottom: 16, color: '#475569' }}>
               Showing {totalCount} repair ticket{totalCount === 1 ? '' : 's'}.
             </p>
@@ -270,7 +270,7 @@ export function RepairListPage() {
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
