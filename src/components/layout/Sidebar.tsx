@@ -86,10 +86,7 @@ export function Sidebar() {
 
   const executeLogout = () => {
     logout();
-    showToast('Logged out successfully.', 'success');
-    setTimeout(() => {
-      window.location.href = `${PORTAL_URL}/login?logout=true`;
-    }, 500);
+    window.location.href = `${PORTAL_URL}/login?logout=true`;
   };
 
   return (
@@ -98,7 +95,7 @@ export function Sidebar() {
         {/* Brand Header */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 28, padding: '0 10px' }}>
           <div style={{ width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 12 }}>
-            <img src={logo} alt="WeLinc" style={{ width: 42, height: 42, borderRadius: 10 }} />
+            <img src={logo} alt="WeLinc" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover' }} />
           </div>
           <div className="sidebar-text" style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 18, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>WeLinc VRMS</div>

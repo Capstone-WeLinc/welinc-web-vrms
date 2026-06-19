@@ -19,6 +19,7 @@ export interface ManagedUser {
   id: string;
   name: string;
   email: string;
+  emailVerified: boolean;
   isActive: boolean;
   isLocked: boolean;
   lockedAt: string | null;

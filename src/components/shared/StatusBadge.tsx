@@ -6,6 +6,7 @@ interface StatusBadgeProps {
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   PENDING: { label: 'Pending', cls: 'status-pending' },
+  PENDING_VERIFICATION: { label: 'Pending Verification', cls: 'status-pending' },
   IN_PROGRESS: { label: 'In Progress', cls: 'status-in-progress' },
   FOR_VERIFICATION: { label: 'For Verification', cls: 'status-for-verification' },
   COMPLETED: { label: 'Completed', cls: 'status-completed' },

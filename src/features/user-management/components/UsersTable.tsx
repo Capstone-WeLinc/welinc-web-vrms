@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Shield, Settings, Key, AlertTriangle, MoreVertical } from 'lucide-react';
 import { ManagedUser } from '../../../types';
 import { getVrmsRoleAssignments } from '../hooks/useUsersManager';
@@ -21,6 +21,18 @@ export function UsersTable({
 }: UsersTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.menu-container')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, [openMenuId]);
 
   const PAGE_SIZE = 10;
   const totalPages = Math.ceil(users.length / PAGE_SIZE);
@@ -63,7 +75,7 @@ export function UsersTable({
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <StatusBadge status={user.isActive ? 'COMPLETED' : 'CANCELLED'} />
+                    <StatusBadge status={!user.emailVerified ? 'PENDING_VERIFICATION' : (user.isActive ? 'COMPLETED' : 'CANCELLED')} />
                     {isLocked && (
                       <span title="Account locked due to 5 failed login attempts">
                         <AlertTriangle size={16} color="var(--danger)" />
@@ -72,11 +84,10 @@ export function UsersTable({
                   </div>
                 </td>
                 <td>
-                  <div style={{ position: 'relative' }}>
+                  <div className="menu-container" style={{ position: 'relative' }}>
                     <button
                       className="button-icon"
                       onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)}
-                      onBlur={() => setTimeout(() => setOpenMenuId(null), 150)}
                     >
                       <MoreVertical size={16} />
                     </button>

@@ -174,7 +174,7 @@ function StandaloneLogin() {
     setLoading(true);
     try {
       const response = await api.post('/auth/login', {
-        email: email.trim().toLowerCase(),
+        email: email.trim(),
         password,
       });
       await processToken(response.data.accessToken, navigate, (msg) => setError(msg));
