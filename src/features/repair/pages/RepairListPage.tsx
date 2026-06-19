@@ -22,6 +22,7 @@ export function RepairListPage() {
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'ADMIN';
   const [repairs, setRepairs] = useState<RepairTicket[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<RepairStatus | ''>('');
   const [loading, setLoading] = useState(true);
@@ -36,8 +37,9 @@ export function RepairListPage() {
       setLoading(true);
       setError(null);
       try {
-        const data = await getRepairs(search, status || undefined);
-        setRepairs(data);
+        const response = await getRepairs(search, status || undefined, currentPage, itemsPerPage);
+        setRepairs(response.data);
+        setTotalCount(response.total);
       } catch (err) {
         setError('Unable to load repair tickets.');
       } finally {
@@ -46,20 +48,14 @@ export function RepairListPage() {
     }
 
     load();
-  }, [search, status]);
+  }, [search, status, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [search, status]);
 
-  const filteredCount = useMemo(() => repairs.length, [repairs]);
-
-  const paginatedRepairs = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return repairs.slice(start, start + itemsPerPage);
-  }, [repairs, currentPage]);
-
-  const totalPages = Math.ceil(repairs.length / itemsPerPage);
+  // The total pages based on the server's totalCount
+  const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
 
   return (
     <div>
@@ -109,11 +105,11 @@ export function RepairListPage() {
         ) : error ? (
           <div className="alert">{error}</div>
         ) : repairs.length === 0 ? (
-          <p>No open tickets found.</p>
+          <p>No tickets found.</p>
         ) : (
           <>
             <p style={{ marginTop: 0, marginBottom: 16, color: '#475569' }}>
-              Showing {filteredCount} repair ticket{filteredCount === 1 ? '' : 's'}.
+              Showing {totalCount} repair ticket{totalCount === 1 ? '' : 's'}.
             </p>
             <table className="table">
               <thead>
@@ -127,7 +123,7 @@ export function RepairListPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedRepairs.map((repair) => {
+                {repairs.map((repair) => {
                   const isLocked = repair.status === 'COMPLETED' || repair.status === 'CANCELLED';
                   return (
                     <tr key={repair.id} style={isLocked ? { opacity: 0.65 } : undefined}>
@@ -187,10 +183,10 @@ export function RepairListPage() {
                 })}
               </tbody>
             </table>
-            {totalPages > 1 && (
+            {totalCount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 14px', borderTop: '1px solid var(--border)' }}>
                 <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>
-                  Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredCount)} of {filteredCount})
+                  Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount})
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button

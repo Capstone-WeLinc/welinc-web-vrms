@@ -235,7 +235,7 @@ export function RepairFormPage() {
       ) : configError ? (
         <div className="card"><div className="alert">{configError}</div></div>
       ) : (
-      <div className="card" style={{ maxWidth: 940 }}>
+      <div className="card" style={{ maxWidth: 940, margin: '0 auto' }}>
         <form onSubmit={handleSubmit}>
           <div className="field-grid">
             <div className="input-group">

@@ -18,7 +18,7 @@ export function useDashboardMetrics() {
           getRepairHistory(),
           getAuditLogs().catch(() => []),
         ]);
-        setRepairs([...activeData, ...historyData]);
+        setRepairs([...activeData.data, ...historyData.data]);
         setAudits(auditData);
       } catch (err) {
         console.error('Failed to load repairs:', err);

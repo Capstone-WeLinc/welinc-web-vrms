@@ -23,7 +23,7 @@ export function Topbar() {
   }, [theme]);
 
   useEffect(() => {
-    getRepairs().then(setRepairs).catch(() => {});
+    getRepairs().then(resp => setRepairs(resp.data)).catch(() => {});
   }, []);
 
   const toggleTheme = () => {

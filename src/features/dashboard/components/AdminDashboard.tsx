@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { useDashboardMetrics } from '../hooks/useDashboardMetrics';
 import { AuditTrailWidget } from './AuditTrailWidget';
 import { RecentRepairsTable } from './RecentRepairsTable';
@@ -98,6 +101,45 @@ export function AdminDashboard() {
 
   const reportButtons = ['Daily', 'Monthly', 'Yearly'];
 
+  const handleExport = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const format = e.target.value;
+    if (!format) return;
+    
+    if (format === 'excel') {
+      const data = repairs.map(r => ({
+        'Repair #': r.repairNumber,
+        'Vehicle': r.vehiclePlate,
+        'Driver': r.driverName,
+        'Status': r.status,
+        'Total Cost': r.totalCost || 0,
+        'Date': new Date(r.createdAt).toLocaleDateString()
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Repairs");
+      XLSX.writeFile(workbook, `vrms_report_${new Date().getTime()}.xlsx`);
+    } else if (format === 'pdf') {
+      const doc = new jsPDF();
+      doc.text("VRMS Repairs Report", 14, 15);
+      autoTable(doc, {
+        head: [['Repair #', 'Vehicle', 'Driver', 'Status', 'Cost', 'Date']],
+        body: repairs.map(r => [
+          r.repairNumber,
+          r.vehiclePlate,
+          r.driverName,
+          r.status,
+          r.totalCost ? `PHP ${r.totalCost.toLocaleString()}` : '0',
+          new Date(r.createdAt).toLocaleDateString()
+        ]),
+        startY: 20,
+      });
+      doc.save(`vrms_report_${new Date().getTime()}.pdf`);
+    }
+
+    // Reset dropdown
+    e.target.value = '';
+  };
+
   return (
     <div className="dashboard-page">
       <PageHeader
@@ -110,9 +152,10 @@ export function AdminDashboard() {
               className="select" 
               style={{ appearance: 'none', paddingRight: '36px', cursor: 'pointer', background: 'var(--surface)', fontWeight: 600 }}
               defaultValue=""
+              onChange={handleExport}
             >
               <option value="" disabled>Export Reports...</option>
-              <option value="csv">Export to CSV</option>
+              <option value="excel">Export to Excel</option>
               <option value="pdf">Export to PDF</option>
             </select>
             <div style={{ position: 'absolute', right: 12, top: 14, pointerEvents: 'none', color: 'var(--muted)' }}>
