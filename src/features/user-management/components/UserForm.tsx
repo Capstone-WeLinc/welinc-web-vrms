@@ -60,22 +60,6 @@ export function UserForm({
           <p className="small-note">Must be a valid WeLinc company email address.</p>
         </div>
 
-        {editingUserId ? (
-          <div className="input-group">
-            <label className="label" htmlFor="password">
-              New password
-            </label>
-            <input
-              id="password"
-              className="input"
-              type="password"
-              value={form.password}
-              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              placeholder="Leave blank to keep current password"
-            />
-            <p className="small-note">Passwords must be at least 8 characters long.</p>
-          </div>
-        ) : null}
 
         <label className="checkbox-row">
           <input
