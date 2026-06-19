@@ -9,6 +9,7 @@ import { RepairFormPage } from './features/repair/pages/RepairFormPage';
 import { RepairListPage } from './features/repair/pages/RepairListPage';
 import { UsersPage } from './features/user-management/pages/UsersPage';
 import { AuditLogsPage } from './features/audit-logs/pages/AuditLogsPage';
+import { ProfilePage } from './features/auth/pages/ProfilePage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
 import { UserRole } from './types';
@@ -96,6 +97,7 @@ function App() {
           />
           <Route path="repairs/:repairId" element={<RepairDetailPage />} />
           <Route path="history" element={<HistoryPage />} />
+          <Route path="profile" element={<ProfilePage />} />
           <Route
             path="users"
             element={

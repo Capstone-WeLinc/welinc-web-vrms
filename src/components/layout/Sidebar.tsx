@@ -28,12 +28,14 @@ const adminNavItems = [
   { to: '/history', label: 'Repair History', icon: History },
   { to: '/audit-logs', label: 'Audit Logs', icon: ClipboardList },
   { to: '/users', label: 'Users', icon: Users },
+  { to: '/profile', label: 'Profile', icon: User },
 ];
 
 const mechanicNavItems = [
   { to: '/dashboard', label: 'My Dashboard', icon: LayoutDashboard },
   { to: '/repairs', label: 'My Repairs', icon: Wrench },
   { to: '/history', label: 'Repair History', icon: History },
+  { to: '/profile', label: 'Profile', icon: User },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -103,30 +105,6 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* User Profile */}
-        {user && (
-          <div className="sidebar-profile" style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{ width: 46, display: 'flex', justifyContent: 'center', flexShrink: 0, marginRight: 12 }}>
-              <div className="sidebar-avatar" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: 36,
-                width: 36,
-                borderRadius: 8,
-                background: 'var(--warning)',
-                color: 'var(--brand-dark, #151b4f)',
-              }}>
-                <User size={18} strokeWidth={1.8} />
-              </div>
-            </div>
-            <div className="sidebar-profile-info" style={{ minWidth: 0 }}>
-              <div className="sidebar-profile-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-              <div className="sidebar-profile-role" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{roleLabel}</div>
-            </div>
-          </div>
-        )}
-
         {/* Navigation */}
         <nav style={{ marginTop: 8 }}>
           {navItems.map((item) => {
@@ -145,6 +123,7 @@ export function Sidebar() {
                   // Exact match for others just in case
                   if (item.to === '/dashboard' && location.pathname !== '/dashboard') isActive = false;
                   if (item.to === '/history' && location.pathname !== '/history') isActive = false;
+                  if (item.to === '/profile' && location.pathname !== '/profile') isActive = false;
                   if (item.to === '/audit-logs' && location.pathname !== '/audit-logs') isActive = false;
                   if (item.to === '/users' && location.pathname !== '/users') isActive = false;
 

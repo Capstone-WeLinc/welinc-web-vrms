@@ -48,3 +48,13 @@ export async function unlockUser(userId: string): Promise<ManagedUser> {
   const response = await api.patch<ManagedUser>(`/auth/users/${userId}/unlock`);
   return response.data;
 }
+
+export async function updateOwnProfile(payload: { name?: string; email?: string; contact?: string }): Promise<ManagedUser> {
+  const response = await api.patch<ManagedUser>('/auth/profile', payload);
+  return response.data;
+}
+
+export async function changeOwnPassword(payload: { currentPassword: string; newPassword: string; confirmPassword: string }): Promise<ManagedUser> {
+  const response = await api.patch<ManagedUser>('/auth/profile/password', payload);
+  return response.data;
+}
