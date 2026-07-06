@@ -105,6 +105,7 @@ export function useUsersManager() {
       : await createUser({
           name: trimmedName,
           email: trimmedEmail,
+          ...(trimmedPassword ? { password: trimmedPassword } : {}),
           isActive: form.isActive,
           roleAssignments: [{ role: form.role, system: 'VRMS' }],
         });

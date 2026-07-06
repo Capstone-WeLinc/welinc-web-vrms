@@ -89,18 +89,7 @@ export function UsersPage() {
       return;
     }
 
-    if (!editingUserId && !form.password.trim()) {
-      setFormError('A password is required for new accounts.');
-      return;
-    }
 
-    if (form.password.trim()) {
-      const validationError = validatePassword(form.password);
-      if (validationError) {
-        setFormError(validationError);
-        return;
-      }
-    }
 
     setSaving(true);
     try {

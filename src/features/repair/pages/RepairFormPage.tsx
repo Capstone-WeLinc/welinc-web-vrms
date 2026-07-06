@@ -168,23 +168,27 @@ export function RepairFormPage() {
   };
 
   const executeSubmit = async () => {
-    const createdAtIso = createdAt.toISOString();
     const payload: CreateRepairPayload = {
       vehiclePlate,
       driverName: driverName.trim(),
       issueDescription: issues[0]?.description.trim() || 'Repair ticket created',
-      status: 'PENDING',
       accountType,
       corporation: accountType === 'CORPORATE' ? corporation : undefined,
       garageLocation,
       odometerReading: Number(odometerReading),
-      mechanics: assignedMechanics,
+      mechanics: assignedMechanics.map(({ name, isOutsourced, shopName }) => ({
+        name,
+        isOutsourced,
+        shopName,
+      })),
       shopName: shopName === 'OTHER' ? otherShopName.trim() : shopName,
       priority,
-      issues,
+      issues: issues.map(({ vehicleSystem, rootCause, description }) => ({
+        vehicleSystem,
+        rootCause,
+        description,
+      })),
       repairNumber: generateRepairNumber(),
-      createdAt: createdAtIso,
-      updatedAt: createdAtIso,
     };
 
     try {

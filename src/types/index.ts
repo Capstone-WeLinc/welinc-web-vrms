@@ -127,16 +127,13 @@ export interface CreateRepairPayload {
   vehiclePlate: string;
   driverName: string;
   issueDescription: string;
-  status: RepairStatus;
   accountType: AccountType;
   corporation?: string;
   garageLocation: string;
   odometerReading: number;
-  mechanics: MechanicAssignment[];
+  mechanics: Omit<MechanicAssignment, 'id'>[];
   shopName: string;
   priority: PriorityLevel;
-  issues: RepairIssue[];
+  issues: Omit<RepairIssue, 'id'>[];
   repairNumber?: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
