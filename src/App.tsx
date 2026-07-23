@@ -10,6 +10,8 @@ import { RepairListPage } from './features/repair/pages/RepairListPage';
 import { UsersPage } from './features/user-management/pages/UsersPage';
 import { AuditLogsPage } from './features/audit-logs/pages/AuditLogsPage';
 import { ProfilePage } from './features/auth/pages/ProfilePage';
+import { AnalyticsPage } from './features/analytics/pages/AnalyticsPage';
+import { KnowledgeBasePage } from './features/knowledge-base/pages/KnowledgeBasePage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
 import { UserRole } from './types';
@@ -114,6 +116,8 @@ function App() {
               </RequireRole>
             }
           />
+          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="knowledge-base" element={<KnowledgeBasePage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

@@ -11,6 +11,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { CostEncodingPanel } from '../components/CostEncodingPanel';
 import { AuditLogCollapsible } from '../components/AuditLogCollapsible';
 import { UnlockTicketModal } from '../components/UnlockTicketModal';
+import { AiDiagnosticPanel } from '../components/AiDiagnosticPanel';
 import { useToast } from '../../../context/ToastContext';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { useConfirm } from '../../../hooks/useConfirm';
@@ -185,7 +186,7 @@ export function RepairDetailPage() {
         }
       />
 
-      <div className="card" style={{ maxWidth: 960 }}>
+      <div className="card">
         <div style={{ display: 'grid', gap: 24 }}>
 
           {/* ── Header ─────────────────────────────────────────────── */}
@@ -282,6 +283,13 @@ export function RepairDetailPage() {
               </div>
             </div>
           )}
+
+          <AiDiagnosticPanel
+            vehiclePlate={repair.vehiclePlate}
+            vehicleModel={repair.vehicleModel || ''}
+            issues={repair.issues || []}
+            ticketId={repair.id}
+          />
 
           {/* ── Cost Summary (Admin only) ─────────────────────────── */}
           {isAdmin && (repair.totalCost != null || repair.partsCost != null || repair.laborCost != null) && (

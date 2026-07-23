@@ -13,6 +13,8 @@ import {
   ClipboardList,
   ArrowRightLeft,
   FileDown,
+  BarChart2,
+  BookOpen,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import logo from '../../assets/brand-logo.jpg';
@@ -50,6 +52,13 @@ const adminNavSections: NavSection[] = [
     ],
   },
   {
+    title: 'ANALYTICS & AI',
+    items: [
+      { to: '/analytics', label: 'Analytics', icon: BarChart2 },
+      { to: '/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
+    ],
+  },
+  {
     title: 'ADMINISTRATION',
     items: [
       { to: '/users', label: 'Users', icon: Users },
@@ -71,6 +80,13 @@ const mechanicNavSections: NavSection[] = [
     items: [
       { to: '/repairs', label: 'My Repairs', icon: Wrench },
       { to: '/history', label: 'Repair History', icon: History },
+    ],
+  },
+  {
+    title: 'ANALYTICS & AI',
+    items: [
+      { to: '/analytics', label: 'Analytics', icon: BarChart2 },
+      { to: '/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
     ],
   },
 ];
@@ -186,6 +202,8 @@ export function Sidebar() {
                       if (item.to === '/profile' && location.pathname !== '/profile') isActive = false;
                       if (item.to === '/audit-logs' && location.pathname !== '/audit-logs') isActive = false;
                       if (item.to === '/users' && location.pathname !== '/users') isActive = false;
+                      if (item.to === '/analytics' && location.pathname !== '/analytics') isActive = false;
+                      if (item.to === '/knowledge-base' && location.pathname !== '/knowledge-base') isActive = false;
 
                       return `nav-link${isActive ? ' active' : ''}`;
                     }}
