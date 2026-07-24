@@ -289,6 +289,7 @@ export function RepairDetailPage() {
             vehicleModel={repair.vehicleModel || ''}
             issues={repair.issues || []}
             ticketId={repair.id}
+            ticketStatus={repair.repairStatus}
           />
 
           {/* ── Cost Summary (Admin only) ─────────────────────────── */}
