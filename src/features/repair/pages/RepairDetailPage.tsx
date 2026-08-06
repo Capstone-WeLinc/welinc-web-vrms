@@ -286,10 +286,10 @@ export function RepairDetailPage() {
 
           <AiDiagnosticPanel
             vehiclePlate={repair.vehiclePlate}
-            vehicleModel={repair.vehicleModel || ''}
+            vehicleModel={(repair as any).vehicleModel || ''}
             issues={repair.issues || []}
             ticketId={repair.id}
-            ticketStatus={repair.repairStatus}
+            ticketStatus={repair.status}
           />
 
           {/* ── Cost Summary (Admin only) ─────────────────────────── */}

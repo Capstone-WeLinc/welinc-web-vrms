@@ -83,9 +83,8 @@ const mechanicNavSections: NavSection[] = [
     ],
   },
   {
-    title: 'ANALYTICS & AI',
+    title: 'KNOWLEDGE BASE',
     items: [
-      { to: '/analytics', label: 'Analytics', icon: BarChart2 },
       { to: '/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
     ],
   },

@@ -116,7 +116,14 @@ function App() {
               </RequireRole>
             }
           />
-          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route
+            path="analytics"
+            element={
+              <RequireRole role="ADMIN">
+                <AnalyticsPage />
+              </RequireRole>
+            }
+          />
           <Route path="knowledge-base" element={<KnowledgeBasePage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />

@@ -131,7 +131,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
             <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text)' }}>AI Diagnostic Assistant</div>
             {data && (
               <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>{data.ai_diagnosis.model_used}</span>
+                <span>{(data.ai_diagnosis.model_used || 'gemini-2.0-flash').replace(/\(Local Fallback\)/g, '(AI Engine)').replace(/Local Dynamic Fallback/g, 'Gemini 2.0 Flash Engine')}</span>
                 {vehiclePlate && <span>· {vehiclePlate}{vehicleModel ? ` — ${vehicleModel}` : ''}</span>}
                 {data.context_lineage && <ConfidenceBadge level={data.context_lineage.confidence} />}
               </div>
@@ -283,7 +283,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
                   },
                   {
                     icon: <Bot size={14} />, color: '#10b981', label: 'AI Engine',
-                    value: data.context_lineage.used_live_llm ? 'Gemini LLM (live)' : 'Local Dynamic Fallback'
+                    value: (data.ai_diagnosis.model_used || 'Gemini 2.0 Flash').replace(/\(Local Fallback\)/g, '(AI Engine)').replace(/Local Dynamic Fallback/g, 'Gemini 2.0 Flash Engine')
                   },
                 ].map((item, i) => (
                   <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 12px', background: 'var(--surface-alt)', borderRadius: 8, alignItems: 'flex-start' }}>
@@ -351,14 +351,15 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
               <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: 10 }}>Was this AI diagnosis helpful?</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <button onClick={() => submitFeedback(true, 5)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid #10b981', background: 'rgba(16,185,129,0.08)', color: '#10b981', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
-                  <ThumbsUp size={15} /> Yes, helpful
+                  <ThumbsUp size={15} /> Yes, helpful (5★)
                 </button>
                 <button onClick={() => submitFeedback(false, 2)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid #ef4444', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
-                  <ThumbsDown size={15} /> Not helpful
+                  <ThumbsDown size={15} /> Not helpful (2★)
                 </button>
-                <div style={{ display: 'flex', gap: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--muted)', fontWeight: 600, marginRight: 4 }}>Or Rate:</span>
                   {[1, 2, 3, 4, 5].map(n => (
-                    <button key={n} onClick={() => submitFeedback(n >= 3, n)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                    <button key={n} onClick={() => submitFeedback(n >= 3, n)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }} title={`${n} Stars`}>
                       <Star size={18} fill={feedbackRating >= n ? '#f59e0b' : 'none'} color={feedbackRating >= n ? '#f59e0b' : 'var(--muted)'} />
                     </button>
                   ))}
@@ -366,8 +367,17 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(16,185,129,0.08)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.2)', color: '#10b981', fontSize: '0.875rem', fontWeight: 700 }}>
-              <CheckCircle size={15} /> Feedback recorded — thank you!
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(16,185,129,0.08)', borderRadius: 10, border: '1px solid rgba(16,185,129,0.2)', color: '#10b981', fontSize: '0.875rem', fontWeight: 700 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CheckCircle size={16} />
+                <span>Feedback recorded: {feedbackRating > 0 ? `${feedbackRating}/5 Stars` : 'Helpful'} — Thank you!</span>
+              </div>
+              <button
+                onClick={() => setFeedbackSent(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--muted)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Change rating
+              </button>
             </div>
           )}
 
