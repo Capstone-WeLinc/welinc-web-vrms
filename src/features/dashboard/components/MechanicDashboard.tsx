@@ -111,7 +111,7 @@ export function MechanicDashboard() {
     <div className="dashboard-page">
       <PageHeader
         title="My Assigned Repairs"
-        subtitle={`Welcome back, ${user?.name ?? 'Mechanic'}. Here are your current assignments.`}
+        subtitle={`Welcome back, ${user?.name ?? 'Mechanic'} — Fleet Mechanic. Here are your current assignments.`}
         icon={LayoutDashboard}
       />
 

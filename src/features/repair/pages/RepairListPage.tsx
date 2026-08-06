@@ -14,8 +14,6 @@ const statusOptions: Array<{ value: RepairStatus | ''; label: string }> = [
   { value: 'PENDING', label: 'Pending' },
   { value: 'IN_PROGRESS', label: 'In Progress' },
   { value: 'FOR_VERIFICATION', label: 'For Verification' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
 export function RepairListPage() {

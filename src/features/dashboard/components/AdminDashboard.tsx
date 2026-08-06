@@ -7,6 +7,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { useAuthStore } from '../../../store/authStore';
 import { useDashboardMetrics } from '../hooks/useDashboardMetrics';
 import { RepairProgressChart } from './RepairProgressChart';
 import jsPDF from 'jspdf';
@@ -14,6 +15,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 export function AdminDashboard() {
+  const user = useAuthStore((state) => state.user);
   const {
     repairs,
     loading,
@@ -101,7 +103,7 @@ export function AdminDashboard() {
     <div className="dashboard-page animate-fade-in">
       <PageHeader
         title="Vehicle Repair Management"
-        subtitle="Monitor ticket flow, status changes, and repair costs with live data."
+        subtitle={`Welcome back, ${user?.name ?? 'Victor Ramos'} — Fleet Administrator. Monitor ticket flow, status changes, and repair costs with live data.`}
         icon={LayoutDashboard}
       />
 
@@ -143,7 +145,7 @@ export function AdminDashboard() {
                     className={`timeframe-pill ${costTimeframe === '1y' ? 'active' : ''}`}
                     onClick={() => setCostTimeframe('1y')}
                   >
-                    1Y
+                    6M
                   </button>
                   <button
                     type="button"

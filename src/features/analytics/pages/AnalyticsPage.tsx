@@ -44,7 +44,7 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'Cancelled',
   FOR_VERIFICATION: 'For Verification',
 };
-const PERIOD_OPTIONS = ['ALL', '6M', '3M', '1M'];
+const PERIOD_OPTIONS = ['1M', '3M', '6M', 'ALL'];
 const PALETTE = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1059,9 +1059,9 @@ export function AnalyticsPage() {
             {trends.length === 0
               ? <EmptyState label="No monthly data available" />
               : (
-                <div style={{ overflowX: 'auto' }}>
+                <div style={{ overflowX: 'auto', maxHeight: '380px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                    <thead>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 1 }}>
                       <tr style={{ borderBottom: '2px solid var(--border)' }}>
                         <th style={{ padding: '9px 12px', width: 36, textAlign: 'center' }}>
                           <input

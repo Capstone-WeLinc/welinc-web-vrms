@@ -638,7 +638,7 @@ export function KnowledgeBasePage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <PageHeader
           title="Knowledge Base"
-          subtitle="Automotive repair guides, SOPs, and diagnostic procedures."
+          subtitle="Mechanic Resource Center — Standard Operating Procedures (SOPs), diagnostic guides, and repair steps."
           icon={BookOpen}
         />
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>

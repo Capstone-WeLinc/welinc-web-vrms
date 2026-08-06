@@ -16,8 +16,8 @@ export function useDashboardMetrics() {
       setError(null);
       try {
         const [activeData, historyData, auditData] = await Promise.all([
-          getRepairs(),
-          getRepairHistory(),
+          getRepairs(undefined, undefined, 1, 10000),
+          getRepairHistory(undefined, undefined, 1, 10000),
           getAuditLogs().catch(() => []),
         ]);
         setRepairs([...activeData.data, ...historyData.data]);
