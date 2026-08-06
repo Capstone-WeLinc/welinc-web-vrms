@@ -984,9 +984,7 @@ export function AnalyticsPage() {
                 <button
                   onClick={() => {
                     const today = new Date().toISOString().slice(0, 10);
-                    const reportRows = selectedMonths.length > 0
-                      ? sortedReport.filter(r => selectedMonths.includes(r.month))
-                      : sortedReport;
+                    const reportRows = sortedReport;
 
                     const lines: string[] = [];
 
@@ -1114,7 +1112,7 @@ export function AnalyticsPage() {
                     doc.setTextColor(30, 27, 75);
                     doc.text('1. REPAIR COST TRENDS & MONTHLY BREAKDOWN', 14, y);
 
-                    const reportRows = (selectedMonths.length > 0 ? sortedReport.filter(r => selectedMonths.includes(r.month)) : sortedReport);
+                    const reportRows = sortedReport;
                     const totalSpendAll = trends.reduce((a, b) => a + b.total_spend, 0);
 
                     const table1Body = reportRows.map(row => {
