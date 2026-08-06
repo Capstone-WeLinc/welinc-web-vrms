@@ -786,11 +786,11 @@ export function AnalyticsPage() {
                 : (() => {
                   const rawData = Object.entries(aiStats.models_used).map(([model, count]) => {
                     let displayName = model;
-                    if (model.includes('2.0-flash') && model.includes('AI Engine')) displayName = 'Gemini 2.0 Flash';
+                    if (model.includes('2.0-flash')) displayName = 'Gemini 2.0 Flash';
+                    else if (model.includes('1.5-pro')) displayName = 'Gemini 1.5 Pro';
                     else if (model.includes('1.5-flash')) displayName = 'Gemini 1.5 Flash';
-                    else if (model.includes('Local Fallback') || model === 'dynamic_fallback') displayName = 'Local Fallback';
+                    else if (model.includes('Local Fallback') || model === 'dynamic_fallback') displayName = 'Local Fallback Engine';
                     else if (model === 'mock') displayName = 'Offline Engine';
-                    else if (model.includes('2.0-flash')) displayName = 'Gemini 2.0 Flash';
                     return { name: displayName, value: count };
                   });
 
