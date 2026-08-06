@@ -278,7 +278,7 @@ export function AnalyticsPage() {
   const sortedReport = [...trends].sort((a, b) => {
     if (reportSort === 'spend') return b.total_spend - a.total_spend;
     if (reportSort === 'repairs') return b.repair_count - a.repair_count;
-    return a.month.localeCompare(b.month);
+    return b.month.localeCompare(a.month);
   });
 
   // ─── Loading / Error ───────────────────────────────────────────────────────
