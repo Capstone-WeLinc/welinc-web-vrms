@@ -11,6 +11,8 @@ import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer,
 } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const API_BASE = (import.meta.env as any).VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -1051,7 +1053,100 @@ export function AnalyticsPage() {
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(232,184,0,0.25)' }}
                 >
                   <Download size={14} />
-                  {selectedMonths.length > 0 ? `Export Selected (${selectedMonths.length})` : 'Export All CSV'}
+                  {selectedMonths.length > 0 ? `Export Selected CSV (${selectedMonths.length})` : 'Export CSV'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const doc = new jsPDF();
+                    const today = new Date().toLocaleDateString('en-US');
+
+                    // Header Banner
+                    doc.setFillColor(30, 27, 75);
+                    doc.rect(0, 0, 210, 32, 'F');
+
+                    doc.setFontSize(15);
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('WELINC LOGISTICS INC.', 14, 14);
+
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text('ENTERPRISE MASTER FLEET REPAIR & COST ANALYTICS REPORT', 14, 23);
+                    doc.text(`Date: ${today}`, 165, 23);
+
+                    // Executive Summary Box
+                    doc.setFillColor(245, 247, 250);
+                    doc.roundedRect(14, 38, 182, 24, 3, 3, 'F');
+
+                    doc.setFontSize(8);
+                    doc.setTextColor(100);
+                    doc.text('Total Fleet Spend', 20, 46);
+                    doc.text('Total Repairs', 70, 46);
+                    doc.text('Avg Cost / Repair', 115, 46);
+                    doc.text('Active Vehicles', 160, 46);
+
+                    doc.setFontSize(11);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(30, 27, 75);
+                    doc.text(`PHP ${(summary?.total_spend || 0).toLocaleString()}`, 20, 56);
+                    doc.text(`${summary?.total_repairs || 0}`, 70, 56);
+                    doc.text(`PHP ${(summary?.avg_cost_per_repair || 0).toLocaleString()}`, 115, 56);
+                    doc.text(`${summary?.total_vehicles || 0}`, 160, 56);
+
+                    // Section 1: Monthly Cost Trends
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(30, 27, 75);
+                    doc.text('1. REPAIR COST TRENDS & MONTHLY BREAKDOWN', 14, 72);
+
+                    const reportRows = (selectedMonths.length > 0 ? sortedReport.filter(r => selectedMonths.includes(r.month)) : sortedReport);
+                    const totalSpendAll = trends.reduce((a, b) => a + b.total_spend, 0);
+
+                    const tableBody = reportRows.map(row => {
+                      const avg = row.repair_count > 0 ? row.total_spend / row.repair_count : 0;
+                      const pct = totalSpendAll > 0 ? ((row.total_spend / totalSpendAll) * 100).toFixed(1) + '%' : '0%';
+                      return [
+                        row.month,
+                        row.repair_count.toString(),
+                        `PHP ${row.total_spend.toLocaleString()}`,
+                        `PHP ${Math.round(avg).toLocaleString()}`,
+                        `PHP ${(row.cumulative_spend || 0).toLocaleString()}`,
+                        pct
+                      ];
+                    });
+
+                    autoTable(doc, {
+                      startY: 76,
+                      head: [['Month', 'Repairs', 'Total Spend', 'Avg / Repair', 'Cumulative Spend', 'Spend %']],
+                      body: tableBody,
+                      headStyles: { fillColor: [30, 27, 75], textColor: [255, 255, 255], fontStyle: 'bold' },
+                      alternateRowStyles: { fillColor: [248, 250, 252] },
+                      styles: { fontSize: 8, cellPadding: 3 },
+                    });
+
+                    const finalY1 = (doc as any).lastAutoTable.finalY || 130;
+                    if (finalY1 < 220) {
+                      doc.setFontSize(10);
+                      doc.setFont('helvetica', 'bold');
+                      doc.setTextColor(30, 27, 75);
+                      doc.text('2. GARAGE BRANCH COST DISTRIBUTION', 14, finalY1 + 12);
+
+                      autoTable(doc, {
+                        startY: finalY1 + 16,
+                        head: [['Garage Branch', 'Repair Count', 'Total Spend']],
+                        body: garageCosts.map(g => [g.garage, g.repair_count.toString(), `PHP ${g.total_spend.toLocaleString()}`]),
+                        headStyles: { fillColor: [30, 27, 75], textColor: [255, 255, 255], fontStyle: 'bold' },
+                        styles: { fontSize: 8, cellPadding: 3 },
+                      });
+                    }
+
+                    doc.save(`WeLinc_VRMS_Enterprise_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  <FileText size={14} color="#ef4444" />
+                  Export PDF Report
                 </button>
               </div>
             </div>
