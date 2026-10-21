@@ -16,7 +16,9 @@ import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
 import type { User, UserRole } from './types';
 import { getCurrentUser } from './lib/api/authApi';
-import { ToastProvider } from './context/ToastContext';
+import { Toaster } from './components/ui/sonner';
+import { ConfirmProvider } from './components/shared/confirm/ConfirmProvider';
+import { TooltipProvider } from './components/ui/tooltip';
 import SessionMonitor from './components/SessionMonitor';
 
 // Development only: the condition is a build time constant, so production drops the import.
@@ -79,7 +81,9 @@ function App() {
   }, [token]);
 
   return (
-    <ToastProvider>
+    <TooltipProvider delayDuration={300}>
+      <Toaster />
+      <ConfirmProvider />
       <SessionMonitor />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -143,7 +147,7 @@ function App() {
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-    </ToastProvider>
+    </TooltipProvider>
   );
 }
 

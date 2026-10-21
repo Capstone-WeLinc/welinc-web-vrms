@@ -1,17 +1,30 @@
-import { createContext, useContext } from 'react';
+import { toast } from 'sonner';
 
 export type ToastType = 'success' | 'error' | 'info';
 
-interface ToastContextProps {
-  showToast: (message: string, type?: ToastType) => void;
+// sonner's live region is polite only. The Toaster registers a role="alert"
+// region here so error toasts are also announced assertively.
+type AlertAnnouncer = (message: string) => void;
+let announceAlert: AlertAnnouncer | null = null;
+
+export function registerAlertAnnouncer(announcer: AlertAnnouncer | null) {
+  announceAlert = announcer;
 }
 
-export const ToastContext = createContext<ToastContextProps | undefined>(undefined);
+function showToast(message: string, type: ToastType = 'success') {
+  if (type === 'error') {
+    toast.error(message);
+    announceAlert?.(message);
+  } else if (type === 'info') {
+    toast.info(message);
+  } else {
+    toast.success(message);
+  }
+}
+
+// One stable object, so callers can list showToast in effect dependencies.
+const toastApi = { showToast };
 
 export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
-  }
-  return context;
+  return toastApi;
 }

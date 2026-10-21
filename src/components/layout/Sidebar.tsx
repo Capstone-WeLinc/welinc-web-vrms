@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LogOut,
@@ -15,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import logo from '../../assets/brand-logo.jpg';
-import ConfirmModal from '../ConfirmModal';
+import { confirm } from '../shared/confirm/confirm';
 import type { LucideIcon } from 'lucide-react';
 
 const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
@@ -92,8 +91,6 @@ export function Sidebar() {
   const user = useAuthStore((state) => state.user);
   const location = useLocation();
 
-  const [showConfirmLogout, setShowConfirmLogout] = useState(false);
-
   const navSections = user?.role === 'ADMIN' ? adminNavSections : mechanicNavSections;
 
   const getSubsystemCount = () => {
@@ -121,11 +118,13 @@ export function Sidebar() {
     }
   };
 
-  const handleLogout = () => {
-    setShowConfirmLogout(true);
-  };
-
-  const executeLogout = () => {
+  const handleLogout = async () => {
+    const confirmed = await confirm({
+      title: 'Sign out?',
+      description: 'Are you sure you want to sign out of WeLinc VRMS?',
+      confirmText: 'Sign out',
+    });
+    if (!confirmed) return;
     logout();
     window.location.href = `${PORTAL_URL}/login?logout=true`;
   };
@@ -244,16 +243,6 @@ export function Sidebar() {
           <span className="sidebar-text" style={{ marginLeft: 10 }}>Logout</span>
         </button>
       </div>
-      <ConfirmModal
-        isOpen={showConfirmLogout}
-        title="Sign Out?"
-        message="Are you sure you want to sign out of WeLinc VRMS?"
-        confirmText="Sign Out"
-        cancelText="Cancel"
-        type="warning"
-        onConfirm={executeLogout}
-        onCancel={() => setShowConfirmLogout(false)}
-      />
     </aside>
   );
 }

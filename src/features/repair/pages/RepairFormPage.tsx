@@ -19,8 +19,7 @@ import {
   saveDriverName,
 } from '../../../lib/repairOptions';
 import { useToast } from '../../../context/toast';
-import ConfirmModal from '../../../components/ConfirmModal';
-import { useConfirm } from '../../../hooks/useConfirm';
+import { confirm } from '../../../components/shared/confirm/confirm';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 
 function createNewIssue() {
@@ -68,7 +67,6 @@ export function RepairFormPage() {
   const [issueError, setIssueError] = useState<string | null>(null);
   const { showToast } = useToast();
 
-  const { confirmState, triggerConfirm, closeConfirm } = useConfirm();
 
   // Load live config from API
   useEffect(() => {
@@ -204,7 +202,7 @@ export function RepairFormPage() {
     }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setIssueError(null);
@@ -213,12 +211,12 @@ export function RepairFormPage() {
       return;
     }
 
-    triggerConfirm({
-      title: 'Submit Repair Ticket?',
-      message: 'Are you sure you want to submit this new repair ticket?',
-      confirmText: 'Submit Ticket',
-      onConfirm: executeSubmit,
+    const confirmed = await confirm({
+      title: 'Submit repair ticket?',
+      description: 'Are you sure you want to submit this new repair ticket?',
+      confirmText: 'Submit ticket',
     });
+    if (confirmed) await executeSubmit();
   };
 
   return (
@@ -470,14 +468,6 @@ export function RepairFormPage() {
         </form>
       </div>
       )}
-      <ConfirmModal
-        isOpen={confirmState.isOpen}
-        title={confirmState.title}
-        message={confirmState.message}
-        confirmText={confirmState.confirmText}
-        onConfirm={confirmState.onConfirm}
-        onCancel={closeConfirm}
-      />
     </div>
   );
 }

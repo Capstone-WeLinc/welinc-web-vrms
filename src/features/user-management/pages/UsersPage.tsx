@@ -3,7 +3,7 @@ import { Users as UsersIcon, Search } from 'lucide-react';
 import { ManagedUser } from '../../../types';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { useToast } from '../../../context/toast';
-import ConfirmModal from '../../../components/ConfirmModal';
+import { confirm } from '../../../components/shared/confirm/confirm';
 import {
   useUsersManager,
   UserFormState,
@@ -13,7 +13,6 @@ import {
 } from '../hooks/useUsersManager';
 import { UserForm } from '../components/UserForm';
 import { UsersTable } from '../components/UsersTable';
-import { useConfirm } from '../../../hooks/useConfirm';
 import { LegacyButton } from '../../../components/legacy/LegacyButton';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 
@@ -29,7 +28,6 @@ export function UsersPage() {
     unlockUserAccount,
   } = useUsersManager();
   
-  const { confirmState, triggerConfirm, closeConfirm } = useConfirm();
   const { showToast } = useToast();
 
   const [form, setForm] = useState<UserFormState>(emptyForm);
@@ -95,56 +93,52 @@ export function UsersPage() {
     }
   };
 
-  const confirmToggleStatus = (user: ManagedUser) => {
-    triggerConfirm({
-      title: user.isActive ? 'Deactivate Account?' : 'Activate Account?',
-      message: `Are you sure you want to ${user.isActive ? 'deactivate' : 'activate'} the account for ${user.name}?`,
+  const confirmToggleStatus = async (user: ManagedUser) => {
+    const confirmed = await confirm({
+      title: user.isActive ? 'Deactivate account?' : 'Activate account?',
+      description: `Are you sure you want to ${user.isActive ? 'deactivate' : 'activate'} the account for ${user.name}?`,
       confirmText: user.isActive ? 'Deactivate' : 'Activate',
-      type: user.isActive ? 'danger' : 'default',
-      onConfirm: async () => {
-        try {
-          await toggleUserStatus(user);
-          showToast(`Account ${user.isActive ? 'deactivated' : 'activated'} successfully.`, 'success');
-        } catch {
-          showToast('Failed to update account status.', 'error');
-        }
-      },
+      tone: user.isActive ? 'destructive' : 'default',
     });
+    if (!confirmed) return;
+    try {
+      await toggleUserStatus(user);
+      showToast(`Account ${user.isActive ? 'deactivated' : 'activated'} successfully.`, 'success');
+    } catch {
+      showToast('Failed to update account status.', 'error');
+    }
   };
 
-  const confirmResetPassword = (user: ManagedUser) => {
+  const confirmResetPassword = async (user: ManagedUser) => {
     const defaultPassword = 'Password123!';
-    triggerConfirm({
-      title: 'Reset User Password?',
-      message: `Are you sure you want to reset the password for ${user.name} to the system default (${defaultPassword})? They will be required to change it on their next login.`,
-      confirmText: 'Reset Password',
-      type: 'danger',
-      onConfirm: async () => {
-        try {
-          await resetPassword(user, defaultPassword);
-          showToast(`Password reset successfully for ${user.name}.`, 'success');
-        } catch {
-          showToast('Failed to reset password.', 'error');
-        }
-      },
+    const confirmed = await confirm({
+      title: 'Reset user password?',
+      description: `Are you sure you want to reset the password for ${user.name} to the system default (${defaultPassword})? They will be required to change it on their next login.`,
+      confirmText: 'Reset password',
+      tone: 'destructive',
     });
+    if (!confirmed) return;
+    try {
+      await resetPassword(user, defaultPassword);
+      showToast(`Password reset successfully for ${user.name}.`, 'success');
+    } catch {
+      showToast('Failed to reset password.', 'error');
+    }
   };
 
-  const confirmUnlockAccount = (user: ManagedUser) => {
-    triggerConfirm({
-      title: 'Unlock Account?',
-      message: `The account for ${user.name} is currently locked due to multiple failed login attempts. Are you sure you want to unlock it?`,
-      confirmText: 'Unlock Account',
-      type: 'warning',
-      onConfirm: async () => {
-        try {
-          await unlockUserAccount(user);
-          showToast(`Account for ${user.name} has been unlocked.`, 'success');
-        } catch {
-          showToast('Failed to unlock account.', 'error');
-        }
-      },
+  const confirmUnlockAccount = async (user: ManagedUser) => {
+    const confirmed = await confirm({
+      title: 'Unlock account?',
+      description: `The account for ${user.name} is currently locked due to multiple failed login attempts. Are you sure you want to unlock it?`,
+      confirmText: 'Unlock account',
     });
+    if (!confirmed) return;
+    try {
+      await unlockUserAccount(user);
+      showToast(`Account for ${user.name} has been unlocked.`, 'success');
+    } catch {
+      showToast('Failed to unlock account.', 'error');
+    }
   };
 
   const filteredUsers = useMemo(() => {
@@ -266,14 +260,6 @@ export function UsersPage() {
         )}
       </section>
 
-      <ConfirmModal
-        isOpen={confirmState.isOpen}
-        title={confirmState.title}
-        message={confirmState.message}
-        confirmText={confirmState.confirmText}
-        onConfirm={confirmState.onConfirm}
-        onCancel={closeConfirm}
-      />
     </div>
   );
 }

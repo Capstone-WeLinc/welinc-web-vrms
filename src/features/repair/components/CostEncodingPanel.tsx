@@ -4,7 +4,7 @@ import type { UpdateCostsPayload } from '../../../lib/api/repairApi';
 import type { RepairTicket } from '../../../types';
 import { LegacyButton } from '../../../components/legacy/LegacyButton';
 import { useToast } from '../../../context/toast';
-import ConfirmModal from '../../../components/ConfirmModal';
+import { confirm } from '../../../components/shared/confirm/confirm';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 
 interface CostEncodingPanelProps {
@@ -32,17 +32,6 @@ export function CostEncodingPanel({
   const [costError, setCostError] = useState<string | null>(null);
   const [costSuccess, setCostSuccess] = useState(false);
   const { showToast } = useToast();
-  const [confirmState, setConfirmState] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-  });
 
   // Refill the form whenever a new repair object arrives (adjusting state during render, not in an effect)
   const [syncedRepair, setSyncedRepair] = useState<RepairTicket | null>(null);
@@ -110,7 +99,7 @@ export function CostEncodingPanel({
     }
   };
 
-  const handleSaveCosts = () => {
+  const handleSaveCosts = async () => {
     setCostError(null);
     
     // Simple verification
@@ -130,12 +119,12 @@ export function CostEncodingPanel({
       return;
     }
 
-    setConfirmState({
-      isOpen: true,
-      title: 'Save Repair Costs?',
-      message: `Are you sure you want to encode a total cost of ${formatCurrency(computedTotalCost)} for this repair?`,
-      onConfirm: executeSaveCosts,
+    const confirmed = await confirm({
+      title: 'Save repair costs?',
+      description: `Are you sure you want to encode a total cost of ${formatCurrency(computedTotalCost)} for this repair?`,
+      confirmText: 'Save costs',
     });
+    if (confirmed) await executeSaveCosts();
   };
 
   const addItemPart = () =>
@@ -325,13 +314,6 @@ export function CostEncodingPanel({
           </LegacyButton>
         )}
       </div>
-      <ConfirmModal
-        isOpen={confirmState.isOpen}
-        title={confirmState.title}
-        message={confirmState.message}
-        onConfirm={confirmState.onConfirm}
-        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
-      />
         </>
       )}
     </div>

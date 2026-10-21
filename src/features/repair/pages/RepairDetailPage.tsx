@@ -13,8 +13,7 @@ import { AuditLogCollapsible } from '../components/AuditLogCollapsible';
 import { UnlockTicketModal } from '../components/UnlockTicketModal';
 import { AiDiagnosticPanel } from '../components/AiDiagnosticPanel';
 import { useToast } from '../../../context/toast';
-import ConfirmModal from '../../../components/ConfirmModal';
-import { useConfirm } from '../../../hooks/useConfirm';
+import { confirm } from '../../../components/shared/confirm/confirm';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 
 const allStatusOptions: Array<{ value: RepairStatus; label: string }> = [
@@ -62,7 +61,6 @@ export function RepairDetailPage() {
   const [showUnlockModal, setShowUnlockModal] = useState(false);
 
   const { showToast } = useToast();
-  const { confirmState, triggerConfirm, closeConfirm } = useConfirm();
 
   useEffect(() => {
     async function load() {
@@ -116,7 +114,7 @@ export function RepairDetailPage() {
     }
   };
 
-  const handleStatusChange = () => {
+  const handleStatusChange = async () => {
     if (!repairId) return;
     if (status === 'CANCELLED' && !cancellationReason.trim()) {
       setError('A cancellation reason is required.');
@@ -125,12 +123,13 @@ export function RepairDetailPage() {
 
     const statusLabel = allStatusOptions.find((o) => o.value === status)?.label || status;
 
-    triggerConfirm({
-      title: 'Update Repair Status?',
-      message: `Are you sure you want to change the repair status to "${statusLabel}"?`,
-      confirmText: 'Save Status',
-      onConfirm: executeStatusChange,
+    const confirmed = await confirm({
+      title: 'Update repair status?',
+      description: `Are you sure you want to change the repair status to "${statusLabel}"?`,
+      confirmText: 'Save status',
+      tone: status === 'CANCELLED' ? 'destructive' : 'default',
     });
+    if (confirmed) await executeStatusChange();
   };
 
   if (loading) {
@@ -460,14 +459,6 @@ export function RepairDetailPage() {
           onClose={() => setShowUnlockModal(false)}
         />
       )}
-      <ConfirmModal
-        isOpen={confirmState.isOpen}
-        title={confirmState.title}
-        message={confirmState.message}
-        confirmText={confirmState.confirmText}
-        onConfirm={confirmState.onConfirm}
-        onCancel={closeConfirm}
-      />
     </div>
   );
 }
