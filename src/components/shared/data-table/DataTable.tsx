@@ -215,7 +215,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     // Previous rows stay hidden, so stale data never looks current.
     body = <ErrorState message={errorMessage ?? 'We could not load this list.'} onRetry={onRetry} />;
   } else if (state === 'ready' && rows.length === 0) {
-    body = <EmptyState title={empty.title} description={empty.description} action={empty.action} />;
+    body = <EmptyState title={empty.title} description={empty.description} icon={empty.icon} action={empty.action} />;
   } else {
     body = isMobile ? <MobileCards {...props} /> : <DesktopTable {...props} />;
   }

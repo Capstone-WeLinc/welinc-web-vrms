@@ -109,7 +109,7 @@ export interface RepairTicket {
   shopChangeLog?: ShopChangeLog[];
   priority?: PriorityLevel;
   issues?: RepairIssue[];
-  targetDueDate?: string;
+  targetDueDate?: string | null;
   remarks?: string;
   repairDurationDays?: number;
   repairDurationHours?: number;

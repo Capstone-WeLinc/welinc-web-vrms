@@ -1,196 +1,77 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  Wrench, 
-  ClipboardList, 
-  AlertTriangle, 
-  Truck,
-  LayoutDashboard
-} from 'lucide-react';
-import { RepairTicket } from '../../../types';
-import { formatDate } from '../../../lib/utils/format';
-import { StatusBadge } from '../../../components/shared/StatusBadge';
-import { useAuthStore } from '../../../store/authStore';
-import { getRepairs } from '../../../lib/api/repairApi';
+import { useMemo } from 'react';
+import { AlertTriangle, Clock, LayoutDashboard, ShieldCheck, Wrench } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { ErrorState } from '../../../components/shared/ErrorState';
+import { useAuthStore } from '../../../store/authStore';
+import { useDashboardData } from '../hooks/useDashboardData';
+import { countMechanicOverdue, greeting, isWaiting, mechanicWorkList, workDueLabel } from '../lib/attention';
+import { AttentionTiles, type AttentionTile } from './AttentionTiles';
+import { DashboardSkeleton } from './DashboardSkeleton';
+import { LastUpdated } from './LastUpdated';
+import { TicketAttentionTable } from './TicketAttentionTable';
+import { TruncationNote } from './TruncationNote';
 
 export function MechanicDashboard() {
   const user = useAuthStore((state) => state.user);
-  const [repairs, setRepairs] = useState<RepairTicket[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { active, fetchedAt, state, errorMessage, refreshFailed, truncated, retry } = useDashboardData({
+    includeHistory: false,
+  });
 
-  useEffect(() => {
-    async function load(silent = false) {
-      if (!silent) {
-        setLoading(true);
-      }
-      setError(null);
-      try {
-        const resp = await getRepairs();
-        setRepairs(resp.data);
-      } catch {
-        if (!silent) {
-          setError('Unable to load your assigned repairs.');
-        }
-      } finally {
-        if (!silent) {
-          setLoading(false);
-        }
-      }
-    }
-    load(false);
-
-    const interval = setInterval(() => {
-      load(true);
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const activeRepairs = useMemo(
-    () =>
-      repairs
-        .filter((r) => r.status === 'PENDING' || r.status === 'IN_PROGRESS')
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
-    [repairs],
-  );
-
-  const pendingCount = repairs.filter((r) => r.status === 'PENDING').length;
-  const inProgressCount = repairs.filter((r) => r.status === 'IN_PROGRESS').length;
-  const forVerificationCount = repairs.filter((r) => r.status === 'FOR_VERIFICATION').length;
-
-  const overdue = useMemo(
-    () =>
-      repairs.filter(
-        (r) =>
-          r.targetDueDate &&
-          new Date(r.targetDueDate) < new Date() &&
-          r.status !== 'COMPLETED' &&
-          r.status !== 'CANCELLED',
-      ),
-    [repairs],
-  );
-
-  const mechanicSummaryCards = [
-    {
-      label: 'Pending',
-      value: pendingCount,
-      note: 'Not yet started.',
-      icon: ClipboardList,
-      color: 'var(--warning)',
-      bgColor: 'var(--warning-soft)',
-    },
-    {
-      label: 'In Progress',
-      value: inProgressCount,
-      note: 'Currently being worked on.',
-      icon: Wrench,
-      color: 'var(--primary)',
-      bgColor: 'color-mix(in srgb, var(--primary) 10%, transparent)',
-    },
-    {
-      label: 'For Verification',
-      value: forVerificationCount,
-      note: 'Awaiting admin sign-off.',
-      icon: AlertTriangle,
-      color: 'var(--danger)',
-      bgColor: 'var(--danger-soft)',
-    },
-    {
-      label: 'Total Active',
-      value: activeRepairs.length,
-      note: 'All tickets assigned to you.',
-      icon: Truck,
-      color: 'var(--primary)',
-      bgColor: 'var(--primary-soft)',
-    },
-  ];
+  const derived = useMemo(() => {
+    // Overdue counts only PENDING and IN_PROGRESS, so the tile matches the overdue rows in the list.
+    const overdue = countMechanicOverdue(active, fetchedAt);
+    const tiles: AttentionTile[] = [
+      { caption: 'To start', value: active.filter((t) => t.status === 'PENDING').length, icon: Clock },
+      { caption: 'In progress', value: active.filter((t) => t.status === 'IN_PROGRESS').length, icon: Wrench },
+      { caption: 'Overdue', value: overdue, icon: AlertTriangle, tone: overdue > 0 ? 'destructive' : 'default' },
+      { caption: 'Waiting for sign off', value: active.filter(isWaiting).length, icon: ShieldCheck },
+    ];
+    return { tiles, work: mechanicWorkList(active, fetchedAt) };
+  }, [active, fetchedAt]);
 
   return (
-    <div className="dashboard-page">
+    <div>
       <PageHeader
-        title="My Assigned Repairs"
-        subtitle={`Welcome back, ${user?.name ?? 'Mechanic'} — Fleet Mechanic. Here are your current assignments.`}
+        title="Dashboard"
+        subtitle={`${greeting(user?.name)} Here's your work, most urgent first.`}
         icon={LayoutDashboard}
       />
 
-      <div className="dashboard-grid">
-        {mechanicSummaryCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div key={card.label} className="card summary-card" style={{ display: 'flex', flexDirection: 'column' }}>
-              <div className="stat-card-header">
-                <div 
-                  className="stat-card-icon-container" 
-                  style={{ background: card.bgColor, color: card.color }}
-                >
-                  <Icon size={20} strokeWidth={1.8} />
-                </div>
-              </div>
-              <div className="stat-card-value">{card.value}</div>
-              <div className="stat-card-label">{card.label}</div>
-              <div className="stat-card-note">{card.note}</div>
-            </div>
-          );
-        })}
-      </div>
+      {state === 'loading' && <DashboardSkeleton admin={false} />}
 
-      {overdue.length > 0 && (
-        <div className="alert">
-          <strong>Overdue:</strong>{' '}
-          {overdue.length} ticket{overdue.length === 1 ? '' : 's'} passed their target due date.
-        </div>
+      {state === 'error' && (
+        <ErrorState
+          title="We couldn’t load your repairs"
+          message={errorMessage ?? 'The dashboard didn’t load.'}
+          onRetry={retry}
+        />
       )}
 
-      <div className="card">
-        <div className="page-header">
-          <div>
-            <h3>My active tickets</h3>
-            <p className="page-subtitle">Tickets currently assigned to you.</p>
-          </div>
-          <Link to="/repairs" className="button secondary">
-            View all
-          </Link>
-        </div>
+      {state === 'ready' && (
+        <div className="flex flex-col gap-6">
+          <LastUpdated fetchedAt={fetchedAt} refreshFailed={refreshFailed} />
 
-        {loading ? (
-          <p>Loading your repairs…</p>
-        ) : error ? (
-          <div className="alert">{error}</div>
-        ) : activeRepairs.length === 0 ? (
-          <p style={{ color: 'var(--muted-foreground)' }}>No active repairs assigned to you right now.</p>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Repair #</th>
-                <th>Vehicle</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeRepairs.map((repair) => (
-                <tr key={repair.id}>
-                  <td>{repair.repairNumber}</td>
-                  <td>{repair.vehiclePlate}</td>
-                  <td>
-                    <StatusBadge status={repair.status} />
-                  </td>
-                  <td>{formatDate(repair.updatedAt)}</td>
-                  <td>
-                    <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 700 }}>
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+          <div className="flex flex-col gap-3">
+            <AttentionTiles tiles={derived.tiles} />
+            {truncated && <TruncationNote rows={active.length} />}
+          </div>
+
+          <section aria-labelledby="my-work-heading" className="flex flex-col gap-3">
+            <div>
+              <h2 id="my-work-heading" className="text-lg font-semibold text-foreground">
+                My work
+              </h2>
+              <p className="text-sm text-muted-foreground">Overdue first, then by due date.</p>
+            </div>
+            <TicketAttentionTable
+              rows={derived.work}
+              dueLabel={(t) => workDueLabel(t, fetchedAt)}
+              label="My active tickets"
+              empty={{ title: 'No active repairs assigned to you right now.' }}
+            />
+          </section>
+        </div>
+      )}
     </div>
   );
 }

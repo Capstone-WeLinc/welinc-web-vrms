@@ -787,8 +787,7 @@
   }
 
   .summary-card,
-  .card-highlight,
-  .chart-panel {
+  .card-highlight {
     min-height: auto;
   }
 
@@ -974,27 +973,6 @@
   }
 
   /* VMMS-style stat cards */
-  .stat-card-header {
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .stat-card-icon-container {
-    display: flex;
-    height: 40px;
-    width: 40px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 12px;
-    transition: transform 0.2s ease;
-  }
-
-  .card:hover .stat-card-icon-container {
-    transform: scale(1.05);
-  }
-
   .stat-card-value {
     font-size: 1.875rem; /* text-3xl */
     font-weight: 600;
@@ -1008,13 +986,6 @@
     font-size: 0.875rem; /* text-sm */
     color: var(--text);
     font-weight: 500;
-  }
-
-  .stat-card-note {
-    margin-top: 10px;
-    font-size: 0.75rem; /* text-xs */
-    color: var(--muted-foreground);
-    line-height: 1.4;
   }
 
   /* Sidebar transparent buttons mimicking VMMS */
@@ -1072,130 +1043,4 @@
   .premium-card:hover {
     border-color: rgba(26, 31, 110, 0.25);
   }
-
-  /* Pipeline state cards */
-  .pipeline-stage-card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 18px;
-    border-radius: 12px;
-    background: var(--surface-alt);
-    border: 1px solid var(--border);
-    transition: border-color 0.2s ease;
-  }
-
-  .pipeline-stage-card:hover {
-    border-color: rgba(26, 31, 110, 0.2);
-  }
-
-  /* Timeframe Pill Buttons */
-  .timeframe-pill-container {
-    display: flex;
-    background: var(--surface-alt);
-    padding: 3px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    gap: 2px;
-    align-items: center;
-  }
-
-  .timeframe-pill {
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--muted-foreground);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .timeframe-pill:hover {
-    color: var(--text);
-  }
-
-  .timeframe-pill.active {
-    color: var(--primary);
-    background: var(--surface);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  }
-
-  /* Spend metric cards */
-  .spend-metric-card {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    background: var(--surface-alt);
-    transition: border-color 0.2s ease;
-  }
-
-  .spend-metric-card.total-cost {
-    background: rgba(139, 92, 246, 0.03);
-    border-color: rgba(139, 92, 246, 0.1);
-  }
-
-  .spend-metric-card.total-cost:hover {
-    border-color: rgba(139, 92, 246, 0.2);
-  }
-
-  .spend-metric-card.avg-cost {
-    background: rgba(59, 130, 246, 0.03);
-    border-color: rgba(59, 130, 246, 0.1);
-  }
-
-  .spend-metric-card.avg-cost:hover {
-    border-color: rgba(59, 130, 246, 0.2);
-  }
-
-  /* Download card styles */
-  .download-grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
-    margin-top: 8px;
-  }
-
-  .download-card {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 16px;
-    padding: 16px;
-    border-radius: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: left;
-    width: 100%;
-  }
-
-  .download-card.excel {
-    border-color: rgba(16, 185, 129, 0.15);
-  }
-
-  .download-card.excel:hover {
-    border-color: rgba(16, 185, 129, 0.35);
-    background: rgba(16, 185, 129, 0.02);
-  }
-
-  .download-card.pdf {
-    border-color: rgba(239, 68, 68, 0.15);
-  }
-
-  .download-card.pdf:hover {
-    border-color: rgba(239, 68, 68, 0.35);
-    background: rgba(239, 68, 68, 0.02);
-  }
-
-  /* Progress bar container and glow */
-  .progress-bar-glow-container {
-    border: 1px solid var(--border);
-  }
-
 }

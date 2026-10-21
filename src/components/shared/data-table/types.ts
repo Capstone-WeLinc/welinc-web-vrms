@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 // Shaped like TanStack ColumnDef so a later swap is cheap.
 export type Column<T> = {
@@ -29,7 +30,7 @@ export type DataTableProps<T> = {
   onRetry?: () => void;
   /** Shown in the ErrorState, usually from getApiErrorMessage. */
   errorMessage?: string;
-  empty: { title: string; description?: string; action?: ReactNode };
+  empty: { title: string; description?: string; icon?: LucideIcon; action?: ReactNode };
   onRowClick?: (row: T) => void;
   rowActions?: (row: T) => RowAction[];
   pagination?: PaginationState;

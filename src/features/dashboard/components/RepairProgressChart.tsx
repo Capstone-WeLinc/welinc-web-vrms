@@ -1,101 +1,94 @@
-import { useMemo } from 'react';
-import { RepairTicket } from '../../../types';
-import { CheckCircle2, Clock, Wrench, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { PIPELINE_STATUSES, type PipelineStatus } from '../lib/attention';
 
-interface RepairProgressChartProps {
-  repairs: RepairTicket[];
+// Chart tokens: the same hue families as the status badges, at mid tones that read as fills.
+const STAGES: Record<PipelineStatus, { label: string; fill: string; dot: string }> = {
+  PENDING: { label: 'Pending', fill: 'fill-chart-2', dot: 'bg-chart-2' },
+  IN_PROGRESS: { label: 'In progress', fill: 'fill-chart-1', dot: 'bg-chart-1' },
+  FOR_VERIFICATION: { label: 'For verification', fill: 'fill-chart-4', dot: 'bg-chart-4' },
+  COMPLETED: { label: 'Completed', fill: 'fill-chart-3', dot: 'bg-chart-3' },
+};
+
+function share(count: number, total: number) {
+  return total === 0 ? 0 : Math.round((count / total) * 100);
 }
 
-export function RepairProgressChart({ repairs }: RepairProgressChartProps) {
-  const stats = useMemo(() => {
-    let pending = 0;
-    let inProgress = 0;
-    let forVerification = 0;
-    let completed = 0;
+// Widths go through SVG attributes (viewBox units = ticket counts), so no inline style is needed.
+export function RepairProgressChart({ counts }: { counts: Record<PipelineStatus, number> }) {
+  const [hovered, setHovered] = useState<PipelineStatus | null>(null);
+  const total = PIPELINE_STATUSES.reduce((sum, status) => sum + counts[status], 0);
+  const breakdown = PIPELINE_STATUSES.map((s) => `${STAGES[s].label} ${counts[s]}`).join(', ');
+  const label = `${total === 0 ? 'Nothing open and nothing completed this month. ' : ''}Pipeline: ${breakdown}`;
 
-    repairs.forEach(r => {
-      if (r.status === 'PENDING') pending++;
-      else if (r.status === 'IN_PROGRESS') inProgress++;
-      else if (r.status === 'FOR_VERIFICATION') forVerification++;
-      else if (r.status === 'COMPLETED') completed++;
-    });
+  const segments = PIPELINE_STATUSES.map((status, index) => ({
+    status,
+    x: PIPELINE_STATUSES.slice(0, index).reduce((sum, before) => sum + counts[before], 0),
+    width: counts[status],
+  })).filter((segment) => segment.width > 0);
 
-    const total = pending + inProgress + forVerification + completed;
-    
-    return {
-      pending,
-      inProgress,
-      forVerification,
-      completed,
-      total: total || 1, // avoid division by zero
-    };
-  }, [repairs]);
-
-  const stages = [
-    { label: 'Pending', count: stats.pending, color: 'var(--warning)', icon: Clock },
-    { label: 'In Progress', count: stats.inProgress, color: 'var(--info)', icon: Wrench },
-    { label: 'For Verification', count: stats.forVerification, color: 'var(--danger)', icon: AlertTriangle },
-    { label: 'Completed', count: stats.completed, color: 'var(--success)', icon: CheckCircle2 },
-  ];
+  const dimmed = (status: PipelineStatus) => hovered !== null && hovered !== status;
 
   return (
-    <div className="premium-card chart-panel" style={{ width: '100%' }}>
-      <div style={{ marginBottom: '20px' }}>
-        <h3 className="subheading" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Repair Pipeline Progress</h3>
-        <p className="page-subtitle" style={{ margin: '4px 0 0', fontSize: '0.875rem' }}>Current state of all active and completed repair tickets.</p>
+    <Card className="gap-4 p-5">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">Pipeline</h2>
+        <p className="text-sm text-muted-foreground">Open tickets and this month&apos;s completions</p>
       </div>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {/* Progress Bar */}
-        <div className="progress-bar-glow-container" style={{ display: 'flex', height: '20px', borderRadius: '10px', overflow: 'hidden', background: 'var(--surface-alt)' }}>
-          {stages.map(stage => {
-            const width = `${(stage.count / stats.total) * 100}%`;
-            return stage.count > 0 ? (
-              <div 
-                key={stage.label} 
-                style={{ 
-                  width, 
-                  background: stage.color, 
-                  transition: 'width 0.3s'
-                }} 
-                title={`${stage.label}: ${stage.count}`}
-              />
-            ) : null;
-          })}
-        </div>
 
-        {/* Legend */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          {stages.map(stage => {
-            const Icon = stage.icon;
-            const softColorMap: Record<string, string> = {
-              'var(--warning)': 'color-mix(in srgb, var(--highlight) 12%, transparent)',
-              'var(--info)': 'color-mix(in srgb, var(--primary) 8%, transparent)',
-              'var(--danger)': 'color-mix(in srgb, var(--destructive) 10%, transparent)',
-              'var(--success)': 'color-mix(in srgb, var(--success-fill) 12%, transparent)',
-            };
-            const iconColorMap: Record<string, string> = {
-              'var(--warning)': 'var(--warning)',
-              'var(--info)': 'var(--primary)',
-              'var(--danger)': 'var(--danger)',
-              'var(--success)': 'var(--success)',
-            };
-            const softBg = softColorMap[stage.color] || 'color-mix(in srgb, var(--foreground) 5%, transparent)';
-            const iconColor = iconColorMap[stage.color] || 'white';
-            return (
-              <div key={stage.label} className="pipeline-stage-card">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', borderRadius: '12px', background: softBg, color: iconColor }}>
-                  <Icon size={20} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontWeight: 700 }}>{stage.label}</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text)', marginTop: '2px', lineHeight: 1 }}>{stage.count}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <div role="img" aria-label={label} className="flex flex-col gap-2">
+        <svg
+          viewBox={`0 0 ${Math.max(total, 1)} 1`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          className="h-4 w-full overflow-hidden rounded-full bg-muted"
+        >
+          {segments.map((segment) => (
+            <Tooltip key={segment.status}>
+              <TooltipTrigger asChild>
+                <rect
+                  x={segment.x}
+                  y={0}
+                  width={segment.width}
+                  height={1}
+                  onMouseEnter={() => setHovered(segment.status)}
+                  onMouseLeave={() => setHovered(null)}
+                  className={cn(
+                    STAGES[segment.status].fill,
+                    'cursor-default transition-opacity duration-150 motion-reduce:transition-none',
+                    dimmed(segment.status) && 'opacity-30',
+                  )}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={6}>
+                {STAGES[segment.status].label}: {segment.width} ({share(segment.width, total)}%)
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </svg>
+        {total === 0 && <p className="text-sm text-muted-foreground">Nothing open and nothing completed this month</p>}
       </div>
-    </div>
+
+      <ul className="flex flex-wrap gap-x-6 gap-y-2">
+        {PIPELINE_STATUSES.map((status) => (
+          <li
+            key={status}
+            onMouseEnter={() => setHovered(status)}
+            onMouseLeave={() => setHovered(null)}
+            className={cn(
+              'flex items-center gap-2 text-sm transition-opacity duration-150 motion-reduce:transition-none',
+              dimmed(status) && 'opacity-50',
+            )}
+          >
+            <span aria-hidden="true" className={cn('size-2.5 shrink-0 rounded-full', STAGES[status].dot)} />
+            <span className="text-muted-foreground">{STAGES[status].label}</span>
+            <span className="font-semibold text-foreground tabular-nums">{counts[status]}</span>
+            <span className="text-muted-foreground tabular-nums">{share(counts[status], total)}%</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
