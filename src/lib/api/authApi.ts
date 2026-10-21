@@ -7,8 +7,8 @@ interface LoginResponse {
   user: User;
 }
 
-export async function login(username: string, password: string): Promise<LoginResponse> {
-  const response = await api.post<LoginResponse>('/auth/login', { username, password, system: 'VRMS' });
+export async function login(email: string, password: string): Promise<LoginResponse> {
+  const response = await api.post<LoginResponse>('/auth/login', { email, password });
   return response.data;
 }
 
@@ -46,5 +46,15 @@ export async function resetUserPassword(userId: string, password: string): Promi
 
 export async function unlockUser(userId: string): Promise<ManagedUser> {
   const response = await api.patch<ManagedUser>(`/auth/users/${userId}/unlock`);
+  return response.data;
+}
+
+export async function updateOwnProfile(payload: { name?: string; email?: string; contact?: string }): Promise<ManagedUser> {
+  const response = await api.patch<ManagedUser>('/auth/profile', payload);
+  return response.data;
+}
+
+export async function changeOwnPassword(payload: { currentPassword: string; newPassword: string; confirmPassword: string }): Promise<ManagedUser> {
+  const response = await api.patch<ManagedUser>('/auth/profile/password', payload);
   return response.data;
 }

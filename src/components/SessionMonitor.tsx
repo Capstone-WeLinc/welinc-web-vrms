@@ -1,0 +1,141 @@
+import { useState, useEffect } from 'react';
+import { AlertTriangle, Clock } from 'lucide-react';
+
+const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
+
+export default function SessionMonitor() {
+  const [showWarning, setShowWarning] = useState(false);
+  const [secondsRemaining, setSecondsRemaining] = useState(60);
+
+  // We check if a token exists. If not, we don't monitor inactivity
+  const token = localStorage.getItem('welinc_token');
+
+  const handleLogoutDueToInactivity = () => {
+    localStorage.clear();
+    setShowWarning(false);
+    // Redirect to Portal with inactivity query parameter
+    window.location.href = `${PORTAL_URL}/login?inactivity=true`;
+  };
+
+  useEffect(() => {
+    // The warning only renders while a token exists, so there is nothing to reset here
+    if (!token) return;
+
+    // Initialize last active if not present
+    if (!localStorage.getItem('welinc_last_active')) {
+      localStorage.setItem('welinc_last_active', Date.now().toString());
+    }
+
+    const getInactivityLimit = () => {
+      // Allow override via window global for quick testing (e.g., 30 seconds)
+      const devLimit = window.__WELINC_INACTIVITY_LIMIT__;
+      if (typeof devLimit === 'number') {
+        return devLimit * 1000;
+      }
+      return 15 * 60 * 1000; // 15 minutes standard
+    };
+
+    const getWarningPeriod = (limitMs: number) => {
+      // If limit is short (e.g. 30 seconds), show warning for 10 seconds
+      if (limitMs <= 60000) {
+        return 10000; // 10 seconds
+      }
+      return 60000; // 60 seconds standard
+    };
+
+    const handleUserActivity = () => {
+      if (showWarning) return;
+      const lastActiveVal = localStorage.getItem('welinc_last_active');
+      const lastActive = lastActiveVal ? parseInt(lastActiveVal, 10) : Date.now();
+      const limit = getInactivityLimit();
+      const warningPeriod = getWarningPeriod(limit);
+      const timeSinceLastActive = Date.now() - lastActive;
+
+      // If we are already within the warning period, don't reset the timer
+      // on automatic events. The user must click the button to extend!
+      if (timeSinceLastActive >= limit - warningPeriod) {
+        return;
+      }
+
+      localStorage.setItem('welinc_last_active', Date.now().toString());
+    };
+
+    // Listen to all major user interaction events
+    window.addEventListener('mousemove', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+    window.addEventListener('click', handleUserActivity);
+    window.addEventListener('scroll', handleUserActivity);
+
+    // Primary interval checker (runs every 1 second)
+    const checkInterval = setInterval(() => {
+      const limit = getInactivityLimit();
+      const warningPeriod = getWarningPeriod(limit);
+      const lastActiveVal = localStorage.getItem('welinc_last_active');
+      const lastActive = lastActiveVal ? parseInt(lastActiveVal, 10) : Date.now();
+      const timeSinceLastActive = Date.now() - lastActive;
+
+      if (timeSinceLastActive >= limit) {
+        // Exceeded limit: perform auto logout
+        clearInterval(checkInterval);
+        handleLogoutDueToInactivity();
+      } else if (timeSinceLastActive >= limit - warningPeriod) {
+        // Inside warning period
+        setShowWarning(true);
+        const msRemaining = limit - timeSinceLastActive;
+        setSecondsRemaining(Math.max(0, Math.ceil(msRemaining / 1000)));
+      } else {
+        setShowWarning(false);
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener('mousemove', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('scroll', handleUserActivity);
+      clearInterval(checkInterval);
+    };
+  }, [token, showWarning]);
+
+  const handleExtend = () => {
+    localStorage.setItem('welinc_last_active', Date.now().toString());
+    setShowWarning(false);
+  };
+
+
+  if (!token || !showWarning) return null;
+
+  return (
+    <div className="fixed inset-0 bg-foreground/85 backdrop-blur-md flex items-center justify-center p-6 z-99999">
+      <div className="bg-primary-hover border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center relative overflow-hidden">
+        {/* Glowing aura */}
+        <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-highlight/15 blur-3xl pointer-events-none" />
+
+        <div className="w-16 h-16 rounded-2xl bg-highlight/10 border border-highlight/30 flex items-center justify-center mx-auto mb-6 text-highlight shadow-lg shadow-highlight/5">
+          <AlertTriangle className="w-8 h-8 animate-pulse" />
+        </div>
+
+        <h3 className="text-xl font-bold text-white mb-2 tracking-tight">Session Expiring</h3>
+        <p className="text-white/60 text-sm leading-relaxed mb-6">
+          You have been idle for a while. For your security, you will be signed out in:
+        </p>
+
+        {/* Circular Countdown visual */}
+        <div className="w-28 h-28 rounded-full border-4 border-highlight/20 flex flex-col items-center justify-center mx-auto mb-8 relative">
+          <Clock className="w-4 h-4 text-highlight/45 absolute top-4" />
+          <span className="text-3xl font-black text-white tracking-tighter mt-2">{secondsRemaining}</span>
+          <span className="text-xs text-white/40 uppercase tracking-widest font-bold">seconds</span>
+        </div>
+
+        <div className="flex justify-center">
+          <button
+            onClick={handleExtend}
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-highlight hover:bg-highlight/90 text-primary rounded-xl text-sm font-bold transition-all cursor-pointer shadow-lg shadow-highlight/10"
+          >
+            I'm still here
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

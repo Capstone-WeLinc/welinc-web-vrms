@@ -1,6 +1,6 @@
 import { RepairTicket } from '../types';
 
-function toCSV(rows: Record<string, any>[]) {
+function toCSV(rows: Record<string, unknown>[]) {
   if (!rows || rows.length === 0) return '';
   const keys = Object.keys(rows[0]);
   const header = keys.join(',');

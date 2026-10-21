@@ -9,7 +9,7 @@ export interface UserRoleAssignment {
 export interface User {
   id: string;
   name: string;
-  username: string;
+  email: string;
   role: UserRole;
   system: SystemType;
   roles?: UserRoleAssignment[];
@@ -18,26 +18,28 @@ export interface User {
 export interface ManagedUser {
   id: string;
   name: string;
-  username: string;
+  email: string;
+  emailVerified: boolean;
   isActive: boolean;
   isLocked: boolean;
   lockedAt: string | null;
   createdAt: string;
   updatedAt: string;
   roles: UserRoleAssignment[];
+  contact?: string | null;
 }
 
 export interface CreateUserPayload {
   name: string;
-  username: string;
-  password: string;
+  email: string;
+  password?: string;
   isActive?: boolean;
   roleAssignments: UserRoleAssignment[];
 }
 
 export interface UpdateUserPayload {
   name?: string;
-  username?: string;
+  email?: string;
   password?: string;
   isActive?: boolean;
   roleAssignments?: UserRoleAssignment[];
@@ -78,7 +80,7 @@ export interface RepairPart {
 
 export interface AuditLogEntry {
   id: string;
-  username: string;
+  email: string;
   action: string;
   fieldName?: string;
   previousValue?: string;
@@ -90,6 +92,7 @@ export interface RepairTicket {
   id: string;
   repairNumber: string;
   vehiclePlate: string;
+  vehicleModel?: string;
   driverName: string;
   issueDescription: string;
   status: RepairStatus;
@@ -126,16 +129,13 @@ export interface CreateRepairPayload {
   vehiclePlate: string;
   driverName: string;
   issueDescription: string;
-  status: RepairStatus;
   accountType: AccountType;
   corporation?: string;
   garageLocation: string;
   odometerReading: number;
-  mechanics: MechanicAssignment[];
+  mechanics: Omit<MechanicAssignment, 'id'>[];
   shopName: string;
   priority: PriorityLevel;
-  issues: RepairIssue[];
+  issues: Omit<RepairIssue, 'id'>[];
   repairNumber?: string;
-  createdAt?: string;
-  updatedAt?: string;
 }

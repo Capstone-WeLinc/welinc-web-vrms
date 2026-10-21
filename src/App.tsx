@@ -1,20 +1,32 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect, type ReactElement } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { DashboardPage } from './pages/DashboardPage';
-import { HistoryPage } from './pages/HistoryPage';
-import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './features/dashboard/pages/DashboardPage';
+import { HistoryPage } from './features/repair/pages/HistoryPage';
+import { LoginPage } from './features/auth/pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
-import { RepairDetailPage } from './pages/RepairDetailPage';
-import { RepairFormPage } from './pages/RepairFormPage';
-import { RepairListPage } from './pages/RepairListPage';
-import { UsersPage } from './pages/UsersPage';
-import { AuditLogsPage } from './pages/AuditLogsPage';
+import { RepairDetailPage } from './features/repair/pages/RepairDetailPage';
+import { RepairFormPage } from './features/repair/pages/RepairFormPage';
+import { RepairListPage } from './features/repair/pages/RepairListPage';
+import { UsersPage } from './features/user-management/pages/UsersPage';
+import { AuditLogsPage } from './features/audit-logs/pages/AuditLogsPage';
+import { ProfilePage } from './features/auth/pages/ProfilePage';
+import { AnalyticsPage } from './features/analytics/pages/AnalyticsPage';
+import { KnowledgeBasePage } from './features/knowledge-base/pages/KnowledgeBasePage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
-import { UserRole } from './types';
+import type { User, UserRole } from './types';
 import { getCurrentUser } from './lib/api/authApi';
+import { Toaster } from './components/ui/sonner';
+import { ConfirmProvider } from './components/shared/confirm/ConfirmProvider';
+import { TooltipProvider } from './components/ui/tooltip';
+import SessionMonitor from './components/SessionMonitor';
 
-function RequireAuth({ children }: { children: JSX.Element }) {
+// Development only: the condition is a build time constant, so production drops the import.
+const DevUiPage = import.meta.env.DEV
+  ? lazy(() => import('./features/dev-ui/pages/DevUiPage').then((m) => ({ default: m.DevUiPage })))
+  : null;
+
+function RequireAuth({ children }: { children: ReactElement }) {
   const token = useAuthStore((state) => state.token);
   const location = useLocation();
 
@@ -25,7 +37,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   return children;
 }
 
-function RequireRole({ role, children }: { role: UserRole; children: JSX.Element }) {
+function RequireRole({ role, children }: { role: UserRole; children: ReactElement }) {
   const user = useAuthStore((state) => state.user);
 
   if (!user || user.role !== role) {
@@ -37,7 +49,7 @@ function RequireRole({ role, children }: { role: UserRole; children: JSX.Element
 
 function App() {
   const token = useAuthStore((state) => state.token);
-  const setUser = (user: any) => useAuthStore.setState({ user });
+  const setUser = (user: User) => useAuthStore.setState({ user });
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -57,8 +69,8 @@ function App() {
           if (currentUser) {
             const updated = {
               ...currentUser,
-              name: fullUser.name || currentUser.name || currentUser.username,
-              username: fullUser.username || currentUser.username,
+              name: fullUser.name || currentUser.name || currentUser.email,
+              email: fullUser.email || currentUser.email,
             };
             setUser(updated);
             localStorage.setItem('welinc_user', JSON.stringify(updated));
@@ -69,48 +81,73 @@ function App() {
   }, [token]);
 
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <DashboardShell />
-          </RequireAuth>
-        }
-      >
-        <Route index element={<DashboardPage />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="repairs" element={<RepairListPage />} />
+    <TooltipProvider delayDuration={300}>
+      <Toaster />
+      <ConfirmProvider />
+      <SessionMonitor />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        {DevUiPage && (
+          <Route
+            path="/dev/ui"
+            element={
+              <Suspense fallback={null}>
+                <DevUiPage />
+              </Suspense>
+            }
+          />
+        )}
         <Route
-          path="repairs/new"
+          path="/"
           element={
-            <RequireRole role="ADMIN">
-              <RepairFormPage />
-            </RequireRole>
+            <RequireAuth>
+              <DashboardShell />
+            </RequireAuth>
           }
-        />
-        <Route path="repairs/:repairId" element={<RepairDetailPage />} />
-        <Route path="history" element={<HistoryPage />} />
-        <Route
-          path="users"
-          element={
-            <RequireRole role="ADMIN">
-              <UsersPage />
-            </RequireRole>
-          }
-        />
-        <Route
-          path="audit-logs"
-          element={
-            <RequireRole role="ADMIN">
-              <AuditLogsPage />
-            </RequireRole>
-          }
-        />
-      </Route>
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="repairs" element={<RepairListPage />} />
+          <Route
+            path="repairs/new"
+            element={
+              <RequireRole role="ADMIN">
+                <RepairFormPage />
+              </RequireRole>
+            }
+          />
+          <Route path="repairs/:repairId" element={<RepairDetailPage />} />
+          <Route path="history" element={<HistoryPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route
+            path="users"
+            element={
+              <RequireRole role="ADMIN">
+                <UsersPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="audit-logs"
+            element={
+              <RequireRole role="ADMIN">
+                <AuditLogsPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="analytics"
+            element={
+              <RequireRole role="ADMIN">
+                <AnalyticsPage />
+              </RequireRole>
+            }
+          />
+          <Route path="knowledge-base" element={<KnowledgeBasePage />} />
+        </Route>
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </TooltipProvider>
   );
 }
 

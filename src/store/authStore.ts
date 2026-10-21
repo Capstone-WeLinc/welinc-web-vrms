@@ -1,13 +1,13 @@
-import create from 'zustand';
+import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User } from '../types';
+import type { User } from '../types';
 import { login as loginApi } from '../lib/api/authApi';
 
 interface AuthState {
   token: string | null;
   user: User | null;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -17,11 +17,11 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       isLoading: false,
-      login: async (username, password) => {
+      login: async (email, password) => {
         set({ isLoading: true });
 
         try {
-          const response = await loginApi(username.trim(), password.trim());
+          const response = await loginApi(email.trim(), password.trim());
 
           set({
             token: response.accessToken,

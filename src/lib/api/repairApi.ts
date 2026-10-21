@@ -1,22 +1,33 @@
 import api from './axios';
-import { CreateRepairPayload, RepairPart, RepairStatus, RepairTicket } from '../../types';
+import type { CreateRepairPayload, RepairStatus, RepairTicket } from '../../types';
 
-export async function getRepairs(search?: string, status?: RepairStatus): Promise<RepairTicket[]> {
-  const response = await api.get<RepairTicket[]>('/vrms/repairs', {
+export async function getRepairs(search?: string, status?: RepairStatus, page?: number, limit?: number): Promise<{ data: RepairTicket[], total: number }> {
+  const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs', {
     params: {
       search,
       status,
+      page,
+      limit,
     },
   });
+  if (Array.isArray(response.data)) {
+    return { data: response.data, total: response.data.length };
+  }
   return response.data;
 }
 
-export async function getRepairHistory(search?: string): Promise<RepairTicket[]> {
-  const response = await api.get<RepairTicket[]>('/vrms/repairs/history', {
+export async function getRepairHistory(search?: string, status?: RepairStatus, page?: number, limit?: number): Promise<{ data: RepairTicket[], total: number }> {
+  const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs/history', {
     params: {
       search,
+      status,
+      page,
+      limit,
     },
   });
+  if (Array.isArray(response.data)) {
+    return { data: response.data, total: response.data.length };
+  }
   return response.data;
 }
 
@@ -28,7 +39,7 @@ export async function getRepair(repairId: string): Promise<RepairTicket> {
 export async function updateRepairStatus(
   repairId: string,
   status: RepairStatus,
-  extras?: { cancellationReason?: string; failedVerificationReason?: string; remarks?: string },
+  extras?: { cancellationReason?: string; failedVerificationReason?: string; remarks?: string; lastUpdatedAt?: string },
 ): Promise<RepairTicket> {
   const response = await api.patch<RepairTicket>(`/vrms/repairs/${repairId}/status`, {
     status,
@@ -47,6 +58,7 @@ export interface UpdateCostsPayload {
   partsCost?: number;
   laborCost?: number;
   parts?: { description: string; unitCost: number; quantity: number }[];
+  lastUpdatedAt?: string;
 }
 
 export async function updateRepairCosts(

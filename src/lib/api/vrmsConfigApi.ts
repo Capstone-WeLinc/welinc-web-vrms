@@ -40,6 +40,6 @@ export interface DriverOption {
 }
 
 export async function getDrivers(): Promise<DriverOption[]> {
-  const response = await api.get<DriverOption[]>('/drivers');
+  const response = await api.get<DriverOption[]>('/vrms/config/drivers');
   return response.data;
 }
