@@ -21,14 +21,14 @@ export function DashboardShell() {
       >
         Skip to content
       </a>
-      <Sidebar collapsed={collapsed} />
+      <Sidebar collapsed={collapsed} onToggleCollapsed={toggle} />
       <div
         className={cn(
           'flex min-h-dvh flex-col transition-all duration-200 motion-reduce:transition-none',
           collapsed ? 'md:pl-16' : 'md:pl-64',
         )}
       >
-        <AppHeader sidebarCollapsed={collapsed} onToggleSidebar={toggle} />
+        <AppHeader />
         <main
           id="main"
           tabIndex={-1}

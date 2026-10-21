@@ -1,4 +1,4 @@
-import { ArrowRightLeft, LogOut } from 'lucide-react';
+import { ArrowRightLeft, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { cn } from '@/lib/utils';
 import { BrandMark } from './BrandMark';
@@ -6,8 +6,13 @@ import { SidebarAction, SidebarNav } from './SidebarNav';
 import { getNavSections } from './navItems';
 import { useShellActions } from './useShellActions';
 
-/** Desktop navigation (768px and up): w-64 expanded, w-16 icon only. The header holds the toggle. */
-export function Sidebar({ collapsed }: { collapsed: boolean }) {
+interface SidebarProps {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+}
+
+/** Desktop navigation (768px and up): w-64 expanded, w-16 icon only. */
+export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const role = useAuthStore((state) => state.user?.role);
   const { canSwitchToVmms, switchToVmms, signOut } = useShellActions();
 
@@ -37,6 +42,13 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
           <SidebarAction icon={ArrowRightLeft} label="Switch to VMMS" onClick={switchToVmms} collapsed={collapsed} />
         )}
         <SidebarAction icon={LogOut} label="Sign out" onClick={signOut} collapsed={collapsed} />
+        <SidebarAction
+          icon={collapsed ? PanelLeftOpen : PanelLeftClose}
+          label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onClick={onToggleCollapsed}
+          collapsed={collapsed}
+          aria-expanded={!collapsed}
+        />
       </div>
     </aside>
   );
