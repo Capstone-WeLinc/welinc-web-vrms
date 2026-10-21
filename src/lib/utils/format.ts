@@ -23,3 +23,10 @@ export function buildStatusClass(status: string) {
       return 'status-chip status-pending';
   }
 }
+
+/** Two letters for an avatar: first and last word of the name, else its first two letters. */
+export function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.trim().slice(0, 2);
+  return letters.toUpperCase();
+}

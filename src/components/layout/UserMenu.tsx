@@ -10,13 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getInitials } from '../../lib/utils/format';
 import { useShellActions } from './useShellActions';
-
-function initialsOf(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const letters = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2);
-  return letters.toUpperCase();
-}
 
 /**
  * The signed in user's name and role badge, in the header at every size.
@@ -36,7 +31,7 @@ export function UserMenu() {
           aria-hidden="true"
           className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
         >
-          {initialsOf(name)}
+          {getInitials(name)}
         </span>
         <span className="flex flex-col items-start gap-1">
           {/* Read aloud on phones too, shown from 640px up. */}
