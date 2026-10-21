@@ -17,10 +17,11 @@ import {
   PRIORITY_OPTIONS,
   loadDriverNames,
   saveDriverName,
-} from '../../../lib/mockConfig';
-import { useToast } from '../../../context/ToastContext';
+} from '../../../lib/repairOptions';
+import { useToast } from '../../../context/toast';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { useConfirm } from '../../../hooks/useConfirm';
+import { getApiErrorMessage } from '../../../lib/api/errors';
 
 function createNewIssue() {
   return {
@@ -53,7 +54,7 @@ export function RepairFormPage() {
 
   const [vehiclePlate, setVehiclePlate] = useState<string>('');
   const [driverName, setDriverName] = useState('');
-  const [driverSuggestions, setDriverSuggestions] = useState<string[]>([]);
+  const [driverSuggestions, setDriverSuggestions] = useState<string[]>(loadDriverNames);
   const [garageLocation, setGarageLocation] = useState<string>('');
   const [odometerReading, setOdometerReading] = useState('');
   const [priority, setPriority] = useState<PriorityLevel>('MEDIUM');
@@ -69,16 +70,9 @@ export function RepairFormPage() {
 
   const { confirmState, triggerConfirm, closeConfirm } = useConfirm();
 
-  // Load driver suggestions from localStorage
-  useEffect(() => {
-    setDriverSuggestions(loadDriverNames());
-  }, []);
-
   // Load live config from API
   useEffect(() => {
     let cancelled = false;
-    setConfigLoading(true);
-    setConfigError(null);
 
     Promise.all([getGarages(), getVehicles(), getAvailableMechanics(), getDrivers()])
       .then(([garageData, vehicleData, mechanicData, driverData]) => {
@@ -197,11 +191,11 @@ export function RepairFormPage() {
       saveDriverName(driverName.trim());
       showToast('Repair ticket created successfully.', 'success');
       navigate('/repairs');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to create repair ticket:', err);
-      const serverMessage = err.response?.data?.message;
+      const serverMessage = getApiErrorMessage(err, '');
       const displayMsg = serverMessage
-        ? `Unable to create repair ticket: ${Array.isArray(serverMessage) ? serverMessage.join(', ') : serverMessage}`
+        ? `Unable to create repair ticket: ${serverMessage}`
         : 'Unable to create repair ticket. Please try again.';
       setError(displayMsg);
       showToast(displayMsg, 'error');
@@ -284,7 +278,7 @@ export function RepairFormPage() {
 
             <div className="input-group">
               <label className="label" htmlFor="vehiclePlate">
-                Plate number <span style={{ color: '#dc2626' }}>*</span>
+                Plate number <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 id="vehiclePlate"
@@ -306,7 +300,7 @@ export function RepairFormPage() {
 
             <div className="input-group">
               <label className="label" htmlFor="driverName">
-                Driver name <span style={{ color: '#dc2626' }}>*</span>
+                Driver name <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -347,7 +341,7 @@ export function RepairFormPage() {
 
             <div className="input-group">
               <label className="label" htmlFor="garageLocation">
-                Garage location <span style={{ color: '#dc2626' }}>*</span>
+                Garage location <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <select
                 id="garageLocation"
@@ -366,7 +360,7 @@ export function RepairFormPage() {
 
             <div className="input-group">
               <label className="label" htmlFor="odometerReading">
-                Odometer reading <span style={{ color: '#dc2626' }}>*</span>
+                Odometer reading <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 id="odometerReading"
@@ -440,7 +434,7 @@ export function RepairFormPage() {
             {shopName === 'OTHER' && (
               <div className="input-group">
                 <label className="label" htmlFor="otherShopName">
-                  Other shop name <span style={{ color: '#dc2626' }}>*</span>
+                  Other shop name <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   id="otherShopName"

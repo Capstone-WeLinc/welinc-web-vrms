@@ -95,7 +95,7 @@ export function MechanicAssignmentSection({
         {mechanicSelection === 'OTHER' && (
           <div className="input-group">
             <label className="label" htmlFor="outsourcedMechanicName">
-              Outsourced mechanic / shop <span style={{ color: '#dc2626' }}>*</span>
+              Outsourced mechanic / shop <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <input
               id="outsourcedMechanicName"
@@ -124,7 +124,7 @@ export function MechanicAssignmentSection({
             {mechanic.isOutsourced ? ' (outsourced)' : ''}
             <button
               type="button"
-              style={{ marginLeft: 10, border: 'none', background: 'transparent', color: '#1d4ed8', cursor: 'pointer' }}
+              style={{ marginLeft: 10, border: 'none', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}
               onClick={() => handleRemoveMechanic(mechanic.id)}
             >
               ×

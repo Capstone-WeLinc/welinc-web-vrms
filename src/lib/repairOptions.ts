@@ -1,4 +1,4 @@
-import { RepairTicket } from '../types';
+// Fixed dropdown options and the locally remembered driver names for the repair form
 
 const DRIVER_STORAGE_KEY = 'welinc_driver_names';
 
@@ -11,33 +11,6 @@ export const CORPORATION_OPTIONS = [
   'WeLinc Transport Corp',
   'Metro Freight Corp',
   'Global Logistics Inc',
-] as const;
-
-export const VEHICLE_PLATE_OPTIONS = [
-  'SL 1920',
-  'SL 4017',
-  'SL 1256',
-  'SL 2960',
-  'SL 7721',
-  'SL 9999',
-] as const;
-
-export const GARAGE_LOCATION_OPTIONS = [
-  'North Garage',
-  'South Garage',
-  'East Garage',
-  'West Garage',
-  'Central Depot',
-] as const;
-
-export const MECHANIC_OPTIONS = [
-  { id: 'm-juan', name: 'Juan dela Cruz' },
-  { id: 'm-pedro', name: 'Pedro Santos' },
-  { id: 'm1', name: 'Rommel Cruz' },
-  { id: 'm2', name: 'Isabel Reyes' },
-  { id: 'm3', name: 'Carl Santos' },
-  { id: 'm4', name: 'Mia Villanueva' },
-  { id: 'm5', name: 'Leo Gomez' },
 ] as const;
 
 export const SHOP_OPTIONS = [
@@ -103,10 +76,4 @@ export function saveDriverName(name: string): void {
   const current = loadDriverNames();
   const next = [trimmed, ...current.filter((item) => item.toLowerCase() !== trimmed.toLowerCase())].slice(0, 20);
   window.localStorage.setItem(DRIVER_STORAGE_KEY, JSON.stringify(next));
-}
-
-export function getActiveMechanicIds(repairs: RepairTicket[]): string[] {
-  return repairs
-    .filter((repair) => repair.status !== 'COMPLETED' && repair.status !== 'CANCELLED' && Array.isArray(repair.mechanics))
-    .flatMap((repair) => repair.mechanics?.map((mechanic) => mechanic.id) ?? []);
 }

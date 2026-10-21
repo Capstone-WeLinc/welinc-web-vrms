@@ -4,7 +4,7 @@ import { ClipboardList, Search } from 'lucide-react';
 import { getAuditLogs, AuditEntry } from '../../../lib/api/repairApi';
 import { formatDate } from '../../../lib/utils/format';
 import { PageHeader } from '../../../components/layout/PageHeader';
-import { Button } from '../../../components/ui/Button';
+import { GoToPageInput } from '../../../components/shared/GoToPageInput';
 
 const actionFilterOptions = [
   { value: '', label: 'All Actions' },
@@ -21,7 +21,6 @@ export function AuditLogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [goToInput, setGoToInput] = useState('1');
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -40,14 +39,6 @@ export function AuditLogsPage() {
     }
     loadLogs();
   }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, actionFilter]);
-
-  useEffect(() => {
-    setGoToInput(currentPage.toString());
-  }, [currentPage]);
 
   const filteredLogs = useMemo(() => {
     const term = search.toLowerCase().trim();
@@ -140,7 +131,7 @@ export function AuditLogsPage() {
                className="input"
                style={{ paddingLeft: 38 }}
                value={search}
-               onChange={(event) => setSearch(event.target.value)}
+               onChange={(event) => { setSearch(event.target.value); setCurrentPage(1); }}
                placeholder="Search by email address or action details..."
              />
            </div>
@@ -148,7 +139,7 @@ export function AuditLogsPage() {
              id="auditActionFilter"
              className="select"
              value={actionFilter}
-             onChange={(event) => setActionFilter(event.target.value)}
+             onChange={(event) => { setActionFilter(event.target.value); setCurrentPage(1); }}
              style={{ width: '160px' }}
            >
              {actionFilterOptions.map((option) => (
@@ -275,30 +266,7 @@ export function AuditLogsPage() {
                   >
                     Next
                   </button>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>Go to:</span>
-                    <input
-                      type="text"
-                      value={goToInput}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '') {
-                          setGoToInput('');
-                          return;
-                        }
-                        const num = parseInt(val, 10);
-                        if (!isNaN(num) && num >= 1 && num <= totalPages) {
-                          setGoToInput(val);
-                          setCurrentPage(num);
-                        }
-                      }}
-                      onBlur={() => {
-                        setGoToInput(currentPage.toString());
-                      }}
-                      className="input"
-                      style={{ width: '45px', padding: '4px', textAlign: 'center', height: '30px', fontSize: '13px', borderRadius: '6px' }}
-                    />
-                  </div>
+                  <GoToPageInput currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
                 </div>
               </div>
             )}

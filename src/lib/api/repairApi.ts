@@ -1,5 +1,5 @@
 import api from './axios';
-import { CreateRepairPayload, RepairPart, RepairStatus, RepairTicket } from '../../types';
+import type { CreateRepairPayload, RepairStatus, RepairTicket } from '../../types';
 
 export async function getRepairs(search?: string, status?: RepairStatus, page?: number, limit?: number): Promise<{ data: RepairTicket[], total: number }> {
   const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs', {

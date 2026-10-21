@@ -2,20 +2,20 @@ import { FormEvent, useState, useMemo } from 'react';
 import { Users as UsersIcon, Search } from 'lucide-react';
 import { ManagedUser } from '../../../types';
 import { PageHeader } from '../../../components/layout/PageHeader';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/toast';
 import ConfirmModal from '../../../components/ConfirmModal';
 import {
   useUsersManager,
   UserFormState,
   emptyForm,
   getVrmsRoleAssignments,
-  validatePassword,
   validateEmail,
 } from '../hooks/useUsersManager';
 import { UserForm } from '../components/UserForm';
 import { UsersTable } from '../components/UsersTable';
 import { useConfirm } from '../../../hooks/useConfirm';
 import { Button } from '../../../components/ui/Button';
+import { getApiErrorMessage } from '../../../lib/api/errors';
 
 export function UsersPage() {
   const {
@@ -40,15 +40,6 @@ export function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
-
-  if (!isAdmin) {
-    return (
-      <div>
-        <PageHeader title="Access Denied" subtitle="" icon={UsersIcon} />
-        <div className="card alert">You do not have permission to view this page.</div>
-      </div>
-    );
-  }
 
   const handleEdit = (user: ManagedUser) => {
     const vrmsRoles = getVrmsRoleAssignments(user.roles);
@@ -96,8 +87,8 @@ export function UsersPage() {
       await saveUser(editingUserId, form);
       showToast(editingUserId ? 'User account updated successfully.' : 'User account created successfully.', 'success');
       handleCancel();
-    } catch (err: any) {
-      setFormError(err.response?.data?.message ?? 'Failed to save user account.');
+    } catch (err) {
+      setFormError(getApiErrorMessage(err, 'Failed to save user account.'));
       showToast('Failed to save user account.', 'error');
     } finally {
       setSaving(false);
@@ -177,6 +168,15 @@ export function UsersPage() {
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, searchTerm, filterRole, filterStatus]);
+
+  if (!isAdmin) {
+    return (
+      <div>
+        <PageHeader title="Access Denied" subtitle="" icon={UsersIcon} />
+        <div className="card alert">You do not have permission to view this page.</div>
+      </div>
+    );
+  }
 
   return (
     <div>

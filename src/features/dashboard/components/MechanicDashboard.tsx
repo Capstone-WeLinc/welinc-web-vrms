@@ -86,7 +86,7 @@ export function MechanicDashboard() {
       value: inProgressCount,
       note: 'Currently being worked on.',
       icon: Wrench,
-      color: '#3b82f6',
+      color: 'var(--primary)',
       bgColor: 'rgba(59, 130, 246, 0.1)',
     },
     {
@@ -181,7 +181,7 @@ export function MechanicDashboard() {
                   </td>
                   <td>{formatDate(repair.updatedAt)}</td>
                   <td>
-                    <Link to={`/repairs/${repair.id}`} style={{ color: '#1d4ed8', fontWeight: 700 }}>
+                    <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 700 }}>
                       View
                     </Link>
                   </td>

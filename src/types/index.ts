@@ -26,6 +26,7 @@ export interface ManagedUser {
   createdAt: string;
   updatedAt: string;
   roles: UserRoleAssignment[];
+  contact?: string | null;
 }
 
 export interface CreateUserPayload {
@@ -91,6 +92,7 @@ export interface RepairTicket {
   id: string;
   repairNumber: string;
   vehiclePlate: string;
+  vehicleModel?: string;
   driverName: string;
   issueDescription: string;
   status: RepairStatus;

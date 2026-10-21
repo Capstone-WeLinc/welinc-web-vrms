@@ -37,7 +37,7 @@ export function AuditTrailWidget({ audits }: AuditTrailWidgetProps) {
         )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, position: 'relative', paddingLeft: 16, borderLeft: '2px solid #e2e8f0' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, position: 'relative', paddingLeft: 16, borderLeft: '2px solid var(--border)' }}>
         {audits.length === 0 ? (
           <p style={{ color: 'var(--muted)', fontSize: 14, margin: '20px 0', textAlign: 'center' }}>No audit trail entries recorded yet.</p>
         ) : (
@@ -62,7 +62,7 @@ export function AuditTrailWidget({ audits }: AuditTrailWidgetProps) {
                   borderRadius: '50%',
                   backgroundColor: indicatorColor,
                   border: '2px solid white',
-                  boxShadow: '0 0 0 1px #cbd5e1'
+                  boxShadow: '0 0 0 1px var(--border)'
                 }} />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -71,8 +71,8 @@ export function AuditTrailWidget({ audits }: AuditTrailWidgetProps) {
                       <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>@{a.user}</span>
                       <span style={{ 
                         fontSize: 10, 
-                        backgroundColor: '#f1f5f9', 
-                        color: '#475569', 
+                        backgroundColor: 'var(--surface-alt)', 
+                        color: 'var(--muted)', 
                         padding: '1px 6px', 
                         borderRadius: 4, 
                         fontWeight: 600,

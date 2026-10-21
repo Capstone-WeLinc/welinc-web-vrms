@@ -159,7 +159,7 @@ export function AdminDashboard() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginTop: '12px' }}>
                 <div className="spend-metric-card total-cost">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.1)', color: 'var(--primary)' }}>
                     <PhilippinePeso size={24} />
                   </div>
                   <div>
@@ -170,7 +170,7 @@ export function AdminDashboard() {
                 </div>
 
                 <div className="spend-metric-card avg-cost">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}>
                     <TrendingUp size={24} />
                   </div>
                   <div>
@@ -196,7 +196,7 @@ export function AdminDashboard() {
                   onClick={handleExportExcel}
                   style={{ padding: '12px 16px' }}
                 >
-                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FileSpreadsheet size={20} />
                   </div>
                   <div>
@@ -210,7 +210,7 @@ export function AdminDashboard() {
                   onClick={handleExportPDF}
                   style={{ padding: '12px 16px' }}
                 >
-                  <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FileText size={20} />
                   </div>
                   <div>

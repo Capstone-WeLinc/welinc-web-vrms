@@ -14,7 +14,7 @@ import { AnalyticsPage } from './features/analytics/pages/AnalyticsPage';
 import { KnowledgeBasePage } from './features/knowledge-base/pages/KnowledgeBasePage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
-import { UserRole } from './types';
+import type { User, UserRole } from './types';
 import { getCurrentUser } from './lib/api/authApi';
 import { ToastProvider } from './context/ToastContext';
 import SessionMonitor from './components/SessionMonitor';
@@ -42,7 +42,7 @@ function RequireRole({ role, children }: { role: UserRole; children: JSX.Element
 
 function App() {
   const token = useAuthStore((state) => state.token);
-  const setUser = (user: any) => useAuthStore.setState({ user });
+  const setUser = (user: User) => useAuthStore.setState({ user });
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {

@@ -33,7 +33,7 @@ export function UserForm({
       <form onSubmit={onSubmit}>
         <div className="input-group">
           <label className="label" htmlFor="name">
-            Name <span style={{ color: '#dc2626' }}>*</span>
+            Name <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <input
             id="name"
@@ -47,7 +47,7 @@ export function UserForm({
 
         <div className="input-group">
           <label className="label" htmlFor="email">
-            Email Address <span style={{ color: '#dc2626' }}>*</span>
+            Email Address <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <input
             id="email"
@@ -74,7 +74,7 @@ export function UserForm({
 
         <div className="input-group">
           <label className="label" htmlFor="role">
-            Role <span style={{ color: '#dc2626' }}>*</span>
+            Role <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <select
             id="role"

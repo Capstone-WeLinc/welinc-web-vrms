@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Clock } from 'lucide-react';
 
+const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
+
 export default function SessionMonitor() {
   const [showWarning, setShowWarning] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(60);
@@ -8,11 +10,16 @@ export default function SessionMonitor() {
   // We check if a token exists. If not, we don't monitor inactivity
   const token = localStorage.getItem('welinc_token');
 
+  const handleLogoutDueToInactivity = () => {
+    localStorage.clear();
+    setShowWarning(false);
+    // Redirect to Portal with inactivity query parameter
+    window.location.href = `${PORTAL_URL}/login?inactivity=true`;
+  };
+
   useEffect(() => {
-    if (!token) {
-      setShowWarning(false);
-      return;
-    }
+    // The warning only renders while a token exists, so there is nothing to reset here
+    if (!token) return;
 
     // Initialize last active if not present
     if (!localStorage.getItem('welinc_last_active')) {
@@ -21,7 +28,7 @@ export default function SessionMonitor() {
 
     const getInactivityLimit = () => {
       // Allow override via window global for quick testing (e.g., 30 seconds)
-      const devLimit = (window as any).__WELINC_INACTIVITY_LIMIT__;
+      const devLimit = window.__WELINC_INACTIVITY_LIMIT__;
       if (typeof devLimit === 'number') {
         return devLimit * 1000;
       }
@@ -95,19 +102,12 @@ export default function SessionMonitor() {
     setShowWarning(false);
   };
 
-  const handleLogoutDueToInactivity = () => {
-    localStorage.clear();
-    setShowWarning(false);
-    // Redirect to Portal with inactivity query parameter
-    window.location.href = 'http://localhost:8000/login?inactivity=true';
-  };
-
 
   if (!token || !showWarning) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#0d0d0d]/85 backdrop-blur-md flex items-center justify-center p-6 z-[99999] animate-fade-in">
-      <div className="bg-[#151b4f] border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center relative overflow-hidden">
+    <div className="fixed inset-0 bg-brand-black/85 backdrop-blur-md flex items-center justify-center p-6 z-[99999] animate-fade-in">
+      <div className="bg-brand-dark border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center relative overflow-hidden">
         {/* Glowing aura */}
         <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-brand-warning/15 blur-3xl pointer-events-none" />
 
@@ -130,7 +130,7 @@ export default function SessionMonitor() {
         <div className="flex justify-center">
           <button
             onClick={handleExtend}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#e8b800] hover:bg-[#d4a600] text-[#1a1f6e] rounded-xl text-sm font-bold transition-all cursor-pointer shadow-lg shadow-amber-500/10"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand-warning hover:bg-brand-warning-dark text-brand-primary rounded-xl text-sm font-bold transition-all cursor-pointer shadow-lg shadow-amber-500/10"
           >
             I'm still here
           </button>

@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { updateRepairCosts, UpdateCostsPayload } from '../../../lib/api/repairApi';
-import { RepairTicket } from '../../../types';
+import { useMemo, useState } from 'react';
+import { updateRepairCosts } from '../../../lib/api/repairApi';
+import type { UpdateCostsPayload } from '../../../lib/api/repairApi';
+import type { RepairTicket } from '../../../types';
 import { Button } from '../../../components/ui/Button';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/toast';
 import ConfirmModal from '../../../components/ConfirmModal';
+import { getApiErrorMessage } from '../../../lib/api/errors';
 
 interface CostEncodingPanelProps {
   repairId: string;
@@ -42,7 +44,10 @@ export function CostEncodingPanel({
     onConfirm: () => {},
   });
 
-  useEffect(() => {
+  // Refill the form whenever a new repair object arrives (adjusting state during render, not in an effect)
+  const [syncedRepair, setSyncedRepair] = useState<RepairTicket | null>(null);
+  if (syncedRepair !== repair) {
+    setSyncedRepair(repair);
     setLaborCost(repair.laborCost != null ? String(repair.laborCost) : '');
     if (repair.isLumpSum !== undefined) {
       setCostMode(repair.isLumpSum ? 'lump' : 'itemized');
@@ -59,7 +64,7 @@ export function CostEncodingPanel({
         })),
       );
     }
-  }, [repair]);
+  }
 
   const computedPartsCost = useMemo(() => {
     if (costMode === 'lump') return parseFloat(lumpPartsCost) || 0;
@@ -96,8 +101,8 @@ export function CostEncodingPanel({
       setCostSuccess(true);
       setIsEditMode(false);
       setTimeout(() => setCostSuccess(false), 3000);
-    } catch (err: any) {
-      const displayMsg = err?.response?.data?.message ?? 'Unable to save costs.';
+    } catch (err) {
+      const displayMsg = getApiErrorMessage(err, 'Unable to save costs.');
       setCostError(displayMsg);
       showToast(displayMsg, 'error');
     } finally {
@@ -143,14 +148,14 @@ export function CostEncodingPanel({
     setItemParts((prev) => prev.map((p, i) => (i === idx ? { ...p, [field]: val } : p)));
 
   return (
-    <div className="issue-card" style={{ border: '1px solid #3b82f6', background: '#eff6ff' }}>
+    <div className="issue-card" style={{ border: '1px solid var(--primary)', background: 'var(--primary-soft)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <p className="label" style={{ margin: 0, color: '#1d4ed8' }}>Cost Encoding</p>
+        <p className="label" style={{ margin: 0, color: 'var(--primary)' }}>Cost Encoding</p>
         {hasExistingCost && !isEditMode && (
           <button
             type="button"
             onClick={() => setIsEditMode(true)}
-            style={{ padding: '4px 12px', border: '1px solid #3b82f6', background: '#fff', color: '#3b82f6', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+            style={{ padding: '4px 12px', border: '1px solid var(--primary)', background: 'var(--surface)', color: 'var(--primary)', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
           >
             Edit Costs
           </button>
@@ -160,16 +165,16 @@ export function CostEncodingPanel({
       {!isEditMode ? (
         <div style={{ display: 'grid', gap: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#475569' }}>Parts Cost:</span>
+            <span style={{ color: 'var(--muted)' }}>Parts Cost:</span>
             <strong>{formatCurrency(repair.partsCost)}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#475569' }}>Labor Cost:</span>
+            <span style={{ color: 'var(--muted)' }}>Labor Cost:</span>
             <strong>{formatCurrency(repair.laborCost)}</strong>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid #bfdbfe' }}>
-            <span style={{ color: '#1d4ed8', fontWeight: 600 }}>Total Cost:</span>
-            <span style={{ color: '#1d4ed8', fontWeight: 700, fontSize: 16 }}>{formatCurrency(repair.totalCost)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--primary-soft)' }}>
+            <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Total Cost:</span>
+            <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 16 }}>{formatCurrency(repair.totalCost)}</span>
           </div>
         </div>
       ) : (
@@ -182,8 +187,8 @@ export function CostEncodingPanel({
           onClick={() => setCostMode('lump')}
           style={{
             padding: '6px 16px', borderRadius: 6, border: 'none', cursor: 'pointer',
-            background: costMode === 'lump' ? '#3b82f6' : '#e2e8f0',
-            color: costMode === 'lump' ? '#fff' : '#374151',
+            background: costMode === 'lump' ? 'var(--primary)' : 'var(--border)',
+            color: costMode === 'lump' ? 'var(--on-primary)' : 'var(--text)',
             fontWeight: 600, fontSize: 13,
           }}
         >
@@ -195,8 +200,8 @@ export function CostEncodingPanel({
           onClick={() => setCostMode('itemized')}
           style={{
             padding: '6px 16px', borderRadius: 6, border: 'none', cursor: 'pointer',
-            background: costMode === 'itemized' ? '#3b82f6' : '#e2e8f0',
-            color: costMode === 'itemized' ? '#fff' : '#374151',
+            background: costMode === 'itemized' ? 'var(--primary)' : 'var(--border)',
+            color: costMode === 'itemized' ? 'var(--on-primary)' : 'var(--text)',
             fontWeight: 600, fontSize: 13,
           }}
         >
@@ -207,7 +212,7 @@ export function CostEncodingPanel({
       {/* Lump sum mode */}
       {costMode === 'lump' && (
         <div className="input-group">
-          <label className="label" htmlFor="lump-parts-cost">Parts cost (₱) <span style={{ color: '#dc2626' }}>*</span></label>
+          <label className="label" htmlFor="lump-parts-cost">Parts cost (₱) <span style={{ color: 'var(--danger)' }}>*</span></label>
           <input
             id="lump-parts-cost"
             type="number"
@@ -227,7 +232,7 @@ export function CostEncodingPanel({
           {itemParts.map((p, idx) => (
             <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px auto', gap: 8, alignItems: 'end' }}>
               <div className="input-group" style={{ margin: 0 }}>
-                {idx === 0 && <label className="label" htmlFor={`part-desc-${idx}`}>Description <span style={{ color: '#dc2626' }}>*</span></label>}
+                {idx === 0 && <label className="label" htmlFor={`part-desc-${idx}`}>Description <span style={{ color: 'var(--danger)' }}>*</span></label>}
                 <input
                   id={`part-desc-${idx}`}
                   className="input"
@@ -237,7 +242,7 @@ export function CostEncodingPanel({
                 />
               </div>
               <div className="input-group" style={{ margin: 0 }}>
-                {idx === 0 && <label className="label">Unit Cost (₱) <span style={{ color: '#dc2626' }}>*</span></label>}
+                {idx === 0 && <label className="label">Unit Cost (₱) <span style={{ color: 'var(--danger)' }}>*</span></label>}
                 <input
                   className="input"
                   type="number"
@@ -262,7 +267,7 @@ export function CostEncodingPanel({
                 type="button"
                 onClick={() => removeItemPart(idx)}
                 disabled={itemParts.length === 1}
-                style={{ padding: '8px 10px', border: 'none', background: '#fee2e2', color: '#dc2626', borderRadius: 6, cursor: 'pointer', marginTop: idx === 0 ? 22 : 0 }}
+                style={{ padding: '8px 10px', border: 'none', background: 'var(--danger-soft)', color: 'var(--danger)', borderRadius: 6, cursor: 'pointer', marginTop: idx === 0 ? 22 : 0 }}
                 title="Remove part"
               >
                 ✕
@@ -273,7 +278,7 @@ export function CostEncodingPanel({
             type="button"
             id="add-part-btn"
             onClick={addItemPart}
-            style={{ padding: '8px 16px', border: '1px dashed #3b82f6', background: 'transparent', color: '#3b82f6', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}
+            style={{ padding: '8px 16px', border: '1px dashed var(--primary)', background: 'transparent', color: 'var(--primary)', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}
           >
             + Add another part
           </button>
@@ -282,7 +287,7 @@ export function CostEncodingPanel({
 
       {/* Labor cost */}
       <div className="input-group" style={{ marginTop: 16 }}>
-        <label className="label" htmlFor="labor-cost">Labor cost (₱) <span style={{ color: '#dc2626' }}>*</span></label>
+        <label className="label" htmlFor="labor-cost">Labor cost (₱) <span style={{ color: 'var(--danger)' }}>*</span></label>
         <input
           id="labor-cost"
           type="number"
@@ -296,16 +301,16 @@ export function CostEncodingPanel({
       </div>
 
       {/* Total preview */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 24, padding: '12px 0', borderTop: '1px solid #bfdbfe', marginTop: 12 }}>
-        <span style={{ color: '#475569' }}>Parts: <strong>{formatCurrency(computedPartsCost)}</strong></span>
-        <span style={{ color: '#475569' }}>Labor: <strong>{formatCurrency(parseFloat(laborCost) || 0)}</strong></span>
-        <span style={{ color: '#1d4ed8', fontWeight: 700, fontSize: 15 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 24, padding: '12px 0', borderTop: '1px solid var(--primary-soft)', marginTop: 12 }}>
+        <span style={{ color: 'var(--muted)' }}>Parts: <strong>{formatCurrency(computedPartsCost)}</strong></span>
+        <span style={{ color: 'var(--muted)' }}>Labor: <strong>{formatCurrency(parseFloat(laborCost) || 0)}</strong></span>
+        <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 15 }}>
           Total: {formatCurrency(computedTotalCost)}
         </span>
       </div>
 
       {costError && <div className="alert" style={{ marginTop: 8 }}>{costError}</div>}
-      {costSuccess && <div style={{ color: '#16a34a', fontWeight: 600, fontSize: 13, marginTop: 8 }}>✓ Costs saved successfully.</div>}
+      {costSuccess && <div style={{ color: 'var(--success)', fontWeight: 600, fontSize: 13, marginTop: 8 }}>✓ Costs saved successfully.</div>}
 
       <div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
         <Button id="save-costs-btn" onClick={handleSaveCosts} disabled={savingCosts}>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, Search, History } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { AuditLogEntry } from '../../../types';
 
 interface AuditLogCollapsibleProps {
@@ -60,7 +60,7 @@ export function AuditLogCollapsible({ auditLog, formatDate }: AuditLogCollapsibl
         <div style={{ overflowX: 'auto', borderTop: '1px solid var(--border)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+              <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
                 <th style={{ padding: '8px 12px' }}>Action</th>
                 <th style={{ padding: '8px 12px' }}>By</th>
                 <th style={{ padding: '8px 12px' }}>Before</th>
@@ -70,18 +70,18 @@ export function AuditLogCollapsible({ auditLog, formatDate }: AuditLogCollapsibl
             </thead>
             <tbody>
               {auditLog.map((entry: AuditLogEntry) => (
-                <tr key={entry.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <tr key={entry.id} style={{ borderBottom: '1px solid var(--surface-alt)' }}>
                   <td style={{ padding: '8px 12px', fontWeight: 600 }}>
                     {ACTION_LABELS[entry.action] ?? entry.action}
                   </td>
                   <td style={{ padding: '8px 12px' }}>{entry.email}</td>
-                  <td style={{ padding: '8px 12px', color: '#64748b' }}>
+                  <td style={{ padding: '8px 12px', color: 'var(--muted)' }}>
                     {formatAuditValue(entry.action, entry.previousValue)}
                   </td>
-                  <td style={{ padding: '8px 12px', color: '#16a34a' }}>
+                  <td style={{ padding: '8px 12px', color: 'var(--success)' }}>
                     {formatAuditValue(entry.action, entry.newValue)}
                   </td>
-                  <td style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12 }}>
+                  <td style={{ padding: '8px 12px', color: 'var(--muted)', fontSize: 12 }}>
                     {formatDate(entry.createdAt)}
                   </td>
                 </tr>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Wrench, ArrowLeft } from 'lucide-react';
 import { getRepair, updateRepairStatus } from '../../../lib/api/repairApi';
 import { RepairTicket, RepairStatus } from '../../../types';
@@ -12,9 +12,10 @@ import { CostEncodingPanel } from '../components/CostEncodingPanel';
 import { AuditLogCollapsible } from '../components/AuditLogCollapsible';
 import { UnlockTicketModal } from '../components/UnlockTicketModal';
 import { AiDiagnosticPanel } from '../components/AiDiagnosticPanel';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/toast';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { useConfirm } from '../../../hooks/useConfirm';
+import { getApiErrorMessage } from '../../../lib/api/errors';
 
 const allStatusOptions: Array<{ value: RepairStatus; label: string }> = [
   { value: 'PENDING', label: 'Pending' },
@@ -106,8 +107,8 @@ export function RepairDetailPage() {
       setRemarks('');
       setCancellationReason('');
       showToast(`Repair status updated to ${status.replace('_', ' ')} successfully.`, 'success');
-    } catch (err: any) {
-      const displayMsg = err?.response?.data?.message ?? 'Unable to update repair status.';
+    } catch (err) {
+      const displayMsg = getApiErrorMessage(err, 'Unable to update repair status.');
       setError(displayMsg);
       showToast(displayMsg, 'error');
     } finally {
@@ -191,21 +192,21 @@ export function RepairDetailPage() {
 
           {/* ── Header ─────────────────────────────────────────────── */}
           <div>
-            <p style={{ margin: 0, color: '#6b7280', fontSize: 12 }}>Repair Number</p>
+            <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>Repair Number</p>
             <h3 style={{ margin: '8px 0 0' }}>{repair.repairNumber}</h3>
           </div>
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <StatusBadge status={repair.status} />
             {repair.isUnlocked && (
-              <span style={{ background: '#fef3c7', color: '#92400e', padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+              <span style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)', padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
                 Unlocked for editing
               </span>
             )}
-            <p style={{ margin: 0, color: '#475569' }}>Updated {formatDate(repair.updatedAt)}</p>
-            <p style={{ margin: 0, color: '#475569' }}>Created {formatDate(repair.createdAt)}</p>
+            <p style={{ margin: 0, color: 'var(--muted)' }}>Updated {formatDate(repair.updatedAt)}</p>
+            <p style={{ margin: 0, color: 'var(--muted)' }}>Created {formatDate(repair.createdAt)}</p>
             {repair.completedAt && (
-              <p style={{ margin: 0, color: '#475569' }}>Completed {formatDate(repair.completedAt)}</p>
+              <p style={{ margin: 0, color: 'var(--muted)' }}>Completed {formatDate(repair.completedAt)}</p>
             )}
           </div>
 
@@ -222,13 +223,13 @@ export function RepairDetailPage() {
             {repair.cancellationReason && (
               <div style={{ gridColumn: '1 / -1' }}>
                 <p className="label">Cancellation reason</p>
-                <p style={{ color: '#dc2626' }}>{repair.cancellationReason}</p>
+                <p style={{ color: 'var(--danger)' }}>{repair.cancellationReason}</p>
               </div>
             )}
             {repair.failedVerificationReason && (
               <div style={{ gridColumn: '1 / -1' }}>
                 <p className="label">Failed verification reason</p>
-                <p style={{ color: '#dc2626' }}>{repair.failedVerificationReason}</p>
+                <p style={{ color: 'var(--danger)' }}>{repair.failedVerificationReason}</p>
               </div>
             )}
             {repair.remarks && (
@@ -248,7 +249,7 @@ export function RepairDetailPage() {
             <p>
               {repair.driverName}
               {isAdmin && repair.driverIsVerified != null && (
-                <span style={{ marginLeft: 8, fontSize: 12, color: repair.driverIsVerified ? '#16a34a' : '#dc2626' }}>
+                <span style={{ marginLeft: 8, fontSize: 12, color: repair.driverIsVerified ? 'var(--success)' : 'var(--danger)' }}>
                   {repair.driverIsVerified ? '✓ Verified' : '⚠ Unverified'}
                 </span>
               )}
@@ -286,7 +287,7 @@ export function RepairDetailPage() {
 
           <AiDiagnosticPanel
             vehiclePlate={repair.vehiclePlate}
-            vehicleModel={(repair as any).vehicleModel || ''}
+            vehicleModel={repair.vehicleModel || ''}
             issues={repair.issues || []}
             ticketId={repair.id}
             ticketStatus={repair.status}
@@ -294,7 +295,7 @@ export function RepairDetailPage() {
 
           {/* ── Cost Summary (Admin only) ─────────────────────────── */}
           {isAdmin && (repair.totalCost != null || repair.partsCost != null || repair.laborCost != null) && (
-            <div className="issue-card" style={{ background: 'var(--surface-2, #f8fafc)' }}>
+            <div className="issue-card" style={{ background: 'var(--surface-2, var(--bg))' }}>
               <p className="label" style={{ marginTop: 0 }}>Cost summary</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
                 <div>
@@ -307,7 +308,7 @@ export function RepairDetailPage() {
                 </div>
                 <div>
                   <p className="label">Total cost</p>
-                  <p style={{ fontWeight: 700, fontSize: 18, color: '#0f172a' }}>{formatCurrency(repair.totalCost)}</p>
+                  <p style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)' }}>{formatCurrency(repair.totalCost)}</p>
                 </div>
               </div>
               {repair.isLumpSum === false && repair.repairParts && repair.repairParts.length > 0 && (
@@ -315,7 +316,7 @@ export function RepairDetailPage() {
                   <p className="label">Itemized parts</p>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
                         <th style={{ padding: '6px 8px' }}>Description</th>
                         <th style={{ padding: '6px 8px' }}>Unit Cost</th>
                         <th style={{ padding: '6px 8px' }}>Qty</th>
@@ -324,7 +325,7 @@ export function RepairDetailPage() {
                     </thead>
                     <tbody>
                       {repair.repairParts.map((p, i) => (
-                        <tr key={p.id ?? i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <tr key={p.id ?? i} style={{ borderBottom: '1px solid var(--surface-alt)' }}>
                           <td style={{ padding: '6px 8px' }}>{p.description}</td>
                           <td style={{ padding: '6px 8px' }}>{formatCurrency(p.unitCost)}</td>
                           <td style={{ padding: '6px 8px' }}>{p.quantity}</td>
@@ -357,7 +358,7 @@ export function RepairDetailPage() {
                   <div key={`${entry.changedAt}-${index}`} className="issue-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 600 }}>{entry.changedBy}</span>
-                      <span style={{ color: '#475569', fontSize: 12 }}>{formatDate(entry.changedAt)}</span>
+                      <span style={{ color: 'var(--muted)', fontSize: 12 }}>{formatDate(entry.changedAt)}</span>
                     </div>
                     <p style={{ margin: '8px 0 2px' }}><strong>Before:</strong> {entry.previousValue}</p>
                     <p style={{ margin: 0 }}><strong>After:</strong> {entry.newValue}</p>
@@ -396,7 +397,7 @@ export function RepairDetailPage() {
 
               {status === 'CANCELLED' && (
                 <div className="input-group">
-                  <label className="label" htmlFor="cancel-reason">Cancellation reason <span style={{ color: '#dc2626' }}>*</span></label>
+                  <label className="label" htmlFor="cancel-reason">Cancellation reason <span style={{ color: 'var(--danger)' }}>*</span></label>
                   <textarea
                     id="cancel-reason"
                     className="input"
@@ -438,8 +439,8 @@ export function RepairDetailPage() {
 
           {/* ── Locked terminal state ─────────────────────────────── */}
           {isLocked && (
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16 }}>
-              <p style={{ margin: 0, color: '#64748b', fontSize: 14 }}>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 16 }}>
+              <p style={{ margin: 0, color: 'var(--muted)', fontSize: 14 }}>
                 This ticket is <strong>locked</strong> (status: {repair.status.replace('_', ' ')}).
                 {isAdmin && !isReadOnlyMode && ' Use the "Unlock Ticket" button above to make edits (reason required).'}
               </p>

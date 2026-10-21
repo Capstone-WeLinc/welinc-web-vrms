@@ -26,7 +26,7 @@ export default function ConfirmModal({
 
   let icon = <HelpCircle className="w-8 h-8 text-amber-500 animate-bounce" />;
   let iconBg = 'bg-amber-500/10 border-amber-500/30';
-  let confirmBtnBg = 'bg-[#e8b800] hover:bg-[#d4a600] text-[#1a1f6e]';
+  let confirmBtnBg = 'bg-brand-warning hover:bg-brand-warning-dark text-brand-primary';
 
   if (type === 'danger') {
     icon = <AlertCircle className="w-8 h-8 text-red-500" />;
@@ -39,8 +39,8 @@ export default function ConfirmModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-[#0d0d0d]/85 backdrop-blur-sm flex items-center justify-center p-4 z-[999999]">
-      <div className="bg-[#151b4f] border border-white/10 rounded-3xl w-full max-w-md p-6 shadow-2xl relative overflow-hidden animate-fade-in">
+    <div className="fixed inset-0 bg-brand-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-[999999]">
+      <div className="bg-brand-dark border border-white/10 rounded-3xl w-full max-w-md p-6 shadow-2xl relative overflow-hidden animate-fade-in">
         {/* Glow */}
         <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-white/5 blur-3xl pointer-events-none" />
 

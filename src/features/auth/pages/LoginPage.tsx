@@ -4,9 +4,11 @@ import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import { getCurrentUser } from '../../../lib/api/authApi';
 import { api } from '../../../lib/api/client';
+import { getApiErrorStatus } from '../../../lib/api/errors';
+import type { User, UserRoleAssignment } from '../../../types';
 
-const PORTAL_URL = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:8000';
-const AUTH_MODE = (import.meta.env as any).VITE_AUTH_MODE || 'portal'; // 'portal' | 'standalone'
+const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
+const AUTH_MODE = import.meta.env.VITE_AUTH_MODE || 'portal'; // 'portal' | 'standalone'
 
 function decodeJwt<T>(token: string): T {
   const [, payload] = token.split('.');
@@ -27,7 +29,7 @@ async function processToken(
   setError: (e: string) => void,
 ) {
   try {
-    const decoded = decodeJwt<{ sub: string; email: string; roles: any[] }>(token);
+    const decoded = decodeJwt<{ sub: string; email: string; roles: UserRoleAssignment[] }>(token);
 
     const primaryRoleAssignment =
       decoded.roles?.find((r) => r.system.toUpperCase() === 'VRMS') || decoded.roles?.[0];
@@ -42,23 +44,23 @@ async function processToken(
 
     try {
       const fullUser = await getCurrentUser();
-      const user = {
+      const user: User = {
         id: decoded.sub,
         email: decoded.email || '',
         name: fullUser.name || decoded.email || '',
-        role: (primaryRoleAssignment.role || 'MECHANIC') as any,
-        system: 'VRMS' as any,
+        role: primaryRoleAssignment.role || 'MECHANIC',
+        system: 'VRMS',
         roles: decoded.roles || [],
       };
       useAuthStore.setState({ token, user });
       localStorage.setItem('welinc_user', JSON.stringify(user));
     } catch {
-      const user = {
+      const user: User = {
         id: decoded.sub,
         email: decoded.email || '',
         name: decoded.email || '',
-        role: (primaryRoleAssignment.role || 'MECHANIC') as any,
-        system: 'VRMS' as any,
+        role: primaryRoleAssignment.role || 'MECHANIC',
+        system: 'VRMS',
         roles: decoded.roles || [],
       };
       useAuthStore.setState({ token, user });
@@ -179,8 +181,8 @@ function StandaloneLogin() {
         password,
       });
       await processToken(response.data.accessToken, navigate, (msg) => setError(msg));
-    } catch (err: any) {
-      if (err.response?.status === 401) {
+    } catch (err) {
+      if (getApiErrorStatus(err) === 401) {
         setError('Invalid email or password.');
       } else {
         setError('Unable to reach the server. Please try again.');

@@ -1,23 +1,31 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-  BookOpen, Search, Wrench, Filter, Plus, Pencil, Trash2,
+  BookOpen, Search, Wrench, Plus, Pencil, Trash2,
   X, Clock, Tag, ChevronRight, AlertTriangle, CheckCircle,
-  Zap, Shield, Layers, Settings, RefreshCw, Save, Eye,
+  Zap, Shield, Layers, Settings, RefreshCw, Save,
+  LayoutGrid, List,
 } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { cn } from '@/lib/utils';
+import { getKnowledgeArticles } from '../../../lib/api/aiApi';
 
-const API_BASE = (import.meta.env as any).VITE_API_BASE_URL || 'http://localhost:3000';
 const STORAGE_KEY = 'welinc_kb_articles';
 
-const CATEGORIES = ['All', 'Engine', 'Electrical', 'Brakes', 'Transmission', 'Suspension', 'Cooling', 'Steering', 'General'];
+const CATEGORIES = [
+  'All',
+  'Engine',
+  'Electrical',
+  'Brakes',
+  'Transmission',
+  'Suspension',
+  'Cooling',
+  'Steering',
+  'General',
+] as const;
 
-const CAT_COLORS: Record<string, string> = {
-  Engine: '#f59e0b', Electrical: '#8b5cf6', Brakes: '#ef4444',
-  Transmission: '#3b82f6', Suspension: '#10b981', Cooling: '#06b6d4',
-  Steering: '#ec4899', General: '#6b7280',
-};
+type CategoryType = typeof CATEGORIES[number];
 
-interface KbArticle {
+export interface KbArticle {
   id: string;
   category: string;
   title: string;
@@ -30,238 +38,610 @@ interface KbArticle {
   updatedAt?: string;
 }
 
+const CATEGORY_STYLES: Record<string, { icon: typeof Wrench; badgeClass: string; iconColor: string }> = {
+  Engine: { icon: Settings, badgeClass: 'bg-amber-50 text-amber-800 border-amber-200', iconColor: 'text-amber-600' },
+  Electrical: { icon: Zap, badgeClass: 'bg-blue-50 text-brand-primary border-blue-200', iconColor: 'text-brand-primary' },
+  Brakes: { icon: Shield, badgeClass: 'bg-red-50 text-red-800 border-red-200', iconColor: 'text-brand-danger' },
+  Transmission: { icon: Layers, badgeClass: 'bg-indigo-50 text-indigo-800 border-indigo-200', iconColor: 'text-indigo-600' },
+  Suspension: { icon: Wrench, badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200', iconColor: 'text-emerald-600' },
+  Cooling: { icon: RefreshCw, badgeClass: 'bg-cyan-50 text-cyan-800 border-cyan-200', iconColor: 'text-cyan-600' },
+  Steering: { icon: Wrench, badgeClass: 'bg-teal-50 text-teal-800 border-teal-200', iconColor: 'text-teal-600' },
+  General: { icon: BookOpen, badgeClass: 'bg-slate-100 text-slate-800 border-slate-200', iconColor: 'text-slate-600' },
+};
+
+const DEFAULT_ARTICLES: KbArticle[] = [
+  {
+    id: 'art-001',
+    category: 'Electrical',
+    title: 'Headlight & Electrical Circuit Troubleshooting SOP',
+    summary: 'Standard operating diagnostic guide for inspecting flickering headlights, blown circuit fuses, and automotive relay faults in commercial fleet vehicles.',
+    steps: [
+      'Check open-circuit battery voltage with a digital multimeter (must be 12.6V or higher).',
+      'Inspect passenger cabin and engine bay fuse distribution boxes for blown fuses using a test light.',
+      'Test headlight high/low beam relay pinouts (terminals 30, 85, 86, 87) for proper coil resistance and switching continuity.',
+      'Inspect wire harnesses along the chassis and firewall for insulation rubbing, ground corrosion, or harness pin degradation.',
+      'Measure charging system alternator output under 2,000 RPM engine load (nominal range: 13.8V – 14.5V).'
+    ],
+    parts: ['Headlight Relay 4-Pin 12V 40A', 'Automotive Blade Fuse Assortment (10A, 15A, 20A)', 'Battery Terminal Anti-Corrosion Washers', 'Electrical Contact Cleaner Spray'],
+    estimated_hours: 2.0,
+    tags: ['electrical', 'headlight', 'fuse', 'relay', 'battery', 'multimeter'],
+    createdAt: '2026-09-01T08:00:00Z',
+    updatedAt: '2026-09-15T10:30:00Z'
+  },
+  {
+    id: 'art-002',
+    category: 'Brakes',
+    title: 'Air Brake Compressor & Reservoir Pressure Test SOP',
+    summary: 'Standard operating procedure for verifying air brake governor cut-in/cut-out pressures and inspecting pneumatic system leak-down rates.',
+    steps: [
+      'Chock vehicle wheels on level ground and release spring parking brakes to ensure accurate air circuit reading.',
+      'Run engine at fast idle (1,200 RPM) and time pressure buildup from 85 PSI to 100 PSI (must complete within 45 seconds).',
+      'Verify compressor governor cut-out threshold (must reliably cut out between 120 PSI and 135 PSI).',
+      'Fan service brakes down until governor cuts in (verify cut-in occurs between 100 PSI and 105 PSI).',
+      'Shut down engine, apply full service brake pressure, and hold for 2 minutes to verify pneumatic leak rate is less than 3 PSI per minute.'
+    ],
+    parts: ['Air Governor D-2 Type', 'High-Pressure Pneumatic Test Gauge', 'Air Dryer Desiccant Cartridge', 'Thread Sealant Teflon Paste'],
+    estimated_hours: 2.5,
+    tags: ['brakes', 'pneumatics', 'air-brake', 'compressor', 'governor', 'pressure-test'],
+    createdAt: '2026-09-02T09:00:00Z',
+    updatedAt: '2026-09-16T11:00:00Z'
+  },
+  {
+    id: 'art-003',
+    category: 'Brakes',
+    title: 'Hydraulic Brake Pad & Rotor Inspection SOP',
+    summary: 'Standard operating procedure for inspecting friction lining wear, measuring brake rotor runout, and replacing hydraulic brake pads across fleet vehicles.',
+    steps: [
+      'Hoist vehicle safely, remove road wheels, and measure friction pad friction lining thickness (minimum legal discard: 3.0mm).',
+      'Measure brake rotor thickness using an outside micrometer at 4 equidistant points; compare against minimum discard stamping.',
+      'Inspect caliper slider pins and rubber dust boots for seized guide pins, tearing, or uneven pad wear tapering.',
+      'Check caliper hydraulic piston seals for fluid weeping; test hydraulic line flex hoses for dry rot or ballooning.',
+      'Perform brake fluid flush using DOT 4 fluid and bleed air bubbles until pedal feel is firm and positive.'
+    ],
+    parts: ['Semi-Metallic Front Brake Pad Set', 'Vented Brake Rotors (Pair)', 'Brake Fluid DOT 4 (1 Liter)', 'Silicone Brake Caliper Grease'],
+    estimated_hours: 3.0,
+    tags: ['brakes', 'rotor', 'pads', 'caliper', 'hydraulic', 'bleeding'],
+    createdAt: '2026-09-03T10:00:00Z',
+    updatedAt: '2026-09-17T14:20:00Z'
+  },
+  {
+    id: 'art-004',
+    category: 'Engine',
+    title: 'Diesel Fuel Injection & Rail Pressure Diagnostic Guide',
+    summary: 'Comprehensive diagnostic workflow for troubleshooting hard starting, black smoke emissions, and low common rail pressure codes in diesel engines.',
+    steps: [
+      'Connect diagnostic OBD-II scan tool and record Common Rail Fuel Pressure (FRP) setpoint vs actual rail pressure at idle.',
+      'Inspect primary fuel filter and water separator bowl for water contamination, bio-sludge, or sediment restriction.',
+      'Perform injector return leak-off volume test using graduated glass vials to identify injectors with worn control valves.',
+      'Inspect fuel rail pressure sensor and suction control valve (SCV) harness connectors for contact resistance.',
+      'Execute high-pressure pump fuel delivery test and verify fuel supply lift pump priming pressure.'
+    ],
+    parts: ['Fuel Filter / Water Separator Element', 'Suction Control Valve (SCV)', 'Common Rail Pressure Sensor', 'High-Pressure Fuel Line Seals'],
+    estimated_hours: 3.5,
+    tags: ['engine', 'diesel', 'fuel-injection', 'rail-pressure', 'scv', 'diagnostics'],
+    createdAt: '2026-09-04T11:00:00Z',
+    updatedAt: '2026-09-18T16:00:00Z'
+  },
+  {
+    id: 'art-005',
+    category: 'Cooling',
+    title: 'Radiator Pressure Flush & Thermostat Verification SOP',
+    summary: 'Preventive cooling system maintenance procedure for descaling radiators, replacing thermostats, and testing coolant freeze/boil protection.',
+    steps: [
+      'Allow engine to cool completely; affix cooling system pressure tester to radiator neck and pressurize to 15 PSI for 10 minutes.',
+      'Open radiator petcock drain valve and recover old coolant into dedicated recycling container.',
+      'Remove thermostat housing, inspect thermostat for scale buildup, and test opening temperature in hot water bath (82°C – 88°C).',
+      'Back-flush radiator core and engine cylinder block with pressurized water to dislodge silicate dropout and rust sediment.',
+      'Install new thermostat and gasket, refill with 50/50 OAT ethylene glycol coolant, and vacuum purge cooling system of trapped air pockets.'
+    ],
+    parts: ['Thermostat with Seal (82°C)', 'Radiator Upper & Lower Hose Kit', 'Heavy-Duty 50/50 Pre-Mixed OAT Coolant (4 Gal)', 'Radiator Pressure Cap 1.1 Bar'],
+    estimated_hours: 2.0,
+    tags: ['cooling', 'radiator', 'thermostat', 'overheating', 'coolant', 'pm-service'],
+    createdAt: '2026-09-05T08:30:00Z',
+    updatedAt: '2026-09-19T09:15:00Z'
+  },
+  {
+    id: 'art-006',
+    category: 'Transmission',
+    title: 'Transmission Clutch Adjustment & Fluid Replacement SOP',
+    summary: 'Inspection and maintenance guide for measuring clutch pedal free-play, checking hydraulic slave cylinder actuation, and changing gear oil.',
+    steps: [
+      'Measure clutch pedal free-play at pedal pad (standard clearance: 15mm – 25mm); adjust pushrod clevis if out of specification.',
+      'Inspect master and slave cylinder rubber boots for hydraulic fluid leaks; verify smooth fork travel without binding.',
+      'Drain transmission manual gear oil into clean catch pan; inspect magnetic drain plug for excessive metallic shavings or gear chips.',
+      'Inspect driveshaft universal joints and slip yoke for rotational backlash, needle bearing looseness, or dried grease fittings.',
+      'Refill transmission gearbox with SAE 80W-90 GL-4 lubricant until fluid level is flush with filler plug aperture.'
+    ],
+    parts: ['Clutch Slave Cylinder Assembly', 'Heavy Duty Gear Oil SAE 80W-90 (4 Liters)', 'Transmission Drain Plug Washer', 'Lithium EP Chassis Grease'],
+    estimated_hours: 2.5,
+    tags: ['transmission', 'clutch', 'gearbox', 'manual', 'slave-cylinder', 'lubrication'],
+    createdAt: '2026-09-06T13:00:00Z',
+    updatedAt: '2026-09-20T10:45:00Z'
+  },
+  {
+    id: 'art-007',
+    category: 'Suspension',
+    title: 'Leaf Spring & Kingpin Bushing Play Inspection SOP',
+    summary: 'Heavy-vehicle front and rear suspension inspection procedure for kingpin wear, leaf spring crack detection, and U-bolt torque verification.',
+    steps: [
+      'Raise steer axle off ground on heavy jackstands; place dial indicator on front wheel hub to measure kingpin lateral deflection (max allowable: 0.25mm).',
+      'Pump high-pressure lithium grease into upper and lower kingpin grease zerks until fresh grease purges past seals.',
+      'Thoroughly inspect front and rear leaf spring packs using inspection mirror and wire brush for cracked or shifted main leaves.',
+      'Inspect rubber and bronze spring eye bushings and shackle pins for oval wear or wallowing out.',
+      'Check leaf spring U-bolt nuts with calibrated torque wrench (torque to 280–320 N·m in cross-diagonal pattern).'
+    ],
+    parts: ['Front Kingpin & Bushing Rebuild Kit', 'Leaf Spring Center Bolt & Bushing Set', 'Heavy-Duty U-Bolt & Nut Kit M18', 'Chassis Moly Grease Tube'],
+    estimated_hours: 4.0,
+    tags: ['suspension', 'leaf-spring', 'kingpin', 'chassis', 'u-bolts', 'alignment'],
+    createdAt: '2026-09-07T14:00:00Z',
+    updatedAt: '2026-09-21T15:30:00Z'
+  },
+  {
+    id: 'art-008',
+    category: 'General',
+    title: 'Multi-Point Pre-Trip Vehicle Safety Inspection SOP',
+    summary: 'Standard operating checklist covering critical roadworthiness inspection points before releasing transport vehicles into active daily transit.',
+    steps: [
+      'Check engine oil, coolant, power steering, and brake fluid levels against dipstick / reservoir MAX lines.',
+      'Inspect steer and drive tire tread depths with tire depth gauge (minimum legal limit: 3.2mm steer, 1.6mm drive).',
+      'Verify all exterior lighting: low beams, high beams, hazard flashers, brake lights, reverse lights, and side clearance markers.',
+      'Check steering wheel free play (maximum allowable: 10 degrees or 30mm free play at rim circumference).',
+      'Verify fire extinguisher pressure gauge in green zone and emergency warning reflective triangle kit presence.'
+    ],
+    parts: ['Tire Tread Depth Gauge', 'DOT Safety Emergency Triangle Kit', 'Chemical Fire Extinguisher 5-lb ABC', 'LED Flashlight & Mirror'],
+    estimated_hours: 1.0,
+    tags: ['general', 'pre-trip', 'safety', 'inspection', 'roadworthiness', 'compliance'],
+    createdAt: '2026-09-08T07:00:00Z',
+    updatedAt: '2026-09-22T08:00:00Z'
+  }
+];
+
 const EMPTY_ARTICLE: Omit<KbArticle, 'id'> = {
   category: 'General',
   title: '',
   summary: '',
   steps: [''],
   parts: [''],
-  estimated_hours: 1,
+  estimated_hours: 1.5,
   tags: [],
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function getCatColor(cat: string) { return CAT_COLORS[cat] || '#6b7280'; }
-function getCatIcon(cat?: string) {
-  const c = (cat || '').toLowerCase();
-  if (c.includes('electrical')) return <Zap size={15} />;
-  if (c.includes('engine')) return <Settings size={15} />;
-  if (c.includes('brake')) return <Shield size={15} />;
-  if (c.includes('trans')) return <Layers size={15} />;
-  return <Wrench size={15} />;
+function getCategoryConfig(cat: string) {
+  return CATEGORY_STYLES[cat] || CATEGORY_STYLES.General;
 }
-function uid() { return `art-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
-function now() { return new Date().toISOString(); }
 
-// ─── Textarea auto-grow ───────────────────────────────────────────────────────
-function AutoTextarea({ value, onChange, placeholder, rows = 2 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
+function uid() {
+  return `art-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+// ─── Modal Overlay Wrapper ─────────────────────────────────────────────────────
+function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   useEffect(() => {
-    if (ref.current) { ref.current.style.height = 'auto'; ref.current.style.height = ref.current.scrollHeight + 'px'; }
-  }, [value]);
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   return (
-    <textarea
-      ref={ref}
-      rows={rows}
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      placeholder={placeholder}
-      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '0.875rem', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.15s' }}
-      onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-      onBlur={e => (e.target.style.borderColor = 'var(--border)')}
-    />
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      onClick={e => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
-// ─── Article Card ─────────────────────────────────────────────────────────────
-function ArticleCard({ article, onView, onEdit, onDelete }: {
-  article: KbArticle; onView: () => void; onEdit: () => void; onDelete: () => void;
+// ─── Article Card (Grid View) ─────────────────────────────────────────────────
+function ArticleCard({
+  article,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  article: KbArticle;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
-  const col = getCatColor(article.category);
-  return (
-    <div
-      className="premium-card"
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, padding: 0, overflow: 'hidden', cursor: 'default', transition: 'transform 0.15s, box-shadow 0.15s' }}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 32px rgba(0,0,0,0.18)'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}
-    >
-      {/* Top accent bar */}
-      <div style={{ height: 4, background: col, flexShrink: 0 }} />
+  const conf = getCategoryConfig(article.category);
+  const Icon = conf.icon;
 
-      <div style={{ padding: '20px 20px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Category + time */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: `${col}15`, color: col, padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em' }}>
-            {getCatIcon(article.category)}
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between group h-full">
+      <div>
+        {/* Header row: Category & SLA */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border',
+              conf.badgeClass
+            )}
+          >
+            <Icon size={13} className={conf.iconColor} />
             {article.category.toUpperCase()}
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--muted)', fontSize: '0.75rem' }}>
-            <Clock size={12} />
-            ~{article.estimated_hours}h
+          <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-semibold tabular-nums">
+            <Clock size={12} className="text-slate-400" />
+            ~{article.estimated_hours}h SLA
           </span>
         </div>
 
         {/* Title */}
-        <h3 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 800, color: 'var(--text)', lineHeight: 1.35, minHeight: 44, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <h3
+          onClick={onView}
+          className="text-slate-900 font-bold text-base leading-snug line-clamp-2 cursor-pointer group-hover:text-brand-primary transition-colors"
+        >
           {article.title}
         </h3>
 
         {/* Summary */}
-        <p style={{ margin: '0 0 14px', fontSize: '0.85rem', color: 'var(--muted)', lineHeight: 1.55, minHeight: 40, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <p className="text-slate-600 text-xs mt-2 line-clamp-2 leading-relaxed">
           {article.summary}
         </p>
 
         {/* Tags */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 16, minHeight: 28, alignContent: 'flex-start' }}>
-          {article.tags.slice(0, 4).map(tag => (
-            <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--surface-alt)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', color: 'var(--muted)' }}>
-              <Tag size={10} />#{tag}
+        <div className="flex flex-wrap gap-1.5 mt-3 min-h-[24px]">
+          {article.tags.slice(0, 3).map(tag => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded"
+            >
+              <Tag size={10} className="text-slate-400" />
+              {tag}
             </span>
           ))}
-          {article.tags.length > 4 && (
-            <span style={{ fontSize: '0.7rem', color: 'var(--muted)', display: 'flex', alignItems: 'center' }}>+{article.tags.length - 4}</span>
+          {article.tags.length > 3 && (
+            <span className="text-[11px] font-medium text-slate-400 self-center">
+              +{article.tags.length - 3} more
+            </span>
           )}
-        </div>
-
-        {/* Steps preview */}
-        <div style={{ background: 'var(--surface-alt)', borderRadius: 8, padding: '10px 12px', marginTop: 'auto', fontSize: '0.8rem', color: 'var(--muted)' }}>
-          <span style={{ fontWeight: 700, color: 'var(--text)', marginRight: 6 }}>{article.steps.length} steps</span>
-          · {article.parts.length} parts listed
         </div>
       </div>
 
-      {/* Actions footer */}
-      <div style={{ display: 'flex', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-        <button
-          onClick={onView}
-          style={{ flex: 2, padding: '12px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: '0.82rem', fontWeight: 700, color: 'var(--accent)', transition: 'background 0.12s' }}
-          onMouseEnter={e => (e.currentTarget.style.background = `${col}10`)}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-        >
-          <Eye size={14} /> Read Article <ChevronRight size={14} />
-        </button>
-        <div style={{ width: 1, background: 'var(--border)' }} />
-        <button
-          onClick={onEdit}
-          style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: '0.8rem', color: 'var(--muted)', transition: 'background 0.12s' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-        >
-          <Pencil size={13} /> Edit
-        </button>
-        <div style={{ width: 1, background: 'var(--border)' }} />
-        <button
-          onClick={onDelete}
-          style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: '0.8rem', color: '#ef4444', transition: 'background 0.12s' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.07)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-        >
-          <Trash2 size={13} /> Delete
-        </button>
+      <div className="mt-4 pt-3 border-t border-slate-100">
+        {/* Metric Ribbon */}
+        <div className="bg-slate-50 rounded-lg px-3 py-2 flex items-center justify-between text-xs text-slate-500 border border-slate-100 mb-3">
+          <span className="font-medium text-slate-700">
+            {article.steps.length} {article.steps.length === 1 ? 'Step' : 'Steps'}
+          </span>
+          <span className="text-slate-300">|</span>
+          <span>{article.parts.length} {article.parts.length === 1 ? 'Part listed' : 'Parts listed'}</span>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onView}
+            className="text-xs font-bold text-brand-primary hover:text-brand-dark flex items-center gap-1 group/btn transition-colors"
+          >
+            <span>Read SOP</span>
+            <ChevronRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
+          </button>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onEdit}
+              title="Edit article"
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              onClick={onDelete}
+              title="Delete article"
+              className="p-1.5 text-slate-400 hover:text-brand-danger hover:bg-red-50 rounded-md transition-colors"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── View Modal (full article reader) ────────────────────────────────────────
-function ViewModal({ article, onClose, onEdit }: { article: KbArticle; onClose: () => void; onEdit: () => void }) {
-  const col = getCatColor(article.category);
+// ─── Article Table (List View) ────────────────────────────────────────────────
+function ArticleTable({
+  articles,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  articles: KbArticle[];
+  onView: (art: KbArticle) => void;
+  onEdit: (art: KbArticle) => void;
+  onDelete: (art: KbArticle) => void;
+}) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider font-semibold">
+              <th className="py-3 px-4">Category</th>
+              <th className="py-3 px-4">Procedure Title & Summary</th>
+              <th className="py-3 px-4">Est. SLA</th>
+              <th className="py-3 px-4">Steps / Parts</th>
+              <th className="py-3 px-4">Tags</th>
+              <th className="py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-slate-700">
+            {articles.map(article => {
+              const conf = getCategoryConfig(article.category);
+              const Icon = conf.icon;
+              return (
+                <tr key={article.id} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="py-3.5 px-4 whitespace-nowrap">
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-semibold border',
+                        conf.badgeClass
+                      )}
+                    >
+                      <Icon size={12} className={conf.iconColor} />
+                      {article.category}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 max-w-md">
+                    <button
+                      onClick={() => onView(article)}
+                      className="font-bold text-slate-900 hover:text-brand-primary text-left block leading-snug transition-colors line-clamp-1"
+                    >
+                      {article.title}
+                    </button>
+                    <p className="text-slate-500 text-xs line-clamp-1 mt-0.5">{article.summary}</p>
+                  </td>
+                  <td className="py-3.5 px-4 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 font-semibold text-slate-700 text-xs tabular-nums">
+                      <Clock size={12} className="text-slate-400" />
+                      ~{article.estimated_hours}h
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 whitespace-nowrap text-xs text-slate-600">
+                    <span className="font-semibold text-slate-800">{article.steps.length} steps</span>
+                    <span className="text-slate-300 mx-1.5">·</span>
+                    <span>{article.parts.length} parts</span>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex flex-wrap gap-1 max-w-xs">
+                      {article.tags.slice(0, 2).map(tag => (
+                        <span
+                          key={tag}
+                          className="text-[11px] font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                      {article.tags.length > 2 && (
+                        <span className="text-[11px] text-slate-400 font-mono">+{article.tags.length - 2}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                    <div className="inline-flex items-center gap-1 justify-end">
+                      <button
+                        onClick={() => onView(article)}
+                        className="px-2.5 py-1 text-xs font-semibold text-brand-primary hover:bg-blue-50 rounded transition-colors"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => onEdit(article)}
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                        title="Edit"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => onDelete(article)}
+                        className="p-1.5 text-slate-400 hover:text-brand-danger hover:bg-red-50 rounded transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── View Modal (Full SOP Reader) ─────────────────────────────────────────────
+function ViewModal({
+  article,
+  onClose,
+  onEdit,
+}: {
+  article: KbArticle;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  const conf = getCategoryConfig(article.category);
+  const Icon = conf.icon;
+
   return (
     <ModalOverlay onClose={onClose}>
-      <div style={{ width: '100%', maxWidth: 740, maxHeight: '90vh', display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', color: 'var(--text)' }}>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden text-slate-900">
         {/* Header */}
-        <div style={{ background: `linear-gradient(135deg, ${col}22 0%, var(--surface) 100%)`, borderBottom: '1px solid var(--border)', padding: '28px 32px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-            <div style={{ flex: 1 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: `${col}18`, color: col, padding: '4px 12px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 800, marginBottom: 12 }}>
-                {getCatIcon(article.category)}{article.category.toUpperCase()}
-              </span>
-              <h2 style={{ margin: '0 0 10px', fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2, color: 'var(--text)' }}>{article.title}</h2>
-              <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.9rem', lineHeight: 1.55 }}>{article.summary}</p>
+        <div className="bg-brand-dark text-white p-6 sm:p-7 flex-shrink-0">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-white/10 text-white border border-white/20">
+                  <Icon size={12} className="text-brand-warning" />
+                  {article.category}
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs text-slate-300 font-semibold tabular-nums">
+                  <Clock size={12} className="text-brand-warning" />
+                  ~{article.estimated_hours} Hours Target SLA
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold leading-tight text-white">{article.title}</h2>
+              <p className="text-slate-300 text-xs sm:text-sm mt-2 leading-relaxed">{article.summary}</p>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <button onClick={onEdit} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--text)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
-                <Pencil size={13} /> Edit
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={onEdit}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors"
+              >
+                <Pencil size={13} /> Edit SOP
               </button>
-              <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors"
+              >
                 <X size={16} />
               </button>
             </div>
           </div>
-          {/* Meta row */}
-          <div style={{ display: 'flex', gap: 20, marginTop: 16, flexWrap: 'wrap' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: 'var(--muted)' }}>
-              <Clock size={13} /> Est. {article.estimated_hours} hour{article.estimated_hours !== 1 ? 's' : ''}
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: 'var(--muted)' }}>
-              <Wrench size={13} /> {article.parts.length} parts
-            </span>
+
+          {/* Quick Metrics Bar */}
+          <div className="mt-5 pt-4 border-t border-white/15 flex flex-wrap gap-4 text-xs text-slate-300">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle size={13} className="text-brand-success" />
+              <span>{article.steps.length} Verified Diagnostic Steps</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Wrench size={13} className="text-brand-warning" />
+              <span>{article.parts.length} Required Parts & Materials</span>
+            </div>
             {article.updatedAt && (
-              <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
-                Last updated {new Date(article.updatedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </span>
+              <div className="text-slate-400">
+                Last reviewed: {new Date(article.updatedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
             )}
           </div>
         </div>
 
-        {/* Body */}
-        <div style={{ overflowY: 'auto', padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 28, flex: 1, background: 'var(--surface)' }}>
-          {/* Steps */}
+        {/* Modal Body */}
+        <div className="overflow-y-auto p-6 sm:p-8 space-y-7 flex-1">
+          {/* Section: Diagnostic Steps */}
           <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: col, letterSpacing: '0.06em', marginBottom: 14 }}>DIAGNOSTIC STEPS</div>
-            <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-brand-primary" />
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Standard Diagnostic & Repair Procedure
+              </h4>
+            </div>
+            <ol className="space-y-3">
               {article.steps.filter(s => s.trim()).map((step, i) => (
-                <li key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                  <span style={{ width: 28, height: 28, borderRadius: 8, background: `${col}18`, color: col, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem', fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
-                  <span style={{ fontSize: '0.9rem', lineHeight: 1.6, paddingTop: 4, color: 'var(--text)' }}>{step}</span>
+                <li key={i} className="flex items-start gap-3.5 bg-slate-50/80 p-3.5 rounded-lg border border-slate-100">
+                  <span className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm text-slate-800 leading-relaxed pt-0.5">{step}</span>
                 </li>
               ))}
             </ol>
           </div>
 
-          {/* Parts */}
+          {/* Section: Required Parts */}
           {article.parts.filter(p => p.trim()).length > 0 && (
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--muted)', letterSpacing: '0.06em', marginBottom: 14 }}>COMMONLY NEEDED PARTS</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 rounded-full bg-brand-warning" />
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Commonly Required Replacement Parts & Shop Supplies
+                </h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {article.parts.filter(p => p.trim()).map((part, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--surface-alt)', borderRadius: 8, border: '1px solid var(--border)', fontSize: '0.875rem', color: 'var(--text)' }}>
-                    <Wrench size={14} style={{ color: col, flexShrink: 0 }} />
-                    {part}
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 shadow-sm"
+                  >
+                    <Wrench size={14} className="text-brand-primary flex-shrink-0" />
+                    <span>{part}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Tags */}
+          {/* Section: Tags */}
           {article.tags.length > 0 && (
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--muted)', letterSpacing: '0.06em', marginBottom: 10 }}>TAGS</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-slate-400" />
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Associated Subsystem Tags
+                </h4>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
                 {article.tags.map(tag => (
-                  <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--surface-alt)', border: '1px solid var(--border)', padding: '4px 10px', borderRadius: 999, fontSize: '0.78rem', color: 'var(--muted)' }}>
-                    <Tag size={11} />#{tag}
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-1 rounded text-xs font-mono"
+                  >
+                    <Tag size={11} className="text-slate-400" />
+                    #{tag}
                   </span>
                 ))}
               </div>
             </div>
           )}
         </div>
+
+        {/* Modal Footer */}
+        <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-between flex-shrink-0">
+          <span className="text-xs text-slate-400 font-mono">ID: {article.id}</span>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors"
+            >
+              Close Reader
+            </button>
+            <button
+              onClick={onEdit}
+              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+            >
+              <Pencil size={13} /> Edit Procedure
+            </button>
+          </div>
+        </div>
       </div>
     </ModalOverlay>
   );
 }
 
-// ─── Editor Modal (add / edit) ────────────────────────────────────────────────
-function EditorModal({ article, onSave, onClose }: {
-  article: Partial<KbArticle> | null; onSave: (data: KbArticle) => void; onClose: () => void;
+// ─── Editor Modal (New / Edit Article) ─────────────────────────────────────────
+function EditorModal({
+  article,
+  onSave,
+  onClose,
+}: {
+  article: Partial<KbArticle> | null;
+  onSave: (data: KbArticle) => void;
+  onClose: () => void;
 }) {
   const isNew = !article?.id;
   const [form, setForm] = useState<Omit<KbArticle, 'id'>>({
     ...EMPTY_ARTICLE,
-    ...(article ? { category: article.category || 'General', title: article.title || '', summary: article.summary || '', steps: article.steps?.length ? article.steps : [''], parts: article.parts?.length ? article.parts : [''], estimated_hours: article.estimated_hours || 1, tags: article.tags || [] } : {}),
+    ...(article
+      ? {
+          category: article.category || 'General',
+          title: article.title || '',
+          summary: article.summary || '',
+          steps: article.steps?.length ? article.steps : [''],
+          parts: article.parts?.length ? article.parts : [''],
+          estimated_hours: article.estimated_hours || 1.5,
+          tags: article.tags || [],
+        }
+      : {}),
   });
+
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -281,8 +661,8 @@ function EditorModal({ article, onSave, onClose }: {
       ...form,
       steps: form.steps.filter(s => s.trim()),
       parts: form.parts.filter(p => p.trim()),
-      createdAt: article?.createdAt || now(),
-      updatedAt: now(),
+      createdAt: article?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
   };
 
@@ -292,7 +672,10 @@ function EditorModal({ article, onSave, onClose }: {
     setForm(f => ({ ...f, [key]: arr }));
   };
 
-  const addListItem = (key: 'steps' | 'parts') => setForm(f => ({ ...f, [key]: [...f[key], ''] }));
+  const addListItem = (key: 'steps' | 'parts') => {
+    setForm(f => ({ ...f, [key]: [...f[key], ''] }));
+  };
+
   const removeListItem = (key: 'steps' | 'parts', idx: number) => {
     if (form[key].length <= 1) return;
     setForm(f => ({ ...f, [key]: f[key].filter((_, i) => i !== idx) }));
@@ -300,128 +683,195 @@ function EditorModal({ article, onSave, onClose }: {
 
   const addTag = () => {
     const t = tagInput.trim().toLowerCase().replace(/\s+/g, '-');
-    if (t && !form.tags.includes(t)) setForm(f => ({ ...f, tags: [...f.tags, t] }));
+    if (t && !form.tags.includes(t)) {
+      setForm(f => ({ ...f, tags: [...f.tags, t] }));
+    }
     setTagInput('');
   };
-  const removeTag = (tag: string) => setForm(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }));
 
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box', fontFamily: 'inherit', outline: 'none' };
-  const labelStyle: React.CSSProperties = { display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' };
+  const removeTag = (tag: string) => {
+    setForm(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }));
+  };
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div style={{ width: '100%', maxWidth: 680, maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', color: 'var(--text)' }}>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden text-slate-900">
         {/* Header */}
-        <div style={{ padding: '22px 28px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: 'var(--surface)' }}>
+        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between flex-shrink-0 bg-slate-50">
           <div>
-            <div style={{ fontWeight: 900, fontSize: '1.1rem', color: 'var(--text)' }}>{isNew ? 'New Article' : 'Edit Article'}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: 2 }}>Repair guide or standard operating procedure</div>
+            <h3 className="font-bold text-base text-slate-900">
+              {isNew ? 'New Standard Operating Procedure' : 'Edit Operating Procedure'}
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Fill out diagnostic procedures and parts for fleet technicians
+            </p>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white hover:bg-slate-200 border border-slate-200 text-slate-500 transition-colors"
+          >
             <X size={15} />
           </button>
         </div>
 
-        {/* Body */}
-        <div style={{ overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20, flex: 1, background: 'var(--surface)' }}>
-          {/* Title + Category row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 14 }}>
-            <div>
-              <label style={labelStyle}>Title *</label>
+        {/* Body Form */}
+        <div className="overflow-y-auto p-6 space-y-5 flex-1">
+          {/* Title & Category */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                Procedure Title *
+              </label>
               <input
-                style={{ ...inputStyle, ...(errors.title ? { borderColor: '#ef4444' } : {}) }}
+                type="text"
                 value={form.title}
-                onChange={e => { setForm(f => ({ ...f, title: e.target.value })); if (errors.title) setErrors(er => ({ ...er, title: '' })); }}
-                placeholder="e.g. Brake Pad Inspection SOP"
-                onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-                onBlur={e => (e.target.style.borderColor = errors.title ? '#ef4444' : 'var(--border)')}
+                onChange={e => {
+                  setForm(f => ({ ...f, title: e.target.value }));
+                  if (errors.title) setErrors(er => ({ ...er, title: '' }));
+                }}
+                placeholder="e.g. Brake Caliper & Slider Pin Overhaul SOP"
+                className={cn(
+                  'w-full px-3 py-2 rounded-lg border text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all',
+                  errors.title ? 'border-brand-danger' : 'border-slate-300'
+                )}
               />
-              {errors.title && <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: 4 }}>{errors.title}</div>}
+              {errors.title && <span className="text-xs text-brand-danger mt-1 block">{errors.title}</span>}
             </div>
+
             <div>
-              <label style={labelStyle}>Category</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                Subsystem
+              </label>
               <select
                 value={form.category}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                style={{ ...inputStyle, paddingRight: 28, cursor: 'pointer', width: 160 }}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all cursor-pointer"
               >
-                {CATEGORIES.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
+                {CATEGORIES.filter(c => c !== 'All').map(c => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
           {/* Summary */}
           <div>
-            <label style={labelStyle}>Summary *</label>
-            <AutoTextarea
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Summary & Scope *
+            </label>
+            <textarea
+              rows={2}
               value={form.summary}
-              onChange={v => { setForm(f => ({ ...f, summary: v })); if (errors.summary) setErrors(er => ({ ...er, summary: '' })); }}
-              placeholder="Brief description of what this article covers…"
-              rows={3}
+              onChange={e => {
+                setForm(f => ({ ...f, summary: e.target.value }));
+                if (errors.summary) setErrors(er => ({ ...er, summary: '' }));
+              }}
+              placeholder="Brief overview of the maintenance procedure, symptoms addressed, and scope..."
+              className={cn(
+                'w-full px-3 py-2 rounded-lg border text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all',
+                errors.summary ? 'border-brand-danger' : 'border-slate-300'
+              )}
             />
-            {errors.summary && <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: 4 }}>{errors.summary}</div>}
+            {errors.summary && <span className="text-xs text-brand-danger mt-1 block">{errors.summary}</span>}
           </div>
 
-          {/* Est. hours */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <label style={{ ...labelStyle, marginBottom: 0, whiteSpace: 'nowrap' }}>Est. Hours</label>
-            <input
-              type="number" min={0.5} step={0.5}
-              value={form.estimated_hours}
-              onChange={e => setForm(f => ({ ...f, estimated_hours: parseFloat(e.target.value) || 1 }))}
-              style={{ ...inputStyle, width: 100 }}
-              onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-              onBlur={e => (e.target.style.borderColor = 'var(--border)')}
-            />
+          {/* Est. Hours */}
+          <div className="w-48">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Target SLA (Hours)
+            </label>
+            <div className="relative">
+              <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="number"
+                min={0.5}
+                step={0.5}
+                value={form.estimated_hours}
+                onChange={e => setForm(f => ({ ...f, estimated_hours: parseFloat(e.target.value) || 1 }))}
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              />
+            </div>
           </div>
 
-          <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '0 -28px', padding: '0 28px' }} />
+          <hr className="border-slate-200" />
 
-          {/* Steps */}
+          {/* Diagnostic Steps List */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <label style={{ ...labelStyle, marginBottom: 0 }}>Diagnostic Steps *</label>
-              <button onClick={() => addListItem('steps')} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
-                <Plus size={12} /> Add Step
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Diagnostic & Service Steps *
+              </label>
+              <button
+                type="button"
+                onClick={() => addListItem('steps')}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:text-brand-dark"
+              >
+                <Plus size={13} /> Add Step
               </button>
             </div>
-            {errors.steps && <div style={{ color: '#ef4444', fontSize: '0.75rem', marginBottom: 8 }}>{errors.steps}</div>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {errors.steps && <span className="text-xs text-brand-danger mb-2 block">{errors.steps}</span>}
+            <div className="space-y-2">
               {form.steps.map((step, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <span style={{ width: 26, height: 26, borderRadius: 6, background: 'var(--surface-alt)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 800, color: 'var(--muted)', flexShrink: 0, marginTop: 8 }}>{i + 1}</span>
-                  <div style={{ flex: 1 }}>
-                    <AutoTextarea value={step} onChange={v => updateList('steps', i, v)} placeholder={`Step ${i + 1}…`} rows={1} />
-                  </div>
-                  <button onClick={() => removeListItem('steps', i)} style={{ marginTop: 8, width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted)', cursor: form.steps.length <= 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: form.steps.length <= 1 ? 0.4 : 1 }}>
-                    <X size={12} />
+                <div key={i} className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
+                    {i + 1}
+                  </span>
+                  <input
+                    type="text"
+                    value={step}
+                    onChange={e => updateList('steps', i, e.target.value)}
+                    placeholder={`Step ${i + 1} action or verification checkpoint...`}
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeListItem('steps', i)}
+                    disabled={form.steps.length <= 1}
+                    className="p-1.5 text-slate-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed rounded"
+                  >
+                    <X size={15} />
                   </button>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Parts */}
+          <hr className="border-slate-200" />
+
+          {/* Parts List */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <label style={{ ...labelStyle, marginBottom: 0 }}>Commonly Needed Parts</label>
-              <button onClick={() => addListItem('parts')} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
-                <Plus size={12} /> Add Part
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Commonly Needed Replacement Parts
+              </label>
+              <button
+                type="button"
+                onClick={() => addListItem('parts')}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:text-brand-dark"
+              >
+                <Plus size={13} /> Add Part
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="space-y-2">
               {form.parts.map((part, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8 }}>
+                <div key={i} className="flex items-center gap-2">
+                  <Wrench size={14} className="text-slate-400 flex-shrink-0 ml-1" />
                   <input
-                    style={inputStyle}
+                    type="text"
                     value={part}
                     onChange={e => updateList('parts', i, e.target.value)}
-                    placeholder={`Part name…`}
-                    onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-                    onBlur={e => (e.target.style.borderColor = 'var(--border)')}
+                    placeholder="e.g. Brake Caliper Seal Kit (Part #BC-992)"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   />
-                  <button onClick={() => removeListItem('parts', i)} style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted)', cursor: form.parts.length <= 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: form.parts.length <= 1 ? 0.4 : 1 }}>
-                    <X size={13} />
+                  <button
+                    type="button"
+                    onClick={() => removeListItem('parts', i)}
+                    disabled={form.parts.length <= 1}
+                    className="p-1.5 text-slate-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed rounded"
+                  >
+                    <X size={15} />
                   </button>
                 </div>
               ))}
@@ -430,28 +880,45 @@ function EditorModal({ article, onSave, onClose }: {
 
           {/* Tags */}
           <div>
-            <label style={labelStyle}>Tags</label>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Subsystem & Search Tags
+            </label>
+            <div className="flex gap-2 mb-2">
               <input
-                style={{ ...inputStyle, flex: 1 }}
+                type="text"
                 value={tagInput}
                 onChange={e => setTagInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                placeholder="Type a tag and press Enter…"
-                onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-                onBlur={e => (e.target.style.borderColor = 'var(--border)')}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTag();
+                  }
+                }}
+                placeholder="Type tag (e.g. calipers) and press Enter..."
+                className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary"
               />
-              <button onClick={addTag} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--accent)', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
-                Add Tag
+              <button
+                type="button"
+                onClick={addTag}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700"
+              >
+                Add
               </button>
             </div>
             {form.tags.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="flex flex-wrap gap-1.5">
                 {form.tags.map(tag => (
-                  <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--surface-alt)', border: '1px solid var(--border)', padding: '4px 10px', borderRadius: 999, fontSize: '0.75rem', color: 'var(--text)' }}>
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700"
+                  >
                     #{tag}
-                    <button onClick={() => removeTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--muted)', display: 'flex' }}>
-                      <X size={11} />
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="text-slate-400 hover:text-red-600"
+                    >
+                      <X size={12} />
                     </button>
                   </span>
                 ))}
@@ -460,16 +927,21 @@ function EditorModal({ article, onSave, onClose }: {
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: '18px 28px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0, background: 'var(--surface)' }}>
-          <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>
+        {/* Footer Actions */}
+        <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors"
+          >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem' }}
+            className="px-5 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
           >
-            <Save size={15} /> {isNew ? 'Create Article' : 'Save Changes'}
+            <Save size={14} /> {isNew ? 'Create SOP' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -477,26 +949,41 @@ function EditorModal({ article, onSave, onClose }: {
   );
 }
 
-// ─── Delete Confirm Modal ─────────────────────────────────────────────────────
-function DeleteModal({ article, onConfirm, onClose }: { article: KbArticle; onConfirm: () => void; onClose: () => void }) {
+// ─── Delete Confirmation Modal ────────────────────────────────────────────────
+function DeleteModal({
+  article,
+  onConfirm,
+  onClose,
+}: {
+  article: KbArticle;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
   return (
     <ModalOverlay onClose={onClose}>
-      <div style={{ width: '100%', maxWidth: 420, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', color: 'var(--text)', overflow: 'hidden' }}>
-        <div style={{ padding: '28px 28px 20px', textAlign: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <Trash2 size={24} color="#ef4444" />
-          </div>
-          <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 8, color: 'var(--text)' }}>Delete Article?</div>
-          <div style={{ color: 'var(--muted)', fontSize: '0.875rem', lineHeight: 1.5 }}>
-            "<strong style={{ color: 'var(--text)' }}>{article.title}</strong>" will be permanently removed from the knowledge base.
-          </div>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden text-slate-900 p-6 text-center">
+        <div className="w-12 h-12 rounded-full bg-red-100 text-brand-danger flex items-center justify-center mx-auto mb-4">
+          <Trash2 size={22} />
         </div>
-        <div style={{ padding: '0 28px 24px', display: 'flex', gap: 10 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted)', fontWeight: 600, cursor: 'pointer' }}>
+        <h3 className="text-base font-bold text-slate-900">Delete Operating Procedure?</h3>
+        <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+          Are you sure you want to permanently remove <strong className="text-slate-800">"{article.title}"</strong> from the Knowledge Base? This action cannot be undone.
+        </p>
+
+        <div className="mt-6 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors"
+          >
             Cancel
           </button>
-          <button onClick={onConfirm} style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
-            Delete
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="flex-1 py-2 rounded-lg bg-brand-danger hover:bg-red-800 text-white text-xs font-semibold shadow-sm transition-colors"
+          >
+            Yes, Delete SOP
           </button>
         </div>
       </div>
@@ -504,43 +991,69 @@ function DeleteModal({ article, onConfirm, onClose }: { article: KbArticle; onCo
   );
 }
 
-// ─── Modal Overlay wrapper ────────────────────────────────────────────────────
-function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+// ─── Toast Notification ───────────────────────────────────────────────────────
+function Toast({
+  message,
+  type,
+  onDismiss,
+}: {
+  message: string;
+  type: 'success' | 'error';
+  onDismiss: () => void;
+}) {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+    const t = setTimeout(onDismiss, 3500);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fadeIn 0.12s ease' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      className={cn(
+        'fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold animate-slide-up backdrop-blur-md',
+        type === 'success'
+          ? 'bg-emerald-900/90 text-emerald-100 border-emerald-700'
+          : 'bg-red-900/90 text-red-100 border-red-700'
+      )}
     >
-      {children}
-    </div>
-  );
-}
-
-// ─── Toast notification ───────────────────────────────────────────────────────
-function Toast({ message, type, onDismiss }: { message: string; type: 'success' | 'error'; onDismiss: () => void }) {
-  useEffect(() => { const t = setTimeout(onDismiss, 3000); return () => clearTimeout(t); }, [onDismiss]);
-  return (
-    <div style={{ position: 'fixed', bottom: 28, right: 28, zIndex: 2000, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px', borderRadius: 10, background: type === 'success' ? 'rgba(16,185,129,0.95)' : 'rgba(239,68,68,0.95)', color: '#fff', fontWeight: 700, fontSize: '0.875rem', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)', animation: 'slideUp 0.2s ease' }}>
       {type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
-      {message}
+      <span>{message}</span>
+      <button onClick={onDismiss} className="ml-2 text-white/60 hover:text-white">
+        <X size={14} />
+      </button>
     </div>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Knowledge Base Page ─────────────────────────────────────────────────
+// Local copy first, then the AI service, then the built in SOP catalog
+async function loadInitialArticles(): Promise<KbArticle[]> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+    try {
+      const remote = await getKnowledgeArticles<KbArticle>();
+      if (remote.length > 0) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+        return remote;
+      }
+    } catch {
+      // fall back to the seed below
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ARTICLES));
+    return DEFAULT_ARTICLES;
+  } catch {
+    return DEFAULT_ARTICLES;
+  }
+}
+
 export function KnowledgeBasePage() {
   const [articles, setArticles] = useState<KbArticle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('All');
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<'alpha' | 'category' | 'hours'>('alpha');
+  const [category, setCategory] = useState<CategoryType>('All');
+  const [sortBy, setSortBy] = useState<'alpha' | 'hours-asc' | 'hours-desc' | 'category'>('alpha');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   // Modals
   const [viewArticle, setViewArticle] = useState<KbArticle | null>(null);
@@ -553,36 +1066,16 @@ export function KnowledgeBasePage() {
     setToast({ message, type });
   };
 
-  // Load articles from localStorage (seeded from API)
-  const loadArticles = useCallback(async () => {
-    setLoading(true);
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setArticles(JSON.parse(stored));
-      } else {
-        const res = await fetch(`${API_BASE}/ai/knowledge/articles`);
-        if (res.ok) {
-          const data = await res.json();
-          const seeded: KbArticle[] = (data.articles || []).map((a: KbArticle) => ({
-            ...a,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          }));
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-          setArticles(seeded);
-        }
-      }
-    } catch {
-      // Try localStorage as fallback
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setArticles(JSON.parse(stored));
-    } finally {
+  // Load articles
+  useEffect(() => {
+    let cancelled = false;
+    loadInitialArticles().then(loaded => {
+      if (cancelled) return;
+      setArticles(loaded);
       setLoading(false);
-    }
+    });
+    return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => { loadArticles(); }, [loadArticles]);
 
   const persist = (updated: KbArticle[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -592,177 +1085,302 @@ export function KnowledgeBasePage() {
   const handleSave = (data: KbArticle) => {
     const existing = articles.find(a => a.id === data.id);
     const updated = existing
-      ? articles.map(a => a.id === data.id ? data : a)
-      : [...articles, data];
+      ? articles.map(a => (a.id === data.id ? data : a))
+      : [data, ...articles];
     persist(updated);
     setEditArticle(null);
-    showToast(existing ? 'Article updated successfully' : 'Article created successfully');
+    showToast(existing ? 'SOP updated successfully' : 'New SOP created successfully');
   };
 
   const handleDelete = (article: KbArticle) => {
     persist(articles.filter(a => a.id !== article.id));
     setDeleteArticle(null);
     if (viewArticle?.id === article.id) setViewArticle(null);
-    showToast('Article deleted', 'error');
+    showToast('SOP deleted from knowledge base', 'error');
   };
 
-  const handleRefresh = async () => {
-    localStorage.removeItem(STORAGE_KEY);
-    await loadArticles();
-    showToast('Articles refreshed from server');
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const remote = await getKnowledgeArticles<KbArticle>();
+      if (remote.length > 0) {
+        persist(remote);
+        showToast('Synchronized with AI Knowledge Base');
+        return;
+      }
+      // If server doesn't respond or has no articles, reset to defaults
+      persist(DEFAULT_ARTICLES);
+      showToast('Reset to standard fleet SOP catalog');
+    } catch {
+      persist(DEFAULT_ARTICLES);
+      showToast('Reset to standard fleet SOP catalog');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  // Filtering + sorting
-  const filtered = articles
-    .filter(a => category === 'All' || a.category === category)
-    .filter(a => {
-      if (!search.trim()) return true;
-      const s = search.toLowerCase();
-      return a.title.toLowerCase().includes(s) || a.summary.toLowerCase().includes(s) || a.tags.some(t => t.includes(s)) || a.category.toLowerCase().includes(s);
-    })
-    .sort((a, b) => {
-      if (sortBy === 'category') return a.category.localeCompare(b.category);
-      if (sortBy === 'hours') return a.estimated_hours - b.estimated_hours;
-      return a.title.localeCompare(b.title);
-    });
+  // Filtered & sorted articles
+  const filtered = useMemo(() => {
+    return articles
+      .filter(a => category === 'All' || a.category === category)
+      .filter(a => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        return (
+          a.title.toLowerCase().includes(q) ||
+          a.summary.toLowerCase().includes(q) ||
+          a.category.toLowerCase().includes(q) ||
+          a.tags.some(t => t.toLowerCase().includes(q)) ||
+          a.parts.some(p => p.toLowerCase().includes(q))
+        );
+      })
+      .sort((a, b) => {
+        if (sortBy === 'hours-asc') return a.estimated_hours - b.estimated_hours;
+        if (sortBy === 'hours-desc') return b.estimated_hours - a.estimated_hours;
+        if (sortBy === 'category') return a.category.localeCompare(b.category);
+        return a.title.localeCompare(b.title);
+      });
+  }, [articles, category, search, sortBy]);
 
-  // Stats
-  const catCounts = CATEGORIES.filter(c => c !== 'All').reduce((acc, c) => {
-    acc[c] = articles.filter(a => a.category === c).length;
-    return acc;
-  }, {} as Record<string, number>);
+  // Statistics
+  const stats = useMemo(() => {
+    const total = articles.length;
+    const avgHours = total > 0 ? articles.reduce((acc, a) => acc + (a.estimated_hours || 0), 0) / total : 0;
+    const uniqueCats = new Set(articles.map(a => a.category)).size;
+    const totalSteps = articles.reduce((acc, a) => acc + a.steps.length, 0);
+    const totalParts = articles.reduce((acc, a) => acc + a.parts.length, 0);
+    return { total, avgHours, uniqueCats, totalSteps, totalParts };
+  }, [articles]);
+
+  // Category counts
+  const catCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const c of CATEGORIES) {
+      map[c] = c === 'All' ? articles.length : articles.filter(a => a.category === c).length;
+    }
+    return map;
+  }, [articles]);
 
   return (
-    <div className="dashboard-page animate-fade-in">
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+    <div className="space-y-6 animate-fade-in text-slate-900 w-full">
+      {/* ── Page Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
         <PageHeader
-          title="Knowledge Base"
-          subtitle="Mechanic Resource Center — Standard Operating Procedures (SOPs), diagnostic guides, and repair steps."
+          title="Knowledge Base & SOP Library"
+          subtitle="Mechanic Resource Center — Standard Operating Procedures, diagnostic guides, and component repair workflows."
           icon={BookOpen}
         />
-        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-shrink-0">
           <button
-            onClick={handleRefresh}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--muted)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-sm transition-colors disabled:opacity-60"
           >
-            <RefreshCw size={13} /> Sync
+            <RefreshCw size={13} className={cn(isSyncing && 'animate-spin text-brand-primary')} />
+            {isSyncing ? 'Syncing...' : 'Sync Catalog'}
           </button>
           <button
             onClick={() => setEditArticle('new')}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer' }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-sm transition-colors"
           >
-            <Plus size={16} /> New Article
+            <Plus size={15} />
+            New SOP
           </button>
         </div>
       </div>
 
-      {/* ── Search + Filter Bar ── */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'center' }}>
-        {/* Search */}
-        <div style={{ position: 'relative', flex: 1 }}>
-          <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }} />
-          <input
-            className="input"
-            style={{ paddingLeft: 42, paddingRight: search ? 36 : 14, height: 42 }}
-            placeholder="Search articles, symptoms, tags…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          {search && (
-            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex', padding: 2 }}>
-              <X size={14} />
-            </button>
-          )}
+      {/* ── Top Executive KPI Metrics (Tremor / One UI Style) ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Metric 1 */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Active SOPs</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-brand-primary flex items-center justify-center">
+              <BookOpen size={16} />
+            </div>
+          </div>
+          <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
+            {stats.total}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">Documented workshop guides</p>
         </div>
 
-        {/* Category select (compact) */}
-        <div style={{ position: 'relative' }}>
-          <Filter size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }} />
-          <select
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-            style={{ height: 42, padding: '0 36px 0 34px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: category === 'All' ? 'var(--muted)' : 'var(--text)', fontSize: '0.875rem', fontWeight: category === 'All' ? 400 : 700, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', outline: 'none', fontFamily: 'inherit' }}
-          >
-            {CATEGORIES.map(c => <option key={c} value={c}>{c === 'All' ? 'All Categories' : c}</option>)}
-          </select>
-          <ChevronRight size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%) rotate(90deg)', color: 'var(--muted)', pointerEvents: 'none' }} />
+        {/* Metric 2 */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Avg Labor SLA</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+              <Clock size={16} />
+            </div>
+          </div>
+          <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
+            ~{stats.avgHours.toFixed(1)}h
+          </div>
+          <p className="mt-1 text-xs text-slate-500">Standard resolution benchmark</p>
         </div>
 
-        {/* Sort */}
-        <div style={{ position: 'relative' }}>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value as any)}
-            style={{ height: 42, padding: '0 32px 0 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--muted)', fontSize: '0.82rem', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', outline: 'none', fontFamily: 'inherit' }}
-          >
-            <option value="alpha">A → Z</option>
-            <option value="category">By Category</option>
-            <option value="hours">By Est. Hours</option>
-          </select>
-          <ChevronRight size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%) rotate(90deg)', color: 'var(--muted)', pointerEvents: 'none' }} />
+        {/* Metric 3 */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Subsystems</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
+              <Layers size={16} />
+            </div>
+          </div>
+          <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
+            {stats.uniqueCats} Modules
+          </div>
+          <p className="mt-1 text-xs text-slate-500">Engine, Brakes, Transmission...</p>
         </div>
 
-        {/* Results count */}
-        <div style={{ fontSize: '0.82rem', color: 'var(--muted)', whiteSpace: 'nowrap', paddingLeft: 4 }}>
-          {filtered.length} of {articles.length}
+        {/* Metric 4 */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Steps & Supplies</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              <CheckCircle size={16} />
+            </div>
+          </div>
+          <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
+            {stats.totalSteps} Steps
+          </div>
+          <p className="mt-1 text-xs text-slate-500">Across {stats.totalParts} inventory parts</p>
         </div>
       </div>
 
-      {/* ── Category pills (quick filter) ── */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 24 }}>
-        {CATEGORIES.map(cat => {
-          const count = cat === 'All' ? articles.length : catCounts[cat] || 0;
-          const col = getCatColor(cat);
-          const active = category === cat;
-          return (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '5px 12px 5px 10px', borderRadius: 999,
-                border: active ? 'none' : '1px solid var(--border)',
-                background: active ? col : 'var(--surface)',
-                color: active ? '#fff' : 'var(--muted)',
-                fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
+      {/* ── Search & Filter Toolbar ── */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+        {/* Row 1: Search + Sort + View Mode */}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          {/* Search bar */}
+          <div className="relative flex-1 w-full">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by procedure name, symptom, replacement part, or #tag..."
+              className="w-full pl-10 pr-9 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Sort selector */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as typeof sortBy)}
+              className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors cursor-pointer w-full sm:w-auto"
             >
-              {cat !== 'All' && getCatIcon(cat)}
-              {cat}
-              <span style={{ background: active ? 'rgba(255,255,255,0.25)' : 'var(--surface-alt)', color: active ? '#fff' : 'var(--muted)', borderRadius: 999, padding: '0px 6px', fontSize: '0.68rem', fontWeight: 800 }}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
+              <option value="alpha">Sort: Alphabetical (A → Z)</option>
+              <option value="category">Sort: Subsystem Category</option>
+              <option value="hours-asc">Sort: SLA (Lowest First)</option>
+              <option value="hours-desc">Sort: SLA (Highest First)</option>
+            </select>
+
+            {/* View Mode Toggle: Grid vs Table */}
+            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  'p-1.5 rounded-md text-xs font-medium transition-colors',
+                  viewMode === 'grid'
+                    ? 'bg-white text-brand-primary shadow-sm font-bold'
+                    : 'text-slate-500 hover:text-slate-800'
+                )}
+                title="Grid View"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={cn(
+                  'p-1.5 rounded-md text-xs font-medium transition-colors',
+                  viewMode === 'table'
+                    ? 'bg-white text-brand-primary shadow-sm font-bold'
+                    : 'text-slate-500 hover:text-slate-800'
+                )}
+                title="Table View"
+              >
+                <List size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Subsystem Category Tabs (Segmented control) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar">
+          {CATEGORIES.map(cat => {
+            const count = catCounts[cat] || 0;
+            const active = category === cat;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setCategory(cat)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
+                  active
+                    ? 'bg-brand-primary text-white shadow-sm'
+                    : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
+                )}
+              >
+                <span>{cat}</span>
+                <span
+                  className={cn(
+                    'px-1.5 py-0.2 rounded-full text-[10px] font-bold',
+                    active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ── Article Grid ── */}
+      {/* ── Content View (Grid or Table) ── */}
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="premium-card" style={{ height: 220, background: 'var(--surface)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div key={i} className="h-56 bg-white border border-slate-200 rounded-xl p-5 animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 40px', background: 'var(--surface)', borderRadius: 16, textAlign: 'center', gap: 12 }}>
-          <BookOpen size={44} style={{ color: 'var(--muted)', opacity: 0.5 }} />
-          <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text)' }}>
-            {search || category !== 'All' ? 'No articles match your search' : 'No articles yet'}
+        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+            <BookOpen size={24} />
           </div>
-          <div style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
-            {search || category !== 'All' ? 'Try adjusting your filters or search query.' : 'Create your first article to get started.'}
-          </div>
-          {!search && category === 'All' && (
-            <button onClick={() => setEditArticle('new')} style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
-              <Plus size={15} /> Create Article
+          <h3 className="text-base font-bold text-slate-900">No procedures found</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm">
+            {search || category !== 'All'
+              ? 'No operating procedures match your search filters. Try clearing your search query or switching categories.'
+              : 'The knowledge base library is empty. Click "+ New SOP" to record the first procedure.'}
+          </p>
+          {(search || category !== 'All') && (
+            <button
+              onClick={() => {
+                setSearch('');
+                setCategory('All');
+              }}
+              className="mt-4 px-3 py-1.5 rounded-lg text-xs font-semibold text-brand-primary border border-slate-200 hover:bg-slate-50"
+            >
+              Clear Filters
             </button>
           )}
         </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+      ) : viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(art => (
             <ArticleCard
               key={art.id}
@@ -773,6 +1391,13 @@ export function KnowledgeBasePage() {
             />
           ))}
         </div>
+      ) : (
+        <ArticleTable
+          articles={filtered}
+          onView={art => setViewArticle(art)}
+          onEdit={art => setEditArticle(art)}
+          onDelete={art => setDeleteArticle(art)}
+        />
       )}
 
       {/* ── Modals ── */}
@@ -780,7 +1405,10 @@ export function KnowledgeBasePage() {
         <ViewModal
           article={viewArticle}
           onClose={() => setViewArticle(null)}
-          onEdit={() => { setEditArticle(viewArticle); setViewArticle(null); }}
+          onEdit={() => {
+            setEditArticle(viewArticle);
+            setViewArticle(null);
+          }}
         />
       )}
 
@@ -801,7 +1429,13 @@ export function KnowledgeBasePage() {
       )}
 
       {/* ── Toast ── */}
-      {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

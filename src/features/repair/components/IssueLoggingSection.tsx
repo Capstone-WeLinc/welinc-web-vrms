@@ -1,5 +1,4 @@
-import { VEHICLE_SYSTEM_OPTIONS, ROOT_CAUSE_OPTIONS } from '../../../lib/mockConfig';
-import { Button } from '../../../components/ui/Button';
+import { VEHICLE_SYSTEM_OPTIONS, ROOT_CAUSE_OPTIONS } from '../../../lib/repairOptions';
 
 import { RepairIssue } from '../../../types';
 
@@ -90,7 +89,7 @@ export function IssueLoggingSection({
           </div>
           <div className="input-group" style={{ marginTop: 16 }}>
             <label className="label" htmlFor={`issueDescription-${issue.id}`}>
-              Repair description <span style={{ color: '#dc2626' }}>*</span>
+              Repair description <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <textarea
               id={`issueDescription-${issue.id}`}
@@ -103,7 +102,7 @@ export function IssueLoggingSection({
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
               <p className="small-note" style={{ margin: 0 }}>Please provide specific details about the issue.</p>
-              <p className="small-note" style={{ margin: 0, color: issue.description.length > 450 ? '#dc2626' : 'var(--muted)', textAlign: 'right' }}>
+              <p className="small-note" style={{ margin: 0, color: issue.description.length > 450 ? 'var(--danger)' : 'var(--muted)', textAlign: 'right' }}>
                 {issue.description.length} / 500 characters
               </p>
             </div>
@@ -115,7 +114,7 @@ export function IssueLoggingSection({
           type="button"
           onClick={handleAddIssue}
           disabled={issues.length >= 10}
-          style={{ padding: '8px 16px', border: '1px dashed var(--primary, #3b82f6)', background: 'transparent', color: 'var(--primary, #3b82f6)', borderRadius: 6, cursor: issues.length >= 10 ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: issues.length >= 10 ? 0.5 : 1 }}
+          style={{ padding: '8px 16px', border: '1px dashed var(--primary)', background: 'transparent', color: 'var(--primary)', borderRadius: 6, cursor: issues.length >= 10 ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: issues.length >= 10 ? 0.5 : 1 }}
         >
           + Add another issue
         </button>

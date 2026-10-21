@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Sparkles, AlertTriangle, Clock, Wrench, GitCompare, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Star, CheckCircle, Search, Car, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../../../lib/api/axios';
+import { getApiErrorMessage } from '../../../lib/api/errors';
 
 interface AiDiagnosticPanelProps {
   vehiclePlate: string;
@@ -35,25 +36,25 @@ interface ContextLineage {
 interface DiagnosticResponse {
   symptom: string;
   similar_past_repairs: SimilarRepair[];
-  vehicle_history: any[];
+  vehicle_history: unknown[];
   ai_diagnosis: AiDiagnosis;
   context_lineage: ContextLineage;
 }
 
 const PRIORITY_MAP: Record<string, { color: string; bg: string; border: string }> = {
-  critical: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.25)' },
-  major:    { color: '#d97706', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.25)'  },
-  minor:    { color: '#16a34a', bg: 'rgba(22,163,74,0.08)',  border: 'rgba(22,163,74,0.25)'  },
+  critical: { color: 'var(--danger)', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.25)' },
+  major:    { color: 'var(--warning)', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.25)'  },
+  minor:    { color: 'var(--success)', bg: 'rgba(22,163,74,0.08)',  border: 'rgba(22,163,74,0.25)'  },
 };
 function priorityStyle(p?: string) {
-  return PRIORITY_MAP[(p || '').toLowerCase()] ?? { color: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.25)' };
+  return PRIORITY_MAP[(p || '').toLowerCase()] ?? { color: 'var(--muted)', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.25)' };
 }
 
 function ConfidenceBadge({ level }: { level?: string }) {
   const map: Record<string, { bg: string; color: string; label: string }> = {
-    High:     { bg: 'rgba(16,185,129,0.12)',  color: '#10b981', label: 'High Confidence' },
-    Moderate: { bg: 'rgba(245,158,11,0.12)',  color: '#f59e0b', label: 'Moderate Confidence' },
-    Low:      { bg: 'rgba(239,68,68,0.12)',   color: '#ef4444', label: 'Low — Limited Data' },
+    High:     { bg: 'rgba(16,185,129,0.12)',  color: 'var(--success)', label: 'High Confidence' },
+    Moderate: { bg: 'rgba(245,158,11,0.12)',  color: 'var(--warning)', label: 'Moderate Confidence' },
+    Low:      { bg: 'rgba(239,68,68,0.12)',   color: 'var(--danger)', label: 'Low — Limited Data' },
   };
   const cfg = map[level || 'Low'] || map.Low;
   return (
@@ -95,8 +96,8 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
         issues: issues.map(i => i.description),
       });
       setData(response.data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err.message || 'Unable to run AI triage. Please try again.');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Unable to run AI triage. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -125,7 +126,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: data ? 24 : 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Sparkles size={18} style={{ color: '#8b5cf6' }} />
+            <Sparkles size={18} style={{ color: 'var(--primary)' }} />
           </div>
           <div>
             <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text)' }}>AI Diagnostic Assistant</div>
@@ -146,7 +147,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, border: 'none',
-                background: loading ? 'var(--surface)' : 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                background: loading ? 'var(--surface)' : 'linear-gradient(135deg, var(--primary) 0%, var(--primary) 100%)',
                 color: loading ? 'var(--muted)' : 'white',
                 fontWeight: 700, fontSize: '0.9rem', cursor: loading || issues.length === 0 ? 'not-allowed' : 'pointer',
                 opacity: issues.length === 0 ? 0.5 : 1,
@@ -173,14 +174,14 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
       {loading && (
         <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--muted)' }}>
           <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { 100% { transform: rotate(360deg); } }` }} />
-          <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: '#8b5cf6', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+          <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
           <div style={{ fontSize: '0.9rem' }}>Running diagnostic analysis on {vehiclePlate}…</div>
         </div>
       )}
 
       {/* Error */}
       {error && !loading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '12px 16px', color: '#dc2626', fontSize: '0.875rem', marginTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '12px 16px', color: 'var(--danger)', fontSize: '0.875rem', marginTop: 8 }}>
           <AlertTriangle size={16} style={{ flexShrink: 0 }} />
           {error}
         </div>
@@ -193,7 +194,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
           {/* Predictions */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
             <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 12, padding: '16px 20px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#3b82f6', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Wrench size={13} /> Predicted Category
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)' }}>{data.ai_diagnosis.predicted_category || '—'}</div>
@@ -205,7 +206,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: ps!.color }}>{data.ai_diagnosis.predicted_priority || '—'}</div>
             </div>
             <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 12, padding: '16px 20px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#10b981', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--success)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Clock size={13} /> Estimated SLA
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)' }}>~{data.ai_diagnosis.estimated_sla_hours ?? '—'} hours</div>
@@ -215,16 +216,16 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
           {/* Safety note */}
           {data.ai_diagnosis.safety_note && (
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 10, padding: '14px 18px' }}>
-              <AlertTriangle size={18} color="#d97706" style={{ flexShrink: 0, marginTop: 1 }} />
-              <div style={{ fontSize: '0.9rem', color: '#92400e', lineHeight: 1.5 }}>
+              <AlertTriangle size={18} color="var(--warning)" style={{ flexShrink: 0, marginTop: 1 }} />
+              <div style={{ fontSize: '0.9rem', color: 'var(--warning-text)', lineHeight: 1.5 }}>
                 <strong>Safety Note:</strong> {data.ai_diagnosis.safety_note}
               </div>
             </div>
           )}
 
           {/* Summary */}
-          <div style={{ background: 'var(--surface)', borderLeft: '3px solid #8b5cf6', borderRadius: '0 10px 10px 0', padding: '14px 18px' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>AI Summary</div>
+          <div style={{ background: 'var(--surface)', borderLeft: '3px solid var(--primary)', borderRadius: '0 10px 10px 0', padding: '14px 18px' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>AI Summary</div>
             <p style={{ margin: 0, fontSize: '0.925rem', color: 'var(--text)', lineHeight: 1.6 }}>{data.ai_diagnosis.summary}</p>
           </div>
 
@@ -235,7 +236,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
               <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {data.ai_diagnosis.probable_causes?.map((cause, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, fontSize: '0.875rem', alignItems: 'flex-start' }}>
-                    <span style={{ minWidth: 22, height: 22, borderRadius: '50%', background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', fontWeight: 800, fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+                    <span style={{ minWidth: 22, height: 22, borderRadius: '50%', background: 'rgba(139,92,246,0.12)', color: 'var(--primary)', fontWeight: 800, fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
                     <span style={{ lineHeight: 1.5 }}>{cause}</span>
                   </li>
                 ))}
@@ -250,7 +251,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--surface-alt)', borderRadius: 8, fontSize: '0.875rem', border: '1px solid var(--border)' }}>
                       <span>{part.part_name}</span>
                       {part.est_cost_php != null && (
-                        <span style={{ fontWeight: 800, color: '#10b981', flexShrink: 0, marginLeft: 12 }}>
+                        <span style={{ fontWeight: 800, color: 'var(--success)', flexShrink: 0, marginLeft: 12 }}>
                           ₱{part.est_cost_php.toLocaleString('en-PH')}
                         </span>
                       )}
@@ -270,19 +271,19 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {[
                   {
-                    icon: <Car size={14} />, color: '#3b82f6', label: 'Vehicle History',
+                    icon: <Car size={14} />, color: 'var(--primary)', label: 'Vehicle History',
                     value: data.context_lineage.vehicle_history_count > 0
                       ? `${data.context_lineage.vehicle_history_count} past repair(s)`
                       : 'No prior records found'
                   },
                   {
-                    icon: <Search size={14} />, color: '#8b5cf6', label: 'Fleet DB (pgvector)',
+                    icon: <Search size={14} />, color: 'var(--primary)', label: 'Fleet DB (pgvector)',
                     value: data.context_lineage.vector_matches_count > 0
                       ? `${data.context_lineage.vector_matches_count} match(es) — avg ${(data.context_lineage.similarity_avg * 100).toFixed(0)}% similarity`
                       : 'No similar cases ≥ 60%'
                   },
                   {
-                    icon: <Bot size={14} />, color: '#10b981', label: 'AI Engine',
+                    icon: <Bot size={14} />, color: 'var(--success)', label: 'AI Engine',
                     value: (data.ai_diagnosis.model_used || 'Gemini 2.0 Flash').replace(/\(Local Fallback\)/g, '(AI Engine)').replace(/Local Dynamic Fallback/g, 'Gemini 2.0 Flash Engine')
                   },
                 ].map((item, i) => (
@@ -306,7 +307,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
                 style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--surface)', border: 'none', cursor: 'pointer', color: 'var(--text)' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: '0.875rem' }}>
-                  <GitCompare size={16} style={{ color: '#3b82f6' }} />
+                  <GitCompare size={16} style={{ color: 'var(--primary)' }} />
                   Similar Past Repairs ({data.similar_past_repairs.length} found via pgvector)
                 </div>
                 {showSimilar ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -327,13 +328,13 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
                         <td style={{ padding: '10px 16px', width: 160 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <div style={{ flex: 1, height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
-                              <div style={{ width: `${repair.similarity_score * 100}%`, height: '100%', background: repair.similarity_score >= 0.8 ? '#10b981' : 'linear-gradient(90deg, #3b82f6, #8b5cf6)', borderRadius: 3 }} />
+                              <div style={{ width: `${repair.similarity_score * 100}%`, height: '100%', background: repair.similarity_score >= 0.8 ? 'var(--success)' : 'linear-gradient(90deg, var(--primary), var(--primary))', borderRadius: 3 }} />
                             </div>
                             <span style={{ fontSize: '0.78rem', fontWeight: 700, width: 36, textAlign: 'right' }}>{(repair.similarity_score * 100).toFixed(0)}%</span>
                           </div>
                         </td>
                         <td style={{ padding: '10px 16px' }}>
-                          <Link to={`/repairs/${repair.ticket_id}`} style={{ color: '#8b5cf6', textDecoration: 'none', fontWeight: 600, fontSize: '0.8rem' }}>
+                          <Link to={`/repairs/${repair.ticket_id}`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600, fontSize: '0.8rem' }}>
                             View #{repair.ticket_id.substring(0, 8)}
                           </Link>
                         </td>
@@ -350,24 +351,24 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
             <div style={{ background: 'var(--surface-alt)', border: '1px dashed var(--border)', borderRadius: 10, padding: '14px 18px' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: 10 }}>Was this AI diagnosis helpful?</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <button onClick={() => submitFeedback(true, 5)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid #10b981', background: 'rgba(16,185,129,0.08)', color: '#10b981', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+                <button onClick={() => submitFeedback(true, 5)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--success)', background: 'rgba(16,185,129,0.08)', color: 'var(--success)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
                   <ThumbsUp size={15} /> Yes, helpful (5★)
                 </button>
-                <button onClick={() => submitFeedback(false, 2)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid #ef4444', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+                <button onClick={() => submitFeedback(false, 2)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--danger)', background: 'rgba(239,68,68,0.08)', color: 'var(--danger)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
                   <ThumbsDown size={15} /> Not helpful (2★)
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
                   <span style={{ fontSize: '0.78rem', color: 'var(--muted)', fontWeight: 600, marginRight: 4 }}>Or Rate:</span>
                   {[1, 2, 3, 4, 5].map(n => (
                     <button key={n} onClick={() => submitFeedback(n >= 3, n)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }} title={`${n} Stars`}>
-                      <Star size={18} fill={feedbackRating >= n ? '#f59e0b' : 'none'} color={feedbackRating >= n ? '#f59e0b' : 'var(--muted)'} />
+                      <Star size={18} fill={feedbackRating >= n ? 'var(--warning)' : 'none'} color={feedbackRating >= n ? 'var(--warning)' : 'var(--muted)'} />
                     </button>
                   ))}
                 </div>
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(16,185,129,0.08)', borderRadius: 10, border: '1px solid rgba(16,185,129,0.2)', color: '#10b981', fontSize: '0.875rem', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(16,185,129,0.08)', borderRadius: 10, border: '1px solid rgba(16,185,129,0.2)', color: 'var(--success)', fontSize: '0.875rem', fontWeight: 700 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CheckCircle size={16} />
                 <span>Feedback recorded: {feedbackRating > 0 ? `${feedbackRating}/5 Stars` : 'Helpful'} — Thank you!</span>

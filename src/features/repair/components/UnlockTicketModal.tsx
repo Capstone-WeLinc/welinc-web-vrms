@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { unlockRepairTicket } from '../../../lib/api/repairApi';
 import { RepairTicket } from '../../../types';
 import { Button } from '../../../components/ui/Button';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/toast';
+import { getApiErrorMessage } from '../../../lib/api/errors';
 
 interface UnlockTicketModalProps {
   repairId: string;
@@ -36,8 +37,8 @@ export function UnlockTicketModal({
       onUnlockSuccess(updated);
       showToast(`Repair ticket ${repairNumber} has been unlocked successfully.`, 'success');
       onClose();
-    } catch (err: any) {
-      const displayMsg = err?.response?.data?.message ?? 'Unable to unlock ticket.';
+    } catch (err) {
+      const displayMsg = getApiErrorMessage(err, 'Unable to unlock ticket.');
       setUnlockError(displayMsg);
       showToast(displayMsg, 'error');
     } finally {
@@ -60,7 +61,7 @@ export function UnlockTicketModal({
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--surface)',
           borderRadius: 12,
           padding: 32,
           maxWidth: 480,
@@ -69,13 +70,13 @@ export function UnlockTicketModal({
         }}
       >
         <h3 style={{ margin: '0 0 8px' }}>Unlock Ticket</h3>
-        <p style={{ color: '#64748b', marginBottom: 20, fontSize: 14 }}>
+        <p style={{ color: 'var(--muted)', marginBottom: 20, fontSize: 14 }}>
           You are about to unlock this <strong>{repairStatus.replace('_', ' ')}</strong> ticket for editing.
           This action will be permanently recorded in the audit log.
         </p>
         <div className="input-group">
           <label className="label" htmlFor="unlock-reason">
-            Reason for unlocking <span style={{ color: '#dc2626' }}>*</span>
+            Reason for unlocking <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <textarea
             id="unlock-reason"

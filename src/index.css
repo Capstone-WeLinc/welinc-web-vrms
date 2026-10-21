@@ -52,6 +52,24 @@
   --danger: #c0392b;
   --danger-soft: rgba(192, 57, 43, 0.1);
   --info: #1a1f6e;
+  --accent-strong: #d4a600;
+  --warning-text: #92400e;
+  --on-primary: #ffffff;
+  --on-accent: #0f172a;
+
+  /* Ticket status colors (design.md) */
+  --status-pending: #d97706;
+  --status-in-progress: #1a1f6e;
+  --status-for-verification: #7c3aed;
+  --status-completed: #10b981;
+  --status-cancelled: #94a3b8;
+
+  /* Chart series, in order of use */
+  --chart-1: #1a1f6e;
+  --chart-2: #e8b800;
+  --chart-3: #10b981;
+  --chart-4: #7c3aed;
+  --chart-5: #94a3b8;
   --card-shadow: 0 0 0 1px var(--border), 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 

@@ -3,6 +3,7 @@ import { Shield, Settings, Key, AlertTriangle, MoreVertical } from 'lucide-react
 import { ManagedUser } from '../../../types';
 import { getVrmsRoleAssignments } from '../hooks/useUsersManager';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
+import { GoToPageInput } from '../../../components/shared/GoToPageInput';
 
 interface UsersTableProps {
   users: ManagedUser[];
@@ -21,11 +22,6 @@ export function UsersTable({
 }: UsersTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [goToInput, setGoToInput] = useState('1');
-
-  useEffect(() => {
-    setGoToInput(currentPage.toString());
-  }, [currentPage]);
 
   useEffect(() => {
     if (openMenuId === null) return;
@@ -173,30 +169,7 @@ export function UsersTable({
             >
               Next
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>Go to:</span>
-              <input
-                type="text"
-                value={goToInput}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '') {
-                    setGoToInput('');
-                    return;
-                  }
-                  const num = parseInt(val, 10);
-                  if (!isNaN(num) && num >= 1 && num <= totalPages) {
-                    setGoToInput(val);
-                    setCurrentPage(num);
-                  }
-                }}
-                onBlur={() => {
-                  setGoToInput(currentPage.toString());
-                }}
-                className="input"
-                style={{ width: '45px', padding: '4px', textAlign: 'center', height: '30px', fontSize: '13px', borderRadius: '6px' }}
-              />
-            </div>
+            <GoToPageInput currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
         </div>
       )}

@@ -4,10 +4,10 @@ import { Wrench, Lock, Search, MoreVertical, Settings, Eye } from 'lucide-react'
 import { getRepairs } from '../../../lib/api/repairApi';
 import { RepairStatus, RepairTicket } from '../../../types';
 import { formatDate } from '../../../lib/utils/format';
-import { Button } from '../../../components/ui/Button';
 import { useAuthStore } from '../../../store/authStore';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
+import { GoToPageInput } from '../../../components/shared/GoToPageInput';
 
 const statusOptions: Array<{ value: RepairStatus | ''; label: string }> = [
   { value: '', label: 'All statuses' },
@@ -27,7 +27,6 @@ export function RepairListPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [goToInput, setGoToInput] = useState('1');
   const navigate = useNavigate();
   const itemsPerPage = 10;
 
@@ -39,7 +38,7 @@ export function RepairListPage() {
         const response = await getRepairs(search, status || undefined, currentPage, itemsPerPage);
         setRepairs(response.data);
         setTotalCount(response.total);
-      } catch (err) {
+      } catch {
         setError('Unable to load repair tickets.');
       } finally {
         setLoading(false);
@@ -48,14 +47,6 @@ export function RepairListPage() {
 
     load();
   }, [search, status, currentPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, status]);
-
-  useEffect(() => {
-    setGoToInput(currentPage.toString());
-  }, [currentPage]);
 
   // The total pages based on the server's totalCount
   const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
@@ -100,14 +91,14 @@ export function RepairListPage() {
                style={{ paddingLeft: 38 }}
                placeholder="Search by repair number, vehicle, or driver"
                value={search}
-               onChange={(event) => setSearch(event.target.value)}
+               onChange={(event) => { setSearch(event.target.value); setCurrentPage(1); }}
              />
            </div>
            <select
              id="statusFilter"
              className="select"
              value={status}
-             onChange={(event) => setStatus(event.target.value as RepairStatus | '')}
+             onChange={(event) => { setStatus(event.target.value as RepairStatus | ''); setCurrentPage(1); }}
              style={{ width: '160px' }}
            >
              {statusOptions.map((option) => (
@@ -128,7 +119,7 @@ export function RepairListPage() {
           <p>No tickets found.</p>
         ) : (
           <div style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.15s ease' }}>
-            <p style={{ marginTop: 0, marginBottom: 16, color: '#475569' }}>
+            <p style={{ marginTop: 0, marginBottom: 16, color: 'var(--muted)' }}>
               Showing {totalCount} repair ticket{totalCount === 1 ? '' : 's'}.
             </p>
             <table className="table">
@@ -241,30 +232,7 @@ export function RepairListPage() {
                   >
                     Next
                   </button>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>Go to:</span>
-                    <input
-                      type="text"
-                      value={goToInput}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '') {
-                          setGoToInput('');
-                          return;
-                        }
-                        const num = parseInt(val, 10);
-                        if (!isNaN(num) && num >= 1 && num <= totalPages) {
-                          setGoToInput(val);
-                          setCurrentPage(num);
-                        }
-                      }}
-                      onBlur={() => {
-                        setGoToInput(currentPage.toString());
-                      }}
-                      className="input"
-                      style={{ width: '45px', padding: '4px', textAlign: 'center', height: '30px', fontSize: '13px', borderRadius: '6px' }}
-                    />
-                  </div>
+                  <GoToPageInput currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
                 </div>
               </div>
             )}

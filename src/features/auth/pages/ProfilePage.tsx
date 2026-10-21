@@ -2,10 +2,11 @@ import { FormEvent, useState, useEffect } from 'react';
 import { User as UserIcon, Lock, Mail, Phone, Shield } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { Button } from '../../../components/ui/Button';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/toast';
 import { useAuthStore } from '../../../store/authStore';
 import { getCurrentUser, updateOwnProfile, changeOwnPassword } from '../../../lib/api/authApi';
 import { validatePassword } from '../../user-management/hooks/useUsersManager';
+import { getApiErrorMessage } from '../../../lib/api/errors';
 
 export function ProfilePage() {
   const storeUser = useAuthStore((state) => state.user);
@@ -31,13 +32,12 @@ export function ProfilePage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
     getCurrentUser()
       .then((fullUser) => {
         setProfileForm({
           name: fullUser.name || '',
           email: fullUser.email || '',
-          contact: (fullUser as any).contact || '',
+          contact: fullUser.contact || '',
         });
       })
       .catch((err) => {
@@ -45,7 +45,7 @@ export function ProfilePage() {
         showToast('Failed to load profile details.', 'error');
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast]);
 
   const handleProfileSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -76,9 +76,9 @@ export function ProfilePage() {
       }
 
       showToast('Profile updated successfully.', 'success');
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setProfileError(err.response?.data?.message ?? 'Failed to update profile.');
+      setProfileError(getApiErrorMessage(err, 'Failed to update profile.'));
       showToast('Failed to update profile.', 'error');
     } finally {
       setSavingProfile(false);
@@ -121,9 +121,9 @@ export function ProfilePage() {
         newPassword: '',
         confirmPassword: '',
       });
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setPasswordError(err.response?.data?.message ?? 'Failed to update password.');
+      setPasswordError(getApiErrorMessage(err, 'Failed to update password.'));
       showToast('Failed to update password.', 'error');
     } finally {
       setSavingPassword(false);
@@ -163,7 +163,7 @@ export function ProfilePage() {
           <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="input-group">
               <label className="label" htmlFor="profile-name">
-                Full Name <span style={{ color: '#dc2626' }}>*</span>
+                Full Name <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 id="profile-name"
@@ -176,7 +176,7 @@ export function ProfilePage() {
 
             <div className="input-group">
               <label className="label" htmlFor="profile-email">
-                Email Address <span style={{ color: '#dc2626' }}>*</span>
+                Email Address <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -244,7 +244,7 @@ export function ProfilePage() {
           <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="input-group">
               <label className="label" htmlFor="current-password">
-                Current Password <span style={{ color: '#dc2626' }}>*</span>
+                Current Password <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 id="current-password"
@@ -258,7 +258,7 @@ export function ProfilePage() {
 
             <div className="input-group">
               <label className="label" htmlFor="new-password">
-                New Password <span style={{ color: '#dc2626' }}>*</span>
+                New Password <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 id="new-password"
@@ -272,7 +272,7 @@ export function ProfilePage() {
 
             <div className="input-group">
               <label className="label" htmlFor="confirm-password">
-                Confirm New Password <span style={{ color: '#dc2626' }}>*</span>
+                Confirm New Password <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 id="confirm-password"

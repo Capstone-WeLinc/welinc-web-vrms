@@ -60,11 +60,11 @@ export function validateEmail(email: string): string | null {
 }
 
 export function useUsersManager() {
-  const currentUser = useAuthStore((state: any) => state.user);
+  const currentUser = useAuthStore((state) => state.user);
   const isAdmin = currentUser?.role === 'ADMIN';
 
   const [users, setUsers] = useState<ManagedUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(isAdmin);
   const [error, setError] = useState<string | null>(null);
 
   const loadUsers = async () => {
@@ -81,12 +81,15 @@ export function useUsersManager() {
     }
   };
 
+  // Initial load; loadUsers() above is for refreshing after a change
   useEffect(() => {
-    if (!isAdmin) {
-      setLoading(false);
-      return;
-    }
-    loadUsers().catch(() => {});
+    if (!isAdmin) return;
+    let cancelled = false;
+    getUsers('VRMS')
+      .then((data) => { if (!cancelled) setUsers(data); })
+      .catch(() => { if (!cancelled) setError('Unable to load user accounts.'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [isAdmin]);
 
   const saveUser = async (editingUserId: string | null, form: UserFormState) => {

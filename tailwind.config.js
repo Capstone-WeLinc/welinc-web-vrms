@@ -14,6 +14,7 @@ export default {
           'black': '#0d0d0d',        // Black - text primary, dark contexts
           'danger': '#c0392b',       // Red - danger buttons, error states, critical alerts
           'warning': '#e8b800',      // Yellow Gold - warning states, highlights
+          'warning-dark': '#d4a600', // Gold hover
           'success': '#10b981',      // Emerald - success states, completed actions
           'surface': '#ffffff',      // White - light mode backgrounds, cards
         },

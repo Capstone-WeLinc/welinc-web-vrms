@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LogOut,
   LayoutDashboard,
@@ -7,27 +7,24 @@ import {
   PlusCircle,
   History,
   Users,
-  PanelLeftClose,
-  PanelLeftOpen,
   User,
   ClipboardList,
   ArrowRightLeft,
-  FileDown,
   BarChart2,
   BookOpen,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import logo from '../../assets/brand-logo.jpg';
 import ConfirmModal from '../ConfirmModal';
-import { useToast } from '../../context/ToastContext';
+import type { LucideIcon } from 'lucide-react';
 
-const PORTAL_URL = (import.meta.env as any).VITE_PORTAL_URL || 'http://localhost:8000';
-const VMMS_URL = (import.meta.env as any).VITE_VMMS_URL || 'http://localhost:8002';
+const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
+const VMMS_URL = import.meta.env.VITE_VMMS_URL || 'http://localhost:8002';
 
 interface NavItem {
   to: string;
   label: string;
-  icon: any;
+  icon: LucideIcon;
 }
 
 interface NavSection {
@@ -90,29 +87,19 @@ const mechanicNavSections: NavSection[] = [
   },
 ];
 
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: 'Admin',
-  MECHANIC: 'Mechanic',
-  OPERATIONS: 'Operations',
-  CUSTOMER_SUPPORT: 'Customer Support',
-};
-
 export function Sidebar() {
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
-  const navigate = useNavigate();
   const location = useLocation();
-  const { showToast } = useToast();
 
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
 
   const navSections = user?.role === 'ADMIN' ? adminNavSections : mechanicNavSections;
-  const roleLabel = user?.role ? (ROLE_LABELS[user.role] ?? user.role) : '';
 
   const getSubsystemCount = () => {
     try {
       const roles = user?.roles || [];
-      const subsystemRoles = (roles as any[]).filter((r) =>
+      const subsystemRoles = roles.filter((r) =>
         ['VRMS', 'VMMS', 'BMS'].includes(r.system?.toUpperCase())
       );
       const uniqueSystems = new Set(subsystemRoles.map((r) => r.system.toUpperCase()));
