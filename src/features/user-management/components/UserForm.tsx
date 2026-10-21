@@ -1,6 +1,6 @@
 import { FormEvent, Dispatch, SetStateAction } from 'react';
 import { UserRole } from '../../../types';
-import { Button } from '../../../components/ui/Button';
+import { LegacyButton } from '../../../components/legacy/LegacyButton';
 import { UserFormState } from '../hooks/useUsersManager';
 
 interface UserFormProps {
@@ -28,7 +28,7 @@ export function UserForm({
     <section className="card">
       <div className="section-heading">
         <h3 style={{ margin: 0 }}>{editingUserId ? 'Edit account' : 'New account'}</h3>
-        <p style={{ margin: 0, color: 'var(--muted)' }}>VRMS accounts only</p>
+        <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>VRMS accounts only</p>
       </div>
       <form onSubmit={onSubmit}>
         <div className="input-group">
@@ -94,13 +94,13 @@ export function UserForm({
         {error ? <div className="alert" style={{ marginTop: 16 }}>{error}</div> : null}
 
         <div className="form-actions">
-          <Button type="submit" disabled={saving}>
+          <LegacyButton type="submit" disabled={saving}>
             {saving ? 'Saving...' : editingUserId ? 'Save changes' : 'Create account'}
-          </Button>
+          </LegacyButton>
           {editingUserId ? (
-            <Button type="button" variant="secondary" onClick={onCancel}>
+            <LegacyButton type="button" variant="secondary" onClick={onCancel}>
               Cancel
-            </Button>
+            </LegacyButton>
           ) : null}
         </div>
       </form>

@@ -65,7 +65,7 @@ export function UsersTable({
                 <td style={!user.isActive ? { opacity: 0.6 } : undefined}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{user.name}</span>
-                    <span style={{ fontSize: 13, color: 'var(--muted)' }}>{user.email}</span>
+                    <span style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{user.email}</span>
                   </div>
                 </td>
                 <td style={!user.isActive ? { opacity: 0.6 } : undefined}>
@@ -151,7 +151,7 @@ export function UsersTable({
 
       {totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 14px', borderTop: '1px solid var(--border)' }}>
-          <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>
+          <span style={{ fontSize: '13px', color: 'var(--muted-foreground)', fontWeight: 600 }}>
             Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * PAGE_SIZE) + 1} to {Math.min(currentPage * PAGE_SIZE, users.length)} of {users.length})
           </span>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

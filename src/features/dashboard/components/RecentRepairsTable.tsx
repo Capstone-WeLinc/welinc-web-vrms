@@ -59,7 +59,7 @@ export function RecentRepairsTable({ repairs, loading, error }: RecentRepairsTab
                   <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
                     {repair.repairNumber}
                   </Link>
-                  {isLocked && <Lock size={12} style={{ color: 'var(--muted)' }} />}
+                  {isLocked && <Lock size={12} style={{ color: 'var(--muted-foreground)' }} />}
                 </div>
               </td>
               <td>{repair.vehiclePlate}</td>

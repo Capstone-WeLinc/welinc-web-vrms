@@ -12,7 +12,7 @@ export function GoToPageInput({ currentPage, totalPages, onPageChange }: GoToPag
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
-      <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>Go to:</span>
+      <span style={{ fontSize: '13px', color: 'var(--muted-foreground)', fontWeight: 600 }}>Go to:</span>
       <input
         type="text"
         value={draft ?? currentPage.toString()}

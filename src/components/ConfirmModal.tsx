@@ -39,13 +39,13 @@ export default function ConfirmModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-brand-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-[999999]">
+    <div className="fixed inset-0 bg-brand-black/85 backdrop-blur-xs flex items-center justify-center p-4 z-999999">
       <div className="bg-brand-dark border border-white/10 rounded-3xl w-full max-w-md p-6 shadow-2xl relative overflow-hidden animate-fade-in">
         {/* Glow */}
         <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-white/5 blur-3xl pointer-events-none" />
 
         <div className="flex gap-4">
-          <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+          <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center shrink-0 ${iconBg}`}>
             {icon}
           </div>
           <div className="flex-1">

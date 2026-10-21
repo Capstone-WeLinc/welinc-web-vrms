@@ -53,7 +53,7 @@ export function AnalyticsPage() {
           icon={BarChart2}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontSize: '0.78rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted-foreground)', fontSize: '0.78rem' }}>
             <Clock size={13} />
             <span>Updated {lastUpdated}</span>
           </div>
@@ -86,8 +86,8 @@ export function AnalyticsPage() {
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '9px 18px', border: 'none', background: 'transparent', cursor: 'pointer',
                 fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.15s',
-                color: tab === t.key ? 'var(--accent)' : 'var(--muted)',
-                borderBottom: tab === t.key ? '2px solid var(--accent)' : '2px solid transparent',
+                color: tab === t.key ? 'var(--highlight)' : 'var(--muted-foreground)',
+                borderBottom: tab === t.key ? '2px solid var(--highlight)' : '2px solid transparent',
                 marginBottom: -1,
               }}
             >

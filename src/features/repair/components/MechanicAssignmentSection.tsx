@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { MechanicOption } from '../../../lib/api/vrmsConfigApi';
 import { MechanicAssignment } from '../../../types';
-import { Button } from '../../../components/ui/Button';
+import { LegacyButton } from '../../../components/legacy/LegacyButton';
 
 interface MechanicAssignmentSectionProps {
   mechanicOptions: MechanicOption[];
@@ -109,13 +109,13 @@ export function MechanicAssignmentSection({
         )}
       </div>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <Button
+        <LegacyButton
           type="button"
           onClick={handleAddMechanic}
           disabled={!mechanicSelection || (mechanicSelection === 'OTHER' && !outsourcedMechanicName.trim())}
         >
           Add mechanic
-        </Button>
+        </LegacyButton>
       </div>
       <div className="mechanic-list">
         {assignedMechanics.map((mechanic) => (

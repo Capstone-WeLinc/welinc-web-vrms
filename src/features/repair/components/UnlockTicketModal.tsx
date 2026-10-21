@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { unlockRepairTicket } from '../../../lib/api/repairApi';
 import { RepairTicket } from '../../../types';
-import { Button } from '../../../components/ui/Button';
+import { LegacyButton } from '../../../components/legacy/LegacyButton';
 import { useToast } from '../../../context/toast';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 
@@ -70,7 +70,7 @@ export function UnlockTicketModal({
         }}
       >
         <h3 style={{ margin: '0 0 8px' }}>Unlock Ticket</h3>
-        <p style={{ color: 'var(--muted)', marginBottom: 20, fontSize: 14 }}>
+        <p style={{ color: 'var(--muted-foreground)', marginBottom: 20, fontSize: 14 }}>
           You are about to unlock this <strong>{repairStatus.replace('_', ' ')}</strong> ticket for editing.
           This action will be permanently recorded in the audit log.
         </p>
@@ -90,20 +90,20 @@ export function UnlockTicketModal({
         </div>
         {unlockError && <div className="alert" style={{ marginTop: 8 }}>{unlockError}</div>}
         <div style={{ display: 'flex', gap: 12, marginTop: 20, justifyContent: 'flex-end' }}>
-          <Button
+          <LegacyButton
             variant="secondary"
             onClick={onClose}
             disabled={unlocking}
           >
             Cancel
-          </Button>
-          <Button
+          </LegacyButton>
+          <LegacyButton
             id="confirm-unlock-btn"
             onClick={handleUnlock}
             disabled={unlocking || !unlockReason.trim()}
           >
             {unlocking ? 'Unlocking…' : 'Unlock ticket'}
-          </Button>
+          </LegacyButton>
         </div>
       </div>
     </div>

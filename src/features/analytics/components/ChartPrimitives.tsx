@@ -19,8 +19,8 @@ export function PillToggle<T extends string>({
             padding: size === 'md' ? '4px 10px' : '3px 9px', borderRadius: 6, border: 'none',
             fontSize: size === 'md' ? '0.75rem' : '0.72rem',
             fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
-            background: value === o ? 'var(--accent)' : 'transparent',
-            color: value === o ? 'var(--on-accent)' : 'var(--muted)',
+            background: value === o ? 'var(--highlight)' : 'transparent',
+            color: value === o ? 'var(--on-accent)' : 'var(--muted-foreground)',
           }}
         >{labels?.[o] ?? o}</button>
       ))}
@@ -60,17 +60,17 @@ export function KpiCard({ label, value, icon: Icon, color, delta, note }: {
         <Icon size={20} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{label}</div>
+        <div style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{label}</div>
         <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{value}</div>
         {delta !== undefined && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-            {delta > 0 ? <ArrowUpRight size={13} color="var(--success)" /> : delta < 0 ? <ArrowDownRight size={13} color="var(--danger)" /> : <Minus size={13} color="var(--muted)" />}
-            <span style={{ fontSize: '0.72rem', color: delta > 0 ? 'var(--success)' : delta < 0 ? 'var(--danger)' : 'var(--muted)', fontWeight: 700 }}>
+            {delta > 0 ? <ArrowUpRight size={13} color="var(--success)" /> : delta < 0 ? <ArrowDownRight size={13} color="var(--danger)" /> : <Minus size={13} color="var(--muted-foreground)" />}
+            <span style={{ fontSize: '0.72rem', color: delta > 0 ? 'var(--success)' : delta < 0 ? 'var(--danger)' : 'var(--muted-foreground)', fontWeight: 700 }}>
               {Math.abs(delta)}% vs last period
             </span>
           </div>
         )}
-        {note && <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: 4 }}>{note}</div>}
+        {note && <div style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginTop: 4 }}>{note}</div>}
       </div>
     </div>
   );
@@ -78,7 +78,7 @@ export function KpiCard({ label, value, icon: Icon, color, delta, note }: {
 
 export function EmptyState({ label }: { label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, color: 'var(--muted)', fontSize: '0.875rem', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, color: 'var(--muted-foreground)', fontSize: '0.875rem', flexDirection: 'column', gap: 8 }}>
       <ChevronDown size={24} strokeWidth={1.5} />
       {label}
     </div>

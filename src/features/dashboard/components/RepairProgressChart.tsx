@@ -88,7 +88,7 @@ export function RepairProgressChart({ repairs }: RepairProgressChartProps) {
                   <Icon size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 700 }}>{stage.label}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontWeight: 700 }}>{stage.label}</div>
                   <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text)', marginTop: '2px', lineHeight: 1 }}>{stage.count}</div>
                 </div>
               </div>

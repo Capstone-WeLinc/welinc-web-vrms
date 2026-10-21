@@ -5,7 +5,7 @@ import { createRepair } from '../../../lib/api/repairApi';
 import { getGarages, getVehicles, getAvailableMechanics, getDrivers, GarageOption, VehicleOption, MechanicOption } from '../../../lib/api/vrmsConfigApi';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { CreateRepairPayload, MechanicAssignment, PriorityLevel, RepairIssue } from '../../../types';
-import { Button } from '../../../components/ui/Button';
+import { LegacyButton } from '../../../components/legacy/LegacyButton';
 import { MechanicAssignmentSection } from '../components/MechanicAssignmentSection';
 import { IssueLoggingSection } from '../components/IssueLoggingSection';
 import {
@@ -460,12 +460,12 @@ export function RepairFormPage() {
           {error ? <div className="alert" style={{ marginTop: 18 }}>{error}</div> : null}
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24, justifyContent: 'flex-end' }}>
-            <Button type="button" variant="secondary" onClick={() => navigate('/repairs')}>
+            <LegacyButton type="button" variant="secondary" onClick={() => navigate('/repairs')}>
               Cancel
-            </Button>
-            <Button type="submit" disabled={saving}>
+            </LegacyButton>
+            <LegacyButton type="submit" disabled={saving}>
               {saving ? 'Submitting…' : 'Submit repair ticket'}
-            </Button>
+            </LegacyButton>
           </div>
         </form>
       </div>

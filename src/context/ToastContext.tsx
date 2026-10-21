@@ -31,24 +31,24 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={{ showToast }}>
       {children}
       {/* Toast Container */}
-      <div className="fixed top-6 right-6 z-[99999] flex flex-col gap-3 w-full max-w-sm pointer-events-none">
+      <div className="fixed top-6 right-6 z-99999 flex flex-col gap-3 w-full max-w-sm pointer-events-none">
         {toasts.map((toast) => {
           let bgColor = 'bg-white border-slate-200';
           let textColor = 'text-slate-800';
-          let icon = <Info className="w-5 h-5 text-blue-500 flex-shrink-0" />;
+          let icon = <Info className="w-5 h-5 text-blue-500 shrink-0" />;
 
           if (toast.type === 'success') {
             bgColor = 'bg-emerald-50 border-emerald-200';
             textColor = 'text-emerald-900';
-            icon = <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />;
+            icon = <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />;
           } else if (toast.type === 'error') {
             bgColor = 'bg-rose-50 border-rose-200';
             textColor = 'text-rose-900';
-            icon = <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />;
+            icon = <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />;
           } else if (toast.type === 'info') {
             bgColor = 'bg-blue-50 border-blue-200';
             textColor = 'text-blue-900';
-            icon = <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />;
+            icon = <Info className="w-5 h-5 text-blue-600 shrink-0" />;
           }
 
           return (

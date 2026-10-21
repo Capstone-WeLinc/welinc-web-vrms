@@ -163,9 +163,9 @@ export function AdminDashboard() {
                     <PhilippinePeso size={24} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 700 }}>Total Repair Cost</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontWeight: 700 }}>Total Repair Cost</div>
                     <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text)', marginTop: '4px', letterSpacing: '-0.025em' }}>₱{filteredTotalCost.toLocaleString()}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>Spend for selected timeframe.</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '4px' }}>Spend for selected timeframe.</div>
                   </div>
                 </div>
 
@@ -174,9 +174,9 @@ export function AdminDashboard() {
                     <TrendingUp size={24} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 700 }}>Average Cost</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontWeight: 700 }}>Average Cost</div>
                     <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text)', marginTop: '4px', letterSpacing: '-0.025em' }}>₱{filteredAverageCost.toLocaleString()}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>Average per repair ticket.</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '4px' }}>Average per repair ticket.</div>
                   </div>
                 </div>
               </div>

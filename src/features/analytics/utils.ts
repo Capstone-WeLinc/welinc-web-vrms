@@ -94,10 +94,10 @@ export const tooltipItemStyle: CSSProperties = {
   fontSize: '0.82rem',
 };
 export const tooltipLabelStyle: CSSProperties = {
-  color: 'var(--muted)',
+  color: 'var(--muted-foreground)',
   fontWeight: 600,
   fontSize: '0.78rem',
   marginBottom: 2,
 };
 export const chartTooltipProps = { contentStyle: tooltipStyle, itemStyle: tooltipItemStyle, labelStyle: tooltipLabelStyle };
-export const axisTick = { fill: 'var(--muted)', fontSize: 11 };
+export const axisTick = { fill: 'var(--muted-foreground)', fontSize: 11 };

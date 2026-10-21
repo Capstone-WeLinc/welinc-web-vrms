@@ -82,7 +82,7 @@ export function HistoryPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
          <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
            <div style={{ position: 'relative', flex: 1 }}>
-             <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
+             <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
              <input
                id="historySearch"
                className="input"
@@ -139,7 +139,7 @@ export function HistoryPage() {
                           <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
                             {repair.repairNumber}
                           </Link>
-                          {isLocked && <Lock size={12} style={{ color: 'var(--muted)' }} />}
+                          {isLocked && <Lock size={12} style={{ color: 'var(--muted-foreground)' }} />}
                         </div>
                       </td>
                       <td style={isLocked ? { opacity: 0.65 } : undefined}>{repair.vehiclePlate}</td>
@@ -207,7 +207,7 @@ export function HistoryPage() {
             </table>
             {totalCount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 14px', borderTop: '1px solid var(--border)' }}>
-                <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted-foreground)', fontWeight: 600 }}>
                   Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount})
                 </span>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

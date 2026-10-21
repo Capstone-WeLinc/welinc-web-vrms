@@ -39,7 +39,7 @@ export function IssueFrequencyChart({ data, gradientId }: { data: IssueFreq[]; g
               fill={`url(#${gradientId})`}
               radius={[0, 6, 6, 0]}
               barSize={18}
-              label={{ position: 'right', fill: 'var(--muted)', fontSize: 11, fontWeight: 700 }}
+              label={{ position: 'right', fill: 'var(--muted-foreground)', fontSize: 11, fontWeight: 700 }}
             />
           </BarChart>
         </ResponsiveContainer>

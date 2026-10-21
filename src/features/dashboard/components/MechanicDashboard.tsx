@@ -159,7 +159,7 @@ export function MechanicDashboard() {
         ) : error ? (
           <div className="alert">{error}</div>
         ) : activeRepairs.length === 0 ? (
-          <p style={{ color: 'var(--muted)' }}>No active repairs assigned to you right now.</p>
+          <p style={{ color: 'var(--muted-foreground)' }}>No active repairs assigned to you right now.</p>
         ) : (
           <table className="table">
             <thead>

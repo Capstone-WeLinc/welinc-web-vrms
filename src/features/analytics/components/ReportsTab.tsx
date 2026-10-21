@@ -41,9 +41,9 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text)' }}>Monthly Repair Cost Report</span>
-            <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 2 }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginTop: 2 }}>
               {selectedMonths.length > 0
-                ? <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{selectedMonths.length} of {sortedReport.length} months selected for export</span>
+                ? <span style={{ color: 'var(--highlight)', fontWeight: 700 }}>{selectedMonths.length} of {sortedReport.length} months selected for export</span>
                 : 'Select specific months below or export the entire report'}
             </div>
           </div>
@@ -54,7 +54,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
             {selectedMonths.length > 0 && (
               <button
                 onClick={() => setSelectedMonths([])}
-                style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted-foreground)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
               >
                 Clear ({selectedMonths.length})
               </button>
@@ -62,7 +62,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
 
             <button
               onClick={() => downloadMasterCsv(exportData)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', boxShadow: `0 2px 8px ${tint('var(--accent)', 25)}` }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--highlight)', color: 'var(--on-accent)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', boxShadow: `0 2px 8px ${tint('var(--highlight)', 25)}` }}
             >
               <Download size={14} />
               {selectedMonths.length > 0 ? `Export Selected CSV (${selectedMonths.length})` : 'Export Master CSV'}
@@ -94,12 +94,12 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                           if (selectedMonths.length === sortedReport.length) setSelectedMonths([]);
                           else setSelectedMonths(sortedReport.map(r => r.month));
                         }}
-                        style={{ cursor: 'pointer', accentColor: 'var(--accent)' }}
+                        style={{ cursor: 'pointer', accentColor: 'var(--highlight)' }}
                         title="Select all rows"
                       />
                     </th>
                     {REPORT_HEADERS.map(h => (
-                      <th key={h} style={{ padding: '9px 14px', textAlign: 'left', color: 'var(--muted)', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '9px 14px', textAlign: 'left', color: 'var(--muted-foreground)', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -113,7 +113,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                         key={i}
                         style={{
                           borderBottom: '1px solid var(--border)',
-                          background: isSelected ? 'var(--accent-soft)' : 'transparent',
+                          background: isSelected ? 'color-mix(in srgb, var(--highlight) 10%, transparent)' : 'transparent',
                           transition: 'background 0.12s',
                         }}
                         onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--surface-alt)'; }}
@@ -124,7 +124,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleMonth(row.month)}
-                            style={{ cursor: 'pointer', accentColor: 'var(--accent)' }}
+                            style={{ cursor: 'pointer', accentColor: 'var(--highlight)' }}
                           />
                         </td>
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text)' }}>{row.month}</td>
@@ -132,19 +132,19 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             {row.repair_count}
                             <div style={{ height: 4, width: 40, background: 'var(--border)', borderRadius: 4 }}>
-                              <div style={{ height: '100%', background: 'var(--accent)', borderRadius: 4, width: `${Math.min(100, (row.repair_count / maxRepairs) * 100)}%` }} />
+                              <div style={{ height: '100%', background: 'var(--highlight)', borderRadius: 4, width: `${Math.min(100, (row.repair_count / maxRepairs) * 100)}%` }} />
                             </div>
                           </div>
                         </td>
                         <td style={{ padding: '10px 14px', color: 'var(--text)', fontWeight: 600 }}>{fmt(row.total_spend)}</td>
-                        <td style={{ padding: '10px 14px', color: 'var(--muted)' }}>{fmt(avg)}</td>
-                        <td style={{ padding: '10px 14px', color: 'var(--muted)' }}>{fmt(row.cumulative_spend)}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--muted-foreground)' }}>{fmt(avg)}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--muted-foreground)' }}>{fmt(row.cumulative_spend)}</td>
                         <td style={{ padding: '10px 14px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <div style={{ height: 6, width: 60, background: 'var(--border)', borderRadius: 4 }}>
                               <div style={{ height: '100%', background: 'var(--primary)', borderRadius: 4, width: `${pct}%` }} />
                             </div>
-                            <span style={{ fontSize: '0.78rem', color: 'var(--muted)', fontWeight: 600 }}>{pct}%</span>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', fontWeight: 600 }}>{pct}%</span>
                           </div>
                         </td>
                       </tr>
@@ -156,8 +156,8 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                     <td style={{ padding: '10px 12px' }} />
                     <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--text)', fontSize: '0.8rem' }}>TOTAL</td>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text)' }}>{totalRepairsAll}</td>
-                    <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--accent)' }}>{fmt(totalSpendAll)}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--muted)' }}>{fmt(totalSpendAll / Math.max(1, totalRepairsAll))}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--highlight)' }}>{fmt(totalSpendAll)}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--muted-foreground)' }}>{fmt(totalSpendAll / Math.max(1, totalRepairsAll))}</td>
                     <td colSpan={2} />
                   </tr>
                 </tfoot>
@@ -173,7 +173,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
               <Icon size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)' }}>{value}</div>
             </div>
           </div>

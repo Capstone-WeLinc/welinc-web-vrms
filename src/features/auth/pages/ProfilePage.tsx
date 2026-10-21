@@ -1,7 +1,7 @@
 import { FormEvent, useState, useEffect } from 'react';
 import { User as UserIcon, Lock, Mail, Phone, Shield } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
-import { Button } from '../../../components/ui/Button';
+import { LegacyButton } from '../../../components/legacy/LegacyButton';
 import { useToast } from '../../../context/toast';
 import { useAuthStore } from '../../../store/authStore';
 import { getCurrentUser, updateOwnProfile, changeOwnPassword } from '../../../lib/api/authApi';
@@ -133,7 +133,7 @@ export function ProfilePage() {
   if (loading) {
     return (
       <div className="loading-container" style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
-        <p style={{ color: 'var(--muted)' }}>Loading profile...</p>
+        <p style={{ color: 'var(--muted-foreground)' }}>Loading profile...</p>
       </div>
     );
   }
@@ -157,7 +157,7 @@ export function ProfilePage() {
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               <UserIcon size={18} style={{ color: 'var(--warning)' }} /> Personal Details
             </h3>
-            <p style={{ margin: '4px 0 0 0', color: 'var(--muted)', fontSize: 13 }}>Update your name, email, and contact number</p>
+            <p style={{ margin: '4px 0 0 0', color: 'var(--muted-foreground)', fontSize: 13 }}>Update your name, email, and contact number</p>
           </div>
 
           <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -188,7 +188,7 @@ export function ProfilePage() {
                   placeholder="user@welinc.com"
                   style={{ paddingLeft: 34 }}
                 />
-                <Mail size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
+                <Mail size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
               </div>
             </div>
 
@@ -205,7 +205,7 @@ export function ProfilePage() {
                   placeholder="09171234567"
                   style={{ paddingLeft: 34 }}
                 />
-                <Phone size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
+                <Phone size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
               </div>
             </div>
 
@@ -216,18 +216,18 @@ export function ProfilePage() {
                   className="input"
                   value={storeUser?.role === 'ADMIN' ? 'System Administrator' : 'Mechanic'}
                   readOnly
-                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--muted)', cursor: 'not-allowed', paddingLeft: 34 }}
+                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--muted-foreground)', cursor: 'not-allowed', paddingLeft: 34 }}
                 />
-                <Shield size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
+                <Shield size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
               </div>
             </div>
 
             {profileError && <div className="alert" style={{ margin: 0 }}>{profileError}</div>}
 
             <div className="form-actions" style={{ marginTop: 8 }}>
-              <Button type="submit" disabled={savingProfile}>
+              <LegacyButton type="submit" disabled={savingProfile}>
                 {savingProfile ? 'Saving...' : 'Save Changes'}
-              </Button>
+              </LegacyButton>
             </div>
           </form>
         </section>
@@ -238,7 +238,7 @@ export function ProfilePage() {
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Lock size={18} style={{ color: 'var(--warning)' }} /> Change Password
             </h3>
-            <p style={{ margin: '4px 0 0 0', color: 'var(--muted)', fontSize: 13 }}>Update your account security password</p>
+            <p style={{ margin: '4px 0 0 0', color: 'var(--muted-foreground)', fontSize: 13 }}>Update your account security password</p>
           </div>
 
           <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -287,9 +287,9 @@ export function ProfilePage() {
             {passwordError && <div className="alert" style={{ margin: 0 }}>{passwordError}</div>}
 
             <div className="form-actions" style={{ marginTop: 8 }}>
-              <Button type="submit" disabled={savingPassword}>
+              <LegacyButton type="submit" disabled={savingPassword}>
                 {savingPassword ? 'Updating...' : 'Update Password'}
-              </Button>
+              </LegacyButton>
             </div>
           </form>
         </section>

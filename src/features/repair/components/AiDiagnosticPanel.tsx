@@ -47,7 +47,7 @@ const PRIORITY_MAP: Record<string, { color: string; bg: string; border: string }
   minor:    { color: 'var(--success)', bg: 'rgba(22,163,74,0.08)',  border: 'rgba(22,163,74,0.25)'  },
 };
 function priorityStyle(p?: string) {
-  return PRIORITY_MAP[(p || '').toLowerCase()] ?? { color: 'var(--muted)', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.25)' };
+  return PRIORITY_MAP[(p || '').toLowerCase()] ?? { color: 'var(--muted-foreground)', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.25)' };
 }
 
 function ConfidenceBadge({ level }: { level?: string }) {
@@ -131,7 +131,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
           <div>
             <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text)' }}>AI Diagnostic Assistant</div>
             {data && (
-              <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span>{(data.ai_diagnosis.model_used || 'gemini-2.0-flash').replace(/\(Local Fallback\)/g, '(AI Engine)').replace(/Local Dynamic Fallback/g, 'Gemini 2.0 Flash Engine')}</span>
                 {vehiclePlate && <span>· {vehiclePlate}{vehicleModel ? ` — ${vehicleModel}` : ''}</span>}
                 {data.context_lineage && <ConfidenceBadge level={data.context_lineage.confidence} />}
@@ -148,7 +148,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', borderRadius: 10, border: 'none',
                 background: loading ? 'var(--surface)' : 'linear-gradient(135deg, var(--primary) 0%, var(--primary) 100%)',
-                color: loading ? 'var(--muted)' : 'white',
+                color: loading ? 'var(--muted-foreground)' : 'white',
                 fontWeight: 700, fontSize: '0.9rem', cursor: loading || issues.length === 0 ? 'not-allowed' : 'pointer',
                 opacity: issues.length === 0 ? 0.5 : 1,
                 transition: 'all 0.2s',
@@ -162,7 +162,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
           {data && (
             <button
               onClick={() => { setData(null); setFeedbackSent(false); }}
-              style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted)', fontSize: '0.8rem', cursor: 'pointer' }}
+              style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted-foreground)', fontSize: '0.8rem', cursor: 'pointer' }}
             >
               Run again
             </button>
@@ -172,7 +172,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
 
       {/* Loading */}
       {loading && (
-        <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--muted)' }}>
+        <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--muted-foreground)' }}>
           <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { 100% { transform: rotate(360deg); } }` }} />
           <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
           <div style={{ fontSize: '0.9rem' }}>Running diagnostic analysis on {vehiclePlate}…</div>
@@ -232,7 +232,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
           {/* Causes + Parts */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '16px 20px', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Probable Causes</div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Probable Causes</div>
               <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {data.ai_diagnosis.probable_causes?.map((cause, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, fontSize: '0.875rem', alignItems: 'flex-start' }}>
@@ -244,7 +244,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
             </div>
 
             <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '16px 20px', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Recommended Parts</div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Recommended Parts</div>
               {data.ai_diagnosis.recommended_parts?.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {data.ai_diagnosis.recommended_parts.map((part, i) => (
@@ -259,7 +259,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
                   ))}
                 </div>
               ) : (
-                <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.875rem' }}>No specific parts recommended.</p>
+                <p style={{ margin: 0, color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>No specific parts recommended.</p>
               )}
             </div>
           </div>
@@ -267,7 +267,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
           {/* RAG Context Lineage */}
           {data.context_lineage && (
             <div style={{ background: 'rgba(59,130,246,0.03)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10, padding: '16px 18px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--muted)', marginBottom: 12, letterSpacing: '0.05em' }}>DATA SOURCES & CONTEXT LINEAGE</div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--muted-foreground)', marginBottom: 12, letterSpacing: '0.05em' }}>DATA SOURCES & CONTEXT LINEAGE</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {[
                   {
@@ -290,7 +290,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
                   <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 12px', background: 'var(--surface-alt)', borderRadius: 8, alignItems: 'flex-start' }}>
                     <span style={{ color: item.color, flexShrink: 0, marginTop: 2 }}>{item.icon}</span>
                     <div>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--muted)' }}>{item.label}</div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--muted-foreground)' }}>{item.label}</div>
                       <div style={{ fontSize: '0.8rem', marginTop: 2, lineHeight: 1.4 }}>{item.value}</div>
                     </div>
                   </div>
@@ -317,7 +317,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
                       {['Issue Description', 'Similarity', 'Ticket'].map(h => (
-                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--muted)', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--muted-foreground)', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -358,10 +358,10 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
                   <ThumbsDown size={15} /> Not helpful (2★)
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--muted)', fontWeight: 600, marginRight: 4 }}>Or Rate:</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', fontWeight: 600, marginRight: 4 }}>Or Rate:</span>
                   {[1, 2, 3, 4, 5].map(n => (
                     <button key={n} onClick={() => submitFeedback(n >= 3, n)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }} title={`${n} Stars`}>
-                      <Star size={18} fill={feedbackRating >= n ? 'var(--warning)' : 'none'} color={feedbackRating >= n ? 'var(--warning)' : 'var(--muted)'} />
+                      <Star size={18} fill={feedbackRating >= n ? 'var(--warning)' : 'none'} color={feedbackRating >= n ? 'var(--warning)' : 'var(--muted-foreground)'} />
                     </button>
                   ))}
                 </div>
@@ -375,7 +375,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
               </div>
               <button
                 onClick={() => setFeedbackSent(false)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--muted)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--muted-foreground)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Change rating
               </button>

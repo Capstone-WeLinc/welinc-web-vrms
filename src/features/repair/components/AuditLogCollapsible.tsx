@@ -51,10 +51,10 @@ export function AuditLogCollapsible({ auditLog, formatDate }: AuditLogCollapsibl
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Search size={16} style={{ color: 'var(--muted)' }} />
-          Audit Log <span style={{ color: 'var(--muted)', fontWeight: 400, fontSize: 13 }}>({auditLog.length} {auditLog.length === 1 ? 'entry' : 'entries'})</span>
+          <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
+          Audit Log <span style={{ color: 'var(--muted-foreground)', fontWeight: 400, fontSize: 13 }}>({auditLog.length} {auditLog.length === 1 ? 'entry' : 'entries'})</span>
         </div>
-        <ChevronDown size={18} style={{ color: 'var(--muted)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        <ChevronDown size={18} style={{ color: 'var(--muted-foreground)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
       </button>
       {expanded && (
         <div style={{ overflowX: 'auto', borderTop: '1px solid var(--border)' }}>
@@ -75,13 +75,13 @@ export function AuditLogCollapsible({ auditLog, formatDate }: AuditLogCollapsibl
                     {ACTION_LABELS[entry.action] ?? entry.action}
                   </td>
                   <td style={{ padding: '8px 12px' }}>{entry.email}</td>
-                  <td style={{ padding: '8px 12px', color: 'var(--muted)' }}>
+                  <td style={{ padding: '8px 12px', color: 'var(--muted-foreground)' }}>
                     {formatAuditValue(entry.action, entry.previousValue)}
                   </td>
                   <td style={{ padding: '8px 12px', color: 'var(--success)' }}>
                     {formatAuditValue(entry.action, entry.newValue)}
                   </td>
-                  <td style={{ padding: '8px 12px', color: 'var(--muted)', fontSize: 12 }}>
+                  <td style={{ padding: '8px 12px', color: 'var(--muted-foreground)', fontSize: 12 }}>
                     {formatDate(entry.createdAt)}
                   </td>
                 </tr>

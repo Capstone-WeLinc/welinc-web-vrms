@@ -55,7 +55,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                       {...chartTooltipProps}
                       formatter={(val, name) => name === 'Spend' ? [fmt(Number(val)), 'Total Spend'] : [val, 'Repair Count']}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted)', paddingTop: 8 }} />
+                    <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)', paddingTop: 8 }} />
                     <Area yAxisId="left" type="monotone" dataKey="total_spend" name="Spend" fill="url(#gradSpend)" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
                     <Line yAxisId="right" type="monotone" dataKey="repair_count" name="Repairs" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 4, fill: 'var(--chart-2)', strokeWidth: 0 }} activeDot={{ r: 6 }} />
                   </ComposedChart>
@@ -70,7 +70,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--muted)', cursor: 'pointer' }}
+              style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--muted-foreground)', cursor: 'pointer' }}
             >
               <option value="ALL">All Statuses</option>
               {statusBreakdown.map(s => <option key={s.status} value={s.status}>{STATUS_LABELS[s.status] || s.status}</option>)}
@@ -159,7 +159,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
             )}
           <div style={{ display: 'flex', gap: 16, marginTop: 10, justifyContent: 'center' }}>
             {AGING_LEGEND.map(({ bucket, color, note }) => (
-              <div key={bucket} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--muted)' }}>
+              <div key={bucket} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
                 <div style={{ width: 10, height: 10, borderRadius: 2, background: color }} />
                 <span>{bucket} — <strong style={{ color }}>{note}</strong></span>
               </div>
@@ -187,7 +187,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                     <XAxis type="number" tick={axisTick} tickFormatter={v => fmtThousands(v)} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="garage" tick={axisTick} width={90} axisLine={false} tickLine={false} />
                     <Tooltip {...chartTooltipProps} formatter={(v) => [fmt(Number(v)), 'Total Spend']} />
-                    <Bar dataKey="total_spend" fill="url(#gradGarage)" radius={[0, 6, 6, 0]} label={{ position: 'right', fill: 'var(--muted)', fontSize: 10, formatter: (v: unknown) => fmtThousands(v) }} />
+                    <Bar dataKey="total_spend" fill="url(#gradGarage)" radius={[0, 6, 6, 0]} label={{ position: 'right', fill: 'var(--muted-foreground)', fontSize: 10, formatter: (v: unknown) => fmtThousands(v) }} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

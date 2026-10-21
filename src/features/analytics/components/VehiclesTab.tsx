@@ -24,7 +24,7 @@ export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
       <div className="premium-card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>Vehicle Reliability Scorecard</span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{vehicles.length} vehicles tracked</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{vehicles.length} vehicles tracked</span>
         </div>
         {vehicles.length === 0
           ? <EmptyState label="No vehicle data" />
@@ -34,7 +34,7 @@ export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
                     {SCORECARD_HEADERS.map(h => (
-                      <th key={h} style={{ padding: '9px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '9px 12px', textAlign: 'left', color: 'var(--muted-foreground)', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -47,7 +47,7 @@ export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
                         <td style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--text)', fontFamily: 'monospace', letterSpacing: '0.03em' }}>{v.vehicle_plate}</td>
-                        <td style={{ padding: '10px 12px', color: 'var(--muted)' }}>{v.vehicle_model || '—'}</td>
+                        <td style={{ padding: '10px 12px', color: 'var(--muted-foreground)' }}>{v.vehicle_model || '—'}</td>
                         <td style={{ padding: '10px 12px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontWeight: 600, color: 'var(--text)' }}>{v.total_repairs}</span>
@@ -57,8 +57,8 @@ export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
                           </div>
                         </td>
                         <td style={{ padding: '10px 12px', color: 'var(--text)' }}>{fmt(v.total_parts_cost)}</td>
-                        <td style={{ padding: '10px 12px', color: 'var(--muted)' }}>{fmt(v.avg_repair_cost)}</td>
-                        <td style={{ padding: '10px 12px', color: 'var(--muted)', fontSize: '0.8rem' }}>{v.latest_repair_date ? new Date(v.latest_repair_date).toLocaleDateString('en-PH') : '—'}</td>
+                        <td style={{ padding: '10px 12px', color: 'var(--muted-foreground)' }}>{fmt(v.avg_repair_cost)}</td>
+                        <td style={{ padding: '10px 12px', color: 'var(--muted-foreground)', fontSize: '0.8rem' }}>{v.latest_repair_date ? new Date(v.latest_repair_date).toLocaleDateString('en-PH') : '—'}</td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ background: risk.bg, color: risk.color, padding: '3px 9px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.04em' }}>
                             {risk.label}
@@ -99,7 +99,7 @@ export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
                       <YAxis type="category" dataKey="vehicle_plate" tick={axisTick} width={80} axisLine={false} tickLine={false} />
                       <Tooltip {...chartTooltipProps} formatter={(v) => [fmt(Number(v)), 'Total Spend']} labelFormatter={(l) => `Plate: ${l}`} />
                       <Bar dataKey="total_parts_cost" name="Parts Cost" fill="var(--primary)" radius={[0, 6, 6, 0]}
-                        label={{ position: 'right', fill: 'var(--muted)', fontSize: 10, formatter: (v: unknown) => fmtThousands(v, 1) }} />
+                        label={{ position: 'right', fill: 'var(--muted-foreground)', fontSize: 10, formatter: (v: unknown) => fmtThousands(v, 1) }} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

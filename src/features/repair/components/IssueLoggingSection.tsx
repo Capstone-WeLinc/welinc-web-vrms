@@ -102,7 +102,7 @@ export function IssueLoggingSection({
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
               <p className="small-note" style={{ margin: 0 }}>Please provide specific details about the issue.</p>
-              <p className="small-note" style={{ margin: 0, color: issue.description.length > 450 ? 'var(--danger)' : 'var(--muted)', textAlign: 'right' }}>
+              <p className="small-note" style={{ margin: 0, color: issue.description.length > 450 ? 'var(--danger)' : 'var(--muted-foreground)', textAlign: 'right' }}>
                 {issue.description.length} / 500 characters
               </p>
             </div>

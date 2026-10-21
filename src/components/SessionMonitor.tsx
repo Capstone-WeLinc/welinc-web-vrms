@@ -106,7 +106,7 @@ export default function SessionMonitor() {
   if (!token || !showWarning) return null;
 
   return (
-    <div className="fixed inset-0 bg-brand-black/85 backdrop-blur-md flex items-center justify-center p-6 z-[99999] animate-fade-in">
+    <div className="fixed inset-0 bg-brand-black/85 backdrop-blur-md flex items-center justify-center p-6 z-99999 animate-fade-in">
       <div className="bg-brand-dark border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center relative overflow-hidden">
         {/* Glowing aura */}
         <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-brand-warning/15 blur-3xl pointer-events-none" />

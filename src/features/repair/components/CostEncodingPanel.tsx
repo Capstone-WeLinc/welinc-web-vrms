@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { updateRepairCosts } from '../../../lib/api/repairApi';
 import type { UpdateCostsPayload } from '../../../lib/api/repairApi';
 import type { RepairTicket } from '../../../types';
-import { Button } from '../../../components/ui/Button';
+import { LegacyButton } from '../../../components/legacy/LegacyButton';
 import { useToast } from '../../../context/toast';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { getApiErrorMessage } from '../../../lib/api/errors';
@@ -165,11 +165,11 @@ export function CostEncodingPanel({
       {!isEditMode ? (
         <div style={{ display: 'grid', gap: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--muted)' }}>Parts Cost:</span>
+            <span style={{ color: 'var(--muted-foreground)' }}>Parts Cost:</span>
             <strong>{formatCurrency(repair.partsCost)}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--muted)' }}>Labor Cost:</span>
+            <span style={{ color: 'var(--muted-foreground)' }}>Labor Cost:</span>
             <strong>{formatCurrency(repair.laborCost)}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--primary-soft)' }}>
@@ -302,8 +302,8 @@ export function CostEncodingPanel({
 
       {/* Total preview */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 24, padding: '12px 0', borderTop: '1px solid var(--primary-soft)', marginTop: 12 }}>
-        <span style={{ color: 'var(--muted)' }}>Parts: <strong>{formatCurrency(computedPartsCost)}</strong></span>
-        <span style={{ color: 'var(--muted)' }}>Labor: <strong>{formatCurrency(parseFloat(laborCost) || 0)}</strong></span>
+        <span style={{ color: 'var(--muted-foreground)' }}>Parts: <strong>{formatCurrency(computedPartsCost)}</strong></span>
+        <span style={{ color: 'var(--muted-foreground)' }}>Labor: <strong>{formatCurrency(parseFloat(laborCost) || 0)}</strong></span>
         <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 15 }}>
           Total: {formatCurrency(computedTotalCost)}
         </span>
@@ -313,16 +313,16 @@ export function CostEncodingPanel({
       {costSuccess && <div style={{ color: 'var(--success)', fontWeight: 600, fontSize: 13, marginTop: 8 }}>✓ Costs saved successfully.</div>}
 
       <div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
-        <Button id="save-costs-btn" onClick={handleSaveCosts} disabled={savingCosts}>
+        <LegacyButton id="save-costs-btn" onClick={handleSaveCosts} disabled={savingCosts}>
           {savingCosts ? 'Saving…' : 'Save costs'}
-        </Button>
+        </LegacyButton>
         {hasExistingCost && (
-          <Button variant="secondary" onClick={() => {
+          <LegacyButton variant="secondary" onClick={() => {
             setIsEditMode(false);
             setCostError(null);
           }}>
             Cancel
-          </Button>
+          </LegacyButton>
         )}
       </div>
       <ConfirmModal

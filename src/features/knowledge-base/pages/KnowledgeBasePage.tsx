@@ -226,7 +226,7 @@ function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClos
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
       onClick={e => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -252,7 +252,7 @@ function ArticleCard({
   const Icon = conf.icon;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between group h-full">
+    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between group h-full">
       <div>
         {/* Header row: Category & SLA */}
         <div className="flex items-center justify-between gap-2 mb-3">
@@ -289,7 +289,7 @@ function ArticleCard({
           {article.tags.slice(0, 3).map(tag => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded"
+              className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-sm"
             >
               <Tag size={10} className="text-slate-400" />
               {tag}
@@ -358,7 +358,7 @@ function ArticleTable({
   onDelete: (art: KbArticle) => void;
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm border-collapse">
           <thead>
@@ -380,7 +380,7 @@ function ArticleTable({
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     <span
                       className={cn(
-                        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-semibold border',
+                        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-xs font-semibold border',
                         conf.badgeClass
                       )}
                     >
@@ -413,7 +413,7 @@ function ArticleTable({
                       {article.tags.slice(0, 2).map(tag => (
                         <span
                           key={tag}
-                          className="text-[11px] font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60"
+                          className="text-[11px] font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-sm border border-slate-200/60"
                         >
                           #{tag}
                         </span>
@@ -427,20 +427,20 @@ function ArticleTable({
                     <div className="inline-flex items-center gap-1 justify-end">
                       <button
                         onClick={() => onView(article)}
-                        className="px-2.5 py-1 text-xs font-semibold text-brand-primary hover:bg-blue-50 rounded transition-colors"
+                        className="px-2.5 py-1 text-xs font-semibold text-brand-primary hover:bg-blue-50 rounded-sm transition-colors"
                       >
                         View
                       </button>
                       <button
                         onClick={() => onEdit(article)}
-                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-sm transition-colors"
                         title="Edit"
                       >
                         <Pencil size={13} />
                       </button>
                       <button
                         onClick={() => onDelete(article)}
-                        className="p-1.5 text-slate-400 hover:text-brand-danger hover:bg-red-50 rounded transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-brand-danger hover:bg-red-50 rounded-sm transition-colors"
                         title="Delete"
                       >
                         <Trash2 size={13} />
@@ -474,11 +474,11 @@ function ViewModal({
     <ModalOverlay onClose={onClose}>
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden text-slate-900">
         {/* Header */}
-        <div className="bg-brand-dark text-white p-6 sm:p-7 flex-shrink-0">
+        <div className="bg-brand-dark text-white p-6 sm:p-7 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-white/10 text-white border border-white/20">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm text-xs font-bold uppercase tracking-wider bg-white/10 text-white border border-white/20">
                   <Icon size={12} className="text-brand-warning" />
                   {article.category}
                 </span>
@@ -490,7 +490,7 @@ function ViewModal({
               <h2 className="text-xl sm:text-2xl font-bold leading-tight text-white">{article.title}</h2>
               <p className="text-slate-300 text-xs sm:text-sm mt-2 leading-relaxed">{article.summary}</p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={onEdit}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors"
@@ -537,7 +537,7 @@ function ViewModal({
             <ol className="space-y-3">
               {article.steps.filter(s => s.trim()).map((step, i) => (
                 <li key={i} className="flex items-start gap-3.5 bg-slate-50/80 p-3.5 rounded-lg border border-slate-100">
-                  <span className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                  <span className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
                     {i + 1}
                   </span>
                   <span className="text-sm text-slate-800 leading-relaxed pt-0.5">{step}</span>
@@ -559,9 +559,9 @@ function ViewModal({
                 {article.parts.filter(p => p.trim()).map((part, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 shadow-sm"
+                    className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 shadow-xs"
                   >
-                    <Wrench size={14} className="text-brand-primary flex-shrink-0" />
+                    <Wrench size={14} className="text-brand-primary shrink-0" />
                     <span>{part}</span>
                   </div>
                 ))}
@@ -582,7 +582,7 @@ function ViewModal({
                 {article.tags.map(tag => (
                   <span
                     key={tag}
-                    className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-1 rounded text-xs font-mono"
+                    className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-1 rounded-sm text-xs font-mono"
                   >
                     <Tag size={11} className="text-slate-400" />
                     #{tag}
@@ -594,7 +594,7 @@ function ViewModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-between flex-shrink-0">
+        <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
           <span className="text-xs text-slate-400 font-mono">ID: {article.id}</span>
           <div className="flex gap-2">
             <button
@@ -605,7 +605,7 @@ function ViewModal({
             </button>
             <button
               onClick={onEdit}
-              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
             >
               <Pencil size={13} /> Edit Procedure
             </button>
@@ -697,7 +697,7 @@ function EditorModal({
     <ModalOverlay onClose={onClose}>
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden text-slate-900">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between flex-shrink-0 bg-slate-50">
+        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between shrink-0 bg-slate-50">
           <div>
             <h3 className="font-bold text-base text-slate-900">
               {isNew ? 'New Standard Operating Procedure' : 'Edit Operating Procedure'}
@@ -731,7 +731,7 @@ function EditorModal({
                 }}
                 placeholder="e.g. Brake Caliper & Slider Pin Overhaul SOP"
                 className={cn(
-                  'w-full px-3 py-2 rounded-lg border text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all',
+                  'w-full px-3 py-2 rounded-lg border text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-primary transition-all',
                   errors.title ? 'border-brand-danger' : 'border-slate-300'
                 )}
               />
@@ -745,7 +745,7 @@ function EditorModal({
               <select
                 value={form.category}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all cursor-pointer"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-primary transition-all cursor-pointer"
               >
                 {CATEGORIES.filter(c => c !== 'All').map(c => (
                   <option key={c} value={c}>
@@ -770,7 +770,7 @@ function EditorModal({
               }}
               placeholder="Brief overview of the maintenance procedure, symptoms addressed, and scope..."
               className={cn(
-                'w-full px-3 py-2 rounded-lg border text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all',
+                'w-full px-3 py-2 rounded-lg border text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-primary transition-all',
                 errors.summary ? 'border-brand-danger' : 'border-slate-300'
               )}
             />
@@ -790,7 +790,7 @@ function EditorModal({
                 step={0.5}
                 value={form.estimated_hours}
                 onChange={e => setForm(f => ({ ...f, estimated_hours: parseFloat(e.target.value) || 1 }))}
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-primary"
               />
             </div>
           </div>
@@ -815,7 +815,7 @@ function EditorModal({
             <div className="space-y-2">
               {form.steps.map((step, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
+                  <span className="w-6 h-6 rounded-sm bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 shrink-0">
                     {i + 1}
                   </span>
                   <input
@@ -823,13 +823,13 @@ function EditorModal({
                     value={step}
                     onChange={e => updateList('steps', i, e.target.value)}
                     placeholder={`Step ${i + 1} action or verification checkpoint...`}
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-primary"
                   />
                   <button
                     type="button"
                     onClick={() => removeListItem('steps', i)}
                     disabled={form.steps.length <= 1}
-                    className="p-1.5 text-slate-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed rounded"
+                    className="p-1.5 text-slate-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed rounded-sm"
                   >
                     <X size={15} />
                   </button>
@@ -857,19 +857,19 @@ function EditorModal({
             <div className="space-y-2">
               {form.parts.map((part, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <Wrench size={14} className="text-slate-400 flex-shrink-0 ml-1" />
+                  <Wrench size={14} className="text-slate-400 shrink-0 ml-1" />
                   <input
                     type="text"
                     value={part}
                     onChange={e => updateList('parts', i, e.target.value)}
                     placeholder="e.g. Brake Caliper Seal Kit (Part #BC-992)"
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-primary"
                   />
                   <button
                     type="button"
                     onClick={() => removeListItem('parts', i)}
                     disabled={form.parts.length <= 1}
-                    className="p-1.5 text-slate-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed rounded"
+                    className="p-1.5 text-slate-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed rounded-sm"
                   >
                     <X size={15} />
                   </button>
@@ -895,7 +895,7 @@ function EditorModal({
                   }
                 }}
                 placeholder="Type tag (e.g. calipers) and press Enter..."
-                className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-primary"
               />
               <button
                 type="button"
@@ -910,7 +910,7 @@ function EditorModal({
                 {form.tags.map(tag => (
                   <span
                     key={tag}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700"
                   >
                     #{tag}
                     <button
@@ -928,7 +928,7 @@ function EditorModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 flex-shrink-0">
+        <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -939,7 +939,7 @@ function EditorModal({
           <button
             type="button"
             onClick={handleSave}
-            className="px-5 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+            className="px-5 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
           >
             <Save size={14} /> {isNew ? 'Create SOP' : 'Save Changes'}
           </button>
@@ -981,7 +981,7 @@ function DeleteModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 py-2 rounded-lg bg-brand-danger hover:bg-red-800 text-white text-xs font-semibold shadow-sm transition-colors"
+            className="flex-1 py-2 rounded-lg bg-brand-danger hover:bg-red-800 text-white text-xs font-semibold shadow-xs transition-colors"
           >
             Yes, Delete SOP
           </button>
@@ -1170,18 +1170,18 @@ export function KnowledgeBasePage() {
           subtitle="Mechanic Resource Center — Standard Operating Procedures, diagnostic guides, and component repair workflows."
           icon={BookOpen}
         />
-        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-shrink-0">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
           <button
             onClick={handleSync}
             disabled={isSyncing}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-sm transition-colors disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs transition-colors disabled:opacity-60"
           >
             <RefreshCw size={13} className={cn(isSyncing && 'animate-spin text-brand-primary')} />
             {isSyncing ? 'Syncing...' : 'Sync Catalog'}
           </button>
           <button
             onClick={() => setEditArticle('new')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-sm transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-xs transition-colors"
           >
             <Plus size={15} />
             New SOP
@@ -1192,7 +1192,7 @@ export function KnowledgeBasePage() {
       {/* ── Top Executive KPI Metrics (Tremor / One UI Style) ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Metric 1 */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Active SOPs</span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-brand-primary flex items-center justify-center">
@@ -1206,7 +1206,7 @@ export function KnowledgeBasePage() {
         </div>
 
         {/* Metric 2 */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Avg Labor SLA</span>
             <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
@@ -1220,7 +1220,7 @@ export function KnowledgeBasePage() {
         </div>
 
         {/* Metric 3 */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Subsystems</span>
             <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
@@ -1234,7 +1234,7 @@ export function KnowledgeBasePage() {
         </div>
 
         {/* Metric 4 */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Steps & Supplies</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -1249,7 +1249,7 @@ export function KnowledgeBasePage() {
       </div>
 
       {/* ── Search & Filter Toolbar ── */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
         {/* Row 1: Search + Sort + View Mode */}
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {/* Search bar */}
@@ -1260,7 +1260,7 @@ export function KnowledgeBasePage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by procedure name, symptom, replacement part, or #tag..."
-              className="w-full pl-10 pr-9 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all"
+              className="w-full pl-10 pr-9 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-primary transition-all"
             />
             {search && (
               <button
@@ -1277,7 +1277,7 @@ export function KnowledgeBasePage() {
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value as typeof sortBy)}
-              className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors cursor-pointer w-full sm:w-auto"
+              className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-brand-primary transition-colors cursor-pointer w-full sm:w-auto"
             >
               <option value="alpha">Sort: Alphabetical (A → Z)</option>
               <option value="category">Sort: Subsystem Category</option>
@@ -1286,14 +1286,14 @@ export function KnowledgeBasePage() {
             </select>
 
             {/* View Mode Toggle: Grid vs Table */}
-            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 flex-shrink-0">
+            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 shrink-0">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
                 className={cn(
                   'p-1.5 rounded-md text-xs font-medium transition-colors',
                   viewMode === 'grid'
-                    ? 'bg-white text-brand-primary shadow-sm font-bold'
+                    ? 'bg-white text-brand-primary shadow-xs font-bold'
                     : 'text-slate-500 hover:text-slate-800'
                 )}
                 title="Grid View"
@@ -1306,7 +1306,7 @@ export function KnowledgeBasePage() {
                 className={cn(
                   'p-1.5 rounded-md text-xs font-medium transition-colors',
                   viewMode === 'table'
-                    ? 'bg-white text-brand-primary shadow-sm font-bold'
+                    ? 'bg-white text-brand-primary shadow-xs font-bold'
                     : 'text-slate-500 hover:text-slate-800'
                 )}
                 title="Table View"
@@ -1330,7 +1330,7 @@ export function KnowledgeBasePage() {
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
                   active
-                    ? 'bg-brand-primary text-white shadow-sm'
+                    ? 'bg-brand-primary text-white shadow-xs'
                     : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
                 )}
               >

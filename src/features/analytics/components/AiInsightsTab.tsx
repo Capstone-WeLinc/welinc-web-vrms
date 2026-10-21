@@ -13,7 +13,7 @@ function FeedbackStat({ count, label, color, icon: Icon }: { count: number; labe
       </div>
       <div>
         <div style={{ fontSize: '1.8rem', fontWeight: 900, color, lineHeight: 1 }}>{count}</div>
-        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--muted)', marginTop: 4 }}>{label}</div>
+        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--muted-foreground)', marginTop: 4 }}>{label}</div>
       </div>
     </div>
   );
@@ -68,7 +68,7 @@ export function AiInsightsTab({ aiStats, issueFreq }: AnalyticsData) {
             </div>
 
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.82rem', color: 'var(--muted)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.82rem', color: 'var(--muted-foreground)' }}>
                 <span style={{ fontWeight: 600 }}>Mechanic Satisfaction</span>
                 <span style={{ fontWeight: 800, color: satColor }}>{satRate}%</span>
               </div>
@@ -78,7 +78,7 @@ export function AiInsightsTab({ aiStats, issueFreq }: AnalyticsData) {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-alt)', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: '0.82rem', color: 'var(--muted)', fontWeight: 600 }}>Overall Quality Score</span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', fontWeight: 600 }}>Overall Quality Score</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ display: 'flex', gap: 3 }}>
                   {[1, 2, 3, 4, 5].map(star => (

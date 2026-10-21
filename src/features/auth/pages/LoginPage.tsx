@@ -135,7 +135,7 @@ function PortalSSOLogin() {
               <AlertCircle size={48} />
             </div>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Authentication Failed</h2>
-            <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>{error}</p>
+            <p style={{ fontSize: 14, color: 'var(--muted-foreground)', margin: 0 }}>{error}</p>
             <button
               onClick={() => { window.location.href = `${PORTAL_URL}/login`; }}
               className="button"
@@ -148,7 +148,7 @@ function PortalSSOLogin() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
             <Loader2 className="animate-spin" style={{ color: 'var(--primary)' }} size={40} />
             <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Redirecting to login…</h2>
-            <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>Please wait while we redirect you to the portal.</p>
+            <p style={{ fontSize: 14, color: 'var(--muted-foreground)', margin: 0 }}>Please wait while we redirect you to the portal.</p>
           </div>
         )}
       </div>
@@ -197,7 +197,7 @@ function StandaloneLogin() {
       <div className="card login-card">
         <div className="login-brand">
           <h1 className="page-title" style={{ fontSize: '1.5rem' }}>WeLinc VRMS</h1>
-          <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: '0.9rem' }}>
+          <p style={{ color: 'var(--muted-foreground)', margin: '4px 0 0', fontSize: '0.9rem' }}>
             Vehicle Repair Management System
           </p>
         </div>

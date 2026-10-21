@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect, type ReactElement } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { DashboardPage } from './features/dashboard/pages/DashboardPage';
 import { HistoryPage } from './features/repair/pages/HistoryPage';
@@ -19,7 +19,12 @@ import { getCurrentUser } from './lib/api/authApi';
 import { ToastProvider } from './context/ToastContext';
 import SessionMonitor from './components/SessionMonitor';
 
-function RequireAuth({ children }: { children: JSX.Element }) {
+// Development only: the condition is a build time constant, so production drops the import.
+const DevUiPage = import.meta.env.DEV
+  ? lazy(() => import('./features/dev-ui/pages/DevUiPage').then((m) => ({ default: m.DevUiPage })))
+  : null;
+
+function RequireAuth({ children }: { children: ReactElement }) {
   const token = useAuthStore((state) => state.token);
   const location = useLocation();
 
@@ -30,7 +35,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   return children;
 }
 
-function RequireRole({ role, children }: { role: UserRole; children: JSX.Element }) {
+function RequireRole({ role, children }: { role: UserRole; children: ReactElement }) {
   const user = useAuthStore((state) => state.user);
 
   if (!user || user.role !== role) {
@@ -78,6 +83,16 @@ function App() {
       <SessionMonitor />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        {DevUiPage && (
+          <Route
+            path="/dev/ui"
+            element={
+              <Suspense fallback={null}>
+                <DevUiPage />
+              </Suspense>
+            }
+          />
+        )}
         <Route
           path="/"
           element={

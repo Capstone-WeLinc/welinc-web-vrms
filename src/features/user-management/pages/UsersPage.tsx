@@ -14,7 +14,7 @@ import {
 import { UserForm } from '../components/UserForm';
 import { UsersTable } from '../components/UsersTable';
 import { useConfirm } from '../../../hooks/useConfirm';
-import { Button } from '../../../components/ui/Button';
+import { LegacyButton } from '../../../components/legacy/LegacyButton';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 
 export function UsersPage() {
@@ -208,7 +208,7 @@ export function UsersPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
          <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
            <div style={{ position: 'relative', flex: 1 }}>
-             <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
+             <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
              <input 
                className="input" 
                placeholder="Search by name or email..." 
@@ -228,7 +228,7 @@ export function UsersPage() {
              <option value="INACTIVE">Inactive</option>
            </select>
          </div>
-         <Button onClick={() => setShowForm(true)}>+ New User Account</Button>
+         <LegacyButton onClick={() => setShowForm(true)}>+ New User Account</LegacyButton>
       </div>
 
       {showForm && (
@@ -248,7 +248,7 @@ export function UsersPage() {
       <section className="card" style={{ flex: 1 }}>
         <div className="section-heading">
           <h3 style={{ margin: 0 }}>Registered users</h3>
-          <p style={{ margin: 0, color: 'var(--muted)' }}>Manage existing VRMS accounts</p>
+          <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>Manage existing VRMS accounts</p>
         </div>
 
         {loading ? (

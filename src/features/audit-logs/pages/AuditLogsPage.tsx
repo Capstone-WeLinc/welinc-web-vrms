@@ -125,7 +125,7 @@ export function AuditLogsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
          <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
            <div style={{ position: 'relative', flex: 1 }}>
-             <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
+             <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
              <input
                id="auditSearch"
                className="input"
@@ -157,7 +157,7 @@ export function AuditLogsPage() {
           {!loading && !error && (
             <span style={{ 
               fontSize: '12px', 
-              color: 'var(--muted)', 
+              color: 'var(--muted-foreground)', 
               fontWeight: 600,
               backgroundColor: 'var(--surface-alt)',
               padding: '4px 10px',
@@ -225,7 +225,7 @@ export function AuditLogsPage() {
                             <span style={{ fontSize: '13px', lineHeight: 1.4 }}>{renderActionText(log)}</span>
                           </div>
                         </td>
-                        <td style={{ color: 'var(--muted)', fontSize: '13px' }}>
+                        <td style={{ color: 'var(--muted-foreground)', fontSize: '13px' }}>
                           {formatDate(log.timestamp)}
                         </td>
                       </tr>
@@ -236,7 +236,7 @@ export function AuditLogsPage() {
             </div>
             {totalPages > 1 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 14px', borderTop: '1px solid var(--border)', marginTop: 20 }}>
-                <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted-foreground)', fontWeight: 600 }}>
                   Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length})
                 </span>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

@@ -4,7 +4,7 @@ import { Wrench, ArrowLeft } from 'lucide-react';
 import { getRepair, updateRepairStatus } from '../../../lib/api/repairApi';
 import { RepairTicket, RepairStatus } from '../../../types';
 import { formatDate } from '../../../lib/utils/format';
-import { Button } from '../../../components/ui/Button';
+import { LegacyButton } from '../../../components/legacy/LegacyButton';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { useAuthStore } from '../../../store/authStore';
@@ -179,9 +179,9 @@ export function RepairDetailPage() {
         action={
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {isAdmin && isTerminal && !repair.isUnlocked && !isReadOnlyMode && (
-              <Button onClick={() => setShowUnlockModal(true)} variant="secondary">
+              <LegacyButton onClick={() => setShowUnlockModal(true)} variant="secondary">
                 Unlock Ticket
-              </Button>
+              </LegacyButton>
             )}
           </div>
         }
@@ -192,7 +192,7 @@ export function RepairDetailPage() {
 
           {/* ── Header ─────────────────────────────────────────────── */}
           <div>
-            <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>Repair Number</p>
+            <p style={{ margin: 0, color: 'var(--muted-foreground)', fontSize: 12 }}>Repair Number</p>
             <h3 style={{ margin: '8px 0 0' }}>{repair.repairNumber}</h3>
           </div>
 
@@ -203,10 +203,10 @@ export function RepairDetailPage() {
                 Unlocked for editing
               </span>
             )}
-            <p style={{ margin: 0, color: 'var(--muted)' }}>Updated {formatDate(repair.updatedAt)}</p>
-            <p style={{ margin: 0, color: 'var(--muted)' }}>Created {formatDate(repair.createdAt)}</p>
+            <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>Updated {formatDate(repair.updatedAt)}</p>
+            <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>Created {formatDate(repair.createdAt)}</p>
             {repair.completedAt && (
-              <p style={{ margin: 0, color: 'var(--muted)' }}>Completed {formatDate(repair.completedAt)}</p>
+              <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>Completed {formatDate(repair.completedAt)}</p>
             )}
           </div>
 
@@ -358,7 +358,7 @@ export function RepairDetailPage() {
                   <div key={`${entry.changedAt}-${index}`} className="issue-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 600 }}>{entry.changedBy}</span>
-                      <span style={{ color: 'var(--muted)', fontSize: 12 }}>{formatDate(entry.changedAt)}</span>
+                      <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{formatDate(entry.changedAt)}</span>
                     </div>
                     <p style={{ margin: '8px 0 2px' }}><strong>Before:</strong> {entry.previousValue}</p>
                     <p style={{ margin: 0 }}><strong>After:</strong> {entry.newValue}</p>
@@ -426,13 +426,13 @@ export function RepairDetailPage() {
               {error && <div className="alert">{error}</div>}
 
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <Button
+                <LegacyButton
                   id="save-status-btn"
                   onClick={handleStatusChange}
                   disabled={saving || status === repair.status}
                 >
                   {saving ? 'Saving…' : 'Save status'}
-                </Button>
+                </LegacyButton>
               </div>
             </>
           )}
@@ -440,7 +440,7 @@ export function RepairDetailPage() {
           {/* ── Locked terminal state ─────────────────────────────── */}
           {isLocked && (
             <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 16 }}>
-              <p style={{ margin: 0, color: 'var(--muted)', fontSize: 14 }}>
+              <p style={{ margin: 0, color: 'var(--muted-foreground)', fontSize: 14 }}>
                 This ticket is <strong>locked</strong> (status: {repair.status.replace('_', ' ')}).
                 {isAdmin && !isReadOnlyMode && ' Use the "Unlock Ticket" button above to make edits (reason required).'}
               </p>
