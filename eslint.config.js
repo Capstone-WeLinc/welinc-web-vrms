@@ -25,12 +25,7 @@ const legacySelectors = css
   .join(' ')
 const LEGACY_CLASSES = [...new Set([...legacySelectors.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => `^${m[1]}$`))]
 
-// Milestone 4 widens this list to all of src.
-const TOKEN_ONLY_FILES = [
-  'src/components/ui/**/*.{ts,tsx}',
-  'src/components/shared/**/*.{ts,tsx}',
-  'src/features/dev-ui/**/*.{ts,tsx}',
-]
+const TOKEN_ONLY_FILES = ['src/**/*.{ts,tsx}']
 
 export default defineConfig([
   globalIgnores(['dist']),

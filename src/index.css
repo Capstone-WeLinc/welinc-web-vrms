@@ -74,8 +74,8 @@
 }
 
 @theme inline {
-  /* Milestone 4 turns the palette reset on (it must stay the first line). */
-  /* --color-*: initial; */
+  /* Tailwind's default palette is off: only tokens exist as color utilities. Keep this first. */
+  --color-*: initial;
 
   --font-sans: 'Inter Variable', system-ui, -apple-system, sans-serif;
 
@@ -144,19 +144,6 @@
   --color-role-customer-support-fg: var(--role-customer-support-fg);
   --color-role-driver-bg: var(--role-driver-bg);
   --color-role-driver-fg: var(--role-driver-fg);
-
-  /*
-    Legacy brand-* classes, kept so pages keep rendering until milestone 4
-    rewrites every use to the token classes above. Delete this block then.
-  */
-  --color-brand-primary: var(--primary);
-  --color-brand-dark: var(--primary-hover);
-  --color-brand-black: var(--foreground);
-  --color-brand-danger: var(--destructive);
-  --color-brand-warning: var(--highlight);
-  --color-brand-warning-dark: var(--highlight);
-  --color-brand-success: var(--success);
-  --color-brand-surface: var(--card);
 }
 
 /*

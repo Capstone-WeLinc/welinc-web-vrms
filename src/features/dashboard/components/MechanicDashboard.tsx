@@ -87,7 +87,7 @@ export function MechanicDashboard() {
       note: 'Currently being worked on.',
       icon: Wrench,
       color: 'var(--primary)',
-      bgColor: 'rgba(59, 130, 246, 0.1)',
+      bgColor: 'color-mix(in srgb, var(--primary) 10%, transparent)',
     },
     {
       label: 'For Verification',

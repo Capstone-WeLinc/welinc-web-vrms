@@ -85,9 +85,8 @@ export function UsersTable({
                   </div>
                 </td>
                 <td>
-                  <div className="menu-container" style={{ position: 'relative' }}>
+                  <div style={{ position: 'relative' }}>
                     <button
-                      className="button-icon"
                       onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)}
                     >
                       <MoreVertical size={16} />

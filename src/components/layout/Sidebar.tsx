@@ -139,14 +139,14 @@ export function Sidebar() {
           </div>
           <div className="sidebar-text" style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 18, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>WeLinc VRMS</div>
-            <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Vehicle Repair System</div>
+            <div style={{ fontSize: 12, color: 'color-mix(in srgb, var(--white) 70%, transparent)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Vehicle Repair System</div>
           </div>
         </div>
 
         {/* Navigation */}
         <nav style={{ marginTop: 8 }}>
           {navSections.map((section, idx) => (
-            <div key={section.title} className="sidebar-section" style={{ marginTop: idx > 0 ? 12 : 0 }}>
+            <div key={section.title} style={{ marginTop: idx > 0 ? 12 : 0 }}>
               {/* Section Header / Divider */}
               <div 
                 className="sidebar-section-header"
@@ -156,7 +156,7 @@ export function Sidebar() {
                   minHeight: 28,
                   fontSize: 10,
                   fontWeight: 700,
-                  color: 'rgba(255, 255, 255, 0.4)',
+                  color: 'color-mix(in srgb, var(--white) 40%, transparent)',
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
                   padding: '8px 10px 4px'

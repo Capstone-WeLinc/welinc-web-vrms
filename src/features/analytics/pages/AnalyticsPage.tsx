@@ -29,7 +29,7 @@ export function AnalyticsPage() {
   const completionRate = totalAll > 0 ? Math.round((Number(completedCount) / totalAll) * 100) : 0;
 
   if (loading) return (
-    <div className="dashboard-page animate-fade-in">
+    <div className="dashboard-page">
       <PageHeader title="Fleet Analytics" subtitle="Loading dashboard data..." icon={BarChart2} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
         {[0, 1, 2, 3].map(i => (
@@ -45,7 +45,7 @@ export function AnalyticsPage() {
   );
 
   return (
-    <div className="dashboard-page animate-fade-in">
+    <div className="dashboard-page">
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <PageHeader
           title="Fleet Analytics"

@@ -106,12 +106,12 @@ export default function SessionMonitor() {
   if (!token || !showWarning) return null;
 
   return (
-    <div className="fixed inset-0 bg-brand-black/85 backdrop-blur-md flex items-center justify-center p-6 z-99999 animate-fade-in">
-      <div className="bg-brand-dark border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center relative overflow-hidden">
+    <div className="fixed inset-0 bg-foreground/85 backdrop-blur-md flex items-center justify-center p-6 z-99999">
+      <div className="bg-primary-hover border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center relative overflow-hidden">
         {/* Glowing aura */}
-        <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-brand-warning/15 blur-3xl pointer-events-none" />
+        <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-highlight/15 blur-3xl pointer-events-none" />
 
-        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-lg shadow-amber-500/5">
+        <div className="w-16 h-16 rounded-2xl bg-highlight/10 border border-highlight/30 flex items-center justify-center mx-auto mb-6 text-highlight shadow-lg shadow-highlight/5">
           <AlertTriangle className="w-8 h-8 animate-pulse" />
         </div>
 
@@ -121,16 +121,16 @@ export default function SessionMonitor() {
         </p>
 
         {/* Circular Countdown visual */}
-        <div className="w-28 h-28 rounded-full border-4 border-amber-500/20 flex flex-col items-center justify-center mx-auto mb-8 relative">
-          <Clock className="w-4 h-4 text-amber-500/45 absolute top-4" />
+        <div className="w-28 h-28 rounded-full border-4 border-highlight/20 flex flex-col items-center justify-center mx-auto mb-8 relative">
+          <Clock className="w-4 h-4 text-highlight/45 absolute top-4" />
           <span className="text-3xl font-black text-white tracking-tighter mt-2">{secondsRemaining}</span>
-          <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">seconds</span>
+          <span className="text-xs text-white/40 uppercase tracking-widest font-bold">seconds</span>
         </div>
 
         <div className="flex justify-center">
           <button
             onClick={handleExtend}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand-warning hover:bg-brand-warning-dark text-brand-primary rounded-xl text-sm font-bold transition-all cursor-pointer shadow-lg shadow-amber-500/10"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-highlight hover:bg-highlight/90 text-primary rounded-xl text-sm font-bold transition-all cursor-pointer shadow-lg shadow-highlight/10"
           >
             I'm still here
           </button>

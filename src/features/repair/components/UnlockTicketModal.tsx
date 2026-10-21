@@ -51,7 +51,7 @@ export function UnlockTicketModal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.5)',
+        background: 'color-mix(in srgb, var(--foreground) 50%, transparent)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -66,7 +66,7 @@ export function UnlockTicketModal({
           padding: 32,
           maxWidth: 480,
           width: '100%',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+          boxShadow: '0 20px 60px color-mix(in srgb, var(--foreground) 20%, transparent)',
         }}
       >
         <h3 style={{ margin: '0 0 8px' }}>Unlock Ticket</h3>

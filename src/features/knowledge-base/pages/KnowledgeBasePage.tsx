@@ -39,14 +39,14 @@ export interface KbArticle {
 }
 
 const CATEGORY_STYLES: Record<string, { icon: typeof Wrench; badgeClass: string; iconColor: string }> = {
-  Engine: { icon: Settings, badgeClass: 'bg-amber-50 text-amber-800 border-amber-200', iconColor: 'text-amber-600' },
-  Electrical: { icon: Zap, badgeClass: 'bg-blue-50 text-brand-primary border-blue-200', iconColor: 'text-brand-primary' },
-  Brakes: { icon: Shield, badgeClass: 'bg-red-50 text-red-800 border-red-200', iconColor: 'text-brand-danger' },
-  Transmission: { icon: Layers, badgeClass: 'bg-indigo-50 text-indigo-800 border-indigo-200', iconColor: 'text-indigo-600' },
-  Suspension: { icon: Wrench, badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200', iconColor: 'text-emerald-600' },
+  Engine: { icon: Settings, badgeClass: 'bg-status-pending-bg text-status-pending-fg border-status-pending-fg/20', iconColor: 'text-status-pending-fg' },
+  Electrical: { icon: Zap, badgeClass: 'bg-status-in-progress-bg text-primary border-primary/20', iconColor: 'text-primary' },
+  Brakes: { icon: Shield, badgeClass: 'bg-destructive/10 text-destructive border-destructive/30', iconColor: 'text-destructive' },
+  Transmission: { icon: Layers, badgeClass: 'bg-status-for-verification-bg text-status-for-verification-fg border-status-for-verification-fg/20', iconColor: 'text-status-for-verification-fg' },
+  Suspension: { icon: Wrench, badgeClass: 'bg-status-completed-bg text-status-completed-fg border-status-completed-fg/20', iconColor: 'text-status-completed-fg' },
   Cooling: { icon: RefreshCw, badgeClass: 'bg-cyan-50 text-cyan-800 border-cyan-200', iconColor: 'text-cyan-600' },
   Steering: { icon: Wrench, badgeClass: 'bg-teal-50 text-teal-800 border-teal-200', iconColor: 'text-teal-600' },
-  General: { icon: BookOpen, badgeClass: 'bg-slate-100 text-slate-800 border-slate-200', iconColor: 'text-slate-600' },
+  General: { icon: BookOpen, badgeClass: 'bg-muted text-foreground border-border', iconColor: 'text-muted-strong' },
 };
 
 const DEFAULT_ARTICLES: KbArticle[] = [
@@ -226,7 +226,7 @@ function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClos
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
       onClick={e => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -252,7 +252,7 @@ function ArticleCard({
   const Icon = conf.icon;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between group h-full">
+    <div className="bg-white border border-border rounded-xl p-5 shadow-xs hover:shadow-md hover:border-input transition-all flex flex-col justify-between group h-full">
       <div>
         {/* Header row: Category & SLA */}
         <div className="flex items-center justify-between gap-2 mb-3">
@@ -265,8 +265,8 @@ function ArticleCard({
             <Icon size={13} className={conf.iconColor} />
             {article.category.toUpperCase()}
           </span>
-          <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-semibold tabular-nums">
-            <Clock size={12} className="text-slate-400" />
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-semibold tabular-nums">
+            <Clock size={12} className="text-muted-foreground" />
             ~{article.estimated_hours}h SLA
           </span>
         </div>
@@ -274,42 +274,42 @@ function ArticleCard({
         {/* Title */}
         <h3
           onClick={onView}
-          className="text-slate-900 font-bold text-base leading-snug line-clamp-2 cursor-pointer group-hover:text-brand-primary transition-colors"
+          className="text-foreground font-bold text-base leading-snug line-clamp-2 cursor-pointer group-hover:text-primary transition-colors"
         >
           {article.title}
         </h3>
 
         {/* Summary */}
-        <p className="text-slate-600 text-xs mt-2 line-clamp-2 leading-relaxed">
+        <p className="text-muted-strong text-xs mt-2 line-clamp-2 leading-relaxed">
           {article.summary}
         </p>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-1.5 mt-3 min-h-[24px]">
+        <div className="flex flex-wrap gap-1.5 mt-3 min-h-6">
           {article.tags.slice(0, 3).map(tag => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-sm"
+              className="inline-flex items-center gap-1 text-xs font-mono text-muted-strong bg-muted border border-border/80 px-2 py-0.5 rounded-sm"
             >
-              <Tag size={10} className="text-slate-400" />
+              <Tag size={10} className="text-muted-foreground" />
               {tag}
             </span>
           ))}
           {article.tags.length > 3 && (
-            <span className="text-[11px] font-medium text-slate-400 self-center">
+            <span className="text-xs font-medium text-muted-foreground self-center">
               +{article.tags.length - 3} more
             </span>
           )}
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-slate-100">
+      <div className="mt-4 pt-3 border-t border-border">
         {/* Metric Ribbon */}
-        <div className="bg-slate-50 rounded-lg px-3 py-2 flex items-center justify-between text-xs text-slate-500 border border-slate-100 mb-3">
-          <span className="font-medium text-slate-700">
+        <div className="bg-muted rounded-lg px-3 py-2 flex items-center justify-between text-xs text-muted-foreground border border-border mb-3">
+          <span className="font-medium text-muted-strong">
             {article.steps.length} {article.steps.length === 1 ? 'Step' : 'Steps'}
           </span>
-          <span className="text-slate-300">|</span>
+          <span className="text-muted-foreground">|</span>
           <span>{article.parts.length} {article.parts.length === 1 ? 'Part listed' : 'Parts listed'}</span>
         </div>
 
@@ -317,7 +317,7 @@ function ArticleCard({
         <div className="flex items-center justify-between">
           <button
             onClick={onView}
-            className="text-xs font-bold text-brand-primary hover:text-brand-dark flex items-center gap-1 group/btn transition-colors"
+            className="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1 group/btn transition-colors"
           >
             <span>Read SOP</span>
             <ChevronRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
@@ -327,14 +327,14 @@ function ArticleCard({
             <button
               onClick={onEdit}
               title="Edit article"
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+              className="p-1.5 text-muted-foreground hover:text-muted-strong hover:bg-muted rounded-md transition-colors"
             >
               <Pencil size={14} />
             </button>
             <button
               onClick={onDelete}
               title="Delete article"
-              className="p-1.5 text-slate-400 hover:text-brand-danger hover:bg-red-50 rounded-md transition-colors"
+              className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
             >
               <Trash2 size={14} />
             </button>
@@ -358,11 +358,11 @@ function ArticleTable({
   onDelete: (art: KbArticle) => void;
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+    <div className="bg-white border border-border rounded-xl overflow-hidden shadow-xs">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm border-collapse">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider font-semibold">
+            <tr className="bg-muted border-b border-border text-muted-strong text-xs uppercase tracking-wider font-semibold">
               <th className="py-3 px-4">Category</th>
               <th className="py-3 px-4">Procedure Title & Summary</th>
               <th className="py-3 px-4">Est. SLA</th>
@@ -371,12 +371,12 @@ function ArticleTable({
               <th className="py-3 px-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-slate-700">
+          <tbody className="divide-y divide-border text-muted-strong">
             {articles.map(article => {
               const conf = getCategoryConfig(article.category);
               const Icon = conf.icon;
               return (
-                <tr key={article.id} className="hover:bg-slate-50/80 transition-colors">
+                <tr key={article.id} className="hover:bg-muted/80 transition-colors">
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     <span
                       className={cn(
@@ -391,21 +391,21 @@ function ArticleTable({
                   <td className="py-3.5 px-4 max-w-md">
                     <button
                       onClick={() => onView(article)}
-                      className="font-bold text-slate-900 hover:text-brand-primary text-left block leading-snug transition-colors line-clamp-1"
+                      className="font-bold text-foreground hover:text-primary text-left block leading-snug transition-colors line-clamp-1"
                     >
                       {article.title}
                     </button>
-                    <p className="text-slate-500 text-xs line-clamp-1 mt-0.5">{article.summary}</p>
+                    <p className="text-muted-foreground text-xs line-clamp-1 mt-0.5">{article.summary}</p>
                   </td>
                   <td className="py-3.5 px-4 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1 font-semibold text-slate-700 text-xs tabular-nums">
-                      <Clock size={12} className="text-slate-400" />
+                    <span className="inline-flex items-center gap-1 font-semibold text-muted-strong text-xs tabular-nums">
+                      <Clock size={12} className="text-muted-foreground" />
                       ~{article.estimated_hours}h
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 whitespace-nowrap text-xs text-slate-600">
-                    <span className="font-semibold text-slate-800">{article.steps.length} steps</span>
-                    <span className="text-slate-300 mx-1.5">·</span>
+                  <td className="py-3.5 px-4 whitespace-nowrap text-xs text-muted-strong">
+                    <span className="font-semibold text-foreground">{article.steps.length} steps</span>
+                    <span className="text-muted-foreground mx-1.5">·</span>
                     <span>{article.parts.length} parts</span>
                   </td>
                   <td className="py-3.5 px-4">
@@ -413,13 +413,13 @@ function ArticleTable({
                       {article.tags.slice(0, 2).map(tag => (
                         <span
                           key={tag}
-                          className="text-[11px] font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-sm border border-slate-200/60"
+                          className="text-xs font-mono text-muted-strong bg-muted px-1.5 py-0.5 rounded-sm border border-border/60"
                         >
                           #{tag}
                         </span>
                       ))}
                       {article.tags.length > 2 && (
-                        <span className="text-[11px] text-slate-400 font-mono">+{article.tags.length - 2}</span>
+                        <span className="text-xs text-muted-foreground font-mono">+{article.tags.length - 2}</span>
                       )}
                     </div>
                   </td>
@@ -427,20 +427,20 @@ function ArticleTable({
                     <div className="inline-flex items-center gap-1 justify-end">
                       <button
                         onClick={() => onView(article)}
-                        className="px-2.5 py-1 text-xs font-semibold text-brand-primary hover:bg-blue-50 rounded-sm transition-colors"
+                        className="px-2.5 py-1 text-xs font-semibold text-primary hover:bg-status-in-progress-bg rounded-sm transition-colors"
                       >
                         View
                       </button>
                       <button
                         onClick={() => onEdit(article)}
-                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-sm transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-muted-strong hover:bg-muted rounded-sm transition-colors"
                         title="Edit"
                       >
                         <Pencil size={13} />
                       </button>
                       <button
                         onClick={() => onDelete(article)}
-                        className="p-1.5 text-slate-400 hover:text-brand-danger hover:bg-red-50 rounded-sm transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-sm transition-colors"
                         title="Delete"
                       >
                         <Trash2 size={13} />
@@ -472,23 +472,23 @@ function ViewModal({
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden text-slate-900">
+      <div className="bg-white rounded-2xl border border-border shadow-2xl max-w-3xl w-full max-h-full flex flex-col overflow-hidden text-foreground">
         {/* Header */}
-        <div className="bg-brand-dark text-white p-6 sm:p-7 shrink-0">
+        <div className="bg-primary-hover text-white p-6 sm:p-7 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm text-xs font-bold uppercase tracking-wider bg-white/10 text-white border border-white/20">
-                  <Icon size={12} className="text-brand-warning" />
+                  <Icon size={12} className="text-highlight" />
                   {article.category}
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs text-slate-300 font-semibold tabular-nums">
-                  <Clock size={12} className="text-brand-warning" />
+                <span className="inline-flex items-center gap-1 text-xs text-white/70 font-semibold tabular-nums">
+                  <Clock size={12} className="text-highlight" />
                   ~{article.estimated_hours} Hours Target SLA
                 </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-bold leading-tight text-white">{article.title}</h2>
-              <p className="text-slate-300 text-xs sm:text-sm mt-2 leading-relaxed">{article.summary}</p>
+              <p className="text-white/70 text-xs sm:text-sm mt-2 leading-relaxed">{article.summary}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
@@ -507,17 +507,17 @@ function ViewModal({
           </div>
 
           {/* Quick Metrics Bar */}
-          <div className="mt-5 pt-4 border-t border-white/15 flex flex-wrap gap-4 text-xs text-slate-300">
+          <div className="mt-5 pt-4 border-t border-white/15 flex flex-wrap gap-4 text-xs text-white/70">
             <div className="flex items-center gap-1.5">
-              <CheckCircle size={13} className="text-brand-success" />
+              <CheckCircle size={13} className="text-success" />
               <span>{article.steps.length} Verified Diagnostic Steps</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Wrench size={13} className="text-brand-warning" />
+              <Wrench size={13} className="text-highlight" />
               <span>{article.parts.length} Required Parts & Materials</span>
             </div>
             {article.updatedAt && (
-              <div className="text-slate-400">
+              <div className="text-muted-foreground">
                 Last reviewed: {new Date(article.updatedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
               </div>
             )}
@@ -529,18 +529,18 @@ function ViewModal({
           {/* Section: Diagnostic Steps */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full bg-brand-primary" />
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <div className="w-2 h-2 rounded-full bg-primary" />
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Standard Diagnostic & Repair Procedure
               </h4>
             </div>
             <ol className="space-y-3">
               {article.steps.filter(s => s.trim()).map((step, i) => (
-                <li key={i} className="flex items-start gap-3.5 bg-slate-50/80 p-3.5 rounded-lg border border-slate-100">
-                  <span className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                <li key={i} className="flex items-start gap-3.5 bg-muted/80 p-3.5 rounded-lg border border-border">
+                  <span className="w-6 h-6 rounded-md bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
                     {i + 1}
                   </span>
-                  <span className="text-sm text-slate-800 leading-relaxed pt-0.5">{step}</span>
+                  <span className="text-sm text-foreground leading-relaxed pt-0.5">{step}</span>
                 </li>
               ))}
             </ol>
@@ -550,8 +550,8 @@ function ViewModal({
           {article.parts.filter(p => p.trim()).length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 rounded-full bg-brand-warning" />
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <div className="w-2 h-2 rounded-full bg-highlight" />
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   Commonly Required Replacement Parts & Shop Supplies
                 </h4>
               </div>
@@ -559,9 +559,9 @@ function ViewModal({
                 {article.parts.filter(p => p.trim()).map((part, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 shadow-xs"
+                    className="flex items-center gap-2.5 p-3 rounded-lg border border-border bg-white text-xs font-medium text-foreground shadow-xs"
                   >
-                    <Wrench size={14} className="text-brand-primary shrink-0" />
+                    <Wrench size={14} className="text-primary shrink-0" />
                     <span>{part}</span>
                   </div>
                 ))}
@@ -573,8 +573,8 @@ function ViewModal({
           {article.tags.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 rounded-full bg-slate-400" />
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <div className="w-2 h-2 rounded-full bg-muted-foreground" />
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   Associated Subsystem Tags
                 </h4>
               </div>
@@ -582,9 +582,9 @@ function ViewModal({
                 {article.tags.map(tag => (
                   <span
                     key={tag}
-                    className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-1 rounded-sm text-xs font-mono"
+                    className="inline-flex items-center gap-1 bg-muted border border-border text-muted-strong px-2.5 py-1 rounded-sm text-xs font-mono"
                   >
-                    <Tag size={11} className="text-slate-400" />
+                    <Tag size={11} className="text-muted-foreground" />
                     #{tag}
                   </span>
                 ))}
@@ -594,18 +594,18 @@ function ViewModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
-          <span className="text-xs text-slate-400 font-mono">ID: {article.id}</span>
+        <div className="p-4 sm:p-5 border-t border-border bg-muted flex items-center justify-between shrink-0">
+          <span className="text-xs text-muted-foreground font-mono">ID: {article.id}</span>
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors"
+              className="px-4 py-2 rounded-lg border border-border bg-white hover:bg-muted text-muted-strong text-xs font-semibold transition-colors"
             >
               Close Reader
             </button>
             <button
               onClick={onEdit}
-              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
+              className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
             >
               <Pencil size={13} /> Edit Procedure
             </button>
@@ -695,20 +695,20 @@ function EditorModal({
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden text-slate-900">
+      <div className="bg-white rounded-2xl border border-border shadow-2xl max-w-2xl w-full max-h-full flex flex-col overflow-hidden text-foreground">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between shrink-0 bg-slate-50">
+        <div className="px-6 py-5 border-b border-border flex items-center justify-between shrink-0 bg-muted">
           <div>
-            <h3 className="font-bold text-base text-slate-900">
+            <h3 className="font-bold text-base text-foreground">
               {isNew ? 'New Standard Operating Procedure' : 'Edit Operating Procedure'}
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Fill out diagnostic procedures and parts for fleet technicians
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white hover:bg-slate-200 border border-slate-200 text-slate-500 transition-colors"
+            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white hover:bg-border border border-border text-muted-foreground transition-colors"
           >
             <X size={15} />
           </button>
@@ -719,7 +719,7 @@ function EditorModal({
           {/* Title & Category */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-muted-strong uppercase tracking-wider mb-1.5">
                 Procedure Title *
               </label>
               <input
@@ -731,21 +731,21 @@ function EditorModal({
                 }}
                 placeholder="e.g. Brake Caliper & Slider Pin Overhaul SOP"
                 className={cn(
-                  'w-full px-3 py-2 rounded-lg border text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-primary transition-all',
-                  errors.title ? 'border-brand-danger' : 'border-slate-300'
+                  'w-full px-3 py-2 rounded-lg border text-sm text-foreground bg-white placeholder-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary transition-all',
+                  errors.title ? 'border-destructive' : 'border-input'
                 )}
               />
-              {errors.title && <span className="text-xs text-brand-danger mt-1 block">{errors.title}</span>}
+              {errors.title && <span className="text-xs text-destructive mt-1 block">{errors.title}</span>}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-muted-strong uppercase tracking-wider mb-1.5">
                 Subsystem
               </label>
               <select
                 value={form.category}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-primary transition-all cursor-pointer"
+                className="w-full px-3 py-2 rounded-lg border border-input text-sm text-foreground bg-white focus:outline-hidden focus:ring-2 focus:ring-primary transition-all cursor-pointer"
               >
                 {CATEGORIES.filter(c => c !== 'All').map(c => (
                   <option key={c} value={c}>
@@ -758,7 +758,7 @@ function EditorModal({
 
           {/* Summary */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-strong uppercase tracking-wider mb-1.5">
               Summary & Scope *
             </label>
             <textarea
@@ -770,52 +770,52 @@ function EditorModal({
               }}
               placeholder="Brief overview of the maintenance procedure, symptoms addressed, and scope..."
               className={cn(
-                'w-full px-3 py-2 rounded-lg border text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-primary transition-all',
-                errors.summary ? 'border-brand-danger' : 'border-slate-300'
+                'w-full px-3 py-2 rounded-lg border text-sm text-foreground bg-white placeholder-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary transition-all',
+                errors.summary ? 'border-destructive' : 'border-input'
               )}
             />
-            {errors.summary && <span className="text-xs text-brand-danger mt-1 block">{errors.summary}</span>}
+            {errors.summary && <span className="text-xs text-destructive mt-1 block">{errors.summary}</span>}
           </div>
 
           {/* Est. Hours */}
           <div className="w-48">
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-strong uppercase tracking-wider mb-1.5">
               Target SLA (Hours)
             </label>
             <div className="relative">
-              <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="number"
                 min={0.5}
                 step={0.5}
                 value={form.estimated_hours}
                 onChange={e => setForm(f => ({ ...f, estimated_hours: parseFloat(e.target.value) || 1 }))}
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-primary"
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-input text-sm text-foreground bg-white focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
 
-          <hr className="border-slate-200" />
+          <hr className="border-border" />
 
           {/* Diagnostic Steps List */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <label className="text-xs font-semibold text-muted-strong uppercase tracking-wider">
                 Diagnostic & Service Steps *
               </label>
               <button
                 type="button"
                 onClick={() => addListItem('steps')}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:text-brand-dark"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover"
               >
                 <Plus size={13} /> Add Step
               </button>
             </div>
-            {errors.steps && <span className="text-xs text-brand-danger mb-2 block">{errors.steps}</span>}
+            {errors.steps && <span className="text-xs text-destructive mb-2 block">{errors.steps}</span>}
             <div className="space-y-2">
               {form.steps.map((step, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-sm bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 shrink-0">
+                  <span className="w-6 h-6 rounded-sm bg-muted border border-border flex items-center justify-center text-xs font-bold text-muted-strong shrink-0">
                     {i + 1}
                   </span>
                   <input
@@ -823,13 +823,13 @@ function EditorModal({
                     value={step}
                     onChange={e => updateList('steps', i, e.target.value)}
                     placeholder={`Step ${i + 1} action or verification checkpoint...`}
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-primary"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-input text-sm text-foreground bg-white focus:outline-hidden focus:ring-2 focus:ring-primary"
                   />
                   <button
                     type="button"
                     onClick={() => removeListItem('steps', i)}
                     disabled={form.steps.length <= 1}
-                    className="p-1.5 text-slate-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed rounded-sm"
+                    className="p-1.5 text-muted-foreground hover:text-destructive disabled:opacity-30 disabled:cursor-not-allowed rounded-sm"
                   >
                     <X size={15} />
                   </button>
@@ -838,18 +838,18 @@ function EditorModal({
             </div>
           </div>
 
-          <hr className="border-slate-200" />
+          <hr className="border-border" />
 
           {/* Parts List */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <label className="text-xs font-semibold text-muted-strong uppercase tracking-wider">
                 Commonly Needed Replacement Parts
               </label>
               <button
                 type="button"
                 onClick={() => addListItem('parts')}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:text-brand-dark"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover"
               >
                 <Plus size={13} /> Add Part
               </button>
@@ -857,19 +857,19 @@ function EditorModal({
             <div className="space-y-2">
               {form.parts.map((part, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <Wrench size={14} className="text-slate-400 shrink-0 ml-1" />
+                  <Wrench size={14} className="text-muted-foreground shrink-0 ml-1" />
                   <input
                     type="text"
                     value={part}
                     onChange={e => updateList('parts', i, e.target.value)}
                     placeholder="e.g. Brake Caliper Seal Kit (Part #BC-992)"
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-primary"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-input text-sm text-foreground bg-white focus:outline-hidden focus:ring-2 focus:ring-primary"
                   />
                   <button
                     type="button"
                     onClick={() => removeListItem('parts', i)}
                     disabled={form.parts.length <= 1}
-                    className="p-1.5 text-slate-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed rounded-sm"
+                    className="p-1.5 text-muted-foreground hover:text-destructive disabled:opacity-30 disabled:cursor-not-allowed rounded-sm"
                   >
                     <X size={15} />
                   </button>
@@ -880,7 +880,7 @@ function EditorModal({
 
           {/* Tags */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-strong uppercase tracking-wider mb-1.5">
               Subsystem & Search Tags
             </label>
             <div className="flex gap-2 mb-2">
@@ -895,12 +895,12 @@ function EditorModal({
                   }
                 }}
                 placeholder="Type tag (e.g. calipers) and press Enter..."
-                className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-primary"
+                className="flex-1 px-3 py-1.5 rounded-lg border border-input text-sm text-foreground bg-white focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
               <button
                 type="button"
                 onClick={addTag}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700"
+                className="px-3 py-1.5 rounded-lg border border-input bg-muted hover:bg-border text-xs font-semibold text-muted-strong"
               >
                 Add
               </button>
@@ -910,13 +910,13 @@ function EditorModal({
                 {form.tags.map(tag => (
                   <span
                     key={tag}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm bg-muted border border-border text-xs font-mono text-muted-strong"
                   >
                     #{tag}
                     <button
                       type="button"
                       onClick={() => removeTag(tag)}
-                      className="text-slate-400 hover:text-red-600"
+                      className="text-muted-foreground hover:text-destructive"
                     >
                       <X size={12} />
                     </button>
@@ -928,18 +928,18 @@ function EditorModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 shrink-0">
+        <div className="p-4 sm:p-5 border-t border-border bg-muted flex items-center justify-end gap-3 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors"
+            className="px-4 py-2 rounded-lg border border-input bg-white hover:bg-muted text-xs font-semibold text-muted-strong transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-5 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
+            className="px-5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
           >
             <Save size={14} /> {isNew ? 'Create SOP' : 'Save Changes'}
           </button>
@@ -961,27 +961,27 @@ function DeleteModal({
 }) {
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden text-slate-900 p-6 text-center">
-        <div className="w-12 h-12 rounded-full bg-red-100 text-brand-danger flex items-center justify-center mx-auto mb-4">
+      <div className="bg-white rounded-2xl border border-border shadow-2xl max-w-md w-full overflow-hidden text-foreground p-6 text-center">
+        <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto mb-4">
           <Trash2 size={22} />
         </div>
-        <h3 className="text-base font-bold text-slate-900">Delete Operating Procedure?</h3>
-        <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-          Are you sure you want to permanently remove <strong className="text-slate-800">"{article.title}"</strong> from the Knowledge Base? This action cannot be undone.
+        <h3 className="text-base font-bold text-foreground">Delete Operating Procedure?</h3>
+        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+          Are you sure you want to permanently remove <strong className="text-foreground">"{article.title}"</strong> from the Knowledge Base? This action cannot be undone.
         </p>
 
         <div className="mt-6 flex items-center gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors"
+            className="flex-1 py-2 rounded-lg border border-border bg-white hover:bg-muted text-xs font-semibold text-muted-strong transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 py-2 rounded-lg bg-brand-danger hover:bg-red-800 text-white text-xs font-semibold shadow-xs transition-colors"
+            className="flex-1 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-white text-xs font-semibold shadow-xs transition-colors"
           >
             Yes, Delete SOP
           </button>
@@ -1009,10 +1009,10 @@ function Toast({
   return (
     <div
       className={cn(
-        'fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold animate-slide-up backdrop-blur-md',
+        'fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold  backdrop-blur-md',
         type === 'success'
-          ? 'bg-emerald-900/90 text-emerald-100 border-emerald-700'
-          : 'bg-red-900/90 text-red-100 border-red-700'
+          ? 'bg-success text-white border-success'
+          : 'bg-destructive text-destructive-foreground border-destructive'
       )}
     >
       {type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
@@ -1162,7 +1162,7 @@ export function KnowledgeBasePage() {
   }, [articles]);
 
   return (
-    <div className="space-y-6 animate-fade-in text-slate-900 w-full">
+    <div className="space-y-6 text-foreground w-full">
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
         <PageHeader
@@ -1174,14 +1174,14 @@ export function KnowledgeBasePage() {
           <button
             onClick={handleSync}
             disabled={isSyncing}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs transition-colors disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-border bg-white hover:bg-muted text-xs font-semibold text-muted-strong shadow-xs transition-colors disabled:opacity-60"
           >
-            <RefreshCw size={13} className={cn(isSyncing && 'animate-spin text-brand-primary')} />
+            <RefreshCw size={13} className={cn(isSyncing && 'animate-spin text-primary')} />
             {isSyncing ? 'Syncing...' : 'Sync Catalog'}
           </button>
           <button
             onClick={() => setEditArticle('new')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-dark text-white text-xs font-semibold shadow-xs transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition-colors"
           >
             <Plus size={15} />
             New SOP
@@ -1192,80 +1192,80 @@ export function KnowledgeBasePage() {
       {/* ── Top Executive KPI Metrics (Tremor / One UI Style) ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Metric 1 */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <div className="bg-white border border-border rounded-xl p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Active SOPs</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-brand-primary flex items-center justify-center">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Active SOPs</span>
+            <div className="w-8 h-8 rounded-lg bg-status-in-progress-bg text-primary flex items-center justify-center">
               <BookOpen size={16} />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
+          <div className="mt-2 text-2xl font-bold text-foreground tabular-nums">
             {stats.total}
           </div>
-          <p className="mt-1 text-xs text-slate-500">Documented workshop guides</p>
+          <p className="mt-1 text-xs text-muted-foreground">Documented workshop guides</p>
         </div>
 
         {/* Metric 2 */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <div className="bg-white border border-border rounded-xl p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Avg Labor SLA</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Avg Labor SLA</span>
+            <div className="w-8 h-8 rounded-lg bg-status-pending-bg text-status-pending-fg flex items-center justify-center">
               <Clock size={16} />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
+          <div className="mt-2 text-2xl font-bold text-foreground tabular-nums">
             ~{stats.avgHours.toFixed(1)}h
           </div>
-          <p className="mt-1 text-xs text-slate-500">Standard resolution benchmark</p>
+          <p className="mt-1 text-xs text-muted-foreground">Standard resolution benchmark</p>
         </div>
 
         {/* Metric 3 */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <div className="bg-white border border-border rounded-xl p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Subsystems</span>
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Subsystems</span>
+            <div className="w-8 h-8 rounded-lg bg-status-for-verification-bg text-status-for-verification-fg flex items-center justify-center">
               <Layers size={16} />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
+          <div className="mt-2 text-2xl font-bold text-foreground tabular-nums">
             {stats.uniqueCats} Modules
           </div>
-          <p className="mt-1 text-xs text-slate-500">Engine, Brakes, Transmission...</p>
+          <p className="mt-1 text-xs text-muted-foreground">Engine, Brakes, Transmission...</p>
         </div>
 
         {/* Metric 4 */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <div className="bg-white border border-border rounded-xl p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Steps & Supplies</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Steps & Supplies</span>
+            <div className="w-8 h-8 rounded-lg bg-status-completed-bg text-status-completed-fg flex items-center justify-center">
               <CheckCircle size={16} />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
+          <div className="mt-2 text-2xl font-bold text-foreground tabular-nums">
             {stats.totalSteps} Steps
           </div>
-          <p className="mt-1 text-xs text-slate-500">Across {stats.totalParts} inventory parts</p>
+          <p className="mt-1 text-xs text-muted-foreground">Across {stats.totalParts} inventory parts</p>
         </div>
       </div>
 
       {/* ── Search & Filter Toolbar ── */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
+      <div className="bg-white border border-border rounded-xl p-4 shadow-xs space-y-3">
         {/* Row 1: Search + Sort + View Mode */}
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {/* Search bar */}
           <div className="relative flex-1 w-full">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by procedure name, symptom, replacement part, or #tag..."
-              className="w-full pl-10 pr-9 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-primary transition-all"
+              className="w-full pl-10 pr-9 py-2 rounded-lg border border-border text-sm text-foreground bg-white placeholder-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary transition-all"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-strong"
               >
                 <X size={14} />
               </button>
@@ -1277,7 +1277,7 @@ export function KnowledgeBasePage() {
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value as typeof sortBy)}
-              className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-brand-primary transition-colors cursor-pointer w-full sm:w-auto"
+              className="px-3 py-2 rounded-lg border border-border text-xs font-semibold text-muted-strong bg-white hover:bg-muted focus:outline-hidden focus:ring-2 focus:ring-primary transition-colors cursor-pointer w-full sm:w-auto"
             >
               <option value="alpha">Sort: Alphabetical (A → Z)</option>
               <option value="category">Sort: Subsystem Category</option>
@@ -1286,15 +1286,15 @@ export function KnowledgeBasePage() {
             </select>
 
             {/* View Mode Toggle: Grid vs Table */}
-            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 shrink-0">
+            <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted shrink-0">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
                 className={cn(
                   'p-1.5 rounded-md text-xs font-medium transition-colors',
                   viewMode === 'grid'
-                    ? 'bg-white text-brand-primary shadow-xs font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-white text-primary shadow-xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
                 title="Grid View"
               >
@@ -1306,8 +1306,8 @@ export function KnowledgeBasePage() {
                 className={cn(
                   'p-1.5 rounded-md text-xs font-medium transition-colors',
                   viewMode === 'table'
-                    ? 'bg-white text-brand-primary shadow-xs font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-white text-primary shadow-xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
                 title="Table View"
               >
@@ -1318,7 +1318,7 @@ export function KnowledgeBasePage() {
         </div>
 
         {/* Row 2: Subsystem Category Tabs (Segmented control) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1">
           {CATEGORIES.map(cat => {
             const count = catCounts[cat] || 0;
             const active = category === cat;
@@ -1330,15 +1330,15 @@ export function KnowledgeBasePage() {
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
                   active
-                    ? 'bg-brand-primary text-white shadow-xs'
-                    : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'bg-white text-muted-strong hover:text-foreground hover:bg-muted border border-border'
                 )}
               >
                 <span>{cat}</span>
                 <span
                   className={cn(
-                    'px-1.5 py-0.2 rounded-full text-[10px] font-bold',
-                    active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                    'px-1.5  rounded-full text-xs font-bold',
+                    active ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
                   )}
                 >
                   {count}
@@ -1353,16 +1353,16 @@ export function KnowledgeBasePage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="h-56 bg-white border border-slate-200 rounded-xl p-5 animate-pulse" />
+            <div key={i} className="h-56 bg-white border border-border rounded-xl p-5 animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center flex flex-col items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+        <div className="bg-white border border-border rounded-xl p-12 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-muted text-muted-foreground flex items-center justify-center mb-3">
             <BookOpen size={24} />
           </div>
-          <h3 className="text-base font-bold text-slate-900">No procedures found</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm">
+          <h3 className="text-base font-bold text-foreground">No procedures found</h3>
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm">
             {search || category !== 'All'
               ? 'No operating procedures match your search filters. Try clearing your search query or switching categories.'
               : 'The knowledge base library is empty. Click "+ New SOP" to record the first procedure.'}
@@ -1373,7 +1373,7 @@ export function KnowledgeBasePage() {
                 setSearch('');
                 setCategory('All');
               }}
-              className="mt-4 px-3 py-1.5 rounded-lg text-xs font-semibold text-brand-primary border border-slate-200 hover:bg-slate-50"
+              className="mt-4 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary border border-border hover:bg-muted"
             >
               Clear Filters
             </button>

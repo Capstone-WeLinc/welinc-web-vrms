@@ -85,7 +85,7 @@ export const tooltipStyle: CSSProperties = {
   borderRadius: '10px',
   color: 'var(--text)',
   fontSize: '0.82rem',
-  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
+  boxShadow: '0 8px 24px color-mix(in srgb, var(--foreground) 18%, transparent)',
   padding: '8px 12px',
 };
 export const tooltipItemStyle: CSSProperties = {

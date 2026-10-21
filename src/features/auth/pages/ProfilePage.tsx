@@ -132,7 +132,7 @@ export function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="loading-container" style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
         <p style={{ color: 'var(--muted-foreground)' }}>Loading profile...</p>
       </div>
     );
@@ -216,7 +216,7 @@ export function ProfilePage() {
                   className="input"
                   value={storeUser?.role === 'ADMIN' ? 'System Administrator' : 'Mechanic'}
                   readOnly
-                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--muted-foreground)', cursor: 'not-allowed', paddingLeft: 34 }}
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--white) 5%, transparent)', color: 'var(--muted-foreground)', cursor: 'not-allowed', paddingLeft: 34 }}
                 />
                 <Shield size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
               </div>

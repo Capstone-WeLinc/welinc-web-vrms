@@ -155,7 +155,6 @@ export function RepairListPage() {
                       <td>
                         <div style={{ position: 'relative' }}>
                           <button
-                            className="button-icon"
                             onClick={() => setOpenMenuId(openMenuId === repair.id ? null : repair.id)}
                             onBlur={() => setTimeout(() => setOpenMenuId(null), 150)}
                           >

@@ -188,7 +188,7 @@ export function AuditLogsPage() {
                 </thead>
                 <tbody>
                   {paginatedLogs.map((log) => {
-                    let badgeBg = 'rgba(26, 31, 110, 0.1)';
+                    let badgeBg = 'color-mix(in srgb, var(--primary) 10%, transparent)';
                     let badgeColor = 'var(--primary)';
                     const lowercaseAction = log.action.toLowerCase();
                     

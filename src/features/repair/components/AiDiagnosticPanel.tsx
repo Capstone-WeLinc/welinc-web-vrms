@@ -42,19 +42,19 @@ interface DiagnosticResponse {
 }
 
 const PRIORITY_MAP: Record<string, { color: string; bg: string; border: string }> = {
-  critical: { color: 'var(--danger)', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.25)' },
-  major:    { color: 'var(--warning)', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.25)'  },
-  minor:    { color: 'var(--success)', bg: 'rgba(22,163,74,0.08)',  border: 'rgba(22,163,74,0.25)'  },
+  critical: { color: 'var(--danger)', bg: 'color-mix(in srgb, var(--destructive) 8%, transparent)', border: 'color-mix(in srgb, var(--destructive) 25%, transparent)' },
+  major:    { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--highlight) 8%, transparent)',  border: 'color-mix(in srgb, var(--highlight) 25%, transparent)'  },
+  minor:    { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success-fill) 8%, transparent)',  border: 'color-mix(in srgb, var(--success-fill) 25%, transparent)'  },
 };
 function priorityStyle(p?: string) {
-  return PRIORITY_MAP[(p || '').toLowerCase()] ?? { color: 'var(--muted-foreground)', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.25)' };
+  return PRIORITY_MAP[(p || '').toLowerCase()] ?? { color: 'var(--muted-foreground)', bg: 'color-mix(in srgb, var(--muted-foreground) 8%, transparent)', border: 'color-mix(in srgb, var(--muted-foreground) 25%, transparent)' };
 }
 
 function ConfidenceBadge({ level }: { level?: string }) {
   const map: Record<string, { bg: string; color: string; label: string }> = {
-    High:     { bg: 'rgba(16,185,129,0.12)',  color: 'var(--success)', label: 'High Confidence' },
-    Moderate: { bg: 'rgba(245,158,11,0.12)',  color: 'var(--warning)', label: 'Moderate Confidence' },
-    Low:      { bg: 'rgba(239,68,68,0.12)',   color: 'var(--danger)', label: 'Low — Limited Data' },
+    High:     { bg: 'color-mix(in srgb, var(--success-fill) 12%, transparent)',  color: 'var(--success)', label: 'High Confidence' },
+    Moderate: { bg: 'color-mix(in srgb, var(--highlight) 12%, transparent)',  color: 'var(--warning)', label: 'Moderate Confidence' },
+    Low:      { bg: 'color-mix(in srgb, var(--destructive) 12%, transparent)',   color: 'var(--danger)', label: 'Low — Limited Data' },
   };
   const cfg = map[level || 'Low'] || map.Low;
   return (
@@ -125,7 +125,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: data ? 24 : 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in srgb, var(--primary) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Sparkles size={18} style={{ color: 'var(--primary)' }} />
           </div>
           <div>
@@ -152,7 +152,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
                 fontWeight: 700, fontSize: '0.9rem', cursor: loading || issues.length === 0 ? 'not-allowed' : 'pointer',
                 opacity: issues.length === 0 ? 0.5 : 1,
                 transition: 'all 0.2s',
-                boxShadow: loading ? 'none' : '0 4px 12px rgba(139,92,246,0.3)',
+                boxShadow: loading ? 'none' : '0 4px 12px color-mix(in srgb, var(--primary) 30%, transparent)',
               }}
             >
               <Sparkles size={16} />
@@ -181,7 +181,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
 
       {/* Error */}
       {error && !loading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '12px 16px', color: 'var(--danger)', fontSize: '0.875rem', marginTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--destructive) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--destructive) 20%, transparent)', borderRadius: 10, padding: '12px 16px', color: 'var(--danger)', fontSize: '0.875rem', marginTop: 8 }}>
           <AlertTriangle size={16} style={{ flexShrink: 0 }} />
           {error}
         </div>
@@ -193,7 +193,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
 
           {/* Predictions */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-            <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 12, padding: '16px 20px' }}>
+            <div style={{ background: 'color-mix(in srgb, var(--primary) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 20%, transparent)', borderRadius: 12, padding: '16px 20px' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Wrench size={13} /> Predicted Category
               </div>
@@ -205,7 +205,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: ps!.color }}>{data.ai_diagnosis.predicted_priority || '—'}</div>
             </div>
-            <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 12, padding: '16px 20px' }}>
+            <div style={{ background: 'color-mix(in srgb, var(--success-fill) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--success-fill) 20%, transparent)', borderRadius: 12, padding: '16px 20px' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--success)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Clock size={13} /> Estimated SLA
               </div>
@@ -215,7 +215,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
 
           {/* Safety note */}
           {data.ai_diagnosis.safety_note && (
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 10, padding: '14px 18px' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'color-mix(in srgb, var(--highlight) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--highlight) 25%, transparent)', borderRadius: 10, padding: '14px 18px' }}>
               <AlertTriangle size={18} color="var(--warning)" style={{ flexShrink: 0, marginTop: 1 }} />
               <div style={{ fontSize: '0.9rem', color: 'var(--warning-text)', lineHeight: 1.5 }}>
                 <strong>Safety Note:</strong> {data.ai_diagnosis.safety_note}
@@ -236,7 +236,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
               <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {data.ai_diagnosis.probable_causes?.map((cause, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, fontSize: '0.875rem', alignItems: 'flex-start' }}>
-                    <span style={{ minWidth: 22, height: 22, borderRadius: '50%', background: 'rgba(139,92,246,0.12)', color: 'var(--primary)', fontWeight: 800, fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+                    <span style={{ minWidth: 22, height: 22, borderRadius: '50%', background: 'color-mix(in srgb, var(--primary) 12%, transparent)', color: 'var(--primary)', fontWeight: 800, fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
                     <span style={{ lineHeight: 1.5 }}>{cause}</span>
                   </li>
                 ))}
@@ -266,7 +266,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
 
           {/* RAG Context Lineage */}
           {data.context_lineage && (
-            <div style={{ background: 'rgba(59,130,246,0.03)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10, padding: '16px 18px' }}>
+            <div style={{ background: 'color-mix(in srgb, var(--primary) 3%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 15%, transparent)', borderRadius: 10, padding: '16px 18px' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--muted-foreground)', marginBottom: 12, letterSpacing: '0.05em' }}>DATA SOURCES & CONTEXT LINEAGE</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {[
@@ -351,10 +351,10 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
             <div style={{ background: 'var(--surface-alt)', border: '1px dashed var(--border)', borderRadius: 10, padding: '14px 18px' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: 10 }}>Was this AI diagnosis helpful?</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <button onClick={() => submitFeedback(true, 5)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--success)', background: 'rgba(16,185,129,0.08)', color: 'var(--success)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+                <button onClick={() => submitFeedback(true, 5)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--success)', background: 'color-mix(in srgb, var(--success-fill) 8%, transparent)', color: 'var(--success)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
                   <ThumbsUp size={15} /> Yes, helpful (5★)
                 </button>
-                <button onClick={() => submitFeedback(false, 2)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--danger)', background: 'rgba(239,68,68,0.08)', color: 'var(--danger)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+                <button onClick={() => submitFeedback(false, 2)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--danger)', background: 'color-mix(in srgb, var(--destructive) 8%, transparent)', color: 'var(--danger)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
                   <ThumbsDown size={15} /> Not helpful (2★)
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
@@ -368,7 +368,7 @@ export function AiDiagnosticPanel({ vehiclePlate, vehicleModel, issues, ticketId
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(16,185,129,0.08)', borderRadius: 10, border: '1px solid rgba(16,185,129,0.2)', color: 'var(--success)', fontSize: '0.875rem', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'color-mix(in srgb, var(--success-fill) 8%, transparent)', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--success-fill) 20%, transparent)', color: 'var(--success)', fontSize: '0.875rem', fontWeight: 700 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CheckCircle size={16} />
                 <span>Feedback recorded: {feedbackRating > 0 ? `${feedbackRating}/5 Stars` : 'Helpful'} — Thank you!</span>

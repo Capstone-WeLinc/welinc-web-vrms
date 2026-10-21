@@ -69,10 +69,10 @@ export function RepairProgressChart({ repairs }: RepairProgressChartProps) {
           {stages.map(stage => {
             const Icon = stage.icon;
             const softColorMap: Record<string, string> = {
-              'var(--warning)': 'rgba(232, 184, 0, 0.12)',
-              'var(--info)': 'rgba(26, 31, 110, 0.08)',
-              'var(--danger)': 'rgba(192, 57, 43, 0.1)',
-              'var(--success)': 'rgba(16, 185, 129, 0.12)',
+              'var(--warning)': 'color-mix(in srgb, var(--highlight) 12%, transparent)',
+              'var(--info)': 'color-mix(in srgb, var(--primary) 8%, transparent)',
+              'var(--danger)': 'color-mix(in srgb, var(--destructive) 10%, transparent)',
+              'var(--success)': 'color-mix(in srgb, var(--success-fill) 12%, transparent)',
             };
             const iconColorMap: Record<string, string> = {
               'var(--warning)': 'var(--warning)',
@@ -80,7 +80,7 @@ export function RepairProgressChart({ repairs }: RepairProgressChartProps) {
               'var(--danger)': 'var(--danger)',
               'var(--success)': 'var(--success)',
             };
-            const softBg = softColorMap[stage.color] || 'rgba(0,0,0,0.05)';
+            const softBg = softColorMap[stage.color] || 'color-mix(in srgb, var(--foreground) 5%, transparent)';
             const iconColor = iconColorMap[stage.color] || 'white';
             return (
               <div key={stage.label} className="pipeline-stage-card">
