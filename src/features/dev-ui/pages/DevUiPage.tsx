@@ -1,5 +1,8 @@
 import { ButtonsSection } from '../components/ButtonsSection';
+import { DataDisplaySection } from '../components/DataDisplaySection';
+import { DataTableSection } from '../components/DataTableSection';
 import { FeedbackSection } from '../components/FeedbackSection';
+import { FormsSection } from '../components/FormsSection';
 
 export function DevUiPage() {
   return (
@@ -17,6 +20,9 @@ export function DevUiPage() {
       <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:px-8">
         <ButtonsSection />
         <FeedbackSection />
+        <FormsSection />
+        <DataDisplaySection />
+        <DataTableSection />
       </main>
     </div>
   );

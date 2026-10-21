@@ -1,20 +1,28 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface GoToPageInputProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  label?: string;
 }
 
 // Jumps to a typed page. While the field is not being edited it simply shows the current page.
-export function GoToPageInput({ currentPage, totalPages, onPageChange }: GoToPageInputProps) {
+export function GoToPageInput({ currentPage, totalPages, onPageChange, label = 'Go to page' }: GoToPageInputProps) {
   const [draft, setDraft] = useState<string | null>(null);
+  const id = useId();
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
-      <span style={{ fontSize: '13px', color: 'var(--muted-foreground)', fontWeight: 600 }}>Go to:</span>
-      <input
+    <div className="flex items-center gap-2">
+      <Label htmlFor={id} className="text-sm font-medium whitespace-nowrap text-muted-foreground">
+        {label}
+      </Label>
+      <Input
+        id={id}
         type="text"
+        inputMode="numeric"
         value={draft ?? currentPage.toString()}
         onChange={(e) => {
           const val = e.target.value;
@@ -29,8 +37,7 @@ export function GoToPageInput({ currentPage, totalPages, onPageChange }: GoToPag
           }
         }}
         onBlur={() => setDraft(null)}
-        className="input"
-        style={{ width: '45px', padding: '4px', textAlign: 'center', height: '30px', fontSize: '13px', borderRadius: '6px' }}
+        className="w-16 text-center md:h-9 md:w-14"
       />
     </div>
   );
