@@ -9,10 +9,10 @@ import {
   attentionList,
   completedThisMonth,
   greeting,
-  isOverdue,
   isWaiting,
   pipelineCounts,
 } from '../lib/attention';
+import { isOverdue } from '../../../lib/utils/due';
 import { AttentionTiles, type AttentionTile } from './AttentionTiles';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { LastUpdated } from './LastUpdated';

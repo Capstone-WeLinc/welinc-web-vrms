@@ -4,7 +4,8 @@ import { PageHeader } from '../../../components/layout/PageHeader';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { useAuthStore } from '../../../store/authStore';
 import { useDashboardData } from '../hooks/useDashboardData';
-import { countMechanicOverdue, greeting, isWaiting, mechanicWorkList, workDueLabel } from '../lib/attention';
+import { countMechanicOverdue, greeting, isWaiting, mechanicWorkList } from '../lib/attention';
+import { dueLabel } from '../../../lib/utils/due';
 import { AttentionTiles, type AttentionTile } from './AttentionTiles';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { LastUpdated } from './LastUpdated';
@@ -65,7 +66,7 @@ export function MechanicDashboard() {
             </div>
             <TicketAttentionTable
               rows={derived.work}
-              dueLabel={(t) => workDueLabel(t, fetchedAt)}
+              dueLabel={(t) => dueLabel(t, fetchedAt)}
               label="My active tickets"
               empty={{ title: 'No active repairs assigned to you right now.' }}
             />

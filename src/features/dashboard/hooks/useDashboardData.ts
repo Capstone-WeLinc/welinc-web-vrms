@@ -18,7 +18,7 @@ async function fetchSnapshot(includeHistory: boolean): Promise<Snapshot> {
   // Admins fetch both lists together, so a half drawn dashboard never looks complete.
   // Mechanics send no page or limit; the backend then returns every assigned active ticket.
   const [active, history] = await Promise.all([
-    includeHistory ? getRepairs(undefined, undefined, 1, ADMIN_LIMIT) : getRepairs(),
+    includeHistory ? getRepairs({ page: 1, limit: ADMIN_LIMIT }) : getRepairs(),
     includeHistory
       ? getRepairHistory({ page: 1, limit: ADMIN_LIMIT })
       : Promise.resolve({ data: [] as RepairHistoryRow[], total: 0 }),

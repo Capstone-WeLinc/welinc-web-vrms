@@ -1,10 +1,10 @@
 import type { RepairStatus, RepairTicket } from '../../../types';
+import { dayCount, type DueLabel, isOpen, isOverdue, overdueText, toTime, wholeDays } from '../../../lib/utils/due';
 
 // Spec 0002. Every helper takes `now` (the hook's fetchedAt) and never reads the clock,
-// so tiles and lists built from one fetch always agree.
+// so tiles and lists built from one fetch always agree. The due rules live in lib/utils/due.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const OPEN_STATUSES: RepairStatus[] = ['PENDING', 'IN_PROGRESS', 'FOR_VERIFICATION'];
 const MECHANIC_WORK_STATUSES: RepairStatus[] = ['PENDING', 'IN_PROGRESS'];
 
 export const PIPELINE_STATUSES = ['PENDING', 'IN_PROGRESS', 'FOR_VERIFICATION', 'COMPLETED'] as const;
@@ -12,49 +12,14 @@ export type PipelineStatus = (typeof PIPELINE_STATUSES)[number];
 
 export type SpendTimeframe = 'month' | '90d' | '365d' | 'all';
 
-/** Milliseconds since the epoch, or null when the value is missing or unparsable. */
-function toTime(value: string | null | undefined): number | null {
-  if (!value) return null;
-  const time = Date.parse(value);
-  return Number.isNaN(time) ? null : time;
-}
-
 function sameLocalMonth(time: number, now: number) {
   const a = new Date(time);
   const b = new Date(now);
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 }
 
-export function isOpen(ticket: RepairTicket) {
-  return OPEN_STATUSES.includes(ticket.status);
-}
-
 export function isWaiting(ticket: RepairTicket) {
   return ticket.status === 'FOR_VERIFICATION';
-}
-
-export function isOverdue(ticket: RepairTicket, now: number) {
-  const due = toTime(ticket.targetDueDate);
-  return isOpen(ticket) && due !== null && due < now;
-}
-
-/** Whole 24 hour blocks from `from` to `to`, rounded down, never below 0. */
-export function wholeDays(from: number, to: number) {
-  return Math.max(0, Math.floor((to - from) / DAY_MS));
-}
-
-function dayCount(days: number) {
-  return days === 1 ? '1 day' : `${days} days`;
-}
-
-export function overdueText(ticket: RepairTicket, now: number) {
-  const days = wholeDays(toTime(ticket.targetDueDate) ?? now, now);
-  return days === 0 ? 'Due today' : `Overdue by ${dayCount(days)}`;
-}
-
-export function dueSoonText(ticket: RepairTicket, now: number) {
-  const days = wholeDays(now, toTime(ticket.targetDueDate) ?? now);
-  return days === 0 ? 'Due today' : `Due in ${dayCount(days)}`;
 }
 
 export function updatedText(ticket: RepairTicket, now: number) {
@@ -63,19 +28,10 @@ export function updatedText(ticket: RepairTicket, now: number) {
   return `Updated ${dayCount(days)} ago`;
 }
 
-export type DueLabel = { text: string; overdue: boolean } | null;
-
 /** Admin Needs attention rows: overdue text, else the updated text (waiting rows). */
 export function attentionDueLabel(ticket: RepairTicket, now: number): DueLabel {
   if (isOverdue(ticket, now)) return { text: overdueText(ticket, now), overdue: true };
   return { text: updatedText(ticket, now), overdue: false };
-}
-
-/** Mechanic work rows: overdue text, due soon text, or nothing without a due date. */
-export function workDueLabel(ticket: RepairTicket, now: number): DueLabel {
-  if (isOverdue(ticket, now)) return { text: overdueText(ticket, now), overdue: true };
-  if (toTime(ticket.targetDueDate) === null) return null;
-  return { text: dueSoonText(ticket, now), overdue: false };
 }
 
 const byTime = (pick: (t: RepairTicket) => string | null | undefined, direction: 1 | -1) =>
