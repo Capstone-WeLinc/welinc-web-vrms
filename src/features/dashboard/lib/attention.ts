@@ -110,17 +110,21 @@ export function countMechanicOverdue(active: RepairTicket[], now: number) {
   return active.filter((t) => MECHANIC_WORK_STATUSES.includes(t.status) && isOverdue(t, now)).length;
 }
 
-function isCompletedThisMonth(ticket: RepairTicket, now: number) {
+/** The history fields the dashboard reads; history rows are slimmer than a full ticket. */
+type ClosedTicket = Pick<RepairTicket, 'status' | 'completedAt'>;
+export type SpendTicket = Pick<RepairTicket, 'status' | 'createdAt' | 'totalCost'>;
+
+function isCompletedThisMonth(ticket: ClosedTicket, now: number) {
   const completed = toTime(ticket.completedAt);
   return ticket.status === 'COMPLETED' && completed !== null && sameLocalMonth(completed, now);
 }
 
-export function completedThisMonth(history: RepairTicket[], now: number) {
+export function completedThisMonth(history: ClosedTicket[], now: number) {
   return history.filter((t) => isCompletedThisMonth(t, now)).length;
 }
 
 /** Open tickets by status, plus Completed for this month only (matches the Done this month tile). */
-export function pipelineCounts(active: RepairTicket[], history: RepairTicket[], now: number): Record<PipelineStatus, number> {
+export function pipelineCounts(active: RepairTicket[], history: ClosedTicket[], now: number): Record<PipelineStatus, number> {
   const counts: Record<PipelineStatus, number> = { PENDING: 0, IN_PROGRESS: 0, FOR_VERIFICATION: 0, COMPLETED: 0 };
   for (const ticket of active) {
     if (isOpen(ticket)) counts[ticket.status as PipelineStatus]++;
@@ -129,7 +133,7 @@ export function pipelineCounts(active: RepairTicket[], history: RepairTicket[], 
   return counts;
 }
 
-function inTimeframe(ticket: RepairTicket, timeframe: SpendTimeframe, now: number) {
+function inTimeframe(ticket: SpendTicket, timeframe: SpendTimeframe, now: number) {
   if (timeframe === 'all') return true;
   const created = toTime(ticket.createdAt);
   if (created === null) return false;
@@ -139,18 +143,12 @@ function inTimeframe(ticket: RepairTicket, timeframe: SpendTimeframe, now: numbe
 }
 
 /** Spend over active and COMPLETED tickets (CANCELLED left out), filtered by createdAt. */
-export function spendFor(tickets: RepairTicket[], timeframe: SpendTimeframe, now: number) {
+export function spendFor(tickets: SpendTicket[], timeframe: SpendTimeframe, now: number) {
   const inRange = tickets.filter((t) => t.status !== 'CANCELLED' && inTimeframe(t, timeframe, now));
   const total = inRange.reduce((sum, t) => sum + (t.totalCost ?? 0), 0);
   const costed = inRange.filter((t) => (t.totalCost ?? 0) > 0);
   const average = costed.length ? Math.round(costed.reduce((sum, t) => sum + (t.totalCost ?? 0), 0) / costed.length) : 0;
   return { total, average };
-}
-
-const pesoFormat = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 0 });
-
-export function formatPeso(amount: number) {
-  return `₱${pesoFormat.format(amount)}`;
 }
 
 export function formatTime(time: number) {

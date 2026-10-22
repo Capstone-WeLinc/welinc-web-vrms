@@ -36,7 +36,27 @@ export type DataTableProps<T> = {
   pagination?: PaginationState;
   /** Accessible name of the table, such as "Repair tickets". */
   label?: string;
+  /**
+   * Splits rows (already sorted) into runs that share a key: a full width heading row on desktop,
+   * a heading between cards on phones. Only consecutive rows are merged.
+   */
+  groupBy?: (row: T) => { key: string; label: string };
 };
+
+export type RowGroup<T> = { key: string; label: string | null; rows: T[] };
+
+/** Consecutive runs of rows with the same group key; one unlabelled group when there is no groupBy. */
+export function groupRows<T>(rows: T[], groupBy?: DataTableProps<T>['groupBy']): RowGroup<T>[] {
+  if (!groupBy) return [{ key: 'all', label: null, rows }];
+  const groups: RowGroup<T>[] = [];
+  for (const row of rows) {
+    const { key, label } = groupBy(row);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.rows.push(row);
+    else groups.push({ key, label, rows: [row] });
+  }
+  return groups;
+}
 
 export function lastPage(total: number, pageSize: number) {
   return Math.max(1, Math.ceil(total / pageSize));

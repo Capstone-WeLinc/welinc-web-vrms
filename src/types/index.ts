@@ -139,3 +139,56 @@ export interface CreateRepairPayload {
   issues: Omit<RepairIssue, 'id'>[];
   repairNumber?: string;
 }
+
+/** A closed ticket as `GET /vrms/repairs/history` sends it (spec 0003). Mechanics get no `totalCost`. */
+export type RepairHistoryRow = Pick<
+  RepairTicket,
+  | 'id'
+  | 'repairNumber'
+  | 'status'
+  | 'vehiclePlate'
+  | 'vehicleModel'
+  | 'driverName'
+  | 'garageLocation'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'completedAt'
+  | 'cancellationReason'
+  | 'isUnlocked'
+  | 'totalCost'
+> & { closedAt: string | null };
+
+/** Totals over every row that matches the filters, not just the page. `spend` is null for mechanics. */
+export interface RepairHistorySummary {
+  closed: number;
+  completed: number;
+  cancelled: number;
+  spend: number | null;
+}
+
+export interface CostSnapshot {
+  partsCost: number | null;
+  laborCost: number | null;
+  total: number | null;
+  isLumpSum: boolean;
+}
+
+/** One audit timeline event (spec 0003). `actor` is null when the row has no email. */
+export interface AuditEvent {
+  id: string;
+  type: string;
+  at: string;
+  actor: { id: string | null; name: string | null; email: string | null } | null;
+  ticket: { id: string; repairNumber: string };
+  status?: { from: string | null; to: string };
+  cost?: { from: CostSnapshot | null; to: CostSnapshot | null } | null;
+  unlockReason?: string;
+  garage?: { from: string | null; to: string | null };
+  rawAction: string;
+}
+
+export interface AuditActor {
+  id: string;
+  name: string;
+  email: string;
+}

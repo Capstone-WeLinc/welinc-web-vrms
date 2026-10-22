@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { EmptyState } from '../EmptyState';
 import { ErrorState } from '../ErrorState';
 import { Pagination } from './Pagination';
-import type { Column, DataTableProps, RowAction } from './types';
+import { groupRows, type Column, type DataTableProps, type RowAction } from './types';
 
 const SKELETON_ROWS = 5;
 
@@ -52,8 +52,9 @@ function RowActionsMenu({ actions, touch }: { actions: RowAction[]; touch: boole
   );
 }
 
-function DesktopTable<T>({ columns, rows, getRowId, state, onRowClick, rowActions, pagination, label }: DataTableProps<T>) {
+function DesktopTable<T>({ columns, rows, getRowId, state, onRowClick, rowActions, pagination, label, groupBy }: DataTableProps<T>) {
   const skeletonCount = Math.min(pagination?.pageSize ?? SKELETON_ROWS, 10);
+  const columnCount = columns.length + (rowActions ? 1 : 0);
   const alignClass = (column: Column<T>) => (column.align === 'end' ? 'text-right tabular-nums' : 'text-left');
 
   const onRowKeyDown = (e: KeyboardEvent<HTMLTableRowElement>, row: T) => {
@@ -94,7 +95,21 @@ function DesktopTable<T>({ columns, rows, getRowId, state, onRowClick, rowAction
                 {rowActions && <TableCell className="px-4" />}
               </TableRow>
             ))
-          : rows.map((row) => (
+          : groupRows(rows, groupBy).flatMap((group) => [
+              ...(group.label
+                ? [
+                    <TableRow key={`group-${group.key}`} className="hover:bg-transparent">
+                      <TableHead
+                        colSpan={columnCount}
+                        scope="colgroup"
+                        className="h-10 bg-card px-4 pt-4 text-sm font-semibold text-foreground"
+                      >
+                        {group.label}
+                      </TableHead>
+                    </TableRow>,
+                  ]
+                : []),
+              ...group.rows.map((row) => (
               <TableRow
                 key={getRowId(row)}
                 tabIndex={onRowClick ? 0 : undefined}
@@ -116,13 +131,14 @@ function DesktopTable<T>({ columns, rows, getRowId, state, onRowClick, rowAction
                   </TableCell>
                 )}
               </TableRow>
-            ))}
+              )),
+            ])}
       </TableBody>
     </Table>
   );
 }
 
-function MobileCards<T>({ columns, rows, getRowId, state, onRowClick, rowActions, pagination, label }: DataTableProps<T>) {
+function MobileCards<T>({ columns, rows, getRowId, state, onRowClick, rowActions, pagination, label, groupBy }: DataTableProps<T>) {
   const visible = columns.filter((column) => column.mobile !== 'hidden');
   const titleColumn =
     visible.find((column) => column.mobile === 'title') ?? visible.find((column) => (column.mobile ?? 'field') === 'field');
@@ -148,9 +164,7 @@ function MobileCards<T>({ columns, rows, getRowId, state, onRowClick, rowActions
     );
   }
 
-  return (
-    <ul aria-label={label} className="flex flex-col gap-3 p-3">
-      {rows.map((row) => (
+  const renderCard = (row: T) => (
         <li
           key={getRowId(row)}
           className={cn(
@@ -200,8 +214,30 @@ function MobileCards<T>({ columns, rows, getRowId, state, onRowClick, rowActions
             </dl>
           )}
         </li>
+  );
+
+  if (!groupBy) {
+    return (
+      <ul aria-label={label} className="flex flex-col gap-3 p-3">
+        {rows.map(renderCard)}
+      </ul>
+    );
+  }
+
+  // One labelled list per group, so the heading needs no fixed heading level.
+  return (
+    <div className="flex flex-col gap-4 p-3">
+      {groupRows(rows, groupBy).map((group) => (
+        <div key={group.key} className="flex flex-col gap-2">
+          <p aria-hidden="true" className="px-1 text-sm font-semibold text-foreground">
+            {group.label}
+          </p>
+          <ul aria-label={label ? `${label}, ${group.label}` : (group.label ?? undefined)} className="flex flex-col gap-3">
+            {group.rows.map(renderCard)}
+          </ul>
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }
 

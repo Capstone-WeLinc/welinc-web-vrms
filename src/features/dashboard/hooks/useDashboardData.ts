@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { RepairTicket } from '../../../types';
+import type { RepairHistoryRow, RepairTicket } from '../../../types';
 import { getRepairHistory, getRepairs } from '../../../lib/api/repairApi';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 
@@ -8,7 +8,7 @@ const ADMIN_LIMIT = 10000;
 
 type Snapshot = {
   active: RepairTicket[];
-  history: RepairTicket[];
+  history: RepairHistoryRow[];
   totals: { active: number; history: number };
   /** Client clock when this fetch succeeded. Every time based rule is measured against it. */
   fetchedAt: number;
@@ -19,7 +19,9 @@ async function fetchSnapshot(includeHistory: boolean): Promise<Snapshot> {
   // Mechanics send no page or limit; the backend then returns every assigned active ticket.
   const [active, history] = await Promise.all([
     includeHistory ? getRepairs(undefined, undefined, 1, ADMIN_LIMIT) : getRepairs(),
-    includeHistory ? getRepairHistory(undefined, undefined, 1, ADMIN_LIMIT) : Promise.resolve({ data: [], total: 0 }),
+    includeHistory
+      ? getRepairHistory({ page: 1, limit: ADMIN_LIMIT })
+      : Promise.resolve({ data: [] as RepairHistoryRow[], total: 0 }),
   ]);
   return {
     active: active.data,

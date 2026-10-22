@@ -3,8 +3,8 @@ import { PhilippinePeso, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KpiCard } from '../../../components/shared/KpiCard';
-import type { RepairTicket } from '../../../types';
-import { formatPeso, spendFor, type SpendTimeframe } from '../lib/attention';
+import { formatPeso } from '../../../lib/utils/format';
+import { spendFor, type SpendTicket, type SpendTimeframe } from '../lib/attention';
 
 const TIMEFRAMES: { value: SpendTimeframe; label: string }[] = [
   { value: 'month', label: 'This month' },
@@ -15,7 +15,7 @@ const TIMEFRAMES: { value: SpendTimeframe; label: string }[] = [
 
 interface SpendSectionProps {
   /** Active plus history tickets; CANCELLED is left out inside spendFor. */
-  tickets: RepairTicket[];
+  tickets: SpendTicket[];
   now: number;
 }
 

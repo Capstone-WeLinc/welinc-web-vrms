@@ -1,245 +1,201 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { History, Lock, Search, MoreVertical, Eye, Settings } from 'lucide-react';
-import { getRepairHistory } from '../../../lib/api/repairApi';
-import { RepairTicket } from '../../../types';
-import { formatDate } from '../../../lib/utils/format';
-import { useAuthStore } from '../../../store/authStore';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Archive, History, Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { BadgePill } from '../../../components/shared/BadgePill';
+import { DataTable } from '../../../components/shared/data-table/DataTable';
+import type { Column, RowAction } from '../../../components/shared/data-table/types';
+import { ErrorState } from '../../../components/shared/ErrorState';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
-import { GoToPageInput } from '../../../components/shared/GoToPageInput';
+import { resolveRange } from '../../../components/shared/date-range/dateRange';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
+import { getGarages, type GarageOption } from '../../../lib/api/vrmsConfigApi';
+import { formatDuration, formatMonthHeading, formatPeso, formatShortDate, monthKey } from '../../../lib/utils/format';
+import { useAuthStore } from '../../../store/authStore';
+import type { RepairHistoryRow } from '../../../types';
+import { HistoryFilters } from '../components/HistoryFilters';
+import { HistorySummary } from '../components/HistorySummary';
+import { useRepairHistory } from '../hooks/useRepairHistory';
+import {
+  DEFAULT_HISTORY_FILTERS,
+  HISTORY_PAGE_SIZE,
+  hasActiveFilters,
+  historyParams,
+  type HistoryFilterValues,
+} from '../lib/historyFilters';
 
-function formatCurrency(val?: number | null): string {
-  if (val == null) return '—';
-  return `₱${val.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+function RepairNumberCell({ row }: { row: RepairHistoryRow }) {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 font-medium md:flex-nowrap md:whitespace-nowrap">
+      {/* Beside the outcome badge on a 375px card the number wraps once, at a hyphen. */}
+      <span className="text-sm">{row.repairNumber}</span>
+      {row.isUnlocked ? (
+        <BadgePill className="bg-highlight text-highlight-foreground">Unlocked</BadgePill>
+      ) : (
+        <Lock role="img" aria-label="Locked" className="size-4 text-muted-foreground" />
+      )}
+    </span>
+  );
 }
 
-const statusOptions: Array<{ value: 'COMPLETED' | 'CANCELLED' | ''; label: string }> = [
-  { value: '', label: 'All statuses' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-];
+function OutcomeCell({ row }: { row: RepairHistoryRow }) {
+  return (
+    <div className="flex min-w-0 flex-col items-start gap-1">
+      <StatusBadge status={row.status} />
+      {row.status === 'CANCELLED' && row.cancellationReason && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* Focusable so keyboard users can read the full reason too. */}
+            <span tabIndex={0} className="block max-w-48 truncate rounded-sm text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {row.cancellationReason}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">{row.cancellationReason}</TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  );
+}
+
+function historyColumns(isAdmin: boolean): Column<RepairHistoryRow>[] {
+  const columns: Column<RepairHistoryRow>[] = [
+    { id: 'repair', header: 'Repair #', mobile: 'title', cell: (row) => <RepairNumberCell row={row} /> },
+    {
+      id: 'vehicle',
+      header: 'Vehicle',
+      mobile: 'subtitle',
+      cell: (row) => <span className="whitespace-nowrap">{row.vehiclePlate}</span>,
+    },
+    { id: 'outcome', header: 'Outcome', mobile: 'badge', cell: (row) => <OutcomeCell row={row} /> },
+    {
+      id: 'duration',
+      header: 'Duration',
+      cell: (row) => (
+        <span className="whitespace-nowrap">
+          {row.status === 'COMPLETED' && row.closedAt ? formatDuration(row.createdAt, row.closedAt) : '—'}
+        </span>
+      ),
+    },
+    { id: 'garage', header: 'Garage', cell: (row) => row.garageLocation ?? '—' },
+  ];
+  if (isAdmin) {
+    columns.push({
+      id: 'cost',
+      header: 'Cost',
+      align: 'end',
+      cell: (row) => (row.totalCost == null ? '—' : formatPeso(row.totalCost)),
+    });
+  }
+  columns.push({
+    id: 'closed',
+    header: 'Closed',
+    cell: (row) =>
+      row.closedAt ? (
+        <time dateTime={row.closedAt} className="whitespace-nowrap">
+          {formatShortDate(row.closedAt)}
+        </time>
+      ) : (
+        '—'
+      ),
+  });
+  return columns;
+}
 
 export function HistoryPage() {
-  const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role === 'ADMIN';
-
-  const [repairs, setRepairs] = useState<RepairTicket[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'COMPLETED' | 'CANCELLED' | ''>('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const isAdmin = useAuthStore((state) => state.user?.role === 'ADMIN');
   const navigate = useNavigate();
-  const itemsPerPage = 10;
+  const [filters, setFilters] = useState<HistoryFilterValues>(DEFAULT_HISTORY_FILTERS);
+  const [page, setPage] = useState(1);
+  const [garages, setGarages] = useState<GarageOption[]>([]);
+  const search = useDebouncedValue(filters.search);
+
+  const range = resolveRange(filters.range);
+  const history = useRepairHistory(historyParams(filters, search, range, page));
 
   useEffect(() => {
-    async function loadHistory() {
-      setError(null);
-      setLoading(true);
-      try {
-        const response = await getRepairHistory(search, status || undefined, currentPage, itemsPerPage);
-        setRepairs(response.data);
-        setTotalCount(response.total);
-      } catch {
-        setError('Unable to load repair history.');
-      } finally {
-        setLoading(false);
-      }
-    }
+    let cancelled = false;
+    // Without garages the filter keeps only "All garages"; the page still works.
+    getGarages()
+      .then((list) => {
+        if (!cancelled) setGarages(list);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-    loadHistory();
-  }, [search, status, currentPage]);
+  const changeFilters = (next: HistoryFilterValues) => {
+    setFilters(next);
+    setPage(1);
+  };
 
-  const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
+  const rowActions = (row: RepairHistoryRow): RowAction[] => [
+    { label: 'View details', onSelect: () => navigate(`/repairs/${row.id}?mode=readonly`) },
+    ...(isAdmin ? [{ label: 'Edit ticket', onSelect: () => navigate(`/repairs/${row.id}`) }] : []),
+  ];
 
-  const pageNumbers = useMemo(() => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = startPage + maxVisiblePages - 1;
-
-    if (endPage > totalPages) {
-      endPage = totalPages;
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-    return pages;
-  }, [currentPage, totalPages]);
+  const filtered = hasActiveFilters(filters);
 
   return (
     <div>
-      <PageHeader
-        title="Repair History"
-        subtitle="Historical log of all completed and cancelled repairs."
-        icon={History}
-      />
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
-         <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
-           <div style={{ position: 'relative', flex: 1 }}>
-             <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
-             <input
-               id="historySearch"
-               className="input"
-               style={{ paddingLeft: 38 }}
-               value={search}
-               onChange={(event) => { setSearch(event.target.value); setCurrentPage(1); }}
-               placeholder="Search by repair #, vehicle, or driver"
-             />
-           </div>
-           <select
-             id="historyStatusFilter"
-             className="select"
-             value={status}
-             onChange={(event) => { setStatus(event.target.value as 'COMPLETED' | 'CANCELLED' | ''); setCurrentPage(1); }}
-             style={{ width: '160px' }}
-           >
-             {statusOptions.map((option) => (
-               <option key={option.value} value={option.value}>
-                 {option.label}
-               </option>
-             ))}
-           </select>
-         </div>
-      </div>
-      <div className="card" style={{ minHeight: '400px' }}>
-        {loading && repairs.length === 0 ? (
-          <p>Loading completed repairs…</p>
-        ) : error ? (
-          <div className="alert">{error}</div>
-        ) : repairs.length === 0 ? (
-          <p>No history records available.</p>
-        ) : (
-          <div style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.15s ease' }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Repair #</th>
-                  <th>Vehicle</th>
-                  <th>Driver</th>
-                  <th>Garage</th>
-                  <th>Status</th>
-                  {isAdmin && <th>Total Cost</th>}
-                  <th>Closed At</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {repairs.map((repair) => {
-                  const isLocked = (repair.status === 'COMPLETED' || repair.status === 'CANCELLED') && !repair.isUnlocked;
-                  return (
-                    <tr key={repair.id}>
-                      <td style={isLocked ? { opacity: 0.65 } : undefined}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <Link to={`/repairs/${repair.id}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>
-                            {repair.repairNumber}
-                          </Link>
-                          {isLocked && <Lock size={12} style={{ color: 'var(--muted-foreground)' }} />}
-                        </div>
-                      </td>
-                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{repair.vehiclePlate}</td>
-                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{repair.driverName}</td>
-                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{repair.garageLocation ?? '—'}</td>
-                      <td style={isLocked ? { opacity: 0.65 } : undefined}>
-                        <StatusBadge status={repair.status} />
-                      </td>
-                      {isAdmin && (
-                        <td style={isLocked ? { opacity: 0.65 } : undefined}>
-                          {formatCurrency(repair.totalCost)}
-                        </td>
-                      )}
-                      <td style={isLocked ? { opacity: 0.65 } : undefined}>{formatDate(repair.completedAt ?? repair.updatedAt)}</td>
-                      <td>
-                        <div style={{ position: 'relative' }}>
-                          <button
-                            onClick={() => setOpenMenuId(openMenuId === repair.id ? null : repair.id)}
-                            onBlur={() => setTimeout(() => setOpenMenuId(null), 150)}
-                          >
-                            <MoreVertical size={16} />
-                          </button>
+      <PageHeader title="Repair history" subtitle="Closed repairs, completed and cancelled." icon={History} />
 
-                          {openMenuId === repair.id && (
-                            <div style={{
-                              position: 'absolute',
-                              right: 0,
-                              top: '100%',
-                              zIndex: 10,
-                              background: 'var(--surface)',
-                              border: '1px solid var(--border)',
-                              borderRadius: '8px',
-                              boxShadow: 'var(--elevation)',
-                              padding: '4px',
-                              minWidth: '160px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '2px'
-                            }}>
-                              <button
-                                className="sidebar-btn"
-                                style={{ padding: '8px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                onClick={() => { navigate(`/repairs/${repair.id}?mode=readonly`); setOpenMenuId(null); }}
-                              >
-                                <Eye size={14} /> View Details
-                              </button>
-                              {isAdmin && (
-                                <button
-                                  className="sidebar-btn"
-                                  style={{ padding: '8px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                  onClick={() => { navigate(`/repairs/${repair.id}`); setOpenMenuId(null); }}
-                                >
-                                  <Settings size={14} /> Edit Ticket
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {totalCount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 14px', borderTop: '1px solid var(--border)' }}>
-                <span style={{ fontSize: '13px', color: 'var(--muted-foreground)', fontWeight: 600 }}>
-                  Page {currentPage} of {totalPages} (Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount})
-                </span>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <button
-                    className="button secondary small"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </button>
-                  {pageNumbers.map(page => (
-                    <button
-                      key={page}
-                      className={currentPage === page ? "button small" : "button secondary small"}
-                      onClick={() => setCurrentPage(page)}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  <button
-                    className="button secondary small"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </button>
-                  <GoToPageInput currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <HistoryFilters
+        value={filters}
+        garages={garages}
+        rangeError={range.status === 'invalid' ? range.error : undefined}
+        onChange={changeFilters}
+      />
+
+      {history.state === 'error' ? (
+        <div className="rounded-xl border border-border bg-card shadow-xs">
+          <ErrorState
+            title="We couldn’t load repair history"
+            message={history.errorMessage ?? 'Repair history didn’t load.'}
+            onRetry={history.retry}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <HistorySummary summary={history.state === 'ready' ? history.summary : null} showSpend={isAdmin} />
+          <DataTable
+            columns={historyColumns(isAdmin)}
+            rows={history.rows}
+            getRowId={(row) => row.id}
+            state={history.state}
+            label="Closed repairs"
+            groupBy={(row) =>
+              row.closedAt
+                ? { key: monthKey(row.closedAt), label: formatMonthHeading(row.closedAt) }
+                : { key: 'none', label: 'No close date' }
+            }
+            onRowClick={(row) => navigate(`/repairs/${row.id}?mode=readonly`)}
+            rowActions={rowActions}
+            pagination={{ page, pageSize: HISTORY_PAGE_SIZE, total: history.total, onPageChange: setPage }}
+            empty={
+              filtered
+                ? {
+                    title: 'No repairs match these filters',
+                    description: 'Try a wider date range or another outcome or garage.',
+                    icon: Archive,
+                    action: (
+                      <Button variant="outline" onClick={() => changeFilters(DEFAULT_HISTORY_FILTERS)}>
+                        Clear filters
+                      </Button>
+                    ),
+                  }
+                : {
+                    title: 'No closed repairs yet',
+                    description: 'Completed and cancelled repairs show up here.',
+                    icon: Archive,
+                  }
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
