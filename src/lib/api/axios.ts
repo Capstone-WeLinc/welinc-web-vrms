@@ -18,7 +18,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // A 401 from the login call means a wrong password, not an expired session:
+    // let the form show it instead of reloading the page.
+    const isLoginRequest = error.config?.url === '/auth/login';
+    if (error.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('welinc_token');
       localStorage.removeItem('welinc_user');
       localStorage.removeItem('welinc-auth-storage');

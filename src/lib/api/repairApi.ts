@@ -1,5 +1,11 @@
 import api from './axios';
-import type { CreateRepairPayload, RepairStatus, RepairTicket } from '../../types';
+import type {
+  CreateRepairPayload,
+  RepairHistoryRow,
+  RepairHistorySummary,
+  RepairStatus,
+  RepairTicket,
+} from '../../types';
 
 export async function getRepairs(search?: string, status?: RepairStatus, page?: number, limit?: number): Promise<{ data: RepairTicket[], total: number }> {
   const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs', {
@@ -16,18 +22,28 @@ export async function getRepairs(search?: string, status?: RepairStatus, page?: 
   return response.data;
 }
 
-export async function getRepairHistory(search?: string, status?: RepairStatus, page?: number, limit?: number): Promise<{ data: RepairTicket[], total: number }> {
-  const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs/history', {
-    params: {
-      search,
-      status,
-      page,
-      limit,
-    },
+export interface RepairHistoryParams {
+  search?: string;
+  status?: 'COMPLETED' | 'CANCELLED';
+  garageId?: string;
+  /** ISO instant, inclusive, on the close date. */
+  from?: string;
+  /** ISO instant, exclusive. */
+  to?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface RepairHistoryResponse {
+  data: RepairHistoryRow[];
+  total: number;
+  summary: RepairHistorySummary;
+}
+
+export async function getRepairHistory(params: RepairHistoryParams = {}): Promise<RepairHistoryResponse> {
+  const response = await api.get<RepairHistoryResponse>('/vrms/repairs/history', {
+    params: { ...params, search: params.search || undefined },
   });
-  if (Array.isArray(response.data)) {
-    return { data: response.data, total: response.data.length };
-  }
   return response.data;
 }
 
@@ -76,18 +92,5 @@ export async function unlockRepairTicket(
   const response = await api.patch<RepairTicket>(`/vrms/repairs/${repairId}/unlock`, {
     unlockReason,
   });
-  return response.data;
-}
-
-export interface AuditEntry {
-  id: string;
-  user: string;
-  action: string;
-  timestamp: string;
-  ticketId?: string | null;
-}
-
-export async function getAuditLogs(): Promise<AuditEntry[]> {
-  const response = await api.get<AuditEntry[]>('/vrms/repairs/audit-logs/all');
   return response.data;
 }

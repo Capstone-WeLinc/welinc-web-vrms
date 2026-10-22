@@ -1,225 +1,99 @@
-import { useState, useMemo } from 'react';
-import { 
-  LayoutDashboard,
-  PhilippinePeso,
-  TrendingUp,
-  FileSpreadsheet,
-  FileText,
-} from 'lucide-react';
+import { useMemo } from 'react';
+import { AlertTriangle, CheckCircle2, ClipboardList, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { ErrorState } from '../../../components/shared/ErrorState';
 import { useAuthStore } from '../../../store/authStore';
-import { useDashboardMetrics } from '../hooks/useDashboardMetrics';
+import { useDashboardData } from '../hooks/useDashboardData';
+import {
+  attentionDueLabel,
+  attentionList,
+  completedThisMonth,
+  greeting,
+  isOverdue,
+  isWaiting,
+  pipelineCounts,
+} from '../lib/attention';
+import { AttentionTiles, type AttentionTile } from './AttentionTiles';
+import { DashboardSkeleton } from './DashboardSkeleton';
+import { LastUpdated } from './LastUpdated';
 import { RepairProgressChart } from './RepairProgressChart';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import { SpendSection } from './SpendSection';
+import { TicketAttentionTable } from './TicketAttentionTable';
+import { TruncationNote } from './TruncationNote';
+
+const ATTENTION_LIMIT = 8;
 
 export function AdminDashboard() {
   const user = useAuthStore((state) => state.user);
-  const {
-    repairs,
-    loading,
-    error,
-  } = useDashboardMetrics();
+  const { active, history, fetchedAt, state, errorMessage, refreshFailed, truncated, retry } = useDashboardData({
+    includeHistory: true,
+  });
 
-  const [costTimeframe, setCostTimeframe] = useState<'1m' | '3m' | '1y' | 'all'>('1m');
-
-  const filteredRepairsForCost = useMemo(() => {
-    const now = new Date();
-    return repairs.filter((r) => {
-      const createdDate = new Date(r.createdAt);
-      if (costTimeframe === '1m') {
-        return createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear();
-      } else if (costTimeframe === '3m') {
-        const limitDate = new Date();
-        limitDate.setDate(now.getDate() - 90);
-        return createdDate >= limitDate;
-      } else if (costTimeframe === '1y') {
-        const limitDate = new Date();
-        limitDate.setDate(now.getDate() - 365);
-        return createdDate >= limitDate;
-      }
-      return true; // all-time
-    });
-  }, [repairs, costTimeframe]);
-
-  const filteredTotalCost = useMemo(() => {
-    return filteredRepairsForCost.reduce((sum, r) => sum + (r.totalCost ?? 0), 0);
-  }, [filteredRepairsForCost]);
-
-  const filteredAverageCost = useMemo(() => {
-    const costed = filteredRepairsForCost.filter((r) => r.totalCost && r.totalCost > 0);
-    if (!costed.length) return 0;
-    return Math.round(costed.reduce((sum, r) => sum + (r.totalCost ?? 0), 0) / costed.length);
-  }, [filteredRepairsForCost]);
-
-  const handleExportExcel = () => {
-    const data = filteredRepairsForCost.map(r => ({
-      'Repair Number': r.repairNumber,
-      'Vehicle Plate': r.vehiclePlate,
-      'Driver Name': r.driverName,
-      'Garage Location': r.garageLocation,
-      'Odometer Reading': r.odometerReading,
-      'Status': r.status,
-      'Parts Cost': r.partsCost || 0,
-      'Labor Cost': r.laborCost || 0,
-      'Total Cost': r.totalCost || 0,
-      'Date Logged': new Date(r.createdAt).toLocaleDateString(),
-      'Completion Date': r.completedAt ? new Date(r.completedAt).toLocaleDateString() : 'N/A'
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Repairs Report");
-    XLSX.writeFile(workbook, `vrms_repairs_report_${costTimeframe}_${new Date().getTime()}.xlsx`);
-  };
-
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text("WeLinc VRMS Repairs Report", 14, 18);
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Timeframe: ${costTimeframe === '1m' ? 'This Month' : costTimeframe === '3m' ? 'Last 3 Months' : costTimeframe === '1y' ? 'Last 1 Year' : 'All Time'} | Generated: ${new Date().toLocaleString()}`, 14, 25);
-    
-    autoTable(doc, {
-      head: [['Repair #', 'Vehicle', 'Driver', 'Garage', 'Status', 'Total Cost', 'Date Logged']],
-      body: filteredRepairsForCost.map(r => [
-        r.repairNumber || '',
-        r.vehiclePlate || '',
-        r.driverName || '',
-        r.garageLocation || '',
-        r.status || '',
-        r.totalCost ? `PHP ${r.totalCost.toLocaleString()}` : 'PHP 0',
-        new Date(r.createdAt).toLocaleDateString()
-      ]),
-      startY: 30,
-    });
-    
-    doc.save(`vrms_repairs_report_${costTimeframe}_${new Date().getTime()}.pdf`);
-  };
+  const derived = useMemo(() => {
+    const all = [...active, ...history];
+    const overdue = active.filter((t) => isOverdue(t, fetchedAt)).length;
+    const tiles: AttentionTile[] = [
+      { caption: 'Open', value: active.length, icon: ClipboardList },
+      { caption: 'Overdue', value: overdue, icon: AlertTriangle, tone: overdue > 0 ? 'destructive' : 'default' },
+      { caption: 'Waiting for sign off', value: active.filter(isWaiting).length, icon: ShieldCheck },
+      { caption: 'Done this month', value: completedThisMonth(history, fetchedAt), icon: CheckCircle2, tone: 'success' },
+    ];
+    return {
+      all,
+      tiles,
+      attention: attentionList(active, fetchedAt, ATTENTION_LIMIT),
+      pipeline: pipelineCounts(active, history, fetchedAt),
+    };
+  }, [active, history, fetchedAt]);
 
   return (
-    <div className="dashboard-page">
+    <div>
       <PageHeader
-        title="Vehicle Repair Management"
-        subtitle={`Welcome back, ${user?.name ?? 'Victor Ramos'} — Fleet Administrator. Monitor ticket flow, status changes, and repair costs with live data.`}
+        title="Dashboard"
+        subtitle={`${greeting(user?.name)} Here's what needs your attention.`}
         icon={LayoutDashboard}
       />
 
-      {loading ? (
-        <div className="premium-card"><p>Loading dashboard metrics...</p></div>
-      ) : error ? (
-        <div className="premium-card"><div className="alert">{error}</div></div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-          {/* Repair Pipeline Progress */}
-          <RepairProgressChart repairs={repairs} />
+      {state === 'loading' && <DashboardSkeleton admin />}
 
-          {/* Spend Analytics and Exports Side-by-Side */}
-          <div style={{ display: 'flex', gap: '28px', flexWrap: 'wrap' }}>
-            {/* Spend Analytics */}
-            <div className="premium-card" style={{ flex: '1.4 1 500px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                  <h3 className="subheading" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Repair Spend Analytics</h3>
-                  <p className="page-subtitle" style={{ margin: '4px 0 0', fontSize: '0.875rem' }}>Review financial metrics and average cost distribution.</p>
-                </div>
-                <div className="timeframe-pill-container">
-                  <button
-                    type="button"
-                    className={`timeframe-pill ${costTimeframe === '1m' ? 'active' : ''}`}
-                    onClick={() => setCostTimeframe('1m')}
-                  >
-                    1M
-                  </button>
-                  <button
-                    type="button"
-                    className={`timeframe-pill ${costTimeframe === '3m' ? 'active' : ''}`}
-                    onClick={() => setCostTimeframe('3m')}
-                  >
-                    3M
-                  </button>
-                  <button
-                    type="button"
-                    className={`timeframe-pill ${costTimeframe === '1y' ? 'active' : ''}`}
-                    onClick={() => setCostTimeframe('1y')}
-                  >
-                    6M
-                  </button>
-                  <button
-                    type="button"
-                    className={`timeframe-pill ${costTimeframe === 'all' ? 'active' : ''}`}
-                    onClick={() => setCostTimeframe('all')}
-                  >
-                    ALL
-                  </button>
-                </div>
-              </div>
+      {state === 'error' && (
+        <ErrorState
+          title="We couldn’t load the dashboard"
+          message={errorMessage ?? 'The dashboard didn’t load.'}
+          onRetry={retry}
+        />
+      )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginTop: '12px' }}>
-                <div className="spend-metric-card total-cost">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', color: 'var(--primary)' }}>
-                    <PhilippinePeso size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontWeight: 700 }}>Total Repair Cost</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text)', marginTop: '4px', letterSpacing: '-0.025em' }}>₱{filteredTotalCost.toLocaleString()}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '4px' }}>Spend for selected timeframe.</div>
-                  </div>
-                </div>
+      {state === 'ready' && (
+        <div className="flex flex-col gap-6">
+          <LastUpdated fetchedAt={fetchedAt} refreshFailed={refreshFailed} />
 
-                <div className="spend-metric-card avg-cost">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', color: 'var(--primary)' }}>
-                    <TrendingUp size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontWeight: 700 }}>Average Cost</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text)', marginTop: '4px', letterSpacing: '-0.025em' }}>₱{filteredAverageCost.toLocaleString()}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '4px' }}>Average per repair ticket.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Document Downloads (renamed to Exports) */}
-            <div className="premium-card" style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <h3 className="subheading" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Exports</h3>
-                <p className="page-subtitle" style={{ margin: '4px 0 0', fontSize: '0.875rem' }}>Export tabular data into standard file formats.</p>
-              </div>
-
-              <div className="download-grid-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 0 }}>
-                <button
-                  type="button"
-                  className="download-card excel"
-                  onClick={handleExportExcel}
-                  style={{ padding: '12px 16px' }}
-                >
-                  <div style={{ background: 'color-mix(in srgb, var(--success-fill) 10%, transparent)', color: 'var(--success)', padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileSpreadsheet size={20} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: '0.9rem' }}>Export Excel File (.xlsx)</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className="download-card pdf"
-                  onClick={handleExportPDF}
-                  style={{ padding: '12px 16px' }}
-                >
-                  <div style={{ background: 'color-mix(in srgb, var(--destructive) 10%, transparent)', color: 'var(--danger)', padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={20} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: '0.9rem' }}>Export PDF Report (.pdf)</div>
-                  </div>
-                </button>
-              </div>
-            </div>
+          <div className="flex flex-col gap-3">
+            <AttentionTiles tiles={derived.tiles} />
+            {truncated && <TruncationNote rows={derived.all.length} />}
           </div>
+
+          <section aria-labelledby="needs-attention-heading" className="flex flex-col gap-3">
+            <div>
+              <h2 id="needs-attention-heading" className="text-lg font-semibold text-foreground">
+                Needs attention
+              </h2>
+              <p className="text-sm text-muted-foreground">Overdue first, then tickets waiting for your sign off.</p>
+            </div>
+            <TicketAttentionTable
+              rows={derived.attention}
+              dueLabel={(t) => attentionDueLabel(t, fetchedAt)}
+              label="Tickets that need attention"
+              empty={{
+                title: 'Nothing needs your attention',
+                description: 'No overdue tickets and nothing waiting for sign off.',
+                icon: CheckCircle2,
+              }}
+            />
+          </section>
+
+          <RepairProgressChart counts={derived.pipeline} />
+          <SpendSection tickets={derived.all} now={fetchedAt} />
         </div>
       )}
     </div>
