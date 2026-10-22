@@ -32,6 +32,13 @@ export function formatPeso(amount: number) {
   return `₱${pesoFormat.format(amount)}`;
 }
 
+const pesoExactFormat = new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** `₱1,250.50`: centavos kept, for cost entry on the repair detail page (spec 0004). */
+export function formatPesoExact(amount: number) {
+  return `₱${pesoExactFormat.format(amount)}`;
+}
+
 /** `Oct 22, 2026` */
 export function formatShortDate(value: string | Date) {
   return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

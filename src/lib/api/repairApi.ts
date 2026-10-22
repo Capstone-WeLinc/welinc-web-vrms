@@ -7,14 +7,23 @@ import type {
   RepairTicket,
 } from '../../types';
 
-export async function getRepairs(search?: string, status?: RepairStatus, page?: number, limit?: number): Promise<{ data: RepairTicket[], total: number }> {
+export interface RepairListParams {
+  search?: string;
+  /** Without it the server returns open tickets only. */
+  status?: RepairStatus;
+  garageId?: string;
+  /** Admins only; the server ignores it for mechanics. */
+  mechanicId?: string;
+  /** Open tickets past their due date, by the server's clock. */
+  overdue?: boolean;
+  /** Neither page nor limit returns every matching row. */
+  page?: number;
+  limit?: number;
+}
+
+export async function getRepairs(params: RepairListParams = {}): Promise<{ data: RepairTicket[], total: number }> {
   const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs', {
-    params: {
-      search,
-      status,
-      page,
-      limit,
-    },
+    params: { ...params, search: params.search || undefined, overdue: params.overdue || undefined },
   });
   if (Array.isArray(response.data)) {
     return { data: response.data, total: response.data.length };

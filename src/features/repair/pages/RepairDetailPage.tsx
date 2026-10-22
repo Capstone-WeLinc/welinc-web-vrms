@@ -1,462 +1,231 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Wrench, ArrowLeft } from 'lucide-react';
-import { getRepair, updateRepairStatus } from '../../../lib/api/repairApi';
-import { RepairTicket, RepairStatus } from '../../../types';
-import { formatDate } from '../../../lib/utils/format';
-import { LegacyButton } from '../../../components/legacy/LegacyButton';
+import { useState } from 'react';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, SearchX, ShieldAlert, Wrench } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
-import { StatusBadge } from '../../../components/shared/StatusBadge';
-import { useAuthStore } from '../../../store/authStore';
-import { CostEncodingPanel } from '../components/CostEncodingPanel';
-import { AuditLogCollapsible } from '../components/AuditLogCollapsible';
-import { UnlockTicketModal } from '../components/UnlockTicketModal';
-import { AiDiagnosticPanel } from '../components/AiDiagnosticPanel';
+import { EmptyState } from '../../../components/shared/EmptyState';
+import { ErrorState } from '../../../components/shared/ErrorState';
+import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
-import { confirm } from '../../../components/shared/confirm/confirm';
-import { getApiErrorMessage } from '../../../lib/api/errors';
+import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
+import { unlockRepairTicket, updateRepairStatus } from '../../../lib/api/repairApi';
+import { useAuthStore } from '../../../store/authStore';
+import type { RepairStatus, RepairTicket } from '../../../types';
+import { ActivitySection } from '../components/ActivitySection';
+import { AiDiagnosisSection } from '../components/AiDiagnosisSection';
+import { Callout } from '../components/Callout';
+import { CostsSection } from '../components/CostsSection';
+import { NextActionBar } from '../components/NextActionBar';
+import { RepairDetailSkeleton } from '../components/RepairDetailSkeleton';
+import { IssuesSection, NotesSection, VehicleSection } from '../components/TicketMainSections';
+import { TicketNoteDialog } from '../components/TicketNoteDialog';
+import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePanel';
+import { useRepairTicket } from '../hooks/useRepairTicket';
+import {
+  canCancel,
+  COSTS_SECTION_ID,
+  hasCosts,
+  isClosed,
+  nextAction,
+  STALE_TICKET_MESSAGE,
+} from '../lib/nextAction';
 
-const allStatusOptions: Array<{ value: RepairStatus; label: string }> = [
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'FOR_VERIFICATION', label: 'For Verification' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-];
+type DialogKind = 'status' | 'cancel' | 'unlock' | null;
 
-const mechanicStatusOptions: Array<{ value: RepairStatus; label: string }> = [
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'FOR_VERIFICATION', label: 'For Verification' },
-];
+/** The list passes its own URL as `state.from`, so Back returns to the same filters and page. */
+function backLink(ticket: RepairTicket | null, from: unknown) {
+  if (ticket && isClosed(ticket)) return { to: '/history', label: 'Back to history' };
+  const listUrl = typeof from === 'string' && from.startsWith('/repairs') ? from : '/repairs';
+  return { to: listUrl, label: 'Back to repairs' };
+}
 
-const TERMINAL: RepairStatus[] = ['COMPLETED', 'CANCELLED'];
+function BackLink({ to, label }: { to: string; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="mb-4 inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <ArrowLeft aria-hidden="true" className="size-4" />
+      {label}
+    </Link>
+  );
+}
 
-function formatCurrency(val?: number | null): string {
-  if (val == null) return '—';
-  return `₱${val.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+function scrollToCosts() {
+  const section = document.getElementById(COSTS_SECTION_ID);
+  section?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  section?.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
 }
 
 export function RepairDetailPage() {
-  const { repairId } = useParams<{ repairId: string }>();
-  const navigate = useNavigate();
+  const { repairId = '' } = useParams<{ repairId: string }>();
   const [searchParams] = useSearchParams();
-  const isReadOnlyMode = searchParams.get('mode') === 'readonly';
-  const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role === 'ADMIN';
-  const statusOptions = isAdmin ? allStatusOptions : mechanicStatusOptions;
-
-  // Core state
-  const [repair, setRepair] = useState<RepairTicket | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Status update state
-  const [status, setStatus] = useState<RepairStatus>('PENDING');
-  const [remarks, setRemarks] = useState('');
-  const [cancellationReason, setCancellationReason] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  // Unlock modal state
-  const [showUnlockModal, setShowUnlockModal] = useState(false);
-
+  const location = useLocation();
+  const readOnly = searchParams.get('mode') === 'readonly';
+  const isAdmin = useAuthStore((state) => state.user?.role === 'ADMIN');
   const { showToast } = useToast();
+  const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId);
+  const [dialog, setDialog] = useState<DialogKind>(null);
 
-  useEffect(() => {
-    async function load() {
-      if (!repairId) { navigate('/repairs'); return; }
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getRepair(repairId);
-        setRepair(data);
-        setStatus(data.status);
-      } catch {
-        setError('Unable to load repair details.');
-      } finally {
-        setLoading(false);
-      }
+  const back = backLink(ticket, (location.state as { from?: unknown } | null)?.from);
+
+  if (state !== 'ready' || !ticket) {
+    let body;
+    if (state === 'loading') {
+      return <RepairDetailSkeleton />;
+    } else if (errorCode === 404) {
+      body = <EmptyState title="Repair ticket not found" icon={SearchX} action={<Button asChild variant="outline"><Link to="/repairs">Back to repairs</Link></Button>} />;
+    } else if (errorCode === 403) {
+      body = (
+        <EmptyState
+          title="This ticket isn’t assigned to you"
+          icon={ShieldAlert}
+          action={<Button asChild variant="outline"><Link to="/repairs">Back to repairs</Link></Button>}
+        />
+      );
+    } else {
+      body = <ErrorState title="We couldn’t load this ticket" message={errorMessage ?? 'This repair ticket didn’t load.'} onRetry={retry} />;
     }
-    load();
-  }, [repairId, navigate]);
+    return (
+      <div>
+        <BackLink to="/repairs" label="Back to repairs" />
+        <PageHeader title="Repair ticket" icon={Wrench} />
+        <div className="rounded-xl border border-border bg-card shadow-xs">{body}</div>
+      </div>
+    );
+  }
 
-  const mechanics = useMemo(() => repair?.mechanics ?? [], [repair]);
-  const isTerminal = repair ? TERMINAL.includes(repair.status) : false;
-  const isLocked = isReadOnlyMode || (isTerminal && !repair?.isUnlocked);
+  const rep = ticket.repairNumber;
+  const action = nextAction(ticket, isAdmin);
+  // The bottom bar shows only when AC-14 gives this user a button.
+  const barLabel = !readOnly && action.kind !== 'note' ? action.label : null;
+  const moveTo = action.kind === 'move' ? action.to : null;
 
-  const showCostPanel =
-    !isReadOnlyMode &&
-    isAdmin &&
-    repair &&
-    (repair.status === 'FOR_VERIFICATION' ||
-      (isTerminal && repair.isUnlocked));
+  // AC-19: a 409 closes the dialog, says so, and shows the latest ticket with its own next action.
+  const handleStale = () => {
+    setDialog(null);
+    showToast(STALE_TICKET_MESSAGE, 'error');
+    void reload();
+  };
 
-  const executeStatusChange = async () => {
-    if (!repairId) return;
-    setSaving(true);
-    setError(null);
+  const changeStatus = async (to: RepairStatus, extras: { remarks?: string; cancellationReason?: string }) => {
     try {
-      const updated = await updateRepairStatus(repairId, status, {
-        cancellationReason: status === 'CANCELLED' ? cancellationReason : undefined,
-        remarks: remarks.trim() || undefined,
-        lastUpdatedAt: repair?.updatedAt,
-      });
-      setRepair(updated);
-      setRemarks('');
-      setCancellationReason('');
-      showToast(`Repair status updated to ${status.replace('_', ' ')} successfully.`, 'success');
+      const updated = await updateRepairStatus(ticket.id, to, { ...extras, lastUpdatedAt: ticket.updatedAt });
+      setDialog(null);
+      replace(updated);
+      showToast(`${rep} moved to ${statusLabel(updated.status)}.`, 'success');
     } catch (err) {
-      const displayMsg = getApiErrorMessage(err, 'Unable to update repair status.');
-      setError(displayMsg);
-      showToast(displayMsg, 'error');
-    } finally {
-      setSaving(false);
+      if (getApiErrorStatus(err) === 409) return handleStale();
+      throw err;
     }
   };
 
-  const handleStatusChange = async () => {
-    if (!repairId) return;
-    if (status === 'CANCELLED' && !cancellationReason.trim()) {
-      setError('A cancellation reason is required.');
-      return;
+  const unlock = async (reason: string) => {
+    try {
+      const updated = await unlockRepairTicket(ticket.id, reason.trim());
+      setDialog(null);
+      replace(updated);
+      showToast(`${rep} is unlocked.`, 'success');
+    } catch (err) {
+      // Unlock has no lastUpdatedAt; a 400 means someone else unlocked it or it reopened.
+      if (getApiErrorStatus(err) !== 400) throw err;
+      setDialog(null);
+      showToast(getApiErrorMessage(err, 'This ticket can’t be unlocked right now.'), 'error');
+      void reload();
     }
-
-    const statusLabel = allStatusOptions.find((o) => o.value === status)?.label || status;
-
-    const confirmed = await confirm({
-      title: 'Update repair status?',
-      description: `Are you sure you want to change the repair status to "${statusLabel}"?`,
-      confirmText: 'Save status',
-      tone: status === 'CANCELLED' ? 'destructive' : 'default',
-    });
-    if (confirmed) await executeStatusChange();
   };
 
-  if (loading) {
-    return (
-      <div>
-        <div style={{ marginBottom: 16 }}>
-          <button onClick={() => navigate('/repairs')} className="sidebar-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px' }}>
-             <ArrowLeft size={16} /> Back to repairs
-          </button>
-        </div>
-        <PageHeader title="Repair Details" subtitle="Loading…" icon={Wrench} />
-        <div className="card">Loading repair details…</div>
-      </div>
-    );
-  }
-
-  if (error && !repair) {
-    return (
-      <div>
-        <div style={{ marginBottom: 16 }}>
-          <button onClick={() => navigate('/repairs')} className="sidebar-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px' }}>
-             <ArrowLeft size={16} /> Back to repairs
-          </button>
-        </div>
-        <PageHeader title="Repair Details" subtitle="" icon={Wrench} />
-        <div className="card alert">{error}</div>
-      </div>
-    );
-  }
-
-  if (!repair) {
-    return <div className="card">Repair not found.</div>;
-  }
+  const openAction = () => setDialog(action.kind === 'unlock' ? 'unlock' : 'status');
+  const noMechanic = isAdmin && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
+  const noCosts = isAdmin && moveTo === 'COMPLETED' && !hasCosts(ticket);
 
   return (
-    <div>
-      <div style={{ marginBottom: 16 }}>
-        <button onClick={() => navigate(isTerminal ? '/history' : '/repairs')} className="sidebar-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px' }}>
-           <ArrowLeft size={16} /> Back to {isTerminal ? 'history' : 'repairs'}
-        </button>
-      </div>
-      <PageHeader
-        title="Repair Details"
-        subtitle="View or update a repair ticket."
-        icon={Wrench}
-        action={
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {isAdmin && isTerminal && !repair.isUnlocked && !isReadOnlyMode && (
-              <LegacyButton onClick={() => setShowUnlockModal(true)} variant="secondary">
-                Unlock Ticket
-              </LegacyButton>
-            )}
-          </div>
-        }
-      />
+    // Keyed by ticket, so a link to another ticket (similar repairs) starts every section fresh.
+    <div key={ticket.id} className={barLabel ? 'pb-20 lg:pb-0' : undefined}>
+      <BackLink to={back.to} label={back.label} />
+      <PageHeader title={rep} subtitle={ticket.vehicleModel ? `${ticket.vehiclePlate} · ${ticket.vehicleModel}` : ticket.vehiclePlate} icon={Wrench} />
 
-      <div className="card">
-        <div style={{ display: 'grid', gap: 24 }}>
-
-          {/* ── Header ─────────────────────────────────────────────── */}
-          <div>
-            <p style={{ margin: 0, color: 'var(--muted-foreground)', fontSize: 12 }}>Repair Number</p>
-            <h3 style={{ margin: '8px 0 0' }}>{repair.repairNumber}</h3>
-          </div>
-
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-            <StatusBadge status={repair.status} />
-            {repair.isUnlocked && (
-              <span style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)', padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
-                Unlocked for editing
-              </span>
-            )}
-            <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>Updated {formatDate(repair.updatedAt)}</p>
-            <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>Created {formatDate(repair.createdAt)}</p>
-            {repair.completedAt && (
-              <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>Completed {formatDate(repair.completedAt)}</p>
-            )}
-          </div>
-
-          {/* ── Core Details ───────────────────────────────────────── */}
-          <div className="detail-grid">
-            <div>
-              <p className="label">Garage location</p>
-              <p>{repair.garageLocation ?? 'Not assigned'}</p>
-            </div>
-            <div>
-              <p className="label">Odometer</p>
-              <p>{repair.odometerReading != null ? `${repair.odometerReading.toLocaleString()} km` : 'Not recorded'}</p>
-            </div>
-            {repair.cancellationReason && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <p className="label">Cancellation reason</p>
-                <p style={{ color: 'var(--danger)' }}>{repair.cancellationReason}</p>
-              </div>
-            )}
-            {repair.failedVerificationReason && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <p className="label">Failed verification reason</p>
-                <p style={{ color: 'var(--danger)' }}>{repair.failedVerificationReason}</p>
-              </div>
-            )}
-            {repair.remarks && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <p className="label">Remarks</p>
-                <p style={{ fontStyle: 'italic' }}>{repair.remarks}</p>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <p className="label">Vehicle plate</p>
-            <p>{repair.vehiclePlate}</p>
-          </div>
-          <div>
-            <p className="label">Driver</p>
-            <p>
-              {repair.driverName}
-              {isAdmin && repair.driverIsVerified != null && (
-                <span style={{ marginLeft: 8, fontSize: 12, color: repair.driverIsVerified ? 'var(--success)' : 'var(--danger)' }}>
-                  {repair.driverIsVerified ? '✓ Verified' : '⚠ Unverified'}
-                </span>
-              )}
-            </p>
-          </div>
-
-          {/* ── Mechanics ─────────────────────────────────────────── */}
-          {mechanics.length > 0 && (
-            <div>
-              <p className="label">Assigned mechanics</p>
-              <div className="mechanic-list">
-                {mechanics.map((mechanic) => (
-                  <span key={mechanic.id} className="tag-pill">
-                    {mechanic.name}{mechanic.isOutsourced ? ` (outsourced${mechanic.shopName ? ` — ${mechanic.shopName}` : ''})` : ''}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Issues ───────────────────────────────────────────── */}
-          {repair.issues && repair.issues.length > 0 && (
-            <div>
-              <p className="label">Logged issues</p>
-              <div style={{ display: 'grid', gap: 14 }}>
-                {repair.issues.map((issue, index) => (
-                  <div key={issue.id} className="issue-card">
-                    <strong>Issue {index + 1}</strong>
-                    <p style={{ margin: '8px 0 0' }}>{issue.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <AiDiagnosticPanel
-            vehiclePlate={repair.vehiclePlate}
-            vehicleModel={repair.vehicleModel || ''}
-            issues={repair.issues || []}
-            ticketId={repair.id}
-            ticketStatus={repair.status}
+      <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
+        <aside aria-label="Ticket summary" className="flex flex-col gap-4 lg:sticky lg:top-20 lg:col-start-3 lg:row-start-1">
+          <StatusCard
+            ticket={ticket}
+            isAdmin={isAdmin}
+            readOnly={readOnly}
+            action={action}
+            showCancel={!readOnly && canCancel(ticket, isAdmin)}
+            onAction={openAction}
+            onCancel={() => setDialog('cancel')}
           />
+          <DetailsCard ticket={ticket} now={loadedAt} />
+          <PeopleCard ticket={ticket} isAdmin={isAdmin} />
+        </aside>
 
-          {/* ── Cost Summary (Admin only) ─────────────────────────── */}
-          {isAdmin && (repair.totalCost != null || repair.partsCost != null || repair.laborCost != null) && (
-            <div className="issue-card" style={{ background: 'var(--surface-2, var(--bg))' }}>
-              <p className="label" style={{ marginTop: 0 }}>Cost summary</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
-                <div>
-                  <p className="label">Parts cost</p>
-                  <p style={{ fontWeight: 600 }}>{formatCurrency(repair.partsCost)}</p>
-                </div>
-                <div>
-                  <p className="label">Labor cost</p>
-                  <p style={{ fontWeight: 600 }}>{formatCurrency(repair.laborCost)}</p>
-                </div>
-                <div>
-                  <p className="label">Total cost</p>
-                  <p style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)' }}>{formatCurrency(repair.totalCost)}</p>
-                </div>
-              </div>
-              {repair.isLumpSum === false && repair.repairParts && repair.repairParts.length > 0 && (
-                <div style={{ marginTop: 16 }}>
-                  <p className="label">Itemized parts</p>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                        <th style={{ padding: '6px 8px' }}>Description</th>
-                        <th style={{ padding: '6px 8px' }}>Unit Cost</th>
-                        <th style={{ padding: '6px 8px' }}>Qty</th>
-                        <th style={{ padding: '6px 8px' }}>Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {repair.repairParts.map((p, i) => (
-                        <tr key={p.id ?? i} style={{ borderBottom: '1px solid var(--surface-alt)' }}>
-                          <td style={{ padding: '6px 8px' }}>{p.description}</td>
-                          <td style={{ padding: '6px 8px' }}>{formatCurrency(p.unitCost)}</td>
-                          <td style={{ padding: '6px 8px' }}>{p.quantity}</td>
-                          <td style={{ padding: '6px 8px' }}>{formatCurrency(p.subtotal)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Cost Encoding Panel (Admin only, available at FOR_VERIFICATION+) ─ */}
-          {showCostPanel && (
-            <CostEncodingPanel
-              repairId={repairId!}
-              repair={repair}
-              onSaveSuccess={(updated) => setRepair(updated)}
-              formatCurrency={formatCurrency}
-            />
-          )}
-
-          {/* ── Shop Change Log (Admin only) ──────────────────────── */}
-          {isAdmin && repair.shopChangeLog && repair.shopChangeLog.length > 0 && (
-            <div>
-              <p className="label">Shop change history</p>
-              <div style={{ display: 'grid', gap: 12 }}>
-                {repair.shopChangeLog.map((entry, index) => (
-                  <div key={`${entry.changedAt}-${index}`} className="issue-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 600 }}>{entry.changedBy}</span>
-                      <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>{formatDate(entry.changedAt)}</span>
-                    </div>
-                    <p style={{ margin: '8px 0 2px' }}><strong>Before:</strong> {entry.previousValue}</p>
-                    <p style={{ margin: 0 }}><strong>After:</strong> {entry.newValue}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Audit Log (Admin only, collapsible) ───────────────── */}
-          {isAdmin && repair.auditLog && repair.auditLog.length > 0 && (
-            <AuditLogCollapsible
-              auditLog={repair.auditLog}
-              formatDate={formatDate}
-            />
-          )}
-
-          {/* ── Status Controls (visible for non-locked tickets) ───── */}
-          {!isLocked && (
-            <>
-              <div className="input-group">
-                <label className="label" htmlFor="status">Update status</label>
-                <select
-                  id="status"
-                  className="select"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as RepairStatus)}
-                >
-                  {statusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {status === 'CANCELLED' && (
-                <div className="input-group">
-                  <label className="label" htmlFor="cancel-reason">Cancellation reason <span style={{ color: 'var(--danger)' }}>*</span></label>
-                  <textarea
-                    id="cancel-reason"
-                    className="input"
-                    rows={3}
-                    value={cancellationReason}
-                    onChange={(e) => setCancellationReason(e.target.value)}
-                    placeholder="Provide a reason for cancellation…"
-                    style={{ resize: 'vertical' }}
-                  />
-                </div>
-              )}
-
-              <div className="input-group">
-                <label className="label" htmlFor="remarks">Remarks (optional)</label>
-                <textarea
-                  id="remarks"
-                  className="input"
-                  rows={2}
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  placeholder="Add any notes about this status change…"
-                  style={{ resize: 'vertical' }}
-                />
-              </div>
-
-              {error && <div className="alert">{error}</div>}
-
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <LegacyButton
-                  id="save-status-btn"
-                  onClick={handleStatusChange}
-                  disabled={saving || status === repair.status}
-                >
-                  {saving ? 'Saving…' : 'Save status'}
-                </LegacyButton>
-              </div>
-            </>
-          )}
-
-          {/* ── Locked terminal state ─────────────────────────────── */}
-          {isLocked && (
-            <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 16 }}>
-              <p style={{ margin: 0, color: 'var(--muted-foreground)', fontSize: 14 }}>
-                This ticket is <strong>locked</strong> (status: {repair.status.replace('_', ' ')}).
-                {isAdmin && !isReadOnlyMode && ' Use the "Unlock Ticket" button above to make edits (reason required).'}
-              </p>
-            </div>
-          )}
-
+        <div className="flex min-w-0 flex-col gap-4 lg:col-span-2 lg:col-start-1 lg:row-start-1">
+          <NotesSection ticket={ticket} />
+          <VehicleSection ticket={ticket} />
+          <IssuesSection ticket={ticket} />
+          <AiDiagnosisSection ticket={ticket} />
+          {isAdmin && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
+          {isAdmin && <ActivitySection ticketId={ticket.id} />}
         </div>
       </div>
 
-      {/* ── Unlock Modal ──────────────────────────────────────────── */}
-      {showUnlockModal && (
-        <UnlockTicketModal
-          repairId={repairId!}
-          repairNumber={repair.repairNumber}
-          repairStatus={repair.status}
-          onUnlockSuccess={(updated) => setRepair(updated)}
-          onClose={() => setShowUnlockModal(false)}
+      {barLabel && <NextActionBar label={barLabel} aboveTabBar={!isAdmin} onAction={openAction} />}
+
+      {action.kind === 'move' && (
+        <TicketNoteDialog
+          open={dialog === 'status'}
+          onOpenChange={(open) => setDialog(open ? 'status' : null)}
+          title={`${action.label} on ${rep}?`}
+          fieldLabel="Remarks"
+          confirmLabel={action.label}
+          onSubmit={(note) => changeStatus(action.to, { remarks: note.trim() || undefined })}
+        >
+          {noMechanic && <Callout tone="warning">No mechanic is assigned yet.</Callout>}
+          {noCosts && (
+            <Callout tone="warning">
+              <p>No costs are recorded yet. Once completed, the ticket locks, and costs can only be added after an unlock.</p>
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto px-0"
+                onClick={() => {
+                  setDialog(null);
+                  // After the dialog's close animation hands focus back, move to Costs.
+                  window.setTimeout(scrollToCosts, 250);
+                }}
+              >
+                Go to costs
+              </Button>
+            </Callout>
+          )}
+        </TicketNoteDialog>
+      )}
+
+      {canCancel(ticket, isAdmin) && (
+        <TicketNoteDialog
+          open={dialog === 'cancel'}
+          onOpenChange={(open) => setDialog(open ? 'cancel' : null)}
+          title={`Cancel ${rep}?`}
+          fieldLabel="Cancellation reason"
+          requiredMessage="Enter a reason for cancelling."
+          confirmLabel="Cancel ticket"
+          cancelLabel="Keep ticket"
+          destructive
+          onSubmit={(reason) => changeStatus('CANCELLED', { cancellationReason: reason.trim() })}
+        />
+      )}
+
+      {action.kind === 'unlock' && (
+        <TicketNoteDialog
+          open={dialog === 'unlock'}
+          onOpenChange={(open) => setDialog(open ? 'unlock' : null)}
+          title={`Unlock ${rep}?`}
+          description="Unlocking lets you edit costs. Saving costs locks it again."
+          fieldLabel="Reason"
+          requiredMessage="Enter a reason for unlocking."
+          confirmLabel="Unlock ticket"
+          onSubmit={unlock}
         />
       )}
     </div>

@@ -12,6 +12,8 @@ export interface AuditEventParams {
   to?: string;
   /** Partial repair number; the server ignores it under 2 characters. */
   repairNumber?: string;
+  /** One ticket's events, for the repair detail Activity section. */
+  ticketId?: string;
   /** `nextCursor` from the previous page. Send the same filters with it. */
   cursor?: string;
   limit?: number;

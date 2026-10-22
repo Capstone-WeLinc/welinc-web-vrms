@@ -63,29 +63,12 @@ export interface RepairIssue {
   description: string;
 }
 
-export interface ShopChangeLog {
-  changedBy: string;
-  previousValue: string;
-  newValue: string;
-  changedAt: string;
-}
-
 export interface RepairPart {
   id: string;
   description: string;
   unitCost: number;
   quantity: number;
   subtotal: number;
-}
-
-export interface AuditLogEntry {
-  id: string;
-  email: string;
-  action: string;
-  fieldName?: string;
-  previousValue?: string;
-  newValue?: string;
-  createdAt: string;
 }
 
 export interface RepairTicket {
@@ -106,7 +89,6 @@ export interface RepairTicket {
   odometerReading?: number;
   mechanics?: MechanicAssignment[];
   shopName?: string;
-  shopChangeLog?: ShopChangeLog[];
   priority?: PriorityLevel;
   issues?: RepairIssue[];
   targetDueDate?: string | null;
@@ -122,7 +104,6 @@ export interface RepairTicket {
   unlockReason?: string;
   driverIsVerified?: boolean;
   repairParts?: RepairPart[];
-  auditLog?: AuditLogEntry[];
 }
 
 export interface CreateRepairPayload {

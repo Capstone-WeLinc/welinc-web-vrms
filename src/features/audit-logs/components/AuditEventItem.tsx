@@ -38,12 +38,15 @@ function Actor({ event, name }: { event: AuditEvent; name: string }) {
 }
 
 /** The sentence for the event (AC-11), with the actor and repair number inline. */
-function Sentence({ event }: { event: AuditEvent }) {
+function Sentence({ event, showTicket }: { event: AuditEvent; showTicket: boolean }) {
   const name = actorLabel(event);
-  const rep = (
+  // On the ticket's own page the number stays as plain text: a link back to the same page is noise.
+  const rep = showTicket ? (
     <Link to={`/repairs/${event.ticket.id}`} className="font-medium whitespace-nowrap text-primary underline-offset-4 hover:underline">
       {event.ticket.repairNumber}
     </Link>
+  ) : (
+    <span className="font-medium whitespace-nowrap">{event.ticket.repairNumber}</span>
   );
   const who = name ? <Actor event={event} name={name} /> : null;
 
@@ -117,7 +120,7 @@ function Detail({ event }: { event: AuditEvent }) {
   return null;
 }
 
-export function AuditEventItem({ event }: { event: AuditEvent }) {
+export function AuditEventItem({ event, showTicket = true }: { event: AuditEvent; showTicket?: boolean }) {
   const { icon: Icon, tone } = eventStyle(event.type);
 
   return (
@@ -130,7 +133,7 @@ export function AuditEventItem({ event }: { event: AuditEvent }) {
       <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <p className="min-w-0 text-sm leading-6 text-foreground">
-            <Sentence event={event} />
+            <Sentence event={event} showTicket={showTicket} />
           </p>
           <Tooltip>
             <TooltipTrigger asChild>

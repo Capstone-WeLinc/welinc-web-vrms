@@ -6,7 +6,7 @@ import type { Column } from '../../../components/shared/data-table/types';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { cn } from '@/lib/utils';
 import type { RepairTicket } from '../../../types';
-import type { DueLabel } from '../lib/attention';
+import type { DueLabel } from '../../../lib/utils/due';
 
 interface TicketAttentionTableProps {
   rows: RepairTicket[];
