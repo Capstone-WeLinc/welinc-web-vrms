@@ -19,7 +19,9 @@ import { groupRows, type Column, type DataTableProps, type RowAction } from './t
 
 const SKELETON_ROWS = 5;
 
-function RowActionsMenu({ actions, touch }: { actions: RowAction[]; touch: boolean }) {
+type RowActionsMenuProps = { actions: RowAction[]; touch: boolean; label: string; rowId: string };
+
+function RowActionsMenu({ actions, touch, label, rowId }: RowActionsMenuProps) {
   if (actions.length === 0) return null;
   return (
     <DropdownMenu>
@@ -27,7 +29,9 @@ function RowActionsMenu({ actions, touch }: { actions: RowAction[]; touch: boole
         <Button
           variant="ghost"
           size={touch ? 'icon-touch' : 'icon'}
-          aria-label="Row actions"
+          aria-label={label}
+          // Lets a page hand focus back to this trigger once an action ends.
+          data-row-actions={rowId}
           // The row or card may be clickable; opening the menu must not trigger it.
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
@@ -52,7 +56,20 @@ function RowActionsMenu({ actions, touch }: { actions: RowAction[]; touch: boole
   );
 }
 
-function DesktopTable<T>({ columns, rows, getRowId, state, onRowClick, rowActions, pagination, label, groupBy }: DataTableProps<T>) {
+const DEFAULT_ACTIONS_LABEL = () => 'Row actions';
+
+function DesktopTable<T>({
+  columns,
+  rows,
+  getRowId,
+  state,
+  onRowClick,
+  rowActions,
+  rowActionsLabel = DEFAULT_ACTIONS_LABEL,
+  pagination,
+  label,
+  groupBy,
+}: DataTableProps<T>) {
   const skeletonCount = Math.min(pagination?.pageSize ?? SKELETON_ROWS, 10);
   const columnCount = columns.length + (rowActions ? 1 : 0);
   const alignClass = (column: Column<T>) => (column.align === 'end' ? 'text-right tabular-nums' : 'text-left');
@@ -127,7 +144,7 @@ function DesktopTable<T>({ columns, rows, getRowId, state, onRowClick, rowAction
                 ))}
                 {rowActions && (
                   <TableCell className="px-4 text-right">
-                    <RowActionsMenu actions={rowActions(row)} touch={false} />
+                    <RowActionsMenu actions={rowActions(row)} touch={false} label={rowActionsLabel(row)} rowId={getRowId(row)} />
                   </TableCell>
                 )}
               </TableRow>
@@ -138,7 +155,18 @@ function DesktopTable<T>({ columns, rows, getRowId, state, onRowClick, rowAction
   );
 }
 
-function MobileCards<T>({ columns, rows, getRowId, state, onRowClick, rowActions, pagination, label, groupBy }: DataTableProps<T>) {
+function MobileCards<T>({
+  columns,
+  rows,
+  getRowId,
+  state,
+  onRowClick,
+  rowActions,
+  rowActionsLabel = DEFAULT_ACTIONS_LABEL,
+  pagination,
+  label,
+  groupBy,
+}: DataTableProps<T>) {
   const visible = columns.filter((column) => column.mobile !== 'hidden');
   const titleColumn =
     visible.find((column) => column.mobile === 'title') ?? visible.find((column) => (column.mobile ?? 'field') === 'field');
@@ -199,7 +227,9 @@ function MobileCards<T>({ columns, rows, getRowId, state, onRowClick, rowActions
                 {badges.map((column) => (
                   <span key={column.id}>{column.cell(row)}</span>
                 ))}
-                {rowActions && <RowActionsMenu actions={rowActions(row)} touch />}
+                {rowActions && (
+                  <RowActionsMenu actions={rowActions(row)} touch label={rowActionsLabel(row)} rowId={getRowId(row)} />
+                )}
               </div>
             )}
           </div>

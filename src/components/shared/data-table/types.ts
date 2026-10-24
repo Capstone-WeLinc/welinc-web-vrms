@@ -33,6 +33,8 @@ export type DataTableProps<T> = {
   empty: { title: string; description?: string; icon?: LucideIcon; action?: ReactNode };
   onRowClick?: (row: T) => void;
   rowActions?: (row: T) => RowAction[];
+  /** Accessible name of a row's actions trigger, such as "Actions for Juan". Default "Row actions". */
+  rowActionsLabel?: (row: T) => string;
   pagination?: PaginationState;
   /** Accessible name of the table, such as "Repair tickets". */
   label?: string;

@@ -39,8 +39,9 @@ export async function setUserStatus(userId: string, isActive: boolean): Promise<
   return response.data;
 }
 
-export async function resetUserPassword(userId: string, password: string): Promise<ManagedUser> {
-  const response = await api.patch<ManagedUser>(`/auth/users/${userId}/password`, { password });
+/** Emails a one time reset code. The reply is the same generic message whether or not the account exists. */
+export async function requestPasswordReset(email: string): Promise<{ message: string }> {
+  const response = await api.post<{ message: string }>('/auth/forgot-password', { email });
   return response.data;
 }
 

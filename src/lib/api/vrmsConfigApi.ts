@@ -16,6 +16,8 @@ export interface MechanicOption {
   id: string;
   name: string;
   isAvailable: boolean;
+  /** The linked VRMS user's email; null when the mechanic has no login (spec 0006). */
+  email?: string | null;
 }
 
 export async function getGarages(): Promise<GarageOption[]> {
