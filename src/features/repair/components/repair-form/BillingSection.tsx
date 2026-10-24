@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ACCOUNT_TYPE_OPTIONS, getRepairFormOptions } from '../../../../lib/repairOptions';
 import type { RepairFormControl, RepairFormInput } from '../../lib/repairFormSchema';
-import { FieldRow, FormSection } from './RepairFormParts';
+import { FormSection } from './RepairFormParts';
 
 interface BillingSectionProps {
   control: RepairFormControl;
@@ -18,7 +18,8 @@ export function BillingSection({ control, setValue, clearErrors }: BillingSectio
 
   return (
     <FormSection title="Billing">
-      <FieldRow>
+      {/* Stacked, since this section sits in the narrow column from 1280px. */}
+      <div className="flex flex-col gap-5">
         <FormField
           control={control}
           name="accountType"
@@ -78,7 +79,7 @@ export function BillingSection({ control, setValue, clearErrors }: BillingSectio
             )}
           />
         )}
-      </FieldRow>
+      </div>
     </FormSection>
   );
 }

@@ -154,31 +154,42 @@ export function RepairFormPage() {
         noValidate
         onSubmit={onSubmit}
         aria-label="New repair ticket"
-        className="mx-auto flex max-w-3xl flex-col gap-4 [&_:is(button,input,textarea)]:scroll-mt-24 [&_:is(button,input,textarea)]:scroll-mb-action-bar"
+        // One column below 1280px; from 1280px two columns like the detail page, the vehicle and issues on the left.
+        className="flex max-w-3xl flex-col gap-4 xl:grid xl:max-w-none xl:grid-cols-3 xl:items-start [&_:is(button,input,textarea)]:scroll-mt-24 [&_:is(button,input,textarea)]:scroll-mb-action-bar"
       >
-        <VehicleSection
-          control={control}
-          vehicles={options.vehicles}
-          drivers={options.drivers}
-          garages={options.garages}
-        />
-        <IssueLoggingSection control={control} />
-        <AssignmentSection
-          control={control}
-          mechanics={options.mechanics}
-          setValue={setValue}
-          setError={setError}
-          clearErrors={clearErrors}
-        />
-        <BillingSection control={control} setValue={setValue} clearErrors={clearErrors} />
+        <div className="flex min-w-0 flex-col gap-4 xl:col-span-2">
+          <VehicleSection
+            control={control}
+            vehicles={options.vehicles}
+            drivers={options.drivers}
+            garages={options.garages}
+          />
+          <IssueLoggingSection control={control} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          <AssignmentSection
+            control={control}
+            mechanics={options.mechanics}
+            setValue={setValue}
+            setError={setError}
+            clearErrors={clearErrors}
+          />
+          <BillingSection control={control} setValue={setValue} clearErrors={clearErrors} />
+        </div>
 
         {failure && (
-          <div ref={alertRef} tabIndex={-1} className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <div
+            ref={alertRef}
+            tabIndex={-1}
+            className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring xl:col-span-3"
+          >
             <FormAlert message={failure.message} />
           </div>
         )}
 
-        <RepairFormActions saving={saving} listsBlocked={listsBlocked} onCancel={() => navigate('/repairs')} />
+        <div className="xl:col-span-3">
+          <RepairFormActions saving={saving} listsBlocked={listsBlocked} onCancel={() => navigate('/repairs')} />
+        </div>
       </form>
 
       <RepairSummaryDialog

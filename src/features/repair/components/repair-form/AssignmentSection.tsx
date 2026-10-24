@@ -9,7 +9,7 @@ import { getRepairFormOptions, PRIORITY_OPTIONS } from '../../../../lib/repairOp
 import type { OptionList } from '../../hooks/useRepairFormOptions';
 import { OTHER_SHOP, type RepairFormControl, type RepairFormInput } from '../../lib/repairFormSchema';
 import { MechanicPicker } from './MechanicPicker';
-import { FieldRow, FormSection } from './RepairFormParts';
+import { FormSection } from './RepairFormParts';
 
 interface AssignmentSectionProps {
   control: RepairFormControl;
@@ -59,7 +59,8 @@ export function AssignmentSection({ control, mechanics, setValue, setError, clea
 
       <MechanicPicker control={control} mechanics={mechanics} setError={setError} clearErrors={clearErrors} />
 
-      <FieldRow>
+      {/* Stacked, since this section sits in the narrow column from 1280px. */}
+      <div className="flex flex-col gap-5">
         <FormField
           control={control}
           name="shopChoice"
@@ -101,7 +102,7 @@ export function AssignmentSection({ control, mechanics, setValue, setError, clea
             render={({ field, controlProps }) => <Input {...field} {...controlProps} autoComplete="off" />}
           />
         )}
-      </FieldRow>
+      </div>
     </FormSection>
   );
 }
