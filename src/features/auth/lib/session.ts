@@ -44,7 +44,7 @@ export async function processToken(
       const user: User = {
         id: decoded.sub,
         email: decoded.email || '',
-        name: fullUser.name || decoded.email || '',
+        name: fullUser.name || '',
         role: primaryRoleAssignment.role || 'MECHANIC',
         system: 'VRMS',
         roles: decoded.roles || [],
@@ -55,7 +55,7 @@ export async function processToken(
       const user: User = {
         id: decoded.sub,
         email: decoded.email || '',
-        name: decoded.email || '',
+        name: '',
         role: primaryRoleAssignment.role || 'MECHANIC',
         system: 'VRMS',
         roles: decoded.roles || [],

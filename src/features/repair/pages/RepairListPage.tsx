@@ -37,7 +37,7 @@ function IssueCell({ ticket }: { ticket: RepairTicket }) {
         {/* Focusable so keyboard users can read the full issue too. */}
         <span
           tabIndex={0}
-          className="block max-w-32 truncate rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring xl:max-w-40 2xl:max-w-72"
+          className="block max-w-32 truncate rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring 2xl:max-w-72"
         >
           {ticket.issueDescription}
         </span>
