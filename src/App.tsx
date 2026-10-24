@@ -69,7 +69,7 @@ function App() {
           if (currentUser) {
             const updated = {
               ...currentUser,
-              name: fullUser.name || currentUser.name || currentUser.email,
+              name: fullUser.name || '',
               email: fullUser.email || currentUser.email,
             };
             setUser(updated);
