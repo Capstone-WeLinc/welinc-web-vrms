@@ -3,7 +3,6 @@
 
 export const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Pending',
-  PENDING_VERIFICATION: 'Pending verification',
   IN_PROGRESS: 'In progress',
   FOR_VERIFICATION: 'For verification',
   COMPLETED: 'Completed',
@@ -11,6 +10,7 @@ export const STATUS_LABELS: Record<string, string> = {
   ACTIVE: 'Active',
   INACTIVE: 'Inactive',
   LOCKED: 'Locked',
+  SETUP_PENDING: 'Setup pending',
 };
 
 export function statusLabel(status: string) {

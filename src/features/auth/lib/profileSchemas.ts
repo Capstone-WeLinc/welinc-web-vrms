@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { validatePassword } from '../../user-management/hooks/useUsersManager';
+import { validatePassword } from './passwordRules';
 
 export const personalDetailsSchema = z.object({
   name: z.string().trim().min(1, 'Enter your full name.'),
@@ -16,7 +16,7 @@ export const changePasswordSchema = z
     confirmPassword: z.string().min(1, 'Enter the new password again.'),
   })
   .superRefine(({ newPassword, confirmPassword }, ctx) => {
-    // Same rules the admin user form uses, so both places agree.
+    // The rules welinc-auth enforces, so the form catches them before the request.
     const rule = newPassword ? validatePassword(newPassword) : null;
     if (rule) ctx.addIssue({ code: 'custom', path: ['newPassword'], message: rule });
     if (confirmPassword && newPassword !== confirmPassword) {

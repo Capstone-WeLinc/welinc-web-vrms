@@ -1,265 +1,174 @@
-import { FormEvent, useState, useMemo } from 'react';
-import { Users as UsersIcon, Search } from 'lucide-react';
-import { ManagedUser } from '../../../types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { SearchX, UserPlus, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { confirmStore } from '../../../components/shared/confirm/confirm';
+import { DataTable } from '../../../components/shared/data-table/DataTable';
+import { lastPage } from '../../../components/shared/data-table/types';
 import { useToast } from '../../../context/toast';
-import { confirm } from '../../../components/shared/confirm/confirm';
-import {
-  useUsersManager,
-  UserFormState,
-  emptyForm,
-  getVrmsRoleAssignments,
-  validateEmail,
-} from '../hooks/useUsersManager';
-import { UserForm } from '../components/UserForm';
-import { UsersTable } from '../components/UsersTable';
-import { LegacyButton } from '../../../components/legacy/LegacyButton';
-import { getApiErrorMessage } from '../../../lib/api/errors';
+import { useAuthStore } from '../../../store/authStore';
+import type { ManagedUser } from '../../../types';
+import { UserFormDialog, type SaveOutcome } from '../components/UserFormDialog';
+import { UserListFilters } from '../components/UserListFilters';
+import { UserStatusTiles } from '../components/UserStatusTiles';
+import { usersColumns } from '../components/usersColumns';
+import { useUserActions } from '../hooks/useUserActions';
+import { useUserFilters } from '../hooks/useUserFilters';
+import { useUsers } from '../hooks/useUsers';
+import { sortUsers } from '../lib/accountStatus';
+import { rowFocusRef } from '../lib/focusReturn';
+import { hasActiveFilters, matchesUserFilters, USERS_PAGE_SIZE } from '../lib/userFilters';
 
+/** The open dialog: New user, or Edit with the row as it was when the dialog opened. */
+type DialogState = { open: boolean; user: ManagedUser | null; session: number };
+
+/** Admin only through RequireRole in App.tsx and @Roles(ADMIN) on the server (spec 0006). */
 export function UsersPage() {
-  const {
-    isAdmin,
-    users,
-    loading,
-    error: usersError,
-    saveUser,
-    toggleUserStatus,
-    resetPassword,
-    unlockUserAccount,
-  } = useUsersManager();
-  
+  const currentUserId = useAuthStore((state) => state.user?.id);
+  const isMobile = useIsMobile();
   const { showToast } = useToast();
+  const newUserButton = useRef<HTMLButtonElement>(null);
+  const [dialog, setDialog] = useState<DialogState>({ open: false, user: null, session: 0 });
+  // Read by callbacks that run outside render: the debounced search and a refetch.
+  const dialogRef = useRef(dialog);
+  useEffect(() => {
+    dialogRef.current = dialog;
+  }, [dialog]);
 
-  const [form, setForm] = useState<UserFormState>(emptyForm);
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('ALL');
-  const [filterStatus, setFilterStatus] = useState('ALL');
+  const { filters, page, searchText, setSearchText, setFilters, setPage, clearFilters } = useUserFilters(
+    () => dialogRef.current.open || confirmStore.getCurrent() !== null,
+  );
 
-  const handleEdit = (user: ManagedUser) => {
-    const vrmsRoles = getVrmsRoleAssignments(user.roles);
-    const role = vrmsRoles.length > 0 ? vrmsRoles[0].role : 'MECHANIC';
+  // A refetch that drops the row being edited closes its dialog (AC-11).
+  const list = useUsers((users) => {
+    const { open, user: editing } = dialogRef.current;
+    if (!open || !editing || users.some((user) => user.id === editing.id)) return;
+    showToast(`${editing.name} is no longer in the list.`, 'info');
+    setDialog((current) => ({ ...current, open: false }));
+  });
 
-    setEditingUserId(user.id);
-    setForm({
-      name: user.name,
-      email: user.email,
-      password: '',
-      isActive: user.isActive,
-      role: role,
-    });
-    setFormError(null);
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const openDialog = (user: ManagedUser | null) => setDialog((current) => ({ open: true, user, session: current.session + 1 }));
+  const closeDialog = () => setDialog((current) => ({ ...current, open: false }));
+
+  const { rowActions } = useUserActions({
+    currentUserId,
+    onEdit: openDialog,
+    runWrite: list.runWrite,
+    upsertUser: list.upsertUser,
+  });
+
+  const onSaved = (user: ManagedUser, outcome: SaveOutcome) => {
+    list.upsertUser(user);
+    if (outcome === 'created') showToast(`${user.name} added. A setup code was sent to ${user.email}.`);
+    else if (outcome === 'created-mail-failed')
+      showToast(`${user.name} was added, but the setup email couldn’t be sent. Use Resend setup code.`, 'error');
+    else showToast(`${user.name} updated.`);
+
+    // Your own row: keep the header's name and email right, in all three copies (AGENTS.md).
+    const me = useAuthStore.getState().user;
+    if (me && me.id === user.id) {
+      const updated = { ...me, name: user.name, email: user.email };
+      useAuthStore.setState({ user: updated });
+      localStorage.setItem('welinc_user', JSON.stringify(updated));
+    }
+    closeDialog();
   };
 
-  const handleCancel = () => {
-    setEditingUserId(null);
-    setForm(emptyForm);
-    setFormError(null);
-    setShowForm(false);
-  };
+  const sorted = useMemo(() => sortUsers(list.users), [list.users]);
+  const visible = useMemo(() => sorted.filter((user) => matchesUserFilters(user, filters)), [sorted, filters]);
+  // A page past the end shows the last page; the URL stays as it is (AC-6).
+  const shownPage = Math.min(page, lastPage(visible.length, USERS_PAGE_SIZE));
+  const pageRows = visible.slice((shownPage - 1) * USERS_PAGE_SIZE, shownPage * USERS_PAGE_SIZE);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setFormError(null);
+  const editFocus = useMemo(() => (dialog.user ? rowFocusRef(dialog.user.id) : newUserButton), [dialog.user]);
 
-    if (!form.name.trim() || !form.email.trim()) {
-      setFormError('Name and email are required.');
-      return;
-    }
+  const newUser = (
+    <Button ref={newUserButton} onClick={() => openDialog(null)}>
+      <UserPlus aria-hidden="true" />
+      New user
+    </Button>
+  );
 
-    const emailError = validateEmail(form.email);
-    if (emailError) {
-      setFormError(emailError);
-      return;
-    }
-
-
-
-    setSaving(true);
-    try {
-      await saveUser(editingUserId, form);
-      showToast(editingUserId ? 'User account updated successfully.' : 'User account created successfully.', 'success');
-      handleCancel();
-    } catch (err) {
-      setFormError(getApiErrorMessage(err, 'Failed to save user account.'));
-      showToast('Failed to save user account.', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const confirmToggleStatus = async (user: ManagedUser) => {
-    const confirmed = await confirm({
-      title: user.isActive ? 'Deactivate account?' : 'Activate account?',
-      description: `Are you sure you want to ${user.isActive ? 'deactivate' : 'activate'} the account for ${user.name}?`,
-      confirmText: user.isActive ? 'Deactivate' : 'Activate',
-      tone: user.isActive ? 'destructive' : 'default',
-    });
-    if (!confirmed) return;
-    try {
-      await toggleUserStatus(user);
-      showToast(`Account ${user.isActive ? 'deactivated' : 'activated'} successfully.`, 'success');
-    } catch {
-      showToast('Failed to update account status.', 'error');
-    }
-  };
-
-  const confirmResetPassword = async (user: ManagedUser) => {
-    const defaultPassword = 'Password123!';
-    const confirmed = await confirm({
-      title: 'Reset user password?',
-      description: `Are you sure you want to reset the password for ${user.name} to the system default (${defaultPassword})? They will be required to change it on their next login.`,
-      confirmText: 'Reset password',
-      tone: 'destructive',
-    });
-    if (!confirmed) return;
-    try {
-      await resetPassword(user, defaultPassword);
-      showToast(`Password reset successfully for ${user.name}.`, 'success');
-    } catch {
-      showToast('Failed to reset password.', 'error');
-    }
-  };
-
-  const confirmUnlockAccount = async (user: ManagedUser) => {
-    const confirmed = await confirm({
-      title: 'Unlock account?',
-      description: `The account for ${user.name} is currently locked due to multiple failed login attempts. Are you sure you want to unlock it?`,
-      confirmText: 'Unlock account',
-    });
-    if (!confirmed) return;
-    try {
-      await unlockUserAccount(user);
-      showToast(`Account for ${user.name} has been unlocked.`, 'success');
-    } catch {
-      showToast('Failed to unlock account.', 'error');
-    }
-  };
-
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      let matchesRole = true;
-      if (filterRole !== 'ALL') {
-        const vrmsRoles = getVrmsRoleAssignments(user.roles);
-        const primaryRole = vrmsRoles.length > 0 ? vrmsRoles[0].role : 'NO_ACCESS';
-        matchesRole = primaryRole === filterRole;
+  const empty = hasActiveFilters(filters)
+    ? {
+        title: 'No users match these filters',
+        description: 'Try another search, or clear the filters to see everyone.',
+        icon: SearchX,
+        action: (
+          <Button variant="outline" onClick={clearFilters}>
+            Clear filters
+          </Button>
+        ),
       }
-
-      let matchesStatus = true;
-      if (filterStatus !== 'ALL') {
-        matchesStatus = (filterStatus === 'ACTIVE' && user.isActive) || 
-                        (filterStatus === 'INACTIVE' && !user.isActive);
-      }
-
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [users, searchTerm, filterRole, filterStatus]);
-
-  if (!isAdmin) {
-    return (
-      <div>
-        <PageHeader title="Access Denied" subtitle="" icon={UsersIcon} />
-        <div className="card alert">You do not have permission to view this page.</div>
-      </div>
-    );
-  }
+    : {
+        title: 'No users yet',
+        description: 'Add the first admin or mechanic.',
+        icon: Users,
+        action: (
+          <Button onClick={() => openDialog(null)}>
+            <UserPlus aria-hidden="true" />
+            New user
+          </Button>
+        ),
+      };
 
   return (
     <div>
       <PageHeader
-        title="User Management"
-        subtitle="Manage VRMS administrator and mechanic access."
-        icon={UsersIcon}
+        title="Users"
+        subtitle="Manage who can sign in to VRMS and what they can do."
+        icon={Users}
+        action={newUser}
       />
 
-      <div className="dashboard-grid" style={{ marginBottom: 24 }}>
-        <div className="card summary-card">
-          <div className="stat-card-value">{users.length}</div>
-          <div className="stat-card-label">Total Users</div>
-        </div>
-        <div className="card summary-card">
-          <div className="stat-card-value">{users.filter(u => u.isActive).length}</div>
-          <div className="stat-card-label">Active Users</div>
-        </div>
-        <div className="card summary-card">
-          <div className="stat-card-value">{users.filter(u => !u.isActive).length}</div>
-          <div className="stat-card-label">Inactive Users</div>
-        </div>
-        <div className="card summary-card">
-          <div className="stat-card-value">{users.filter(u => u.isLocked).length}</div>
-          <div className="stat-card-label">Locked Accounts</div>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
-         <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
-           <div style={{ position: 'relative', flex: 1 }}>
-             <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
-             <input 
-               className="input" 
-               placeholder="Search by name or email..." 
-               value={searchTerm} 
-               onChange={e => setSearchTerm(e.target.value)} 
-               style={{ paddingLeft: '38px' }}
-             />
-           </div>
-           <select className="select" value={filterRole} onChange={e => setFilterRole(e.target.value)} style={{ width: '160px' }}>
-             <option value="ALL">All Roles</option>
-             <option value="ADMIN">Admin</option>
-             <option value="MECHANIC">Mechanic</option>
-           </select>
-           <select className="select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: '160px' }}>
-             <option value="ALL">All Status</option>
-             <option value="ACTIVE">Active</option>
-             <option value="INACTIVE">Inactive</option>
-           </select>
-         </div>
-         <LegacyButton onClick={() => setShowForm(true)}>+ New User Account</LegacyButton>
-      </div>
-
-      {showForm && (
-        <div style={{ marginBottom: 24 }}>
-          <UserForm
-            form={form}
-            setForm={setForm}
-            editingUserId={editingUserId}
-            saving={saving}
-            error={formError}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-          />
-        </div>
+      {list.status !== 'error' && (
+        <UserStatusTiles
+          users={list.users}
+          loading={list.status === 'loading'}
+          selected={filters.status}
+          onSelect={(status) => setFilters({ status: filters.status === status ? 'all' : status })}
+        />
       )}
 
-      <section className="card" style={{ flex: 1 }}>
-        <div className="section-heading">
-          <h3 style={{ margin: 0 }}>Registered users</h3>
-          <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>Manage existing VRMS accounts</p>
-        </div>
+      <UserListFilters
+        value={filters}
+        searchText={searchText}
+        onSearchTextChange={setSearchText}
+        onChange={setFilters}
+        onClear={clearFilters}
+      />
 
-        {loading ? (
-          <p>Loading users...</p>
-        ) : usersError ? (
-          <div className="alert">{usersError}</div>
-        ) : (
-          <UsersTable
-            users={filteredUsers}
-            onEditUser={handleEdit}
-            onResetPassword={confirmResetPassword}
-            onToggleStatus={confirmToggleStatus}
-            onUnlockAccount={confirmUnlockAccount}
-          />
-        )}
-      </section>
+      <DataTable
+        columns={usersColumns(currentUserId, isMobile)}
+        rows={pageRows}
+        getRowId={(user) => user.id}
+        state={list.status}
+        errorMessage={list.errorMessage}
+        onRetry={list.retry}
+        label="Users"
+        onRowClick={openDialog}
+        rowActions={rowActions}
+        rowActionsLabel={(user) => `Actions for ${user.name}`}
+        pagination={
+          visible.length > USERS_PAGE_SIZE
+            ? { page: shownPage, pageSize: USERS_PAGE_SIZE, total: visible.length, onPageChange: setPage }
+            : undefined
+        }
+        empty={empty}
+      />
 
+      <UserFormDialog
+        key={dialog.session}
+        open={dialog.open}
+        onOpenChange={(open) => !open && closeDialog()}
+        user={dialog.user}
+        currentUserId={currentUserId}
+        finalFocusRef={editFocus}
+        runWrite={list.runWrite}
+        refetch={list.refetch}
+        onSaved={onSaved}
+      />
     </div>
   );
 }
