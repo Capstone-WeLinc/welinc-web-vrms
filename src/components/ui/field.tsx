@@ -271,6 +271,8 @@ type FormFieldControlProps<
     "aria-invalid": boolean
     "aria-describedby": string | undefined
   }
+  /** The label's id, for a group control that needs aria-labelledby. */
+  labelId: string
 }
 
 /**
@@ -280,6 +282,7 @@ type FormFieldControlProps<
 function FormField<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
+  TTransformedValues = TFieldValues,
 >({
   control,
   name,
@@ -290,7 +293,8 @@ function FormField<
   className,
   render,
 }: {
-  control: Control<TFieldValues>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches react-hook-form's own Control default
+  control: Control<TFieldValues, any, TTransformedValues>
   name: TName
   label: React.ReactNode
   description?: React.ReactNode
@@ -300,6 +304,7 @@ function FormField<
   render: (props: FormFieldControlProps<TFieldValues, TName>) => React.ReactNode
 }) {
   const id = useId()
+  const labelId = `${id}-label`
   const descriptionId = `${id}-description`
   const errorId = `${id}-error`
 
@@ -320,7 +325,7 @@ function FormField<
         }
         const isHorizontal = orientation === "horizontal"
         const fieldLabel = (
-          <FieldLabel htmlFor={id} required={required}>
+          <FieldLabel id={labelId} htmlFor={id} required={required}>
             {label}
           </FieldLabel>
         )
@@ -341,7 +346,7 @@ function FormField<
           >
             {isHorizontal ? (
               <>
-                {render({ field, fieldState, controlProps })}
+                {render({ field, fieldState, controlProps, labelId })}
                 <FieldContent>
                   {fieldLabel}
                   {messages}
@@ -350,7 +355,7 @@ function FormField<
             ) : (
               <>
                 {fieldLabel}
-                {render({ field, fieldState, controlProps })}
+                {render({ field, fieldState, controlProps, labelId })}
                 {messages}
               </>
             )}

@@ -256,6 +256,16 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Room for a fixed bottom action bar at its tallest (a two line note above a 44px button), plus the safe area. */
+@utility pb-action-bar {
+  padding-bottom: calc(9rem + env(safe-area-inset-bottom));
+}
+
+/* Keeps a field focused by scrolling clear of the fixed action bar. */
+@utility scroll-mb-action-bar {
+  scroll-margin-bottom: calc(9rem + env(safe-area-inset-bottom));
+}
+
 /*
   Legacy classes from before the design system. They render as before and
   are retired page by page during the UI refresh (features 8 to 15).
