@@ -118,7 +118,6 @@ export interface CreateRepairPayload {
   shopName: string;
   priority: PriorityLevel;
   issues: Omit<RepairIssue, 'id'>[];
-  repairNumber?: string;
 }
 
 /** A closed ticket as `GET /vrms/repairs/history` sends it (spec 0003). Mechanics get no `totalCost`. */
