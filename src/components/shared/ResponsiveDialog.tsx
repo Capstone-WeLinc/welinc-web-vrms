@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode, type RefObject } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -11,10 +11,20 @@ type ResponsiveDialogProps = {
   children: ReactNode;
   /** The actions. Stays visible while the body scrolls. */
   footer?: ReactNode;
+  /** Focus goes here on close when it is mounted, instead of back to the opener. */
+  finalFocusRef?: RefObject<HTMLElement | null>;
 };
 
 /** A centered dialog from 768px up, a bottom sheet on phones. Same props either way. */
-export function ResponsiveDialog({ open, onOpenChange, title, description, children, footer }: ResponsiveDialogProps) {
+export function ResponsiveDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+  footer,
+  finalFocusRef,
+}: ResponsiveDialogProps) {
   const isMobile = useIsMobile();
   // Controlled without a trigger, so remember who opened it and hand focus back on close.
   const openerRef = useRef<HTMLElement | null>(null);
@@ -24,7 +34,8 @@ export function ResponsiveDialog({ open, onOpenChange, title, description, child
     },
     onCloseAutoFocus: (event: Event) => {
       event.preventDefault();
-      if (openerRef.current?.isConnected) openerRef.current.focus();
+      const target = finalFocusRef?.current?.isConnected ? finalFocusRef.current : openerRef.current;
+      if (target?.isConnected) target.focus();
     },
   };
 
