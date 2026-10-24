@@ -2,7 +2,7 @@
 
 ## Overview
 
-The VRMS web app: a React 18 + Vite 8 + Tailwind 3 single page app on port 8001 where admins and mechanics manage repair tickets, users, audit logs, analytics and the AI knowledge base. It talks to the gateway on port 3000 (`/auth/*`, `/vrms/*`, `/analytics/*`, `/ai/*`) and usually receives its login token from the SSO portal.
+The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 where admins and mechanics manage repair tickets, users, audit logs, analytics and the AI knowledge base. It talks to the gateway on port 3000 (`/auth/*`, `/vrms/*`, `/analytics/*`, `/ai/*`) and usually receives its login token from the SSO portal.
 
 ## Key files
 
@@ -19,7 +19,7 @@ The VRMS web app: a React 18 + Vite 8 + Tailwind 3 single page app on port 8001 
 | `src/components/shared/GoToPageInput.tsx` | The "Go to page" box used by every paginated table |
 | `src/context/toast.ts`, `ToastContext.tsx` | `useToast()` hook and context, and the provider component |
 | `src/types/index.ts` | Shared types: `RepairTicket`, `RepairStatus`, `UserRole`, `ManagedUser` |
-| `src/index.css`, `tailwind.config.js` | Color tokens (CSS variables and `brand-*` Tailwind colors), about 200 custom classes |
+| `src/index.css` | Tailwind 4 entry (`@import 'tailwindcss'`), color tokens as CSS variables mapped in `@theme inline`, plus custom classes |
 | `src/features/analytics/` | Analytics page split into `hooks/`, `components/` (one per tab), `utils.ts`, `export.ts` (CSV and PDF) |
 
 ## Commands
@@ -43,7 +43,7 @@ There is no test runner yet.
 - Two roles: `ADMIN` and `MECHANIC`. Admin only routes are wrapped in `RequireRole role="ADMIN"`; mechanics also get UI level restrictions inside pages.
 - Repair updates send `lastUpdatedAt` for optimistic locking; the backend rejects stale writes. Keep sending it on any new update call.
 - List endpoints may return either an array or `{ data, total }`; the API wrappers normalize both to `{ data, total }`.
-- Colors: no hex values in components. Use the CSS variables in inline styles (`var(--primary)`, `--danger`, `--success`, `--warning`, `--muted`, `--border`, `--status-*`, `--chart-1..5`) and `brand-*` Tailwind classes in `className`. Tint with `color-mix(...)` (see `tint()` in `features/analytics/utils.ts`). Text on gold (`--accent`) is `--on-accent` (dark), text on navy is `--on-primary`.
+- Colors: no hex values in components. Use the CSS variables in inline styles (`var(--primary)`, `--danger`, `--success`, `--warning`, `--muted`, `--border`, `--status-*`, `--chart-1..5`) and the token utilities from `@theme inline` in `className` (`bg-primary`, `text-muted-foreground`, `bg-highlight`; Tailwind's default palette is off, so only tokens exist). `--danger`, `--warning`, `--on-accent` and `--on-primary` are older aliases that still work. Tint with `color-mix(...)` (see `tint()` in `features/analytics/utils.ts`). Gold is `--highlight`, and text on it is `--highlight-foreground` (dark). `--accent` is now a light slate, not gold. Text on navy is `--primary-foreground`.
 - The lint config includes the React Compiler rules. Don't call `setState` synchronously inside `useEffect`: fetch in the effect and set state in `.then` with a `cancelled` flag, reset pagination inside the filter `onChange`, and adjust state from changed props during render (see `CostEncodingPanel`).
 - Files that export components export only components (fast refresh). Put hooks, constants and helpers in their own `.ts` file.
 
@@ -61,7 +61,7 @@ There is no test runner yet.
 
 ## Agent skills
 
-- [vercel-react-best-practices](../.claude/skills/vercel-react-best-practices/), [vercel-composition-patterns](../.claude/skills/vercel-composition-patterns/): `vercel-labs/agent-skills`, React patterns. This app is on React 18, so skip the React 19 only APIs.
+- [vercel-react-best-practices](../.claude/skills/vercel-react-best-practices/), [vercel-composition-patterns](../.claude/skills/vercel-composition-patterns/): `vercel-labs/agent-skills`, React patterns. This app is on React 19, so the React 19 APIs apply.
 - [shadcn](../.claude/skills/shadcn/): `shadcn-ui/ui`, adding shadcn components (config in `components.json`)
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._
