@@ -11,7 +11,11 @@ import { UsersPage } from './features/user-management/pages/UsersPage';
 import { AuditLogsPage } from './features/audit-logs/pages/AuditLogsPage';
 import { ProfilePage } from './features/auth/pages/ProfilePage';
 import { AnalyticsPage } from './features/analytics/pages/AnalyticsPage';
-import { KnowledgeBasePage } from './features/knowledge-base/pages/KnowledgeBasePage';
+import { KnowledgeCategoriesPage } from './features/knowledge-base/pages/KnowledgeCategoriesPage';
+import { KnowledgeEditorPage } from './features/knowledge-base/pages/KnowledgeEditorPage';
+import { KnowledgeEntryPage } from './features/knowledge-base/pages/KnowledgeEntryPage';
+import { KnowledgeLibraryPage } from './features/knowledge-base/pages/KnowledgeLibraryPage';
+import { KnowledgeSuggestionsPage } from './features/knowledge-base/pages/KnowledgeSuggestionsPage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
 import type { User, UserRole } from './types';
@@ -20,6 +24,7 @@ import { Toaster } from './components/ui/sonner';
 import { ConfirmProvider } from './components/shared/confirm/ConfirmProvider';
 import { TooltipProvider } from './components/ui/tooltip';
 import SessionMonitor from './components/SessionMonitor';
+import { KNOWLEDGE_EDITOR_ROLES } from './lib/roles';
 
 // Development only: the condition is a build time constant, so production drops the import.
 const DevUiPage = import.meta.env.DEV
@@ -37,10 +42,11 @@ function RequireAuth({ children }: { children: ReactElement }) {
   return children;
 }
 
-function RequireRole({ role, children }: { role: UserRole; children: ReactElement }) {
+function RequireRole({ role, children }: { role: UserRole | UserRole[]; children: ReactElement }) {
   const user = useAuthStore((state) => state.user);
+  const allowed = Array.isArray(role) ? role : [role];
 
-  if (!user || user.role !== role) {
+  if (!user || !allowed.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -143,7 +149,40 @@ function App() {
               </RequireRole>
             }
           />
-          <Route path="knowledge-base" element={<KnowledgeBasePage />} />
+          <Route path="knowledge-base" element={<KnowledgeLibraryPage />} />
+          <Route path="knowledge-base/:entryId" element={<KnowledgeEntryPage />} />
+          <Route
+            path="knowledge-base/new"
+            element={
+              <RequireRole role={KNOWLEDGE_EDITOR_ROLES}>
+                <KnowledgeEditorPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="knowledge-base/:entryId/edit"
+            element={
+              <RequireRole role={KNOWLEDGE_EDITOR_ROLES}>
+                <KnowledgeEditorPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="knowledge-base/suggestions"
+            element={
+              <RequireRole role={KNOWLEDGE_EDITOR_ROLES}>
+                <KnowledgeSuggestionsPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="knowledge-base/categories"
+            element={
+              <RequireRole role={KNOWLEDGE_EDITOR_ROLES}>
+                <KnowledgeCategoriesPage />
+              </RequireRole>
+            }
+          />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

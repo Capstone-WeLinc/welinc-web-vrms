@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { DriverOption, GarageOption, VehicleOption } from '../../../../lib/api/vrmsConfigApi';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
 import { sameName, UNDER_REPAIR_WARNING, type RepairFormControl } from '../../lib/repairFormSchema';
-import { FieldRow, FieldSkeleton, FormSection, ListError } from './RepairFormParts';
+import { FieldRow, FormSection } from '../../../../components/shared/FormSection';
+import { FieldSkeleton, ListError } from './RepairFormParts';
 
 interface VehicleSectionProps {
   control: RepairFormControl;

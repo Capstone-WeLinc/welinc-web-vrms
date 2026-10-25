@@ -39,6 +39,13 @@ export function formatPesoExact(amount: number) {
   return `₱${pesoExactFormat.format(amount)}`;
 }
 
+const hoursFormat = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 2 });
+
+/** `2 h`, `1.5 h`, `0.25 h` (spec 0007). */
+export function formatHours(hours: number) {
+  return `${hoursFormat.format(hours)} h`;
+}
+
 /** `Oct 22, 2026` */
 export function formatShortDate(value: string | Date) {
   return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

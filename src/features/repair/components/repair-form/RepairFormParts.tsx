@@ -1,30 +1,6 @@
-import { useId, type ReactNode } from 'react';
 import { AlertCircle, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-
-/** One titled card of the repair form. */
-export function FormSection({ title, children }: { title: string; children: ReactNode }) {
-  const headingId = useId();
-  return (
-    <Card role="group" aria-labelledby={headingId} className="gap-5">
-      <CardHeader>
-        <CardTitle>
-          <h2 id={headingId} className="text-base font-semibold">
-            {title}
-          </h2>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">{children}</CardContent>
-    </Card>
-  );
-}
-
-/** Two short fields per row from 768px, one column on a phone (AC-2). */
-export function FieldRow({ children }: { children: ReactNode }) {
-  return <div className="grid gap-5 md:grid-cols-2 md:items-start">{children}</div>;
-}
 
 /** Stands in for a picker while its list loads the first time (AC-14). */
 export function FieldSkeleton({ label }: { label: string }) {

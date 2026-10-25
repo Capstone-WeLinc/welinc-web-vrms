@@ -1,16 +1,22 @@
 import { useId, useState, type ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
 import { FormAlert } from '../../../components/shared/FormAlert';
 import { ResponsiveDialog } from '../../../components/shared/ResponsiveDialog';
 import { getApiErrorMessage } from '../../../lib/api/errors';
-
-/** The server's limit on remarks, cancellation and unlock reasons. */
-const NOTE_MAX = 500;
+import type { IssueResolution, RepairIssue } from '../../../types';
+import {
+  NOTE_MAX,
+  noteFormSchema,
+  requiredNotesValid,
+  resolutionDefaults,
+  toResolutions,
+  type NoteFormValues,
+} from '../lib/resolutionForm';
+import { ResolutionFields } from './ResolutionFields';
 
 interface TicketNoteDialogProps {
   open: boolean;
@@ -25,11 +31,13 @@ interface TicketNoteDialogProps {
   destructive?: boolean;
   /** Warnings shown above the note field. */
   children?: ReactNode;
+  /** Send for verification: one "What fixed it" block per issue (spec 0007, AC-30). */
+  resolutionIssues?: RepairIssue[];
   /**
    * Sends the note. Resolve once the write is handled (the page closes the dialog itself);
    * throw to show the error inside the dialog with the typed note kept.
    */
-  onSubmit: (note: string) => Promise<void>;
+  onSubmit: (note: string, resolutions?: IssueResolution[]) => Promise<void>;
 }
 
 /** The confirm dialog behind every status move, cancel and unlock (spec 0004, AC-15 to AC-17). */
@@ -44,27 +52,28 @@ export function TicketNoteDialog({
   cancelLabel = 'Cancel',
   destructive = false,
   children,
+  resolutionIssues,
   onSubmit,
 }: TicketNoteDialogProps) {
   const formId = useId();
   const [formError, setFormError] = useState<string | null>(null);
-  const schema = z.object({
-    note: z
-      .string()
-      .max(NOTE_MAX, `Keep it to ${NOTE_MAX} characters or fewer.`)
-      .refine((note) => !requiredMessage || note.trim() !== '', requiredMessage ?? ''),
-  });
   const {
     control,
     handleSubmit,
     reset,
     formState: { isSubmitting },
-  } = useForm<{ note: string }>({ resolver: zodResolver(schema), defaultValues: { note: '' } });
+  } = useForm<NoteFormValues>({
+    resolver: zodResolver(noteFormSchema(requiredMessage)),
+    defaultValues: { note: '', resolutions: resolutionDefaults(resolutionIssues) },
+  });
+  const rows = useWatch({ control, name: 'resolutions' });
+  // AC-30: the submit waits until every required "What fixed it" is valid.
+  const blocked = !!resolutionIssues && !requiredNotesValid(rows);
 
-  const submit = async ({ note }: { note: string }) => {
+  const submit = async ({ note, resolutions }: NoteFormValues) => {
     setFormError(null);
     try {
-      await onSubmit(note);
+      await onSubmit(note, resolutionIssues ? toResolutions(resolutions) : undefined);
       reset();
     } catch (err) {
       setFormError(getApiErrorMessage(err, 'That didn’t save. Try again.'));
@@ -95,6 +104,7 @@ export function TicketNoteDialog({
             variant={destructive ? 'destructive' : 'default'}
             size="touch"
             className="md:h-10 md:text-sm"
+            disabled={blocked}
             loading={isSubmitting}
           >
             {confirmLabel}
@@ -104,6 +114,7 @@ export function TicketNoteDialog({
     >
       <form id={formId} noValidate onSubmit={handleSubmit(submit)} className="flex flex-col gap-4">
         {children}
+        {resolutionIssues && <ResolutionFields control={control} issues={resolutionIssues} />}
         <FormField
           control={control}
           name="note"

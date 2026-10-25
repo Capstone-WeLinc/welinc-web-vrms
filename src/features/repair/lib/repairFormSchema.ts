@@ -6,6 +6,8 @@ import type { CreateRepairPayload } from '../../../types';
 
 /** The Repair shop value for "Other"; no real shop is named this. */
 export const OTHER_SHOP = '__other__';
+/** The common issue picker's "Other (describe it yourself)" (spec 0007, AC-24). */
+export const OTHER_ISSUE = '__other_issue__';
 export const MAX_ISSUES = 10;
 export const DESCRIPTION_LIMIT = 500;
 /** The description counter turns red above this. */
@@ -38,7 +40,10 @@ function pickFromList(requiredMessage: string, list: string[] | null, staleMessa
 }
 
 const issueSchema = z.object({
-  vehicleSystem: z.string().min(1, 'Choose a system.'),
+  /** The picked common issue (spec 0007, AC-24); '' for none or Other. */
+  knowledgeEntryId: z.string(),
+  /** An active category id, shown as System. */
+  categoryId: z.string().min(1, 'Choose a system.'),
   rootCause: z.string().min(1, 'Choose a root cause.'),
   description: z
     .string()
@@ -124,7 +129,7 @@ export type RepairFormValues = z.output<RepairFormSchema>;
 export type RepairFormControl = Control<RepairFormInput, unknown, RepairFormValues>;
 
 export function emptyIssue(): RepairFormInput['issues'][number] {
-  return { vehicleSystem: '', rootCause: '', description: '' };
+  return { knowledgeEntryId: '', categoryId: '', rootCause: '', description: '' };
 }
 
 export const REPAIR_FORM_DEFAULTS: RepairFormInput = {
@@ -156,6 +161,11 @@ export function toCreatePayload(values: RepairFormValues): CreateRepairPayload {
     ),
     shopName: values.shopChoice === OTHER_SHOP ? values.otherShopName : values.shopChoice,
     priority: values.priority,
-    issues: values.issues.map(({ vehicleSystem, rootCause, description }) => ({ vehicleSystem, rootCause, description })),
+    issues: values.issues.map(({ knowledgeEntryId, categoryId, rootCause, description }) => ({
+      categoryId,
+      rootCause,
+      description,
+      ...(knowledgeEntryId && knowledgeEntryId !== OTHER_ISSUE ? { knowledgeEntryId } : {}),
+    })),
   };
 }

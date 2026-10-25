@@ -68,6 +68,8 @@ function Sentence({ event, showTicket }: { event: AuditEvent; showTicket: boolea
       return who ? withActor('unlocked') : <>{rep} was unlocked</>;
     case 'SHOP_CHANGE':
       return who ? withActor('moved', ' to a different garage') : <>{rep} was moved to a different garage</>;
+    case 'KNOWLEDGE_LINK':
+      return who ? withActor('changed a known fix on') : <>A known fix on {rep} was changed</>;
     default:
       return who ? (
         <>
@@ -109,6 +111,14 @@ function Detail({ event }: { event: AuditEvent }) {
   }
   if (event.type === 'UNLOCK' && event.unlockReason) {
     return <p className="text-sm text-muted-foreground">“{event.unlockReason}”</p>;
+  }
+  if (event.type === 'KNOWLEDGE_LINK' && event.knowledge) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {event.knowledge.to ? `Linked known fix: ${event.knowledge.to}` : 'Removed known fix'}
+        {event.knowledge.from && event.knowledge.to && ` (was ${event.knowledge.from})`}
+      </p>
+    );
   }
   if (event.type === 'SHOP_CHANGE' && event.garage) {
     return (

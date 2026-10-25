@@ -16,7 +16,7 @@ import { IssueLoggingSection } from '../components/repair-form/IssueLoggingSecti
 import { RepairFormActions } from '../components/repair-form/RepairFormActions';
 import { RepairSummaryDialog } from '../components/repair-form/RepairSummaryDialog';
 import { VehicleSection } from '../components/repair-form/VehicleSection';
-import { useLeaveGuard } from '../hooks/useLeaveGuard';
+import { useLeaveGuard } from '../../../hooks/useLeaveGuard';
 import { blocksSubmit, useRepairFormOptions } from '../hooks/useRepairFormOptions';
 import {
   buildRepairFormSchema,
@@ -47,6 +47,7 @@ export function RepairFormPage() {
     control,
     handleSubmit,
     setValue,
+    getValues,
     setError,
     clearErrors,
     trigger,
@@ -139,7 +140,8 @@ export function RepairFormPage() {
   };
 
   const chosenVehicle = options.vehicles.data?.find((v) => v.plateNumber === summaryValues?.vehiclePlate);
-  const listsBlocked = blocksSubmit(options.vehicles) || blocksSubmit(options.garages);
+  const categoryNames = Object.fromEntries((options.categories.data ?? []).map((c) => [c.id, c.name]));
+  const listsBlocked = blocksSubmit(options.vehicles) || blocksSubmit(options.garages) || blocksSubmit(options.categories);
   const reporter = user?.name?.trim() || user?.email || '';
 
   return (
@@ -164,7 +166,13 @@ export function RepairFormPage() {
             drivers={options.drivers}
             garages={options.garages}
           />
-          <IssueLoggingSection control={control} />
+          <IssueLoggingSection
+            control={control}
+            categories={options.categories}
+            entries={options.entries}
+            setValue={setValue}
+            getValues={getValues}
+          />
         </div>
         <div className="flex min-w-0 flex-col gap-4">
           <AssignmentSection
@@ -196,6 +204,7 @@ export function RepairFormPage() {
         open={summaryOpen}
         values={summaryValues}
         vehicle={chosenVehicle}
+        categoryNames={categoryNames}
         saving={saving}
         finalFocusRef={alertRef}
         onCancel={closeSummary}

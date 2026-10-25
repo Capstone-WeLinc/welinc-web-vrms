@@ -35,6 +35,7 @@ interface UserFormDialogProps {
 
 const ROLE_OPTIONS = [
   { value: 'ADMIN', label: 'Admin' },
+  { value: 'CHIEF_MECHANIC', label: 'Chief mechanic' },
   { value: 'MECHANIC', label: 'Mechanic' },
 ] as const;
 

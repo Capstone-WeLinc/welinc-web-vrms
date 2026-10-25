@@ -2,7 +2,7 @@
 
 ## Overview
 
-The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 where admins and mechanics manage repair tickets, users, audit logs, analytics and the AI knowledge base. It talks to the gateway on port 3000 (`/auth/*`, `/vrms/*`, `/analytics/*`, `/ai/*`) and usually receives its login token from the SSO portal.
+The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 where admins and mechanics manage repair tickets, users, audit logs, analytics and the knowledge base. It talks to the gateway on port 3000 (`/auth/*`, `/vrms/*`, `/analytics/*`, `/ai/*`) and usually receives its login token from the SSO portal.
 
 ## Key files
 
@@ -10,13 +10,15 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 
 |---|---|
 | `src/App.tsx` | All routes, the `RequireAuth` and `RequireRole` guards, user sync on mount, cross tab reload on token change |
 | `src/lib/api/axios.ts` | The one axios instance: base URL, `Bearer` token from `localStorage`, 401 logout and redirect |
-| `src/lib/api/*Api.ts` | Typed wrappers per backend area: `authApi`, `repairApi`, `vrmsConfigApi`, `analyticsApi`, `aiApi` |
+| `src/lib/api/*Api.ts` | Typed wrappers per backend area: `authApi`, `repairApi`, `vrmsConfigApi`, `analyticsApi`, `aiApi`, `knowledgeApi` |
 | `src/lib/api/errors.ts` | `getApiErrorMessage(err, fallback)` and `getApiErrorStatus(err)` for `catch` blocks |
 | `src/store/authStore.ts` | Zustand auth store (token, user, login, logout), persisted |
 | `src/features/auth/pages/LoginPage.tsx` | SSO handoff (`?token=` from the portal) and the standalone login form |
 | `src/components/SessionMonitor.tsx` | 15 minute inactivity logout with a warning modal |
 | `src/components/layout/` | `DashboardShell`, `Sidebar`, `Topbar` (theme toggle), `PageHeader` |
-| `src/components/shared/GoToPageInput.tsx` | The "Go to page" box used by every paginated table |
+| `src/components/shared/`, `src/hooks/` | Widgets used by more than one feature (`GoToPageInput` for every paginated table, `Callout`, `DetailSection`, `FormSection`, `BackLink`, badges) and shared hooks (`useLeaveGuard` for unsaved forms) |
+| `src/lib/roles.ts` | `isMechanicRole` (mechanic or chief mechanic) and `isKnowledgeEditor` (admin or chief mechanic) |
+| `src/features/knowledge-base/` | Knowledge base library, entry, editor, suggestions and categories pages, backed by `/vrms/knowledge` (spec 0007) |
 | `src/context/toast.ts`, `ToastContext.tsx` | `useToast()` hook and context, and the provider component |
 | `src/types/index.ts` | Shared types: `RepairTicket`, `RepairStatus`, `UserRole`, `ManagedUser` |
 | `src/index.css` | Tailwind 4 entry (`@import 'tailwindcss'`), color tokens as CSS variables mapped in `@theme inline`, plus custom classes |
@@ -40,7 +42,7 @@ There is no test runner yet.
 - Every backend call goes through the axios instance (via a wrapper in `src/lib/api/`), so it carries the token and the 401 handling. Don't use raw `fetch`.
 - In `catch` blocks, leave the error untyped and read it with `getApiErrorMessage`; no `err: any`.
 - Pages are named exports (`export function RepairListPage`). Imports mostly use relative paths; the `@` alias for `src` also works.
-- Two roles: `ADMIN` and `MECHANIC`. Admin only routes are wrapped in `RequireRole role="ADMIN"`; mechanics also get UI level restrictions inside pages.
+- Three roles: `ADMIN`, `CHIEF_MECHANIC` and `MECHANIC`. Admin only routes are wrapped in `RequireRole role="ADMIN"` (it also takes an array, like `['ADMIN', 'CHIEF_MECHANIC']` for knowledge base editing); mechanics also get UI level restrictions inside pages. A chief mechanic gets the mechanic rules on tickets, so check with `isMechanicRole`, never `role === 'MECHANIC'`.
 - Repair updates send `lastUpdatedAt` for optimistic locking; the backend rejects stale writes. Keep sending it on any new update call.
 - List endpoints may return either an array or `{ data, total }`; the API wrappers normalize both to `{ data, total }`.
 - Colors: no hex values in components. Use the CSS variables in inline styles (`var(--primary)`, `--danger`, `--success`, `--warning`, `--muted`, `--border`, `--status-*`, `--chart-1..5`) and the token utilities from `@theme inline` in `className` (`bg-primary`, `text-muted-foreground`, `bg-highlight`; Tailwind's default palette is off, so only tokens exist). `--danger`, `--warning`, `--on-accent` and `--on-primary` are older aliases that still work. Tint with `color-mix(...)` (see `tint()` in `features/analytics/utils.ts`). Gold is `--highlight`, and text on it is `--highlight-foreground` (dark). `--accent` is now a light slate, not gold. Text on navy is `--primary-foreground`.
@@ -54,8 +56,7 @@ There is no test runner yet.
 - The analytics page shows hardcoded sample data when the service returns nothing (`SAMPLE_*` in `useAnalyticsData.ts`, and fallback AI numbers in `getAiFeedbackStats`). On screen it looks like real data.
 - The analytics and AI service (`/analytics/*`, `/ai/*`) does not check the JWT, so the token this app sends there is ignored.
 - `src/lib/repairOptions.ts` holds the fixed dropdown lists for the repair form and the locally remembered driver names (`welinc_driver_names` in `localStorage`).
-- `components.json` is set up for shadcn, but no shadcn components are installed yet; `components/ui/Button.tsx` is hand written and styled by the `.button` class in `index.css`.
-- `KnowledgeBasePage.tsx` is still one file of about 1400 lines; a full rewrite is planned. Its articles live in `localStorage` (`welinc_kb_articles`) and only sync from the AI service on demand.
+- shadcn components live in `src/components/ui/` (config in `components.json`). Check there before hand rolling a dialog, select, combobox or table.
 - For quick session timeout tests, set `window.__WELINC_INACTIVITY_LIMIT__ = 30` (seconds) in the browser console.
 - Seed logins for local testing are in `welinc-auth/prisma/seeds/users.seed.ts` (for example `vrms.admin@welinc.com`). In portal mode, open `/login?token=<jwt>` to skip the portal.
 

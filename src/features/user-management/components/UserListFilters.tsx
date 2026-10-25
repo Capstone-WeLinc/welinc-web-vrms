@@ -16,7 +16,7 @@ interface UserListFiltersProps {
 }
 
 const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
-const ROLE_LABELS = { ADMIN: 'Admin', MECHANIC: 'Mechanic' } as const;
+const ROLE_LABELS = { ADMIN: 'Admin', CHIEF_MECHANIC: 'Chief mechanic', MECHANIC: 'Mechanic' } as const;
 
 export function UserListFilters({ value, searchText, onSearchTextChange, onChange, onClear }: UserListFiltersProps) {
   const filtered = hasActiveFilters(value) || searchText.trim() !== '';

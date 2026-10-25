@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ACCOUNT_TYPE_OPTIONS, getRepairFormOptions } from '../../../../lib/repairOptions';
 import type { RepairFormControl, RepairFormInput } from '../../lib/repairFormSchema';
-import { FormSection } from './RepairFormParts';
+import { FormSection } from '../../../../components/shared/FormSection';
 
 interface BillingSectionProps {
   control: RepairFormControl;

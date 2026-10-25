@@ -26,6 +26,8 @@ type ComboboxOption = {
   badge?: React.ReactNode
   /** Extra search terms; the label always matches. */
   keywords?: string[]
+  /** A heading to list the option under; options keep their order inside each group. */
+  group?: string
 }
 
 type ComboboxProps = Omit<
@@ -45,9 +47,22 @@ type ComboboxProps = Omit<
   createLabel?: (text: string) => string
   /** Extra check before the Add row shows, for matches the options don't hold. */
   canCreate?: (text: string) => boolean
+  /** Always the last row, whatever is typed, such as "Other (describe it yourself)". */
+  pinnedOption?: ComboboxOption
 }
 
 const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
+
+/** Groups in order of first appearance; options without a group form one unlabelled group. */
+function groupOptions(options: ComboboxOption[]) {
+  const groups: { heading?: string; options: ComboboxOption[] }[] = []
+  for (const option of options) {
+    const existing = groups.find((g) => g.heading === option.group)
+    if (existing) existing.options.push(option)
+    else groups.push({ heading: option.group, options: [option] })
+  }
+  return groups
+}
 
 // Stray spaces around the typed text still find the option, matching how the Add row compares.
 const trimmedFilter: typeof defaultFilter = (value, search, keywords) =>
@@ -66,11 +81,12 @@ function Combobox({
   onCreate,
   createLabel = (text) => `Add "${text}"`,
   canCreate,
+  pinnedOption,
   ...props
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
-  const selected = options.find((option) => option.value === value)
+  const selected = [...options, ...(pinnedOption ? [pinnedOption] : [])].find((option) => option.value === value)
   // A value from the Add row is not in the options, so show it as typed.
   const display = selected ? selected.label : value
 
@@ -80,6 +96,35 @@ function Combobox({
     typed.length > 0 &&
     !options.some((option) => sameText(option.label, typed)) &&
     (canCreate?.(typed) ?? true)
+
+  const renderItem = (option: ComboboxOption, forceMount?: boolean) => (
+                <CommandItem
+                  key={option.value}
+                  value={option.label}
+                  keywords={option.keywords}
+                  forceMount={forceMount}
+                  onSelect={() => {
+                    onValueChange(option.value)
+                    setOpen(false)
+                    setSearch("")
+                  }}
+                >
+                  <span className="flex min-w-0 flex-1 items-baseline gap-2">
+                    <span className="truncate">{option.label}</span>
+                    {option.description && (
+                      <span className="truncate text-xs text-muted-foreground">{option.description}</span>
+                    )}
+                  </span>
+                  {option.badge}
+                  <CheckIcon
+                    aria-hidden="true"
+                    className={cn(
+                      "shrink-0",
+                      option.value === value ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                </CommandItem>
+  )
 
   return (
     <Popover
@@ -122,35 +167,15 @@ function Combobox({
           />
           <CommandList>
             {!showCreate && <CommandEmpty>{emptyText}</CommandEmpty>}
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.label}
-                  keywords={option.keywords}
-                  onSelect={() => {
-                    onValueChange(option.value)
-                    setOpen(false)
-                    setSearch("")
-                  }}
-                >
-                  <span className="flex min-w-0 flex-1 items-baseline gap-2">
-                    <span className="truncate">{option.label}</span>
-                    {option.description && (
-                      <span className="truncate text-xs text-muted-foreground">{option.description}</span>
-                    )}
-                  </span>
-                  {option.badge}
-                  <CheckIcon
-                    aria-hidden="true"
-                    className={cn(
-                      "shrink-0",
-                      option.value === value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {groupOptions(options).map((group) => (
+              <CommandGroup key={group.heading ?? ""} heading={group.heading}>
+                {group.options.map((option) => renderItem(option))}
+              </CommandGroup>
+            ))}
+            {pinnedOption && (
+              // forceMount keeps it shown whatever is typed (cmdk hides groups and items that match nothing).
+              <CommandGroup forceMount>{renderItem(pinnedOption, true)}</CommandGroup>
+            )}
             {showCreate && (
               // cmdk hides a group, and an item, that matches nothing; forceMount on both keeps the Add row shown.
               <CommandGroup forceMount>
