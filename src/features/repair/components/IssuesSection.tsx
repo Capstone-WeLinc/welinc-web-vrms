@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Clock, Unlink } from 'lucide-react';
+import { BookOpen, Clock, MessageSquarePlus, Unlink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,6 +18,7 @@ import { checkIssueStep, linkIssueKnowledge } from '../../../lib/api/repairApi';
 import { formatDateTime, formatHours } from '../../../lib/utils/format';
 import type { RepairIssue, RepairIssueStep, RepairTicket } from '../../../types';
 import { useEntryOptions } from '../hooks/useEntryOptions';
+import { SuggestDialog } from '../../knowledge-base/components/SuggestDialog';
 
 interface IssuesSectionProps {
   ticket: RepairTicket;
@@ -88,6 +89,7 @@ function IssueBlock({ ticket, issue, index, canLink, canTick, entries, onChanged
   const [overrides, setOverrides] = useState<Record<string, Pick<RepairIssueStep, 'checkedAt' | 'checkedByEmail'>>>({});
   const [changing, setChanging] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const entry = issue.knowledgeEntry;
   const steps = issue.steps.map((s) => ({ ...s, ...overrides[s.id] }));
   const done = steps.filter((s) => s.checkedAt != null).length;
@@ -257,7 +259,21 @@ function IssueBlock({ ticket, issue, index, canLink, canTick, entries, onChanged
           )}
         </section>
       ) : (
-        canLink && picker
+        <div className="flex flex-col gap-2">
+          {canLink && picker}
+          {/* Any reader can propose a library entry from a problem with no known fix (AC-35). */}
+          <Button type="button" variant="link" size="sm" className="h-auto min-h-11 self-start px-0 md:min-h-0" onClick={() => setSuggesting(true)}>
+            <MessageSquarePlus aria-hidden="true" />
+            Suggest an entry
+          </Button>
+          <SuggestDialog
+            open={suggesting}
+            onOpenChange={setSuggesting}
+            kind="NEW_ENTRY"
+            repairIssueId={issue.id}
+            initialBody={issue.description.replace(/^\[[^\]]*\]\s*/, '')}
+          />
+        </div>
       )}
 
       {issue.resolvedAt && (

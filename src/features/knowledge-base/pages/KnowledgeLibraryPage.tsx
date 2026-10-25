@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BookOpen, Plus, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { EntryResults, EntryResultsSkeleton } from '../components/EntryResults';
 import { KnowledgeHeader } from '../components/KnowledgeHeader';
 import { LibrarySearchBand } from '../components/LibrarySearchBand';
+import { SuggestDialog } from '../components/SuggestDialog';
 import { useCategories, useEntryList } from '../hooks/useKnowledgeData';
 import { useLibraryFilters } from '../hooks/useLibraryFilters';
 import { LIBRARY_PAGE_SIZE, libraryParams } from '../lib/libraryFilters';
@@ -26,6 +27,7 @@ export function KnowledgeLibraryPage() {
   const { filters, page, searchText, setSearchText, clearSearch, setFilters, setPage, clearFilters } = useLibraryFilters(isEditor);
   const list = useEntryList(libraryParams(filters, page));
   const categories = useCategories();
+  const [suggesting, setSuggesting] = useState(false);
 
   useEffect(() => {
     try {
@@ -91,9 +93,12 @@ export function KnowledgeLibraryPage() {
           title="No entries match your search."
           description="Try other words, or clear the filters to see every entry."
           action={
-            <Button variant="outline" onClick={clearFilters}>
-              Clear filters
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button variant="outline" onClick={clearFilters}>
+                Clear filters
+              </Button>
+              {!isEditor && <Button onClick={() => setSuggesting(true)}>Suggest an entry</Button>}
+            </div>
           }
         />
       </div>
@@ -125,6 +130,9 @@ export function KnowledgeLibraryPage() {
         onChange={setFilters}
       />
       {body}
+      {!isEditor && (
+        <SuggestDialog open={suggesting} onOpenChange={setSuggesting} kind="NEW_ENTRY" initialBody={filters.q} />
+      )}
     </div>
   );
 }

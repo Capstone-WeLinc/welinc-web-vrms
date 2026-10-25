@@ -15,6 +15,7 @@ import { KnowledgeCategoriesPage } from './features/knowledge-base/pages/Knowled
 import { KnowledgeEditorPage } from './features/knowledge-base/pages/KnowledgeEditorPage';
 import { KnowledgeEntryPage } from './features/knowledge-base/pages/KnowledgeEntryPage';
 import { KnowledgeLibraryPage } from './features/knowledge-base/pages/KnowledgeLibraryPage';
+import { KnowledgeSuggestionsPage } from './features/knowledge-base/pages/KnowledgeSuggestionsPage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
 import type { User, UserRole } from './types';
@@ -163,6 +164,14 @@ function App() {
             element={
               <RequireRole role={KNOWLEDGE_EDITOR_ROLES}>
                 <KnowledgeEditorPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="knowledge-base/suggestions"
+            element={
+              <RequireRole role={KNOWLEDGE_EDITOR_ROLES}>
+                <KnowledgeSuggestionsPage />
               </RequireRole>
             }
           />

@@ -3,13 +3,17 @@ import { NavLink } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { getSuggestionCount } from '../../../lib/api/knowledgeApi';
+import { useLoad } from '../hooks/useLoad';
 
 interface KnowledgeHeaderProps {
   isEditor: boolean;
-  /** Open mechanic suggestions, for the Suggestions tab badge (AC-36). */
+  /** Open mechanic suggestions for the tab badge (AC-36). Left out, the header fetches it for editors. */
   suggestionCount?: number;
   action?: ReactNode;
 }
+
+const fetchCount = () => getSuggestionCount();
 
 const TABS = [
   { to: '/knowledge-base', label: 'Library', end: true },
@@ -18,7 +22,10 @@ const TABS = [
 ];
 
 /** The knowledge base header, plus route tabs for editors (spec 0007, AC-6). */
-export function KnowledgeHeader({ isEditor, suggestionCount = 0, action }: KnowledgeHeaderProps) {
+export function KnowledgeHeader({ isEditor, suggestionCount, action }: KnowledgeHeaderProps) {
+  // A failed count just shows no badge.
+  const fetched = useLoad(isEditor && suggestionCount === undefined ? 'count' : null, fetchCount, '');
+  const count = suggestionCount ?? fetched.data ?? 0;
   return (
     <>
       <PageHeader title="Knowledge base" subtitle="Known fixes from your own repairs." icon={BookOpen} action={action} />
@@ -40,10 +47,10 @@ export function KnowledgeHeader({ isEditor, suggestionCount = 0, action }: Knowl
                   }
                 >
                   {tab.label}
-                  {tab.label === 'Suggestions' && suggestionCount > 0 && (
+                  {tab.label === 'Suggestions' && count > 0 && (
                     <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-highlight px-1.5 text-xs font-semibold text-highlight-foreground tabular-nums">
                       <span className="sr-only">, </span>
-                      {suggestionCount}
+                      {count}
                       <span className="sr-only"> open</span>
                     </span>
                   )}

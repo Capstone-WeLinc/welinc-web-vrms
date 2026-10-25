@@ -149,7 +149,10 @@ export interface EntryChange {
   createdAt: string;
 }
 
-export async function createEntry(fields: EntryFields & { status: 'DRAFT' | 'ACTIVE' }) {
+/** linkIssueIds and suggestionId come from Suggestions (AC-33, AC-35). */
+export async function createEntry(
+  fields: EntryFields & { status: 'DRAFT' | 'ACTIVE'; linkIssueIds?: string[]; suggestionId?: string },
+) {
   const response = await api.post<{ entry: KnowledgeEntryDetail; linked: number; skipped: number }>(
     '/vrms/knowledge/entries',
     fields,
@@ -184,4 +187,62 @@ export async function updateCategory(
 ) {
   const response = await api.patch<IssueCategory>(`/vrms/knowledge/categories/${id}`, { ...patch, lastUpdatedAt });
   return response.data;
+}
+
+// ── Suggestions (AC-32 to AC-36) ──────────────────────────────────────────
+
+export interface SuggestionGroup {
+  issueIds: string[];
+  size: number;
+  /** Set when every issue in the group shares one category. */
+  categoryId: string | null;
+  categoryName: string | null;
+  /** Newest first. */
+  issues: { issueId: string; ticketId: string; repairNumber: string; description: string; resolutionNote: string | null; createdAt: string }[];
+}
+
+export type SuggestionKind = 'CHANGE' | 'NEW_ENTRY';
+
+export interface MechanicSuggestion {
+  id: string;
+  kind: SuggestionKind;
+  body: string;
+  createdByEmail: string;
+  createdAt: string;
+  /** The entry a CHANGE is about. */
+  entry: { id: string; name: string } | null;
+  /** The ticket issue it was suggested from. */
+  source: { issueId: string; description: string; ticketId: string; repairNumber: string } | null;
+}
+
+export interface SuggestionsResponse {
+  groups: SuggestionGroup[];
+  suggestions: MechanicSuggestion[];
+  openCount: number;
+}
+
+export async function getSuggestions(): Promise<SuggestionsResponse> {
+  const response = await api.get<SuggestionsResponse>('/vrms/knowledge/suggestions');
+  return response.data;
+}
+
+/** Open mechanic suggestions only, for the tab badge (AC-36). */
+export async function getSuggestionCount(): Promise<number> {
+  const response = await api.get<{ openCount: number }>('/vrms/knowledge/suggestions/count');
+  return response.data.openCount;
+}
+
+export async function createSuggestion(input: { kind: SuggestionKind; body: string; entryId?: string; repairIssueId?: string }) {
+  const response = await api.post<{ id: string }>('/vrms/knowledge/suggestions', input);
+  return response.data;
+}
+
+export async function resolveSuggestion(id: string, status: 'ACCEPTED' | 'DISMISSED') {
+  const response = await api.patch<{ id: string }>(`/vrms/knowledge/suggestions/${id}`, { status });
+  return response.data;
+}
+
+export async function dismissGroup(issueIds: string[]): Promise<number> {
+  const response = await api.post<{ dismissed: number }>('/vrms/knowledge/suggestions/dismiss-group', { issueIds });
+  return response.data.dismissed;
 }

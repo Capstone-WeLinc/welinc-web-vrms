@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { BookOpen, SearchX, TriangleAlert } from 'lucide-react';
+import { BookOpen, MessageSquarePlus, SearchX, TriangleAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -15,6 +16,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { EntryActions } from '../components/EntryActions';
 import { EntryDetailSkeleton } from '../components/EntryDetailSkeleton';
 import { FromYourRepairsCard, RecentTicketsCard, RepeatVehiclesCard } from '../components/EntryHistoryCards';
+import { SuggestDialog } from '../components/SuggestDialog';
 import { useEntry } from '../hooks/useKnowledgeData';
 
 /** The library passes its own URL as `state.from`, so Back returns to the same search (AC-12). */
@@ -95,6 +97,7 @@ export function KnowledgeEntryPage() {
   const isEditor = useAuthStore((state) => isKnowledgeEditor(state.user?.role));
   const entry = useEntry(entryId);
   const back = backTo((location.state as { from?: unknown } | null)?.from);
+  const [suggesting, setSuggesting] = useState(false);
 
   if (entry.state === 'loading') return <EntryDetailSkeleton />;
 
@@ -131,7 +134,16 @@ export function KnowledgeEntryPage() {
       <PageHeader
         title={data.name}
         icon={BookOpen}
-        action={isEditor ? <EntryActions entry={data} onChanged={entry.replace} onStale={entry.retry} /> : undefined}
+        action={
+          isEditor ? (
+            <EntryActions entry={data} onChanged={entry.replace} onStale={entry.retry} />
+          ) : (
+            <Button variant="outline" size="touch" className="md:h-10 md:text-sm" onClick={() => setSuggesting(true)}>
+              <MessageSquarePlus aria-hidden="true" />
+              Suggest a change
+            </Button>
+          )
+        }
       />
       <div className="-mt-2 mb-6 flex flex-wrap items-center gap-2">
         <Badge variant="outline">{data.category.name}</Badge>
@@ -141,6 +153,7 @@ export function KnowledgeEntryPage() {
         {data.status !== 'ACTIVE' && <StatusBadge status={data.status} />}
       </div>
       <EntryBody entry={data} isEditor={isEditor} />
+      {!isEditor && <SuggestDialog open={suggesting} onOpenChange={setSuggesting} kind="CHANGE" entryId={data.id} />}
     </div>
   );
 }

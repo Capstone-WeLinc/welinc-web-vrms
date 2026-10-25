@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { BookOpen, RotateCw, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { BackLink } from '../../../components/shared/BackLink';
+import { Callout } from '../../../components/shared/Callout';
 import { confirm } from '../../../components/shared/confirm/confirm';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
@@ -17,10 +18,11 @@ import { getApiErrorMessage, getConflictCode } from '../../../lib/api/errors';
 import { createEntry, updateEntry, type IssueCategory, type KnowledgeEntryDetail } from '../../../lib/api/knowledgeApi';
 import { EditorActions } from '../components/EditorActions';
 import { EntryDetailSkeleton } from '../components/EntryDetailSkeleton';
+import { LinkIssuesSection } from '../components/LinkIssuesSection';
 import { BasicsSection, LooksLikeSection, PartsSection, SafetySection, StepsSection } from '../components/EntryFormSections';
 import { useCategories, useEntry } from '../hooks/useKnowledgeData';
+import { FROM_SUGGESTIONS, originDefaults, readOrigin, type EditorOrigin } from '../lib/editorOrigin';
 import {
-  EMPTY_ENTRY_FORM,
   entryFormSchema,
   entryToForm,
   toEntryFields,
@@ -39,9 +41,13 @@ interface EntryEditorProps {
   categories: IssueCategory[];
   /** Refetches the entry; the editor remounts on the fresh copy (AC-20). */
   onReload: () => void;
+  /** A new entry started from a suggestion group or a mechanic's suggestion (AC-33, AC-35). */
+  origin: EditorOrigin | null;
+  /** Opened from Suggestions, but the group is gone (a reload). */
+  originLost: boolean;
 }
 
-function EntryEditor({ entry, categories, onReload }: EntryEditorProps) {
+function EntryEditor({ entry, categories, onReload, origin, originLost }: EntryEditorProps) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const isNew = entry === null;
@@ -54,11 +60,13 @@ function EntryEditor({ entry, categories, onReload }: EntryEditorProps) {
     formState: { isDirty },
   } = useForm<EntryFormInput, unknown, EntryFormValues>({
     resolver,
-    defaultValues: entry ? entryToForm(entry) : EMPTY_ENTRY_FORM,
+    defaultValues: entry ? entryToForm(entry) : originDefaults(origin, categories),
     mode: 'onTouched',
   });
 
   const [saving, setSaving] = useState<Intent | null>(null);
+  const group = origin?.kind === 'group' ? origin : null;
+  const [linkIds, setLinkIds] = useState(() => new Set(group?.issueIds ?? []));
   const [stale, setStale] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const savingRef = useRef(false);
@@ -88,11 +96,27 @@ function EntryEditor({ entry, categories, onReload }: EntryEditorProps) {
       setStale(false);
       try {
         const fields = toEntryFields(values);
-        const saved = entry
-          ? await updateEntry(entry.id, fields, entry.updatedAt)
-          : (await createEntry({ ...fields, status: intent === 'ACTIVE' ? 'ACTIVE' : 'DRAFT' })).entry;
+        let saved;
+        let message = intent === 'ACTIVE' ? 'Entry published' : 'Entry saved';
+        if (entry) {
+          saved = await updateEntry(entry.id, fields, entry.updatedAt);
+        } else {
+          const result = await createEntry({
+            ...fields,
+            status: intent === 'ACTIVE' ? 'ACTIVE' : 'DRAFT',
+            ...(group ? { linkIssueIds: [...linkIds] } : {}),
+            ...(origin?.kind === 'suggestion' ? { suggestionId: origin.suggestionId } : {}),
+          });
+          saved = result.entry;
+          // AC-33: "Linked 11 of 12 issues. 1 was skipped."
+          if (group && linkIds.size > 0) {
+            const total = result.linked + result.skipped;
+            message = `${message}. Linked ${result.linked} of ${total} ${total === 1 ? 'issue' : 'issues'}.`;
+            if (result.skipped > 0) message += ` ${result.skipped} ${result.skipped === 1 ? 'was' : 'were'} skipped.`;
+          }
+        }
         submittedRef.current = true;
-        showToast(intent === 'ACTIVE' ? 'Entry published' : 'Entry saved', 'success');
+        showToast(message, 'success');
         navigate(`/knowledge-base/${saved.id}`, { replace: true });
       } catch (err) {
         savingRef.current = false;
@@ -133,6 +157,12 @@ function EntryEditor({ entry, categories, onReload }: EntryEditorProps) {
         icon={BookOpen}
       />
 
+      {originLost && (
+        <Callout tone="info" className="mb-4">
+          The suggestion group was lost. Open it again from Suggestions to link its issues.
+        </Callout>
+      )}
+
       <form
         noValidate
         aria-label={isNew ? 'New knowledge entry' : 'Edit knowledge entry'}
@@ -148,6 +178,20 @@ function EntryEditor({ entry, categories, onReload }: EntryEditorProps) {
           <StepsSection control={control} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">
+          {group && (
+            <LinkIssuesSection
+              issues={group.issues}
+              checked={linkIds}
+              onToggle={(issueId, on) =>
+                setLinkIds((ids) => {
+                  const next = new Set(ids);
+                  if (on) next.add(issueId);
+                  else next.delete(issueId);
+                  return next;
+                })
+              }
+            />
+          )}
           <SafetySection control={control} />
           <PartsSection control={control} />
         </div>
@@ -190,9 +234,20 @@ function pickerCategories(active: IssueCategory[], entry: KnowledgeEntryDetail |
 /** /knowledge-base/new and /knowledge-base/:entryId/edit (spec 0007, AC-17 to AC-21). */
 export function KnowledgeEditorPage() {
   const { entryId } = useParams<{ entryId: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const categories = useCategories();
   const entry = useEntry(entryId ?? null);
   const isNew = !entryId;
+
+  // Kept in memory and stripped from history, so a reload can't link a stale group (AC-33).
+  const [origin] = useState(() => (isNew ? readOrigin(location.state) : null));
+  const hasState = location.state != null;
+  useEffect(() => {
+    if (origin && hasState) navigate({ search: `?from=${FROM_SUGGESTIONS}` }, { replace: true, state: null });
+  }, [origin, hasState, navigate]);
+  const originLost = isNew && !origin && searchParams.get('from') === FROM_SUGGESTIONS;
 
   const failed = categories.state === 'error' || (!isNew && entry.state === 'error');
   if (failed) {
@@ -237,6 +292,8 @@ export function KnowledgeEditorPage() {
       entry={loaded}
       categories={pickerCategories(categories.data ?? [], loaded)}
       onReload={entry.retry}
+      origin={origin}
+      originLost={originLost}
     />
   );
 }
