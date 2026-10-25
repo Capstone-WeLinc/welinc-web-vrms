@@ -13,7 +13,7 @@ import {
   MAX_ISSUES,
   type RepairFormControl,
 } from '../../lib/repairFormSchema';
-import { FieldRow, FormSection } from './RepairFormParts';
+import { FieldRow, FormSection } from '../../../../components/shared/FormSection';
 
 type SelectRenderProps = {
   field: Pick<ControllerRenderProps, 'name' | 'value' | 'onChange' | 'onBlur' | 'ref'>;

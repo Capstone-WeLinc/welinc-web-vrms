@@ -7,7 +7,7 @@ import { AuditEventItem } from '../../audit-logs/components/AuditEventItem';
 import { getAuditEvents } from '../../../lib/api/auditApi';
 import { dayKey, formatDayHeading } from '../../../lib/utils/format';
 import type { AuditEvent } from '../../../types';
-import { DetailSection } from './DetailSection';
+import { DetailSection } from '../../../components/shared/DetailSection';
 
 const PAGE_SIZE = 50;
 

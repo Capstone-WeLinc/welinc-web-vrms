@@ -2,7 +2,7 @@ import { BadgePill } from './BadgePill';
 import { statusLabel } from './statusLabels';
 
 interface StatusBadgeProps {
-  /** A RepairStatus, or a user account status (ACTIVE, INACTIVE, LOCKED, SETUP_PENDING). */
+  /** A RepairStatus, a user account status (ACTIVE, INACTIVE, LOCKED, SETUP_PENDING), or a knowledge entry status (DRAFT). */
   status: string;
 }
 
@@ -13,6 +13,7 @@ const COMPLETED = 'bg-status-completed-bg text-status-completed-fg';
 const STATUS_CLASSES: Record<string, string> = {
   PENDING,
   SETUP_PENDING: PENDING,
+  DRAFT: PENDING,
   IN_PROGRESS: 'bg-status-in-progress-bg text-status-in-progress-fg',
   FOR_VERIFICATION: 'bg-status-for-verification-bg text-status-for-verification-fg',
   COMPLETED,

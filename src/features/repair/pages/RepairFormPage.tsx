@@ -16,7 +16,7 @@ import { IssueLoggingSection } from '../components/repair-form/IssueLoggingSecti
 import { RepairFormActions } from '../components/repair-form/RepairFormActions';
 import { RepairSummaryDialog } from '../components/repair-form/RepairSummaryDialog';
 import { VehicleSection } from '../components/repair-form/VehicleSection';
-import { useLeaveGuard } from '../hooks/useLeaveGuard';
+import { useLeaveGuard } from '../../../hooks/useLeaveGuard';
 import { blocksSubmit, useRepairFormOptions } from '../hooks/useRepairFormOptions';
 import {
   buildRepairFormSchema,

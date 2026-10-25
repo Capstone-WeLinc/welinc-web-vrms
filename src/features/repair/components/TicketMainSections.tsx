@@ -1,6 +1,6 @@
 import type { RepairTicket } from '../../../types';
-import { Callout } from './Callout';
-import { DetailItem, DetailSection } from './DetailSection';
+import { Callout } from '../../../components/shared/Callout';
+import { DetailItem, DetailSection } from '../../../components/shared/DetailSection';
 
 /** Cancellation and failed verification reasons, then the latest remark. Renders nothing when there are none. */
 export function NotesSection({ ticket }: { ticket: RepairTicket }) {

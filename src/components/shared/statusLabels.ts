@@ -11,6 +11,7 @@ export const STATUS_LABELS: Record<string, string> = {
   INACTIVE: 'Inactive',
   LOCKED: 'Locked',
   SETUP_PENDING: 'Setup pending',
+  DRAFT: 'Draft',
 };
 
 export function statusLabel(status: string) {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { useBlocker, type Location } from 'react-router-dom';
-import { confirm } from '../../../components/shared/confirm/confirm';
+import { confirm } from '../components/shared/confirm/confirm';
 
 interface LeaveGuardOptions {
   /** formState.isDirty, read in the page's render. */
@@ -11,13 +11,23 @@ interface LeaveGuardOptions {
   savingRef: RefObject<boolean>;
   /** Runs before the discard prompt, so two modals never stack (the summary dialog). */
   onBeforePrompt?: () => void;
+  /** The discard prompt's text; the repair form's by default. */
+  title?: string;
+  description?: string;
 }
 
 /**
- * Asks before leaving a changed form (spec 0005, AC-23): useBlocker for in app navigation,
+ * Asks before leaving a changed form (spec 0005, AC-23; spec 0007, AC-21): useBlocker for in app navigation,
  * beforeunload for a tab close or reload.
  */
-export function useLeaveGuard({ isDirty, submittedRef, savingRef, onBeforePrompt }: LeaveGuardOptions) {
+export function useLeaveGuard({
+  isDirty,
+  submittedRef,
+  savingRef,
+  onBeforePrompt,
+  title = 'Discard this ticket?',
+  description = 'What you entered on this form will be lost.',
+}: LeaveGuardOptions) {
   const dirtyRef = useRef(isDirty);
   useEffect(() => {
     dirtyRef.current = isDirty;
@@ -45,13 +55,13 @@ export function useLeaveGuard({ isDirty, submittedRef, savingRef, onBeforePrompt
     }
     beforePromptRef.current?.();
     void confirm({
-      title: 'Discard this ticket?',
-      description: 'What you entered on this form will be lost.',
+      title,
+      description,
       confirmText: 'Discard',
       cancelText: 'Keep editing',
       tone: 'destructive',
     }).then((ok) => (ok ? blocker.proceed() : blocker.reset()));
-  }, [blocker, savingRef]);
+  }, [blocker, savingRef, title, description]);
 
   useEffect(() => {
     if (!isDirty) return;

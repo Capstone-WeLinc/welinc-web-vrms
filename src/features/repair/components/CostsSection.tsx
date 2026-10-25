@@ -15,7 +15,7 @@ import { updateRepairCosts, type UpdateCostsPayload } from '../../../lib/api/rep
 import { formatPesoExact } from '../../../lib/utils/format';
 import type { RepairTicket } from '../../../types';
 import { canEditCosts, COSTS_SECTION_ID, hasCosts, isClosed, STALE_TICKET_MESSAGE } from '../lib/nextAction';
-import { DetailItem, DetailSection } from './DetailSection';
+import { DetailItem, DetailSection } from '../../../components/shared/DetailSection';
 
 const STALE_COSTS_MESSAGE = 'Costs changed since you opened this. Check the current values before saving again.';
 

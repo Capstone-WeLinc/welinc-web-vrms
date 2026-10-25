@@ -10,8 +10,8 @@ import { getApiErrorMessage } from '../../../lib/api/errors';
 import { formatPeso } from '../../../lib/utils/format';
 import type { RepairTicket } from '../../../types';
 import { isClosed } from '../lib/nextAction';
-import { Callout } from './Callout';
-import { DetailItem, DetailSection } from './DetailSection';
+import { Callout } from '../../../components/shared/Callout';
+import { DetailItem, DetailSection } from '../../../components/shared/DetailSection';
 
 const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
 const CONFIDENCE_TEXT: Record<string, string> = {

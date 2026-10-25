@@ -9,7 +9,7 @@ import { getRepairFormOptions, PRIORITY_OPTIONS } from '../../../../lib/repairOp
 import type { OptionList } from '../../hooks/useRepairFormOptions';
 import { OTHER_SHOP, type RepairFormControl, type RepairFormInput } from '../../lib/repairFormSchema';
 import { MechanicPicker } from './MechanicPicker';
-import { FormSection } from './RepairFormParts';
+import { FormSection } from '../../../../components/shared/FormSection';
 
 interface AssignmentSectionProps {
   control: RepairFormControl;

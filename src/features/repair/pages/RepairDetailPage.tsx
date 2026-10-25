@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, SearchX, ShieldAlert, Wrench } from 'lucide-react';
+import { SearchX, ShieldAlert, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { BackLink } from '../../../components/shared/BackLink';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
@@ -13,7 +14,7 @@ import { useAuthStore } from '../../../store/authStore';
 import type { RepairStatus, RepairTicket } from '../../../types';
 import { ActivitySection } from '../components/ActivitySection';
 import { AiDiagnosisSection } from '../components/AiDiagnosisSection';
-import { Callout } from '../components/Callout';
+import { Callout } from '../../../components/shared/Callout';
 import { CostsSection } from '../components/CostsSection';
 import { NextActionBar } from '../components/NextActionBar';
 import { RepairDetailSkeleton } from '../components/RepairDetailSkeleton';
@@ -37,18 +38,6 @@ function backLink(ticket: RepairTicket | null, from: unknown) {
   if (ticket && isClosed(ticket)) return { to: '/history', label: 'Back to history' };
   const listUrl = typeof from === 'string' && from.startsWith('/repairs') ? from : '/repairs';
   return { to: listUrl, label: 'Back to repairs' };
-}
-
-function BackLink({ to, label }: { to: string; label: string }) {
-  return (
-    <Link
-      to={to}
-      className="mb-4 inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <ArrowLeft aria-hidden="true" className="size-4" />
-      {label}
-    </Link>
-  );
 }
 
 function scrollToCosts() {

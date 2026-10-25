@@ -8,7 +8,7 @@ import { dueLabel, isOpen } from '../../../lib/utils/due';
 import { formatShortDate } from '../../../lib/utils/format';
 import type { RepairTicket } from '../../../types';
 import { hasActionButton, isClosed, type NextAction } from '../lib/nextAction';
-import { DetailItem, DetailSection } from './DetailSection';
+import { DetailItem, DetailSection } from '../../../components/shared/DetailSection';
 
 interface StatusCardProps {
   ticket: RepairTicket;
