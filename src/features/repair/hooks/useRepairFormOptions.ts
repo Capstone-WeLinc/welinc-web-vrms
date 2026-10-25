@@ -9,6 +9,7 @@ import {
   type MechanicOption,
   type VehicleOption,
 } from '../../../lib/api/vrmsConfigApi';
+import { getCategories, getEntryOptions, type EntryOption, type IssueCategory } from '../../../lib/api/knowledgeApi';
 import type { RepairFormLists } from '../lib/repairFormSchema';
 
 interface ListSnapshot<T> {
@@ -25,6 +26,8 @@ export interface OptionList<T> extends ListSnapshot<T> {
 }
 
 /** One server list with its own load, failure and retry. Refetches keep the old data on screen. */
+const getActiveCategories = () => getCategories();
+
 function useOptionList<T>(fetcher: () => Promise<T[]>) {
   const [snapshot, setSnapshot] = useState<ListSnapshot<T>>({ data: null, failed: false });
   const [retrying, setRetrying] = useState(false);
@@ -73,12 +76,17 @@ function useOptionList<T>(fetcher: () => Promise<T[]>) {
 
 const checkable = <T>(snapshot: ListSnapshot<T>) => (snapshot.failed ? null : snapshot.data);
 
-/** The four lists the repair form picks from, each loading on its own (spec 0005, AC-14, AC-15). */
+/**
+ * The lists the repair form picks from, each loading on its own (spec 0005, AC-14, AC-15), plus the
+ * active categories for System and the common issues for the picker (spec 0007, AC-24).
+ */
 export function useRepairFormOptions() {
   const vehicles = useOptionList<VehicleOption>(getVehicles);
   const drivers = useOptionList<DriverOption>(getDrivers);
   const garages = useOptionList<GarageOption>(getGarages);
   const mechanics = useOptionList<MechanicOption>(getAvailableMechanics);
+  const categories = useOptionList<IssueCategory>(getActiveCategories);
+  const entries = useOptionList<EntryOption>(getEntryOptions);
 
   const vehiclesLatest = vehicles.latest;
   const garagesLatest = garages.latest;
@@ -97,10 +105,20 @@ export function useRepairFormOptions() {
   const retryDrivers = drivers.list.retry;
   const retryGarages = garages.list.retry;
   const retryMechanics = mechanics.list.retry;
-  /** Refetches all four; resolves once every one has settled. */
+  const retryCategories = categories.list.retry;
+  const retryEntries = entries.list.retry;
+  /** Refetches every list; resolves once every one has settled. */
   const refetchAll = useCallback(
-    () => Promise.allSettled([retryVehicles(), retryDrivers(), retryGarages(), retryMechanics()]).then(() => undefined),
-    [retryVehicles, retryDrivers, retryGarages, retryMechanics],
+    () =>
+      Promise.allSettled([
+        retryVehicles(),
+        retryDrivers(),
+        retryGarages(),
+        retryMechanics(),
+        retryCategories(),
+        retryEntries(),
+      ]).then(() => undefined),
+    [retryVehicles, retryDrivers, retryGarages, retryMechanics, retryCategories, retryEntries],
   );
 
   return {
@@ -108,6 +126,8 @@ export function useRepairFormOptions() {
     drivers: drivers.list,
     garages: garages.list,
     mechanics: mechanics.list,
+    categories: categories.list,
+    entries: entries.list,
     getCheckLists,
     refetchAll,
   };

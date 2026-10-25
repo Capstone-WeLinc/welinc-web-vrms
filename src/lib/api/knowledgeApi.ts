@@ -97,6 +97,28 @@ export async function getEntries(params: EntryListParams): Promise<KnowledgeEntr
   return response.data;
 }
 
+/** An Active entry for the repair form picker and the ticket's link Combobox (AC-24). */
+export interface EntryOption {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+  symptoms: string;
+  suggestedPriority: RepairPriority;
+  descriptionTemplate: string | null;
+  estimatedHours: number | null;
+  seenCount: number;
+  typicalHours: number | null;
+  /** Editors only. */
+  typicalCost?: number | null;
+}
+
+/** Every Active entry, most seen first. */
+export async function getEntryOptions(): Promise<EntryOption[]> {
+  const response = await api.get<EntryOption[]>('/vrms/knowledge/entries/options');
+  return response.data;
+}
+
 export async function getEntry(id: string): Promise<KnowledgeEntryDetail> {
   const response = await api.get<KnowledgeEntryDetail>(`/vrms/knowledge/entries/${id}`);
   return response.data;

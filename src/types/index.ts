@@ -56,11 +56,56 @@ export interface MechanicAssignment {
   shopName?: string;
 }
 
+/** A step copied from the linked knowledge entry (spec 0007, AC-28). */
+export interface RepairIssueStep {
+  id: string;
+  position: number;
+  text: string;
+  checkedAt: string | null;
+  checkedByEmail: string | null;
+}
+
+/** One issue on a ticket, as formatTicket sends it (spec 0007, AC-27). */
 export interface RepairIssue {
   id: string;
-  vehicleSystem: string;
+  /** `[System] Root cause: text`. */
+  description: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  knowledgeEntry: {
+    id: string;
+    name: string;
+    status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
+    safetyNotes: string | null;
+    parts: string[];
+    /** Median hours over 3 or more repairs, else null. */
+    typicalHours: number | null;
+    estimatedHours: number | null;
+  } | null;
+  steps: RepairIssueStep[];
+  /** "What fixed it", saved on the move to For verification (AC-31). */
+  resolutionNote: string | null;
+  hoursSpent: number | null;
+  followedKnownFix: boolean | null;
+  resolvedAt: string | null;
+}
+
+/** One issue's "What fixed it" on the move to For verification (spec 0007, AC-31). */
+export interface IssueResolution {
+  issueId: string;
+  resolutionNote?: string;
+  hoursSpent?: number;
+  followedKnownFix?: boolean;
+}
+
+/** One issue as the repair form sends it (spec 0007, AC-26). */
+export interface CreateRepairIssue {
+  /** An active IssueCategory, shown as System. */
+  categoryId: string;
   rootCause: string;
   description: string;
+  /** The picked common issue; left out for Other. */
+  knowledgeEntryId?: string;
 }
 
 export interface RepairPart {
@@ -117,7 +162,7 @@ export interface CreateRepairPayload {
   mechanics: Omit<MechanicAssignment, 'id'>[];
   shopName: string;
   priority: PriorityLevel;
-  issues: Omit<RepairIssue, 'id'>[];
+  issues: CreateRepairIssue[];
 }
 
 /** A closed ticket as `GET /vrms/repairs/history` sends it (spec 0003). Mechanics get no `totalCost`. */
@@ -164,6 +209,8 @@ export interface AuditEvent {
   cost?: { from: CostSnapshot | null; to: CostSnapshot | null } | null;
   unlockReason?: string;
   garage?: { from: string | null; to: string | null };
+  /** KNOWLEDGE_LINK: the known fix entry names before and after; null is none (spec 0007, AC-29). */
+  knowledge?: { issueId: string | null; from: string | null; to: string | null };
   rawAction: string;
 }
 

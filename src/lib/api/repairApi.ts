@@ -1,8 +1,10 @@
 import api from './axios';
 import type {
   CreateRepairPayload,
+  IssueResolution,
   RepairHistoryRow,
   RepairHistorySummary,
+  RepairIssueStep,
   RepairStatus,
   RepairTicket,
 } from '../../types';
@@ -64,12 +66,39 @@ export async function getRepair(repairId: string): Promise<RepairTicket> {
 export async function updateRepairStatus(
   repairId: string,
   status: RepairStatus,
-  extras?: { cancellationReason?: string; failedVerificationReason?: string; remarks?: string; lastUpdatedAt?: string },
+  extras?: {
+    cancellationReason?: string;
+    failedVerificationReason?: string;
+    remarks?: string;
+    lastUpdatedAt?: string;
+    /** Spec 0007, AC-31: required on In progress to For verification. */
+    resolutions?: IssueResolution[];
+  },
 ): Promise<RepairTicket> {
   const response = await api.patch<RepairTicket>(`/vrms/repairs/${repairId}/status`, {
     status,
     ...extras,
   });
+  return response.data;
+}
+
+/** Link, relink (an entry id) or remove (null) one issue's known fix (spec 0007, AC-29). */
+export async function linkIssueKnowledge(
+  repairId: string,
+  issueId: string,
+  knowledgeEntryId: string | null,
+  lastUpdatedAt: string,
+): Promise<RepairTicket> {
+  const response = await api.patch<RepairTicket>(`/vrms/repairs/${repairId}/issues/${issueId}/knowledge`, {
+    knowledgeEntryId,
+    lastUpdatedAt,
+  });
+  return response.data;
+}
+
+/** Tick or untick one known fix step; the ticket's updatedAt stays (spec 0007, AC-28). */
+export async function checkIssueStep(repairId: string, issueId: string, stepId: string, checked: boolean): Promise<RepairIssueStep> {
+  const response = await api.patch<RepairIssueStep>(`/vrms/repairs/${repairId}/issues/${issueId}/steps/${stepId}`, { checked });
   return response.data;
 }
 

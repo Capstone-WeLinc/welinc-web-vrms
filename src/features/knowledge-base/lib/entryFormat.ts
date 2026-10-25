@@ -1,12 +1,7 @@
 import type { EntryStats, KnowledgeEntrySummary } from '../../../lib/api/knowledgeApi';
-import { dayKey, formatPeso } from '../../../lib/utils/format';
+import { dayKey, formatHours, formatPeso } from '../../../lib/utils/format';
 
-const hoursFormat = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 2 });
-
-/** `2 h`, `1.5 h`, `0.25 h` */
-export function formatHours(hours: number) {
-  return `${hoursFormat.format(hours)} h`;
-}
+const daysFormat = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 1 });
 
 /** `YYYY-MM-DD` in local time (design.md). */
 export function formatDay(value: string) {
@@ -36,5 +31,5 @@ export function workTime(stats: Pick<EntryStats, 'typicalHours' | 'hoursSamples'
 
 /** `1 day`, `2.5 days` */
 export function formatDays(days: number) {
-  return days === 1 ? '1 day' : `${hoursFormat.format(days)} days`;
+  return days === 1 ? '1 day' : `${daysFormat.format(days)} days`;
 }

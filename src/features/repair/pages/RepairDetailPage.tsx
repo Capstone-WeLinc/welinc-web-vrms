@@ -11,14 +11,15 @@ import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
 import { unlockRepairTicket, updateRepairStatus } from '../../../lib/api/repairApi';
 import { useAuthStore } from '../../../store/authStore';
-import type { RepairStatus, RepairTicket } from '../../../types';
+import type { IssueResolution, RepairStatus, RepairTicket } from '../../../types';
 import { ActivitySection } from '../components/ActivitySection';
 import { AiDiagnosisSection } from '../components/AiDiagnosisSection';
 import { Callout } from '../../../components/shared/Callout';
 import { CostsSection } from '../components/CostsSection';
 import { NextActionBar } from '../components/NextActionBar';
 import { RepairDetailSkeleton } from '../components/RepairDetailSkeleton';
-import { IssuesSection, NotesSection, VehicleSection } from '../components/TicketMainSections';
+import { IssuesSection } from '../components/IssuesSection';
+import { NotesSection, VehicleSection } from '../components/TicketMainSections';
 import { TicketNoteDialog } from '../components/TicketNoteDialog';
 import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePanel';
 import { useRepairTicket } from '../hooks/useRepairTicket';
@@ -97,7 +98,10 @@ export function RepairDetailPage() {
     void reload();
   };
 
-  const changeStatus = async (to: RepairStatus, extras: { remarks?: string; cancellationReason?: string }) => {
+  const changeStatus = async (
+    to: RepairStatus,
+    extras: { remarks?: string; cancellationReason?: string; resolutions?: IssueResolution[] },
+  ) => {
     try {
       const updated = await updateRepairStatus(ticket.id, to, { ...extras, lastUpdatedAt: ticket.updatedAt });
       setDialog(null);
@@ -152,7 +156,7 @@ export function RepairDetailPage() {
         <div className="flex min-w-0 flex-col gap-4 lg:col-span-2 lg:col-start-1 lg:row-start-1">
           <NotesSection ticket={ticket} />
           <VehicleSection ticket={ticket} />
-          <IssuesSection ticket={ticket} />
+          <IssuesSection ticket={ticket} canWork={!readOnly} onChanged={replace} onStale={handleStale} />
           <AiDiagnosisSection ticket={ticket} />
           {isAdmin && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
           {isAdmin && <ActivitySection ticketId={ticket.id} />}
@@ -168,7 +172,10 @@ export function RepairDetailPage() {
           title={`${action.label} on ${rep}?`}
           fieldLabel="Remarks"
           confirmLabel={action.label}
-          onSubmit={(note) => changeStatus(action.to, { remarks: note.trim() || undefined })}
+          // Keyed by version, so the per issue blocks start from the ticket as it is now
+          key={ticket.updatedAt}
+          resolutionIssues={action.to === 'FOR_VERIFICATION' ? (ticket.issues ?? []) : undefined}
+          onSubmit={(note, resolutions) => changeStatus(action.to, { remarks: note.trim() || undefined, resolutions })}
         >
           {noMechanic && <Callout tone="warning">No mechanic is assigned yet.</Callout>}
           {noCosts && (

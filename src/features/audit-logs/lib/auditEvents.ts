@@ -1,6 +1,7 @@
 import {
   Activity,
   ArrowLeftRight,
+  BookOpen,
   FilePlus2,
   LockOpen,
   PhilippinePeso,
@@ -59,6 +60,7 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   COST_UPDATE: { icon: PhilippinePeso, tone: 'bg-success/10 text-success' },
   UNLOCK: { icon: LockOpen, tone: 'bg-highlight/25 text-highlight-foreground' },
   SHOP_CHANGE: { icon: Warehouse, tone: 'bg-muted text-muted-strong' },
+  KNOWLEDGE_LINK: { icon: BookOpen, tone: 'bg-primary/10 text-primary' },
 };
 
 export function eventStyle(type: string): EventStyle {

@@ -10,6 +10,8 @@ interface RepairSummaryDialogProps {
   open: boolean;
   values: RepairFormValues | null;
   vehicle: VehicleOption | undefined;
+  /** Category names by id, for each issue's System. */
+  categoryNames: Record<string, string>;
   saving: boolean;
   /** Where focus goes on close instead of the opener, when it exists (the failure alert, AC-20). */
   finalFocusRef: RefObject<HTMLElement | null>;
@@ -32,6 +34,7 @@ export function RepairSummaryDialog({
   open,
   values,
   vehicle,
+  categoryNames,
   saving,
   finalFocusRef,
   onCancel,
@@ -84,7 +87,7 @@ export function RepairSummaryDialog({
             </ul>
           </Row>
           <Row term="Issues">
-            {issueCount} {issueCount === 1 ? 'issue' : 'issues'}: {values.issues.map((i) => i.vehicleSystem).join(', ')}
+            {issueCount} {issueCount === 1 ? 'issue' : 'issues'}: {values.issues.map((i) => categoryNames[i.categoryId] ?? 'Unknown system').join(', ')}
           </Row>
           <Row term="Garage">{values.garageLocation}</Row>
         </dl>
