@@ -15,7 +15,7 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 
 | `src/store/authStore.ts` | Zustand auth store (token, user, login, logout), persisted |
 | `src/features/auth/pages/LoginPage.tsx` | SSO handoff (`?token=` from the portal) and the standalone login form |
 | `src/components/SessionMonitor.tsx` | 15 minute inactivity logout with a warning modal |
-| `src/components/layout/` | `DashboardShell`, `Sidebar`, `Topbar` (theme toggle), `PageHeader` |
+| `src/components/layout/` | `DashboardShell`, `AppHeader`, `SidebarNav`, `UserMenu`, `MobileNavSheet`, `MobileTabBar`, `PageHeader` |
 | `src/components/shared/`, `src/hooks/` | Widgets used by more than one feature (`GoToPageInput` for every paginated table, `Callout`, `DetailSection`, `FormSection`, `BackLink`, badges) and shared hooks (`useLeaveGuard` for unsaved forms) |
 | `src/lib/roles.ts` | `isMechanicRole` (mechanic or chief mechanic) and `isKnowledgeEditor` (admin or chief mechanic) |
 | `src/features/knowledge-base/` | Knowledge base library, entry, editor, suggestions and categories pages, backed by `/vrms/knowledge` (spec 0007) |
@@ -52,7 +52,7 @@ There is no test runner yet.
 ## Gotchas
 
 - The auth token is stored three times: `welinc_token` and `welinc_user` in `localStorage`, plus the Zustand persist key `welinc-auth-storage`. Login, logout and the 401 handler must keep all three in step.
-- Dark mode is incomplete. `Topbar` toggles a `dark` class on `<html>`, but `index.css` never redefines the color variables for it; only 9 `.dark` rules exist.
+- There is no dark mode. No component toggles a theme and `index.css` has no `.dark` color rules, so the app is light only.
 - The analytics page shows hardcoded sample data when the service returns nothing (`SAMPLE_*` in `useAnalyticsData.ts`, and fallback AI numbers in `getAiFeedbackStats`). On screen it looks like real data.
 - The analytics and AI service (`/analytics/*`, `/ai/*`) does not check the JWT, so the token this app sends there is ignored.
 - `src/lib/repairOptions.ts` holds the fixed dropdown lists for the repair form and the locally remembered driver names (`welinc_driver_names` in `localStorage`).
