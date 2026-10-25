@@ -5,7 +5,7 @@ interface RoleBadgeProps {
   role: string;
 }
 
-// CHIEF_MECHANIC and DRIVER are reserved; features 17 and 44 confirm the enum names.
+// CHIEF_MECHANIC exists since spec 0007; DRIVER is reserved until feature 44 confirms the enum name.
 const ROLE_MAP: Record<string, { label: string; className: string }> = {
   ADMIN: { label: 'Admin', className: 'bg-role-admin-bg text-role-admin-fg' },
   CHIEF_MECHANIC: { label: 'Chief mechanic', className: 'bg-role-chief-mechanic-bg text-role-chief-mechanic-fg' },

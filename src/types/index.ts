@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'MECHANIC' | 'CUSTOMER_SUPPORT' | 'OPERATIONS';
+export type UserRole = 'ADMIN' | 'MECHANIC' | 'CHIEF_MECHANIC' | 'CUSTOMER_SUPPORT' | 'OPERATIONS';
 export type SystemType = 'VRMS' | 'VMMS' | 'BMS' | 'SHARED';
 
 export interface UserRoleAssignment {

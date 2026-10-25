@@ -37,10 +37,11 @@ function RequireAuth({ children }: { children: ReactElement }) {
   return children;
 }
 
-function RequireRole({ role, children }: { role: UserRole; children: ReactElement }) {
+function RequireRole({ role, children }: { role: UserRole | UserRole[]; children: ReactElement }) {
   const user = useAuthStore((state) => state.user);
+  const allowed = Array.isArray(role) ? role : [role];
 
-  if (!user || user.role !== role) {
+  if (!user || !allowed.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
 

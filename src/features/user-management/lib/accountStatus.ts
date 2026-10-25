@@ -7,7 +7,7 @@ export const ACCOUNT_STATUSES = ['LOCKED', 'SETUP_PENDING', 'ACTIVE', 'INACTIVE'
 export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
 
 /** The roles this page can set. */
-export const EDITABLE_ROLES = ['ADMIN', 'MECHANIC'] as const;
+export const EDITABLE_ROLES = ['ADMIN', 'CHIEF_MECHANIC', 'MECHANIC'] as const;
 export type EditableRole = (typeof EDITABLE_ROLES)[number];
 
 type StatusFields = Pick<ManagedUser, 'isActive' | 'isLocked' | 'emailVerified'>;
