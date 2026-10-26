@@ -1,16 +1,5 @@
 import api from './axios';
-import { CreateUserPayload, ManagedUser, SystemType, UpdateUserPayload, User } from '../../types';
-
-interface LoginResponse {
-  accessToken: string;
-  refreshToken?: string;
-  user: User;
-}
-
-export async function login(email: string, password: string): Promise<LoginResponse> {
-  const response = await api.post<LoginResponse>('/auth/login', { email, password });
-  return response.data;
-}
+import { CreateUserPayload, ManagedUser, SystemType, UpdateUserPayload } from '../../types';
 
 export async function getCurrentUser(): Promise<ManagedUser> {
   const response = await api.get<ManagedUser>('/auth/me');

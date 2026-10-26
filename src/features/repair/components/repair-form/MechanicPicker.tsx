@@ -18,10 +18,9 @@ interface MechanicPickerProps {
   clearErrors: UseFormClearErrors<RepairFormInput>;
 }
 
-/** Free mechanics first, then busy ones, alphabetical within each; one row per name. */
+/** Free mechanics first, then busy ones, alphabetical within each. */
 function sortMechanics(list: MechanicOption[]) {
-  const unique = list.filter((m, i) => list.findIndex((other) => sameName(other.name, m.name)) === i);
-  return unique.sort((a, b) => Number(!a.isAvailable) - Number(!b.isAvailable) || a.name.localeCompare(b.name));
+  return [...list].sort((a, b) => Number(!a.isAvailable) - Number(!b.isAvailable) || a.name.localeCompare(b.name));
 }
 
 /**
@@ -40,18 +39,19 @@ export function MechanicPicker({ control, mechanics, setError, clearErrors }: Me
       name="mechanics"
       render={({ field }) => {
         const chips = field.value;
+        // In house picks are by Mechanic id, so two people with one name stay apart (spec 0009, AC-27)
         const taken = (name: string) => chips.some((chip) => sameName(chip.name, name));
         const options: ComboboxOption[] = sorted
-          .filter((m) => !taken(m.name))
+          .filter((m) => !chips.some((chip) => chip.id === m.id))
           .map((m) => ({
-            value: m.name,
+            value: m.id,
             label: m.name,
             badge: m.isAvailable ? undefined : <Badge variant="secondary">Has open work</Badge>,
           }));
 
-        const add = (name: string, isOutsourced: boolean) => {
+        const add = (chip: { id?: string; name: string; isOutsourced: boolean }) => {
           clearErrors('mechanics');
-          field.onChange([...chips, { name, isOutsourced }]);
+          field.onChange([...chips, chip]);
         };
 
         const rootError = errors.mechanics?.message;
@@ -74,13 +74,16 @@ export function MechanicPicker({ control, mechanics, setError, clearErrors }: Me
               aria-describedby={describedBy}
               options={options}
               value=""
-              onValueChange={(name) => add(name, false)}
+              onValueChange={(mechanicId) => {
+                const picked = sorted.find((m) => m.id === mechanicId);
+                if (picked) add({ id: picked.id, name: picked.name, isOutsourced: false });
+              }}
               onCreate={(text) => {
                 if (text.length > NAME_LIMIT) {
                   setError('mechanics', { type: 'manual', message: 'Keep names to 100 characters.' });
                   return;
                 }
-                add(text, true);
+                add({ name: text, isOutsourced: true });
               }}
               canCreate={(text) => !taken(text)}
               createLabel={(text) => `Add "${text}" as outsourced`}
@@ -102,7 +105,7 @@ export function MechanicPicker({ control, mechanics, setError, clearErrors }: Me
                   const stale = chipErrors.some((item) => item.index === index);
                   return (
                     <li
-                      key={`${chip.isOutsourced ? 'out' : 'in'}:${chip.name}`}
+                      key={chip.isOutsourced ? `out:${chip.name}` : `in:${chip.id}`}
                       className={cn(
                         'flex items-center gap-1.5 rounded-full border bg-secondary py-0.5 pl-3 text-sm text-foreground',
                         stale ? 'border-destructive' : 'border-border',

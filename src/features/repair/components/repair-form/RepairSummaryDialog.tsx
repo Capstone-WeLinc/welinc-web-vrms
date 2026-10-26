@@ -79,7 +79,7 @@ export function RepairSummaryDialog({
           <Row term="Mechanics">
             <ul className="flex flex-col gap-0.5">
               {values.mechanics.map((m) => (
-                <li key={`${m.isOutsourced ? 'out' : 'in'}:${m.name}`}>
+                <li key={m.isOutsourced ? `out:${m.name}` : `in:${m.id}`}>
                   {m.name}
                   {m.isOutsourced && <span className="text-muted-foreground"> (outsourced)</span>}
                 </li>
