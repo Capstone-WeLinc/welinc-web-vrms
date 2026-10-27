@@ -48,7 +48,7 @@ export interface MechanicSyncResult {
  * `quiet` skips the global error toasts, for the silent sync on page open (AC-12).
  */
 export async function syncMechanics(options: { quiet?: boolean } = {}): Promise<MechanicSyncResult> {
-  const response = await api.post<MechanicSyncResult>('/vrms/mechanics/sync', null, { quiet: options.quiet });
+  const response = await api.post<MechanicSyncResult>('/vrms/mechanics/sync', undefined, { quiet: options.quiet });
   return response.data;
 }
 
