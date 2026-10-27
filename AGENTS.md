@@ -9,11 +9,12 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 
 | File | Owns |
 |---|---|
 | `src/App.tsx` | All routes, the `RequireAuth` and `RequireRole` guards, user sync on mount, cross tab reload on token change |
-| `src/lib/api/axios.ts` | The one axios instance: base URL, `Bearer` token from `localStorage`, 401 logout and redirect |
+| `src/lib/api/axios.ts` | The one axios instance: base URL, `Bearer` token from `localStorage`, sign out and redirect on 401 or an "Account is locked" 403, a toast for the 503 and other 403s |
 | `src/lib/api/*Api.ts` | Typed wrappers per backend area: `authApi`, `repairApi`, `vrmsConfigApi`, `analyticsApi`, `aiApi`, `knowledgeApi` |
 | `src/lib/api/errors.ts` | `getApiErrorMessage(err, fallback)` and `getApiErrorStatus(err)` for `catch` blocks |
 | `src/store/authStore.ts` | Zustand auth store (token, user, login, logout), persisted |
-| `src/features/auth/pages/LoginPage.tsx` | SSO handoff (`?token=` from the portal) and the standalone login form |
+| `src/features/auth/pages/LoginPage.tsx` | SSO handoff (`?token=` from the portal); with no token it redirects to `{VITE_PORTAL_URL}/login`. There is no local login form |
+| `src/features/user-management/lib/mechanicSync.ts` | Calls `POST /vrms/mechanics/sync` after Users page saves and when `/users` or `/repairs/new` opens |
 | `src/components/SessionMonitor.tsx` | 15 minute inactivity logout with a warning modal |
 | `src/components/layout/` | `DashboardShell`, `AppHeader`, `SidebarNav`, `UserMenu`, `MobileNavSheet`, `MobileTabBar`, `PageHeader` |
 | `src/components/shared/`, `src/hooks/` | Widgets used by more than one feature (`GoToPageInput` for every paginated table, `Callout`, `DetailSection`, `FormSection`, `BackLink`, badges) and shared hooks (`useLeaveGuard` for unsaved forms) |
