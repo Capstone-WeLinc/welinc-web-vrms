@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
 
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 // sonner's live region is polite only. The Toaster registers a role="alert"
 // region here so error toasts are also announced assertively.
@@ -11,10 +11,13 @@ export function registerAlertAnnouncer(announcer: AlertAnnouncer | null) {
   announceAlert = announcer;
 }
 
-function showToast(message: string, type: ToastType = 'success') {
+/** For code outside React, such as the axios interceptor; components use useToast(). */
+export function showToast(message: string, type: ToastType = 'success') {
   if (type === 'error') {
     toast.error(message);
     announceAlert?.(message);
+  } else if (type === 'warning') {
+    toast.warning(message);
   } else if (type === 'info') {
     toast.info(message);
   } else {

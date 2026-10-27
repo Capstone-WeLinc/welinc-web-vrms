@@ -11,6 +11,7 @@ import type { ManagedUser } from '../../../types';
 import { getAccountStatus, vrmsRoles } from '../lib/accountStatus';
 import { returnFocusToRow } from '../lib/focusReturn';
 import { findMechanicWithOpenWork } from '../lib/openWork';
+import { syncAfterSave } from '../lib/mechanicSync';
 
 interface UserActionsOptions {
   currentUserId: string | undefined;
@@ -111,6 +112,7 @@ export function useUserActions({ currentUserId, onEdit, runWrite, upsertUser }: 
       try {
         upsertUser(await setUserStatus(user.id, true));
         showToast(`${user.name} reactivated.`);
+        syncAfterSave(showToast);
       } catch (err) {
         showToast(`Couldn’t reactivate ${user.name}: ${reason(err)}.`, 'error');
       }
@@ -161,6 +163,7 @@ export function useUserActions({ currentUserId, onEdit, runWrite, upsertUser }: 
       try {
         upsertUser(await setUserStatus(user.id, false));
         showToast(`${user.name} deactivated.`);
+        syncAfterSave(showToast);
       } catch (err) {
         showToast(`Couldn’t deactivate ${user.name}: ${reason(err)}.`, 'error');
       }

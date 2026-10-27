@@ -21,7 +21,8 @@ export const NAME_LIMIT = 100;
 export interface RepairFormLists {
   vehiclePlates: string[] | null;
   garageNames: string[] | null;
-  mechanicNames: string[] | null;
+  /** In house mechanic ids (spec 0009, AC-27). */
+  mechanicIds: string[] | null;
 }
 
 export const UNDER_REPAIR_WARNING =
@@ -52,7 +53,9 @@ const issueSchema = z.object({
     .max(DESCRIPTION_LIMIT, 'Keep it to 500 characters.'),
 });
 
+/** An in house chip carries its Mechanic id; an outsourced one has none (spec 0009, AC-27). */
 const mechanicSchema = z.object({
+  id: z.string().optional(),
   name: z.string(),
   isOutsourced: z.boolean(),
 });
@@ -93,10 +96,10 @@ export function buildRepairFormSchema(lists: RepairFormLists) {
           ctx.addIssue({ code: 'custom', message: 'Assign at least one mechanic.' });
           return;
         }
-        const names = lists.mechanicNames;
-        if (!names) return;
+        const ids = lists.mechanicIds;
+        if (!ids) return;
         mechanics.forEach((mechanic, index) => {
-          if (!mechanic.isOutsourced && !names.includes(mechanic.name)) {
+          if (!mechanic.isOutsourced && !(mechanic.id && ids.includes(mechanic.id))) {
             ctx.addIssue({ code: 'custom', path: [index], message: `${mechanic.name} is no longer available.` });
           }
         });
@@ -156,8 +159,10 @@ export function toCreatePayload(values: RepairFormValues): CreateRepairPayload {
     corporation: values.accountType === 'CORPORATE' ? values.corporation : undefined,
     garageLocation: values.garageLocation,
     odometerReading: values.odometerReading,
-    mechanics: values.mechanics.map(({ name, isOutsourced }) =>
-      isOutsourced ? { name: name.trim(), isOutsourced: true, shopName: name.trim() } : { name, isOutsourced: false },
+    mechanics: values.mechanics.map(({ id, name, isOutsourced }) =>
+      isOutsourced
+        ? { name: name.trim(), isOutsourced: true as const, shopName: name.trim() }
+        : { id: id ?? '', isOutsourced: false as const },
     ),
     shopName: values.shopChoice === OTHER_SHOP ? values.otherShopName : values.shopChoice,
     priority: values.priority,

@@ -8,6 +8,7 @@ import { FormAlert } from '../../../components/shared/FormAlert';
 import { useToast } from '../../../context/toast';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 import { createRepair } from '../../../lib/api/repairApi';
+import { syncMechanics } from '../../../lib/api/vrmsConfigApi';
 import { formatShortDate } from '../../../lib/utils/format';
 import { useAuthStore } from '../../../store/authStore';
 import { AssignmentSection } from '../components/repair-form/AssignmentSection';
@@ -35,6 +36,22 @@ export function RepairFormPage() {
   const [openedAt] = useState(() => new Date());
   const options = useRepairFormOptions();
   const { getCheckLists, refetchAll } = options;
+  const retryMechanics = options.mechanics.retry;
+  const isAdmin = user?.role === 'ADMIN';
+
+  // Once on open, silently: a mechanic added on the Users page shows up in the picker (spec 0009, AC-12)
+  useEffect(() => {
+    if (!isAdmin) return;
+    let cancelled = false;
+    syncMechanics({ quiet: true })
+      .then((result) => {
+        if (!cancelled && result.created + result.updated + result.deactivated > 0) void retryMechanics();
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, retryMechanics]);
 
   // The schema is built per validation from the lists as they are now, so "still in its list" holds on every submit (AC-20).
   const resolver = useMemo<Resolver<RepairFormInput, unknown, RepairFormValues>>(

@@ -16,8 +16,10 @@ export interface MechanicOption {
   id: string;
   name: string;
   isAvailable: boolean;
-  /** The linked VRMS user's email; null when the mechanic has no login (spec 0006). */
+  /** The welinc-auth user's email, lowercased; null for a row with no login. */
   email?: string | null;
+  /** The welinc-auth user id; the Users page matches people to mechanics on it (spec 0009, AC-9). */
+  authUserId?: string | null;
 }
 
 export async function getGarages(): Promise<GarageOption[]> {
@@ -32,6 +34,21 @@ export async function getVehicles(): Promise<VehicleOption[]> {
 
 export async function getAvailableMechanics(): Promise<MechanicOption[]> {
   const response = await api.get<MechanicOption[]>('/vrms/mechanics/available');
+  return response.data;
+}
+
+export interface MechanicSyncResult {
+  created: number;
+  updated: number;
+  deactivated: number;
+}
+
+/**
+ * Brings VRMS's in house mechanics in step with welinc-auth (admins only, spec 0009, AC-11).
+ * `quiet` skips the global error toasts, for the silent sync on page open (AC-12).
+ */
+export async function syncMechanics(options: { quiet?: boolean } = {}): Promise<MechanicSyncResult> {
+  const response = await api.post<MechanicSyncResult>('/vrms/mechanics/sync', undefined, { quiet: options.quiet });
   return response.data;
 }
 

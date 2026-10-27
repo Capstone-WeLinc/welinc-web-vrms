@@ -159,7 +159,8 @@ export interface CreateRepairPayload {
   corporation?: string;
   garageLocation: string;
   odometerReading: number;
-  mechanics: Omit<MechanicAssignment, 'id'>[];
+  /** In house mechanics by Mechanic id, outsourced ones by name and shop (spec 0009, AC-27). */
+  mechanics: ({ id: string; isOutsourced: false } | { name: string; isOutsourced: true; shopName: string })[];
   shopName: string;
   priority: PriorityLevel;
   issues: CreateRepairIssue[];

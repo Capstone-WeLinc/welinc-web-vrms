@@ -96,7 +96,7 @@ export function useRepairFormOptions() {
     (): RepairFormLists => ({
       vehiclePlates: checkable(vehiclesLatest.current)?.map((v) => v.plateNumber) ?? null,
       garageNames: checkable(garagesLatest.current)?.map((g) => g.name) ?? null,
-      mechanicNames: checkable(mechanicsLatest.current)?.map((m) => m.name) ?? null,
+      mechanicIds: checkable(mechanicsLatest.current)?.map((m) => m.id) ?? null,
     }),
     [vehiclesLatest, garagesLatest, mechanicsLatest],
   );

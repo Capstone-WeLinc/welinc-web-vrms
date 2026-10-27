@@ -4,7 +4,6 @@ import { getCurrentUser } from '../../../lib/api/authApi';
 import type { User, UserRoleAssignment } from '../../../types';
 
 export const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
-export const AUTH_MODE = import.meta.env.VITE_AUTH_MODE || 'portal'; // 'portal' | 'standalone'
 
 function decodeJwt<T>(token: string): T {
   const [, payload] = token.split('.');
@@ -19,7 +18,7 @@ function decodeJwt<T>(token: string): T {
   return JSON.parse(json) as T;
 }
 
-/** Stores a token from the portal or the login form, builds the user from it, and opens the dashboard. */
+/** Stores the token the portal hands over, builds the user from it, and opens the dashboard. */
 export async function processToken(
   token: string,
   navigate: ReturnType<typeof useNavigate>,
