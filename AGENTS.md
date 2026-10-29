@@ -36,7 +36,7 @@ npm run typecheck    # tsc --noEmit with the root tsconfig.json
 npm run build        # typecheck then vite build
 ```
 
-There is no test runner yet.
+`npm run test` runs Vitest (node environment, `src/**/*.test.ts`) on pure logic only: no jsdom, no component tests. Shared fixtures live in `src/test/`.
 
 ## Conventions
 
