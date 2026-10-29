@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { DriverOption, GarageOption, VehicleOption } from '../../../../lib/api/vrmsConfigApi';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
@@ -34,6 +35,8 @@ export function VehicleSection({ control, vehicles, drivers, garages }: VehicleS
             <Badge variant="outline" className="border-highlight bg-highlight/15 text-foreground">
               Under repair
             </Badge>
+          ) : v.status === 'DISABLED' ? (
+            <StatusBadge status={v.status} />
           ) : undefined,
       })),
     [vehicles.data],

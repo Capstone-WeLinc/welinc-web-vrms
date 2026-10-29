@@ -3,7 +3,8 @@ import type { RepairListParams } from '../../../lib/api/repairApi';
 // Spec 0004: the list's filters and page live in the URL (AC-5). Defaults are left out of it,
 // and an unknown or malformed value reads as its default.
 
-export const OPEN_STATUS_FILTERS = ['PENDING', 'IN_PROGRESS', 'FOR_VERIFICATION'] as const;
+// The open statuses a ticket can reach today (spec 0010); the rest arrive with feature 16
+export const OPEN_STATUS_FILTERS = ['ASSIGNED', 'IN_PROGRESS', 'FOR_VERIFICATION'] as const;
 export type OpenStatusFilter = 'all' | (typeof OPEN_STATUS_FILTERS)[number];
 
 export type RepairListFilterValues = {

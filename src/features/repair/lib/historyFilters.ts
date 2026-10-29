@@ -1,7 +1,7 @@
 import { ALL_TIME, type DateRangeValue, type ResolvedRange } from '../../../components/shared/date-range/dateRange';
 import type { RepairHistoryParams } from '../../../lib/api/repairApi';
 
-export type Outcome = 'all' | 'COMPLETED' | 'CANCELLED';
+export type Outcome = 'all' | 'CLOSED' | 'CANCELLED';
 
 export type HistoryFilterValues = {
   search: string;

@@ -1,7 +1,8 @@
 import type { RepairStatus, RepairTicket } from '../../../types';
+import { isFinishedStatus } from '../../../lib/repairStatus';
 
 // Spec 0004, AC-14: the one next step a ticket offers. It mirrors the server's forward only
-// rule (PENDING → IN_PROGRESS → FOR_VERIFICATION → COMPLETED), so the page never offers a
+// rule (ASSIGNED → IN_PROGRESS → FOR_VERIFICATION → CLOSED, spec 0010), so the page never offers a
 // move the server rejects.
 
 export type NextAction =
@@ -10,13 +11,13 @@ export type NextAction =
   | { kind: 'note'; text: string };
 
 const FORWARD: Partial<Record<RepairStatus, { to: RepairStatus; label: string }>> = {
-  PENDING: { to: 'IN_PROGRESS', label: 'Start work' },
+  ASSIGNED: { to: 'IN_PROGRESS', label: 'Start work' },
   IN_PROGRESS: { to: 'FOR_VERIFICATION', label: 'Send for verification' },
-  FOR_VERIFICATION: { to: 'COMPLETED', label: 'Mark completed' },
+  FOR_VERIFICATION: { to: 'CLOSED', label: 'Verify and close' },
 };
 
 export function isClosed(ticket: Pick<RepairTicket, 'status'>) {
-  return ticket.status === 'COMPLETED' || ticket.status === 'CANCELLED';
+  return isFinishedStatus(ticket.status);
 }
 
 /** Mechanics only ever load tickets they are assigned to (the API answers 403 otherwise). */

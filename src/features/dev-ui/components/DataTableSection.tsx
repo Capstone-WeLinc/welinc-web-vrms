@@ -21,7 +21,7 @@ type SampleTicket = {
 
 const VEHICLES = ['Toyota Hilux', 'Isuzu D-Max', 'Mitsubishi L300', 'Toyota HiAce', 'Ford Ranger', 'Nissan Navara'];
 const MECHANICS = ['Ramon Dela Cruz', 'Jessa Villanueva', 'Arnel Bautista', 'Marites Santos'];
-const STATUSES = ['PENDING', 'IN_PROGRESS', 'FOR_VERIFICATION', 'COMPLETED', 'CANCELLED'];
+const STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'FOR_VERIFICATION', 'CLOSED', 'CANCELLED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 const SAMPLE_TICKETS: SampleTicket[] = Array.from({ length: 47 }, (_, index) => ({

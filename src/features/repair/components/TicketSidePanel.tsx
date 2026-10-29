@@ -72,12 +72,12 @@ export function StatusCard({ ticket, isAdmin, readOnly, action, showCancel, onAc
 }
 
 function DueValue({ ticket, now }: { ticket: RepairTicket; now: number }) {
-  if (!ticket.targetDueDate || Number.isNaN(Date.parse(ticket.targetDueDate))) return <>—</>;
+  if (!ticket.dueAt || Number.isNaN(Date.parse(ticket.dueAt))) return <>—</>;
   // Due text only means something while the ticket is open.
   const due = isOpen(ticket) ? dueLabel(ticket, now) : null;
   return (
     <span className="flex flex-col">
-      <time dateTime={ticket.targetDueDate}>{formatShortDate(ticket.targetDueDate)}</time>
+      <time dateTime={ticket.dueAt}>{formatShortDate(ticket.dueAt)}</time>
       {due && (
         <span className={cn('inline-flex items-center gap-1.5 text-xs', due.overdue ? 'font-medium text-destructive' : 'text-muted-foreground')}>
           {due.overdue && <AlertTriangle role="img" aria-label="Overdue" className="size-3.5 shrink-0" />}
@@ -108,7 +108,7 @@ export function DetailsCard({ ticket, now }: { ticket: RepairTicket; now: number
         </DetailItem>
         {isClosed(ticket) && (
           <DetailItem label="Closed">
-            <DateValue value={ticket.completedAt} />
+            <DateValue value={ticket.closedAt} />
           </DetailItem>
         )}
       </dl>
@@ -147,16 +147,13 @@ export function PeopleCard({ ticket, isAdmin }: { ticket: RepairTicket; isAdmin:
           ) : (
             <ul className="flex flex-col gap-1">
               {mechanics.map((mechanic) => (
-                <li key={mechanic.id}>
-                  {mechanic.name}
-                  {mechanic.isOutsourced && (
-                    <span className="text-muted-foreground"> · Outsourced{mechanic.shopName ? `, ${mechanic.shopName}` : ''}</span>
-                  )}
-                </li>
+                <li key={mechanic.id}>{mechanic.name}</li>
               ))}
             </ul>
           )}
         </DetailItem>
+        {ticket.reportedByName && <DetailItem label="Reported by">{ticket.reportedByName}</DetailItem>}
+        {ticket.verifiedByName && <DetailItem label="Verified by">{ticket.verifiedByName}</DetailItem>}
       </dl>
     </DetailSection>
   );

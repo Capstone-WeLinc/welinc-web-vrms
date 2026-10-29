@@ -7,7 +7,7 @@ import { useDashboardData } from '../hooks/useDashboardData';
 import {
   attentionDueLabel,
   attentionList,
-  completedThisMonth,
+  closedThisMonth,
   greeting,
   isWaiting,
   pipelineCounts,
@@ -36,7 +36,7 @@ export function AdminDashboard() {
       { caption: 'Open', value: active.length, icon: ClipboardList },
       { caption: 'Overdue', value: overdue, icon: AlertTriangle, tone: overdue > 0 ? 'destructive' : 'default' },
       { caption: 'Waiting for sign off', value: active.filter(isWaiting).length, icon: ShieldCheck },
-      { caption: 'Done this month', value: completedThisMonth(history, fetchedAt), icon: CheckCircle2, tone: 'success' },
+      { caption: 'Done this month', value: closedThisMonth(history, fetchedAt), icon: CheckCircle2, tone: 'success' },
     ];
     return {
       all,

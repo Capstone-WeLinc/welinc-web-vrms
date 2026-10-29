@@ -23,8 +23,8 @@ export function AnalyticsPage() {
   const data = useAnalyticsData();
   const { loading, lastUpdated, refresh, summary, statusBreakdown } = data;
 
-  const totalActiveTickets = statusBreakdown.filter(s => !['COMPLETED', 'CANCELLED'].includes(s.status)).reduce((a, b) => a + Number(b.count), 0);
-  const completedCount = statusBreakdown.find(s => s.status === 'COMPLETED')?.count || 0;
+  const totalActiveTickets = statusBreakdown.filter(s => !['CLOSED', 'CANCELLED'].includes(s.status)).reduce((a, b) => a + Number(b.count), 0);
+  const completedCount = statusBreakdown.find(s => s.status === 'CLOSED')?.count || 0;
   const totalAll = statusBreakdown.reduce((a, b) => a + Number(b.count), 0);
   const completionRate = totalAll > 0 ? Math.round((Number(completedCount) / totalAll) * 100) : 0;
 

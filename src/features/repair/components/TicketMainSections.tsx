@@ -2,19 +2,14 @@ import type { RepairTicket } from '../../../types';
 import { Callout } from '../../../components/shared/Callout';
 import { DetailItem, DetailSection } from '../../../components/shared/DetailSection';
 
-/** Cancellation and failed verification reasons, then the latest remark. Renders nothing when there are none. */
+/** The cancellation reason, then the latest remark. Renders nothing when there are none. */
 export function NotesSection({ ticket }: { ticket: RepairTicket }) {
-  if (!ticket.cancellationReason && !ticket.failedVerificationReason && !ticket.remarks) return null;
+  if (!ticket.cancellationReason && !ticket.remarks) return null;
   return (
     <DetailSection title="Notes">
       {ticket.cancellationReason && (
         <Callout tone="destructive" title="Cancellation reason">
           {ticket.cancellationReason}
-        </Callout>
-      )}
-      {ticket.failedVerificationReason && (
-        <Callout tone="destructive" title="Failed verification reason">
-          {ticket.failedVerificationReason}
         </Callout>
       )}
       {ticket.remarks && (

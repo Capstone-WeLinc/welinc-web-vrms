@@ -74,7 +74,7 @@ function historyColumns(isAdmin: boolean): Column<RepairHistoryRow>[] {
       header: 'Duration',
       cell: (row) => (
         <span className="whitespace-nowrap">
-          {row.status === 'COMPLETED' && row.closedAt ? formatDuration(row.createdAt, row.closedAt) : '—'}
+          {row.status === 'CLOSED' && row.closedAt ? formatDuration(row.createdAt, row.closedAt) : '—'}
         </span>
       ),
     },
@@ -141,7 +141,7 @@ export function HistoryPage() {
 
   return (
     <div>
-      <PageHeader title="Repair history" subtitle="Closed repairs, completed and cancelled." icon={History} />
+      <PageHeader title="Repair history" subtitle="Finished repairs, closed and cancelled." icon={History} />
 
       <HistoryFilters
         value={filters}
@@ -189,7 +189,7 @@ export function HistoryPage() {
                   }
                 : {
                     title: 'No closed repairs yet',
-                    description: 'Completed and cancelled repairs show up here.',
+                    description: 'Closed and cancelled repairs show up here.',
                     icon: Archive,
                   }
             }

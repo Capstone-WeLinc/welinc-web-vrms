@@ -6,10 +6,10 @@ import { PIPELINE_STATUSES, type PipelineStatus } from '../lib/attention';
 
 // Chart tokens: the same hue families as the status badges, at mid tones that read as fills.
 const STAGES: Record<PipelineStatus, { label: string; fill: string; dot: string }> = {
-  PENDING: { label: 'Pending', fill: 'fill-chart-2', dot: 'bg-chart-2' },
+  ASSIGNED: { label: 'Assigned', fill: 'fill-chart-2', dot: 'bg-chart-2' },
   IN_PROGRESS: { label: 'In progress', fill: 'fill-chart-1', dot: 'bg-chart-1' },
   FOR_VERIFICATION: { label: 'For verification', fill: 'fill-chart-4', dot: 'bg-chart-4' },
-  COMPLETED: { label: 'Completed', fill: 'fill-chart-3', dot: 'bg-chart-3' },
+  CLOSED: { label: 'Closed', fill: 'fill-chart-3', dot: 'bg-chart-3' },
 };
 
 function share(count: number, total: number) {
@@ -21,7 +21,7 @@ export function RepairProgressChart({ counts }: { counts: Record<PipelineStatus,
   const [hovered, setHovered] = useState<PipelineStatus | null>(null);
   const total = PIPELINE_STATUSES.reduce((sum, status) => sum + counts[status], 0);
   const breakdown = PIPELINE_STATUSES.map((s) => `${STAGES[s].label} ${counts[s]}`).join(', ');
-  const label = `${total === 0 ? 'Nothing open and nothing completed this month. ' : ''}Pipeline: ${breakdown}`;
+  const label = `${total === 0 ? 'Nothing open and nothing closed this month. ' : ''}Pipeline: ${breakdown}`;
 
   const segments = PIPELINE_STATUSES.map((status, index) => ({
     status,
@@ -68,7 +68,7 @@ export function RepairProgressChart({ counts }: { counts: Record<PipelineStatus,
             </Tooltip>
           ))}
         </svg>
-        {total === 0 && <p className="text-sm text-muted-foreground">Nothing open and nothing completed this month</p>}
+        {total === 0 && <p className="text-sm text-muted-foreground">Nothing open and nothing closed this month</p>}
       </div>
 
       <ul className="flex flex-wrap gap-x-6 gap-y-2">

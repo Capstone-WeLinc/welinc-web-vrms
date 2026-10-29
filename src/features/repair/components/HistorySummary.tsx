@@ -31,15 +31,15 @@ export function HistorySummary({ summary, showSpend }: HistorySummaryProps) {
     );
   }
 
-  // On phones a peso total can't fit a half width tile, so Closed and Total spend take
-  // the full row with Completed and Cancelled paired between them. Mechanics (three
+  // On phones a peso total can't fit a half width tile, so Finished and Total spend take
+  // the full row with Closed and Cancelled paired between them. Mechanics (three
   // tiles) keep that shape until the row of three fits at 1024px.
   return (
     <section aria-label="Totals for these filters" className={grid}>
       <div className={cn('col-span-2 *:h-full', showSpend ? 'sm:col-span-1' : 'lg:col-span-1')}>
-        <KpiCard caption="Closed" value={summary.closed.toLocaleString('en-US')} icon={Archive} />
+        <KpiCard caption="Finished" value={summary.finished.toLocaleString('en-US')} icon={Archive} />
       </div>
-      <KpiCard caption="Completed" value={summary.completed.toLocaleString('en-US')} icon={CheckCircle2} tone="success" />
+      <KpiCard caption="Closed" value={summary.closed.toLocaleString('en-US')} icon={CheckCircle2} tone="success" />
       <KpiCard caption="Cancelled" value={summary.cancelled.toLocaleString('en-US')} icon={XCircle} />
       {showSpend && summary.spend !== null && (
         <div className="col-span-2 *:h-full sm:col-span-1">

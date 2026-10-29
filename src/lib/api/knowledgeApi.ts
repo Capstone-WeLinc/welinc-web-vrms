@@ -1,4 +1,4 @@
-import type { RepairStatus } from '../../types';
+import type { AuditChange, RepairStatus } from '../../types';
 import api from './axios';
 
 // Spec 0007: the knowledge base in welinc-backend-vrms (/vrms/knowledge).
@@ -139,13 +139,16 @@ export interface EntryFields {
   parts: string[];
 }
 
+/** One save on an entry, with every field it changed (spec 0010, the audit log shape). */
 export interface EntryChange {
   id: string;
-  email: string;
+  actorUserId: string | null;
+  actorName: string | null;
+  actorEmail: string | null;
+  actorRole: string | null;
   action: string;
-  fieldName: string | null;
-  previousValue: string | null;
-  newValue: string | null;
+  changes: AuditChange[];
+  note: string | null;
   createdAt: string;
 }
 

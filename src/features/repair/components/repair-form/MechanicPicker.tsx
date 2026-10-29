@@ -1,5 +1,5 @@
 import { useId, useMemo } from 'react';
-import { Controller, useFormState, type UseFormClearErrors, type UseFormSetError } from 'react-hook-form';
+import { Controller, useFormState, type UseFormClearErrors } from 'react-hook-form';
 import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,12 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui
 import { cn } from '@/lib/utils';
 import type { MechanicOption } from '../../../../lib/api/vrmsConfigApi';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
-import { NAME_LIMIT, sameName, type RepairFormControl, type RepairFormInput } from '../../lib/repairFormSchema';
+import type { RepairFormControl, RepairFormInput } from '../../lib/repairFormSchema';
 import { ListError } from './RepairFormParts';
 
 interface MechanicPickerProps {
   control: RepairFormControl;
   mechanics: OptionList<MechanicOption>;
-  setError: UseFormSetError<RepairFormInput>;
   clearErrors: UseFormClearErrors<RepairFormInput>;
 }
 
@@ -24,10 +23,11 @@ function sortMechanics(list: MechanicOption[]) {
 }
 
 /**
- * An adder: picking a mechanic adds a chip and clears the picker (AC-10). The error for an empty
- * list shows only after a submit, so the picker never calls the field's onBlur.
+ * An adder: picking a mechanic adds a chip and clears the picker (AC-10). In house mechanics only
+ * (spec 0010, AC-12). The error for an empty list shows only after a submit, so the picker never
+ * calls the field's onBlur.
  */
-export function MechanicPicker({ control, mechanics, setError, clearErrors }: MechanicPickerProps) {
+export function MechanicPicker({ control, mechanics, clearErrors }: MechanicPickerProps) {
   const id = useId();
   const { errors } = useFormState({ control, name: 'mechanics' });
   const sorted = useMemo(() => sortMechanics(mechanics.data ?? []), [mechanics.data]);
@@ -39,8 +39,7 @@ export function MechanicPicker({ control, mechanics, setError, clearErrors }: Me
       name="mechanics"
       render={({ field }) => {
         const chips = field.value;
-        // In house picks are by Mechanic id, so two people with one name stay apart (spec 0009, AC-27)
-        const taken = (name: string) => chips.some((chip) => sameName(chip.name, name));
+        // Picks are by Mechanic id, so two people with one name stay apart (spec 0009, AC-27)
         const options: ComboboxOption[] = sorted
           .filter((m) => !chips.some((chip) => chip.id === m.id))
           .map((m) => ({
@@ -49,7 +48,7 @@ export function MechanicPicker({ control, mechanics, setError, clearErrors }: Me
             badge: m.isAvailable ? undefined : <Badge variant="secondary">Has open work</Badge>,
           }));
 
-        const add = (chip: { id?: string; name: string; isOutsourced: boolean }) => {
+        const add = (chip: { id: string; name: string }) => {
           clearErrors('mechanics');
           field.onChange([...chips, chip]);
         };
@@ -76,25 +75,16 @@ export function MechanicPicker({ control, mechanics, setError, clearErrors }: Me
               value=""
               onValueChange={(mechanicId) => {
                 const picked = sorted.find((m) => m.id === mechanicId);
-                if (picked) add({ id: picked.id, name: picked.name, isOutsourced: false });
+                if (picked) add({ id: picked.id, name: picked.name });
               }}
-              onCreate={(text) => {
-                if (text.length > NAME_LIMIT) {
-                  setError('mechanics', { type: 'manual', message: 'Keep names to 100 characters.' });
-                  return;
-                }
-                add({ name: text, isOutsourced: true });
-              }}
-              canCreate={(text) => !taken(text)}
-              createLabel={(text) => `Add "${text}" as outsourced`}
               placeholder="Add a mechanic"
-              searchPlaceholder="Search or type an outsourced name"
+              searchPlaceholder="Search mechanics"
               emptyText="No mechanic matches."
             />
             <FieldDescription id={`${id}-help`}>
               {noneInHouse
-                ? 'No in house mechanics are set up yet. Add an outsourced one.'
-                : 'Type a name that isn’t listed to add an outsourced mechanic.'}
+                ? 'No in house mechanics are set up yet. Give someone a mechanic role on the Users page.'
+                : 'Pick everyone working on this repair.'}
             </FieldDescription>
             {mechanics.failed && (
               <ListError message="Couldn’t load mechanics." retrying={mechanics.retrying} onRetry={mechanics.retry} />
@@ -105,14 +95,13 @@ export function MechanicPicker({ control, mechanics, setError, clearErrors }: Me
                   const stale = chipErrors.some((item) => item.index === index);
                   return (
                     <li
-                      key={chip.isOutsourced ? `out:${chip.name}` : `in:${chip.id}`}
+                      key={chip.id}
                       className={cn(
                         'flex items-center gap-1.5 rounded-full border bg-secondary py-0.5 pl-3 text-sm text-foreground',
                         stale ? 'border-destructive' : 'border-border',
                       )}
                     >
                       <span className="max-w-60 truncate">{chip.name}</span>
-                      {chip.isOutsourced && <Badge variant="outline">Outsourced</Badge>}
                       <Button
                         type="button"
                         variant="ghost"
