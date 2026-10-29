@@ -15,6 +15,7 @@ export type PermissionKey =
   | 'ticket.costs.edit'
   | 'ticket.unlock'
   | 'audit.view'
+  | 'analytics.view'
   | 'config.read'
   | 'knowledge.view'
   | 'knowledge.suggest'
@@ -36,3 +37,7 @@ export const PERMISSIONS_REFETCH_MS = 60_000;
 
 /** Fired by the axios instance on any 403, so the permissions refetch at once (AC-23). */
 export const FORBIDDEN_EVENT = 'welinc:forbidden';
+
+// Spec 0011, AC-24: one fixed text whatever the body says, at most once per 5 seconds
+export const DENIED_MESSAGE = 'You no longer have permission to do that.';
+export const DENIED_TOAST_MS = 5_000;

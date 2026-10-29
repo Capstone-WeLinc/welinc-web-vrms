@@ -127,6 +127,14 @@ export interface RepairPart {
   subtotal: number;
 }
 
+/** What the caller may do on one ticket, computed by the server (spec 0011, AC-12a). */
+export interface TicketCan {
+  work: boolean;
+  administer: boolean;
+  editCosts: boolean;
+  unlock: boolean;
+}
+
 export interface RepairTicket {
   id: string;
   repairNumber: string;
@@ -164,6 +172,7 @@ export interface RepairTicket {
   unlockReason?: string;
   driverIsVerified?: boolean;
   repairParts?: RepairPart[];
+  can: TicketCan;
 }
 
 export interface CreateRepairPayload {

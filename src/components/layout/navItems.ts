@@ -10,7 +10,6 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { UserRole } from '../../types';
 import type { PermissionKey } from '../../lib/permissions/keys';
 
 export interface NavItem {
@@ -31,13 +30,13 @@ type NavEntry = NavItem | false;
 const present = (entries: NavEntry[]) => entries.filter((entry): entry is NavItem => entry !== false);
 
 /**
- * The nav for what the signed in user may do (spec 0011, AC-22): each item shows with the key
- * its page needs. `role` only gates Analytics, which has no key in the catalog yet.
+ * The nav for what the signed in user may do (spec 0011, AC-22, AC-22a): each item shows with the
+ * key its page needs.
  */
-export function getNavSections(can: (key: PermissionKey) => boolean, role: UserRole | undefined): NavSection[] {
+export function getNavSections(can: (key: PermissionKey) => boolean): NavSection[] {
   const seesAll = can('ticket.view_all');
   const seesTickets = seesAll || can('ticket.view');
-  const analytics = role === 'ADMIN';
+  const analytics = can('analytics.view');
 
   const sections: NavSection[] = [
     {
@@ -84,6 +83,14 @@ const MOBILE_TAB_ORDER = ['/dashboard', '/repairs', '/history', '/knowledge-base
 export function getMobileTabs(sections: NavSection[]): NavItem[] {
   const items = sections.flatMap((section) => section.items);
   return MOBILE_TAB_ORDER.flatMap((to) => items.filter((item) => item.to === to));
+}
+
+/**
+ * design.md: a bottom tab bar on phones when every nav item fits in it, else the sheet menu.
+ * Read from the nav, not the role, so a granted page is never left out of the phone nav.
+ */
+export function usesTabBar(sections: NavSection[]): boolean {
+  return getMobileTabs(sections).length === sections.flatMap((section) => section.items).length;
 }
 
 /** The section and item for the current path, for the header breadcrumb. */

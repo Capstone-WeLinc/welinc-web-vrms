@@ -9,6 +9,8 @@ import { lastPage } from '../../../components/shared/data-table/types';
 import { useToast } from '../../../context/toast';
 import { useAuthStore } from '../../../store/authStore';
 import type { ManagedUser } from '../../../types';
+import { Can } from '../../../lib/permissions/Can';
+import { RolesPermissionsSection } from '../components/RolesPermissionsSection';
 import { UserFormDialog, type SaveOutcome } from '../components/UserFormDialog';
 import { UserListFilters } from '../components/UserListFilters';
 import { UserStatusTiles } from '../components/UserStatusTiles';
@@ -25,7 +27,7 @@ import { hasActiveFilters, matchesUserFilters, USERS_PAGE_SIZE } from '../lib/us
 /** The open dialog: New user, or Edit with the row as it was when the dialog opened. */
 type DialogState = { open: boolean; user: ManagedUser | null; session: number };
 
-/** Admin only through RequireRole in App.tsx and @Roles(ADMIN) on the server (spec 0006). */
+/** users.manage, in App.tsx and on the server (spec 0006, spec 0011). */
 export function UsersPage() {
   const currentUserId = useAuthStore((state) => state.user?.id);
   const isMobile = useIsMobile();
@@ -165,6 +167,10 @@ export function UsersPage() {
         }
         empty={empty}
       />
+
+      <Can I="permissions.manage">
+        <RolesPermissionsSection />
+      </Can>
 
       <UserFormDialog
         key={dialog.session}

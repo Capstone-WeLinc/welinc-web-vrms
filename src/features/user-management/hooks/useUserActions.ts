@@ -5,10 +5,9 @@ import type { RowAction } from '../../../components/shared/data-table/types';
 import { useToast } from '../../../context/toast';
 import { requestPasswordReset, setUserStatus, unlockUser } from '../../../lib/api/authApi';
 import { getApiErrorMessage } from '../../../lib/api/errors';
-import { isMechanicRole } from '../../../lib/roles';
 import { getAvailableMechanics, type MechanicOption } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
-import { getAccountStatus, vrmsRoles } from '../lib/accountStatus';
+import { getAccountStatus, onMechanicRoster } from '../lib/accountStatus';
 import { returnFocusToRow } from '../lib/focusReturn';
 import { findMechanicWithOpenWork } from '../lib/openWork';
 import { syncAfterSave } from '../lib/mechanicSync';
@@ -128,7 +127,7 @@ export function useUserActions({ currentUserId, onEdit, runWrite, upsertUser }: 
       mechanics = await getAvailableMechanics();
     } catch {
       // Fails closed for a mechanic; an admin only account has no tickets to strand.
-      if (!vrmsRoles(user).some(isMechanicRole)) return 'clear';
+      if (!onMechanicRoster(user)) return 'clear';
       const again = await confirm({
         title: 'Couldn’t check open work',
         description: `We couldn’t check whether ${user.name} has open repair tickets, so they can’t be deactivated yet.`,

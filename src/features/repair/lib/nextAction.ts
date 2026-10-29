@@ -20,15 +20,22 @@ export function isClosed(ticket: Pick<RepairTicket, 'status'>) {
   return isFinishedStatus(ticket.status);
 }
 
-/** Mechanics only ever load tickets they are assigned to (the API answers 403 otherwise). */
-export function nextAction(ticket: RepairTicket, isAdmin: boolean): NextAction {
+/**
+ * From the ticket's own `can` flags, which the server computes for the caller (spec 0011, AC-12a).
+ * `administer` offers every forward move; `work` stops before close; neither is view only.
+ */
+export function nextAction(ticket: RepairTicket): NextAction {
+  const { can } = ticket;
   if (isClosed(ticket)) {
-    if (!isAdmin) return { kind: 'note', text: 'This ticket is closed.' };
+    if (!can.unlock) return { kind: 'note', text: 'This ticket is closed.' };
     return ticket.isUnlocked
       ? { kind: 'note', text: 'Unlocked for editing. Saving costs locks it again.' }
       : { kind: 'unlock', label: 'Unlock ticket' };
   }
-  if (ticket.status === 'FOR_VERIFICATION' && !isAdmin) {
+  if (!can.administer && !can.work) {
+    return { kind: 'note', text: 'This ticket is assigned to someone else.' };
+  }
+  if (ticket.status === 'FOR_VERIFICATION' && !can.administer) {
     return { kind: 'note', text: 'Waiting for an admin to sign off.' };
   }
   const step = FORWARD[ticket.status];
@@ -39,14 +46,19 @@ export function hasActionButton(action: NextAction) {
   return action.kind !== 'note';
 }
 
-/** Admins cancel open tickets only; cancelling finished work is a status override (feature 33). */
-export function canCancel(ticket: RepairTicket, isAdmin: boolean) {
-  return isAdmin && !isClosed(ticket);
+/** Cancelling is an administer move, on open tickets only; finished work is feature 33's override. */
+export function canCancel(ticket: RepairTicket) {
+  return ticket.can.administer && !isClosed(ticket);
 }
 
 /** Matches the server: costs open at For verification, and on a closed ticket only while unlocked. */
-export function canEditCosts(ticket: RepairTicket, isAdmin: boolean) {
-  return isAdmin && (ticket.status === 'FOR_VERIFICATION' || (isClosed(ticket) && !!ticket.isUnlocked));
+export function canEditCosts(ticket: RepairTicket) {
+  return ticket.can.editCosts && (ticket.status === 'FOR_VERIFICATION' || (isClosed(ticket) && !!ticket.isUnlocked));
+}
+
+/** Status moves, steps and known fixes: the caller's own ticket, or any with administer (AC-12). */
+export function canWorkTicket(ticket: RepairTicket) {
+  return ticket.can.work || ticket.can.administer;
 }
 
 /** Any cost recorded, a 0 included (the API sends a stored 0 as 0). */

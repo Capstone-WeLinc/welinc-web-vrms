@@ -12,7 +12,6 @@ import { DetailItem, DetailSection } from '../../../components/shared/DetailSect
 
 interface StatusCardProps {
   ticket: RepairTicket;
-  isAdmin: boolean;
   readOnly: boolean;
   action: NextAction;
   showCancel: boolean;
@@ -20,10 +19,10 @@ interface StatusCardProps {
   onCancel: () => void;
 }
 
-export function StatusCard({ ticket, isAdmin, readOnly, action, showCancel, onAction, onCancel }: StatusCardProps) {
-  // The API sends isUnlocked to admins only, so mechanics never see a lock badge.
+export function StatusCard({ ticket, readOnly, action, showCancel, onAction, onCancel }: StatusCardProps) {
+  // Only someone who may unlock sees the lock state (spec 0011, AC-12a)
   const lockBadge =
-    isAdmin && isClosed(ticket) ? (
+    ticket.can.unlock && isClosed(ticket) ? (
       ticket.isUnlocked ? (
         <BadgePill className="bg-highlight text-highlight-foreground">Unlocked for editing</BadgePill>
       ) : (
@@ -116,7 +115,7 @@ export function DetailsCard({ ticket, now }: { ticket: RepairTicket; now: number
   );
 }
 
-export function PeopleCard({ ticket, isAdmin }: { ticket: RepairTicket; isAdmin: boolean }) {
+export function PeopleCard({ ticket }: { ticket: RepairTicket }) {
   const mechanics = ticket.mechanics ?? [];
   return (
     <DetailSection title="People">
@@ -124,7 +123,8 @@ export function PeopleCard({ ticket, isAdmin }: { ticket: RepairTicket; isAdmin:
         <DetailItem label="Driver">
           <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             {ticket.driverName}
-            {isAdmin && ticket.driverIsVerified != null && (
+            {/* Sent with the cost record only (ticket.costs.view) */}
+            {ticket.driverIsVerified != null && (
               <span
                 className={cn(
                   'inline-flex items-center gap-1 text-xs font-medium',

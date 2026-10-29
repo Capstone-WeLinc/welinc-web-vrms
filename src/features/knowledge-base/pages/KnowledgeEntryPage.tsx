@@ -11,8 +11,7 @@ import { ErrorState } from '../../../components/shared/ErrorState';
 import { PriorityBadge } from '../../../components/shared/PriorityBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import type { KnowledgeEntryDetail } from '../../../lib/api/knowledgeApi';
-import { isKnowledgeEditor } from '../../../lib/roles';
-import { useAuthStore } from '../../../store/authStore';
+import { useCan } from '../../../lib/permissions/usePermissions';
 import { EntryActions } from '../components/EntryActions';
 import { EntryDetailSkeleton } from '../components/EntryDetailSkeleton';
 import { FromYourRepairsCard, RecentTicketsCard, RepeatVehiclesCard } from '../components/EntryHistoryCards';
@@ -94,7 +93,8 @@ function EntryBody({ entry, isEditor }: { entry: KnowledgeEntryDetail; isEditor:
 export function KnowledgeEntryPage() {
   const { entryId = '' } = useParams<{ entryId: string }>();
   const location = useLocation();
-  const isEditor = useAuthStore((state) => isKnowledgeEditor(state.user?.role));
+  const isEditor = useCan('knowledge.edit');
+  const suggests = useCan('knowledge.suggest') && !isEditor;
   const entry = useEntry(entryId);
   const back = backTo((location.state as { from?: unknown } | null)?.from);
   const [suggesting, setSuggesting] = useState(false);
@@ -137,12 +137,12 @@ export function KnowledgeEntryPage() {
         action={
           isEditor ? (
             <EntryActions entry={data} onChanged={entry.replace} onStale={entry.retry} />
-          ) : (
+          ) : suggests ? (
             <Button variant="outline" size="touch" className="md:h-10 md:text-sm" onClick={() => setSuggesting(true)}>
               <MessageSquarePlus aria-hidden="true" />
               Suggest a change
             </Button>
-          )
+          ) : undefined
         }
       />
       <div className="-mt-2 mb-6 flex flex-wrap items-center gap-2">
@@ -153,7 +153,7 @@ export function KnowledgeEntryPage() {
         {data.status !== 'ACTIVE' && <StatusBadge status={data.status} />}
       </div>
       <EntryBody entry={data} isEditor={isEditor} />
-      {!isEditor && <SuggestDialog open={suggesting} onOpenChange={setSuggesting} kind="CHANGE" entryId={data.id} />}
+      {suggests && <SuggestDialog open={suggesting} onOpenChange={setSuggesting} kind="CHANGE" entryId={data.id} />}
     </div>
   );
 }

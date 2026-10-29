@@ -18,13 +18,12 @@ import { KnowledgeLibraryPage } from './features/knowledge-base/pages/KnowledgeL
 import { KnowledgeSuggestionsPage } from './features/knowledge-base/pages/KnowledgeSuggestionsPage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
-import type { User, UserRole } from './types';
+import type { User } from './types';
 import { getCurrentUser } from './lib/api/authApi';
 import { Toaster } from './components/ui/sonner';
 import { ConfirmProvider } from './components/shared/confirm/ConfirmProvider';
 import { TooltipProvider } from './components/ui/tooltip';
 import SessionMonitor from './components/SessionMonitor';
-import { KNOWLEDGE_EDITOR_ROLES } from './lib/roles';
 import { PermissionsProvider } from './lib/permissions/PermissionsProvider';
 import { PermissionsGate } from './components/layout/PermissionsGate';
 import { useCan } from './lib/permissions/usePermissions';
@@ -46,17 +45,6 @@ function RequireAuth({ children }: { children: ReactElement }) {
   return children;
 }
 
-function RequireRole({ role, children }: { role: UserRole | UserRole[]; children: ReactElement }) {
-  const user = useAuthStore((state) => state.user);
-  const allowed = Array.isArray(role) ? role : [role];
-
-  if (!user || !allowed.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return children;
-}
-
 /** Spec 0011, AC-22: the page needs any one of these keys, or it sends you to the dashboard. */
 function RequirePermission({ keys, children }: { keys: PermissionKey[]; children: ReactElement }) {
   const allowed = useCan(...keys);
@@ -64,6 +52,8 @@ function RequirePermission({ keys, children }: { keys: PermissionKey[]; children
 }
 
 const TICKET_READ: PermissionKey[] = ['ticket.view', 'ticket.view_all'];
+const KNOWLEDGE_READ: PermissionKey[] = ['knowledge.view'];
+const KNOWLEDGE_EDIT: PermissionKey[] = ['knowledge.edit'];
 
 function App() {
   const token = useAuthStore((state) => state.token);
@@ -165,59 +155,73 @@ function App() {
           <Route
             path="users"
             element={
-              <RequireRole role="ADMIN">
+              <RequirePermission keys={['users.manage']}>
                 <UsersPage />
-              </RequireRole>
+              </RequirePermission>
             }
           />
           <Route
             path="audit-logs"
             element={
-              <RequireRole role="ADMIN">
+              <RequirePermission keys={['audit.view']}>
                 <AuditLogsPage />
-              </RequireRole>
+              </RequirePermission>
             }
           />
           <Route
             path="analytics"
             element={
-              <RequireRole role="ADMIN">
+              <RequirePermission keys={['analytics.view']}>
                 <AnalyticsPage />
-              </RequireRole>
+              </RequirePermission>
             }
           />
-          <Route path="knowledge-base" element={<KnowledgeLibraryPage />} />
-          <Route path="knowledge-base/:entryId" element={<KnowledgeEntryPage />} />
+          <Route
+            path="knowledge-base"
+            element={
+              <RequirePermission keys={KNOWLEDGE_READ}>
+                <KnowledgeLibraryPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="knowledge-base/:entryId"
+            element={
+              <RequirePermission keys={KNOWLEDGE_READ}>
+                <KnowledgeEntryPage />
+              </RequirePermission>
+            }
+          />
           <Route
             path="knowledge-base/new"
             element={
-              <RequireRole role={KNOWLEDGE_EDITOR_ROLES}>
+              <RequirePermission keys={KNOWLEDGE_EDIT}>
                 <KnowledgeEditorPage />
-              </RequireRole>
+              </RequirePermission>
             }
           />
           <Route
             path="knowledge-base/:entryId/edit"
             element={
-              <RequireRole role={KNOWLEDGE_EDITOR_ROLES}>
+              <RequirePermission keys={KNOWLEDGE_EDIT}>
                 <KnowledgeEditorPage />
-              </RequireRole>
+              </RequirePermission>
             }
           />
           <Route
             path="knowledge-base/suggestions"
             element={
-              <RequireRole role={KNOWLEDGE_EDITOR_ROLES}>
+              <RequirePermission keys={KNOWLEDGE_EDIT}>
                 <KnowledgeSuggestionsPage />
-              </RequireRole>
+              </RequirePermission>
             }
           />
           <Route
             path="knowledge-base/categories"
             element={
-              <RequireRole role={KNOWLEDGE_EDITOR_ROLES}>
+              <RequirePermission keys={KNOWLEDGE_EDIT}>
                 <KnowledgeCategoriesPage />
-              </RequireRole>
+              </RequirePermission>
             }
           />
         </Route>

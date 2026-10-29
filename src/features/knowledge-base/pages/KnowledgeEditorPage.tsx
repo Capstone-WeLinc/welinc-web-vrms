@@ -12,7 +12,7 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { FormAlert } from '../../../components/shared/FormAlert';
 import { useToast } from '../../../context/toast';
-import { useAuthStore } from '../../../store/authStore';
+import { useHasTabBar } from '../../../components/layout/useNavSections';
 import { useLeaveGuard } from '../../../hooks/useLeaveGuard';
 import { getApiErrorMessage, getConflictCode } from '../../../lib/api/errors';
 import { createEntry, updateEntry, type IssueCategory, type KnowledgeEntryDetail } from '../../../lib/api/knowledgeApi';
@@ -51,7 +51,7 @@ function EntryEditor({ entry, categories, onReload, origin, originLost }: EntryE
   const navigate = useNavigate();
   const { showToast } = useToast();
   const isNew = entry === null;
-  const hasTabBar = useAuthStore((state) => state.user?.role !== 'ADMIN');
+  const hasTabBar = useHasTabBar();
 
   const {
     control,

@@ -1,19 +1,17 @@
 import { Outlet } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
 import { cn } from '@/lib/utils';
 import { AppHeader } from './AppHeader';
 import { MobileTabBar } from './MobileTabBar';
 import { Sidebar } from './Sidebar';
-import { getMobileTabs } from './navItems';
+import { getMobileTabs, usesTabBar } from './navItems';
 import { useNavSections } from './useNavSections';
 import { useSidebarCollapsed } from './useSidebarCollapsed';
 
 export function DashboardShell() {
-  const role = useAuthStore((state) => state.user?.role);
   const sections = useNavSections();
   const { collapsed, toggle } = useSidebarCollapsed();
-  // design.md: admins get a sheet menu on phones, everyone else a bottom tab bar.
-  const hasTabBar = role !== 'ADMIN';
+  // design.md: a bottom tab bar on phones when the nav fits in it, else the sheet menu
+  const hasTabBar = usesTabBar(sections);
 
   return (
     <div className="min-h-dvh bg-background">
