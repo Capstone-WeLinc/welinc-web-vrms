@@ -230,7 +230,7 @@ function IssueBlock({ ticket, issue, index, canLink, canTick, entries, onChanged
                   <StepRow key={step.id} step={step} enabled={canTick} onToggle={(checked) => void toggle(step, checked)} />
                 ))}
               </ol>
-              {!canTick && ticket.status === 'PENDING' && (
+              {!canTick && ticket.status === 'ASSIGNED' && (
                 <p className="text-xs text-muted-foreground">Steps can be ticked once work starts.</p>
               )}
             </div>
@@ -298,7 +298,7 @@ function IssueBlock({ ticket, issue, index, canLink, canTick, entries, onChanged
 /** One block per issue with its known fix, checklist and "What fixed it" (spec 0007, AC-27 to AC-31). */
 export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSectionProps) {
   const issues = ticket.issues ?? [];
-  const canLink = canWork && (ticket.status === 'PENDING' || ticket.status === 'IN_PROGRESS');
+  const canLink = canWork && (ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS');
   const canTick = canWork && ticket.status === 'IN_PROGRESS';
   const entries = useEntryOptions(canLink);
 

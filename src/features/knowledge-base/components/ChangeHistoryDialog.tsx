@@ -30,32 +30,41 @@ function shown(field: string | null, value: string | null) {
   return value;
 }
 
+const fieldLabel = (field: string) => FIELD_LABELS[field] ?? field;
+
+/** One save: its title, who and when, then the before and after of every field it changed. */
 function ChangeRow({ change }: { change: EntryChange }) {
-  const field = change.fieldName;
-  const title =
-    change.action === 'ENTRY_CREATED'
-      ? `Created as ${shown('status', change.newValue).toLowerCase()}`
-      : `${FIELD_LABELS[field ?? ''] ?? field ?? 'Entry'} changed`;
+  const created = change.action === 'ENTRY_CREATED';
+  const status = change.changes.find((c) => c.field === 'status');
+  const title = created
+    ? `Created as ${shown('status', status?.after ?? null).toLowerCase()}`
+    : change.changes.length === 1
+      ? `${fieldLabel(change.changes[0].field)} changed`
+      : `${change.changes.length} fields changed`;
   return (
     <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
         <p className="text-sm font-medium text-foreground">{title}</p>
         <p className="text-xs text-muted-foreground tabular-nums">
-          {change.email} · {formatDateTime(change.createdAt)}
+          {change.actorName ?? change.actorEmail ?? 'System'} · {formatDateTime(change.createdAt)}
         </p>
       </div>
-      {change.action !== 'ENTRY_CREATED' && (
-        <dl className="grid gap-2 text-sm sm:grid-cols-2">
-          <div className="min-w-0 rounded-lg bg-muted p-2">
-            <dt className="text-xs font-medium text-muted-strong">Before</dt>
-            <dd className="break-words whitespace-pre-line text-foreground">{shown(field, change.previousValue)}</dd>
+      {!created &&
+        change.changes.map((c) => (
+          <div key={c.field} className="flex flex-col gap-1">
+            {change.changes.length > 1 && <p className="text-xs font-medium text-muted-strong">{fieldLabel(c.field)}</p>}
+            <dl className="grid gap-2 text-sm sm:grid-cols-2">
+              <div className="min-w-0 rounded-lg bg-muted p-2">
+                <dt className="text-xs font-medium text-muted-strong">Before</dt>
+                <dd className="break-words whitespace-pre-line text-foreground">{shown(c.field, c.before)}</dd>
+              </div>
+              <div className="min-w-0 rounded-lg bg-muted p-2">
+                <dt className="text-xs font-medium text-muted-strong">After</dt>
+                <dd className="break-words whitespace-pre-line text-foreground">{shown(c.field, c.after)}</dd>
+              </div>
+            </dl>
           </div>
-          <div className="min-w-0 rounded-lg bg-muted p-2">
-            <dt className="text-xs font-medium text-muted-strong">After</dt>
-            <dd className="break-words whitespace-pre-line text-foreground">{shown(field, change.newValue)}</dd>
-          </div>
-        </dl>
-      )}
+        ))}
     </li>
   );
 }

@@ -9,21 +9,6 @@ export function formatDate(dateString: string) {
   });
 }
 
-export function buildStatusClass(status: string) {
-  switch (status) {
-    case 'IN_PROGRESS':
-      return 'status-chip status-in-progress';
-    case 'FOR_VERIFICATION':
-      return 'status-chip status-for-verification';
-    case 'COMPLETED':
-      return 'status-chip status-completed';
-    case 'CANCELLED':
-      return 'status-chip status-cancelled';
-    default:
-      return 'status-chip status-pending';
-  }
-}
-
 // Spec 0002 and 0003 text rules. Dates and times read in the browser's local time.
 
 const pesoFormat = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 0 });

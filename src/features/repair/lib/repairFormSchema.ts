@@ -4,8 +4,6 @@ import type { CreateRepairPayload } from '../../../types';
 
 // The repair form's one schema (spec 0005). Limits match create-repair.dto.ts.
 
-/** The Repair shop value for "Other"; no real shop is named this. */
-export const OTHER_SHOP = '__other__';
 /** The common issue picker's "Other (describe it yourself)" (spec 0007, AC-24). */
 export const OTHER_ISSUE = '__other_issue__';
 export const MAX_ISSUES = 10;
@@ -53,11 +51,10 @@ const issueSchema = z.object({
     .max(DESCRIPTION_LIMIT, 'Keep it to 500 characters.'),
 });
 
-/** An in house chip carries its Mechanic id; an outsourced one has none (spec 0009, AC-27). */
+/** An in house mechanic chip, by Mechanic id (spec 0009, AC-27). Outsourced shops return with feature 36. */
 const mechanicSchema = z.object({
-  id: z.string().optional(),
+  id: z.string(),
   name: z.string(),
-  isOutsourced: z.boolean(),
 });
 
 /** Built per validation, so "still in its list" always reads the current lists. */
@@ -99,24 +96,15 @@ export function buildRepairFormSchema(lists: RepairFormLists) {
         const ids = lists.mechanicIds;
         if (!ids) return;
         mechanics.forEach((mechanic, index) => {
-          if (!mechanic.isOutsourced && !(mechanic.id && ids.includes(mechanic.id))) {
+          if (!ids.includes(mechanic.id)) {
             ctx.addIssue({ code: 'custom', path: [index], message: `${mechanic.name} is no longer available.` });
           }
         });
       }),
-      shopChoice: z.string().min(1, 'Choose a repair shop.'),
-      otherShopName: z.string().trim(),
       accountType: z.enum(['ONLINE', 'CORPORATE']),
       corporation: z.string(),
     })
     .superRefine((values, ctx) => {
-      if (values.shopChoice === OTHER_SHOP) {
-        if (!values.otherShopName) {
-          ctx.addIssue({ code: 'custom', path: ['otherShopName'], message: 'Enter the shop name.' });
-        } else if (values.otherShopName.length > NAME_LIMIT) {
-          ctx.addIssue({ code: 'custom', path: ['otherShopName'], message: 'Keep it to 100 characters.' });
-        }
-      }
       if (values.accountType === 'CORPORATE' && !values.corporation) {
         ctx.addIssue({ code: 'custom', path: ['corporation'], message: 'Choose a corporation.' });
       }
@@ -143,8 +131,6 @@ export const REPAIR_FORM_DEFAULTS: RepairFormInput = {
   issues: [emptyIssue()],
   priority: 'MEDIUM',
   mechanics: [],
-  shopChoice: '',
-  otherShopName: '',
   accountType: 'ONLINE',
   corporation: '',
 };
@@ -159,12 +145,7 @@ export function toCreatePayload(values: RepairFormValues): CreateRepairPayload {
     corporation: values.accountType === 'CORPORATE' ? values.corporation : undefined,
     garageLocation: values.garageLocation,
     odometerReading: values.odometerReading,
-    mechanics: values.mechanics.map(({ id, name, isOutsourced }) =>
-      isOutsourced
-        ? { name: name.trim(), isOutsourced: true as const, shopName: name.trim() }
-        : { id: id ?? '', isOutsourced: false as const },
-    ),
-    shopName: values.shopChoice === OTHER_SHOP ? values.otherShopName : values.shopChoice,
+    mechanics: values.mechanics.map(({ id }) => ({ id })),
     priority: values.priority,
     issues: values.issues.map(({ knowledgeEntryId, categoryId, rootCause, description }) => ({
       categoryId,

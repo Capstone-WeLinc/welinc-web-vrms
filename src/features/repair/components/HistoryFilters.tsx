@@ -49,7 +49,7 @@ export function HistoryFilters({ value, garages, rangeError, onChange }: History
           <SelectContent>
             <SelectGroup>
               <SelectItem value="all">All</SelectItem>
-              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="CLOSED">Closed</SelectItem>
               <SelectItem value="CANCELLED">Cancelled</SelectItem>
             </SelectGroup>
           </SelectContent>

@@ -15,8 +15,6 @@ export const PRIORITY_OPTIONS = [
 
 const CORPORATION_OPTIONS = ['WeLinc Transport Corp', 'Metro Freight Corp', 'Global Logistics Inc'];
 
-const SHOP_OPTIONS = ['TireCare Garage', 'ProFix Auto Shop', 'City Repair Center', 'Rapid Repair Hub'];
-
 const ROOT_CAUSE_OPTIONS = [
   'Wear and tear',
   'Hydraulic leak',
@@ -28,13 +26,11 @@ const ROOT_CAUSE_OPTIONS = [
 
 export interface RepairFormOptions {
   corporations: readonly string[];
-  shops: readonly string[];
   rootCauses: readonly string[];
 }
 
 const REPAIR_FORM_OPTIONS: RepairFormOptions = {
   corporations: CORPORATION_OPTIONS,
-  shops: SHOP_OPTIONS,
   rootCauses: ROOT_CAUSE_OPTIONS,
 };
 

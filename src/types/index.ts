@@ -45,15 +45,26 @@ export interface UpdateUserPayload {
   roleAssignments?: UserRoleAssignment[];
 }
 
-export type RepairStatus = 'PENDING' | 'IN_PROGRESS' | 'FOR_VERIFICATION' | 'COMPLETED' | 'CANCELLED';
+/** Spec 0010. Open is every status except CLOSED and CANCELLED (lib/repairStatus.ts). */
+export type RepairStatus =
+  | 'OPEN'
+  | 'ASSIGNED'
+  | 'IN_PROGRESS'
+  | 'ON_HOLD'
+  | 'FOR_VERIFICATION'
+  | 'OUTSOURCED'
+  | 'PENDING_APPROVAL'
+  | 'CLOSED'
+  | 'CANCELLED';
+export type VehicleStatus = 'AVAILABLE' | 'UNDER_REPAIR' | 'UNDER_MAINTENANCE' | 'DISABLED';
+export type DueAtSource = 'PRIORITY' | 'ISSUE_TYPE' | 'MANUAL';
 export type AccountType = 'ONLINE' | 'CORPORATE';
 export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
+/** One assigned in house mechanic, built from TicketAssignment (spec 0010, AC-5). */
 export interface MechanicAssignment {
   id: string;
   name: string;
-  isOutsourced?: boolean;
-  shopName?: string;
 }
 
 /** A step copied from the linked knowledge entry (spec 0007, AC-28). */
@@ -126,22 +137,26 @@ export interface RepairTicket {
   status: RepairStatus;
   createdAt: string;
   updatedAt: string;
-  completedAt?: string | null;
+  lastActivityAt?: string;
+  /** Set on the move to Closed or Cancelled. */
+  closedAt?: string | null;
   totalCost?: number | null;
   accountType?: AccountType;
   corporation?: string;
   garageLocation?: string;
   odometerReading?: number;
   mechanics?: MechanicAssignment[];
-  shopName?: string;
   priority?: PriorityLevel;
   issues?: RepairIssue[];
-  targetDueDate?: string | null;
+  /** Empty until feature 42 sets due dates. */
+  dueAt?: string | null;
+  dueAtSource?: DueAtSource | null;
+  reportedByName?: string | null;
+  /** Who closed (verified) the ticket, and when. */
+  verifiedByName?: string | null;
+  verifiedAt?: string | null;
   remarks?: string;
-  repairDurationDays?: number;
-  repairDurationHours?: number;
   cancellationReason?: string;
-  failedVerificationReason?: string;
   laborCost?: number | null;
   partsCost?: number | null;
   isLumpSum?: boolean;
@@ -159,9 +174,8 @@ export interface CreateRepairPayload {
   corporation?: string;
   garageLocation: string;
   odometerReading: number;
-  /** In house mechanics by Mechanic id, outsourced ones by name and shop (spec 0009, AC-27). */
-  mechanics: ({ id: string; isOutsourced: false } | { name: string; isOutsourced: true; shopName: string })[];
-  shopName: string;
+  /** In house mechanics by Mechanic id (spec 0010, AC-12). */
+  mechanics: { id: string }[];
   priority: PriorityLevel;
   issues: CreateRepairIssue[];
 }
@@ -178,7 +192,6 @@ export type RepairHistoryRow = Pick<
   | 'garageLocation'
   | 'createdAt'
   | 'updatedAt'
-  | 'completedAt'
   | 'cancellationReason'
   | 'isUnlocked'
   | 'totalCost'
@@ -186,33 +199,30 @@ export type RepairHistoryRow = Pick<
 
 /** Totals over every row that matches the filters, not just the page. `spend` is null for mechanics. */
 export interface RepairHistorySummary {
+  /** Closed plus cancelled. */
+  finished: number;
   closed: number;
-  completed: number;
   cancelled: number;
   spend: number | null;
 }
 
-export interface CostSnapshot {
-  partsCost: number | null;
-  laborCost: number | null;
-  total: number | null;
-  isLumpSum: boolean;
+/** One changed field. Values are raw strings ("IN_PROGRESS", "1200.00", "true") or null; the UI formats them. */
+export interface AuditChange {
+  field: string;
+  before: string | null;
+  after: string | null;
 }
 
-/** One audit timeline event (spec 0003). `actor` is null when the row has no email. */
+/** One audit timeline event (spec 0003, spec 0010). `actor` is null for a system event. */
 export interface AuditEvent {
   id: string;
   type: string;
   at: string;
-  actor: { id: string | null; name: string | null; email: string | null } | null;
+  actor: { id: string | null; name: string | null; email: string | null; role: string | null } | null;
   ticket: { id: string; repairNumber: string };
-  status?: { from: string | null; to: string };
-  cost?: { from: CostSnapshot | null; to: CostSnapshot | null } | null;
-  unlockReason?: string;
-  garage?: { from: string | null; to: string | null };
-  /** KNOWLEDGE_LINK: the known fix entry names before and after; null is none (spec 0007, AC-29). */
-  knowledge?: { issueId: string | null; from: string | null; to: string | null };
-  rawAction: string;
+  changes: AuditChange[];
+  /** A reason or comment: the cancel reason, the unlock reason, or the remarks sent with a move. */
+  note: string | null;
 }
 
 export interface AuditActor {

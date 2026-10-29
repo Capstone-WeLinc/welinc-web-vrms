@@ -5,9 +5,10 @@ import { dayCount, type DueLabel, isOpen, isOverdue, overdueText, toTime, wholeD
 // so tiles and lists built from one fetch always agree. The due rules live in lib/utils/due.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const MECHANIC_WORK_STATUSES: RepairStatus[] = ['PENDING', 'IN_PROGRESS'];
+const MECHANIC_WORK_STATUSES: RepairStatus[] = ['ASSIGNED', 'IN_PROGRESS'];
 
-export const PIPELINE_STATUSES = ['PENDING', 'IN_PROGRESS', 'FOR_VERIFICATION', 'COMPLETED'] as const;
+// The stages a ticket moves through today (spec 0010); hold, outsourcing and approval arrive with feature 16
+export const PIPELINE_STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'FOR_VERIFICATION', 'CLOSED'] as const;
 export type PipelineStatus = (typeof PIPELINE_STATUSES)[number];
 
 export type SpendTimeframe = 'month' | '90d' | '365d' | 'all';
@@ -39,20 +40,20 @@ const byTime = (pick: (t: RepairTicket) => string | null | undefined, direction:
 
 /** Overdue first (oldest due date first), then waiting and not overdue (oldest update first). Each ticket once. */
 export function attentionList(active: RepairTicket[], now: number, limit: number) {
-  const overdue = active.filter((t) => isOverdue(t, now)).sort(byTime((t) => t.targetDueDate, 1));
+  const overdue = active.filter((t) => isOverdue(t, now)).sort(byTime((t) => t.dueAt, 1));
   const waiting = active.filter((t) => isWaiting(t) && !isOverdue(t, now)).sort(byTime((t) => t.updatedAt, 1));
   return [...overdue, ...waiting].slice(0, limit);
 }
 
-/** A mechanic's PENDING and IN_PROGRESS tickets: overdue first, then due soonest (none last), then newest update. */
+/** A mechanic's ASSIGNED and IN_PROGRESS tickets: overdue first, then due soonest (none last), then newest update. */
 export function mechanicWorkList(active: RepairTicket[], now: number) {
   return active
     .filter((t) => MECHANIC_WORK_STATUSES.includes(t.status))
     .sort((a, b) => {
       const overdueDiff = Number(isOverdue(b, now)) - Number(isOverdue(a, now));
       if (overdueDiff !== 0) return overdueDiff;
-      const dueA = toTime(a.targetDueDate);
-      const dueB = toTime(b.targetDueDate);
+      const dueA = toTime(a.dueAt);
+      const dueB = toTime(b.dueAt);
       if (dueA !== dueB) {
         if (dueA === null) return 1;
         if (dueB === null) return -1;
@@ -67,25 +68,29 @@ export function countMechanicOverdue(active: RepairTicket[], now: number) {
 }
 
 /** The history fields the dashboard reads; history rows are slimmer than a full ticket. */
-type ClosedTicket = Pick<RepairTicket, 'status' | 'completedAt'>;
+type FinishedTicket = Pick<RepairTicket, 'status' | 'closedAt'>;
 export type SpendTicket = Pick<RepairTicket, 'status' | 'createdAt' | 'totalCost'>;
 
-function isCompletedThisMonth(ticket: ClosedTicket, now: number) {
-  const completed = toTime(ticket.completedAt);
-  return ticket.status === 'COMPLETED' && completed !== null && sameLocalMonth(completed, now);
+function isClosedThisMonth(ticket: FinishedTicket, now: number) {
+  const closed = toTime(ticket.closedAt);
+  return ticket.status === 'CLOSED' && closed !== null && sameLocalMonth(closed, now);
 }
 
-export function completedThisMonth(history: ClosedTicket[], now: number) {
-  return history.filter((t) => isCompletedThisMonth(t, now)).length;
+export function closedThisMonth(history: FinishedTicket[], now: number) {
+  return history.filter((t) => isClosedThisMonth(t, now)).length;
 }
 
-/** Open tickets by status, plus Completed for this month only (matches the Done this month tile). */
-export function pipelineCounts(active: RepairTicket[], history: ClosedTicket[], now: number): Record<PipelineStatus, number> {
-  const counts: Record<PipelineStatus, number> = { PENDING: 0, IN_PROGRESS: 0, FOR_VERIFICATION: 0, COMPLETED: 0 };
+function isPipelineStatus(status: RepairStatus): status is PipelineStatus {
+  return (PIPELINE_STATUSES as readonly RepairStatus[]).includes(status);
+}
+
+/** Open tickets by stage, plus Closed for this month only (matches the Done this month tile). */
+export function pipelineCounts(active: RepairTicket[], history: FinishedTicket[], now: number): Record<PipelineStatus, number> {
+  const counts: Record<PipelineStatus, number> = { ASSIGNED: 0, IN_PROGRESS: 0, FOR_VERIFICATION: 0, CLOSED: 0 };
   for (const ticket of active) {
-    if (isOpen(ticket)) counts[ticket.status as PipelineStatus]++;
+    if (isOpen(ticket) && isPipelineStatus(ticket.status)) counts[ticket.status]++;
   }
-  counts.COMPLETED = completedThisMonth(history, now);
+  counts.CLOSED = closedThisMonth(history, now);
   return counts;
 }
 
@@ -98,7 +103,7 @@ function inTimeframe(ticket: SpendTicket, timeframe: SpendTimeframe, now: number
   return created >= now - days * DAY_MS;
 }
 
-/** Spend over active and COMPLETED tickets (CANCELLED left out), filtered by createdAt. */
+/** Spend over active and CLOSED tickets (CANCELLED left out), filtered by createdAt. */
 export function spendFor(tickets: SpendTicket[], timeframe: SpendTimeframe, now: number) {
   const inRange = tickets.filter((t) => t.status !== 'CANCELLED' && inTimeframe(t, timeframe, now));
   const total = inRange.reduce((sum, t) => sum + (t.totalCost ?? 0), 0);

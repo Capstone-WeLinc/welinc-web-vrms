@@ -19,10 +19,10 @@ export function MechanicDashboard() {
   });
 
   const derived = useMemo(() => {
-    // Overdue counts only PENDING and IN_PROGRESS, so the tile matches the overdue rows in the list.
+    // Overdue counts only ASSIGNED and IN_PROGRESS, so the tile matches the overdue rows in the list.
     const overdue = countMechanicOverdue(active, fetchedAt);
     const tiles: AttentionTile[] = [
-      { caption: 'To start', value: active.filter((t) => t.status === 'PENDING').length, icon: Clock },
+      { caption: 'To start', value: active.filter((t) => t.status === 'ASSIGNED').length, icon: Clock },
       { caption: 'In progress', value: active.filter((t) => t.status === 'IN_PROGRESS').length, icon: Wrench },
       { caption: 'Overdue', value: overdue, icon: AlertTriangle, tone: overdue > 0 ? 'destructive' : 'default' },
       { caption: 'Waiting for sign off', value: active.filter(isWaiting).length, icon: ShieldCheck },

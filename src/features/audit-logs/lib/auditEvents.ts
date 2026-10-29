@@ -10,11 +10,11 @@ import {
 } from 'lucide-react';
 import { ALL_TIME, type DateRangeValue } from '../../../components/shared/date-range/dateRange';
 import { formatPeso } from '../../../lib/utils/format';
-import type { AuditEvent, CostSnapshot } from '../../../types';
+import type { AuditChange, AuditEvent } from '../../../types';
 
-// Spec 0003, AC-10 to AC-12.
+// Spec 0003, AC-10 to AC-12, on the spec 0010 shape: one event with its list of changes.
 
-export type EventTypeFilter = 'all' | 'CREATED' | 'STATUS_CHANGE' | 'COST_UPDATE' | 'UNLOCK' | 'SHOP_CHANGE';
+export type EventTypeFilter = 'all' | 'CREATED' | 'STATUS_CHANGE' | 'COST_UPDATE' | 'UNLOCK' | 'GARAGE_CHANGE';
 
 export const TYPE_CHIPS: { value: EventTypeFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -22,7 +22,7 @@ export const TYPE_CHIPS: { value: EventTypeFilter; label: string }[] = [
   { value: 'STATUS_CHANGE', label: 'Status' },
   { value: 'COST_UPDATE', label: 'Costs' },
   { value: 'UNLOCK', label: 'Unlocks' },
-  { value: 'SHOP_CHANGE', label: 'Shop' },
+  { value: 'GARAGE_CHANGE', label: 'Garage' },
 ];
 
 export type AuditFilterValues = {
@@ -59,7 +59,7 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   STATUS_CHANGE: { icon: ArrowLeftRight, tone: 'bg-primary/10 text-primary' },
   COST_UPDATE: { icon: PhilippinePeso, tone: 'bg-success/10 text-success' },
   UNLOCK: { icon: LockOpen, tone: 'bg-highlight/25 text-highlight-foreground' },
-  SHOP_CHANGE: { icon: Warehouse, tone: 'bg-muted text-muted-strong' },
+  GARAGE_CHANGE: { icon: Warehouse, tone: 'bg-muted text-muted-strong' },
   KNOWLEDGE_LINK: { icon: BookOpen, tone: 'bg-primary/10 text-primary' },
 };
 
@@ -72,20 +72,33 @@ export function actorLabel(event: AuditEvent) {
   return event.actor?.name || event.actor?.email || null;
 }
 
-/** Old cost rows stored ₱0 as null, so a missing amount reads as ₱0. */
-const peso = (amount: number | null | undefined) => formatPeso(amount ?? 0);
-
-/** "₱4,000 → ₱5,200 total", or null when the new costs can't be read (sentence only). */
-export function costTotalLine(cost: AuditEvent['cost']) {
-  if (!cost?.to) return null;
-  return cost.from ? `${peso(cost.from.total)} → ${peso(cost.to.total)} total` : `${peso(cost.to.total)} total`;
+/** The change to one field, or undefined when the event didn't change it. */
+export function changeOf(event: Pick<AuditEvent, 'changes'>, field: string): AuditChange | undefined {
+  return event.changes.find((change) => change.field === field);
 }
 
-/** "Parts ₱3,000 → ₱3,500 · Labor ₱1,000 → ₱1,700", or "Lump sum". */
-export function costDetailLine(cost: AuditEvent['cost']) {
-  if (!cost?.to) return null;
-  if (cost.to.isLumpSum) return 'Lump sum';
-  const part = (label: string, pick: (s: CostSnapshot) => number | null) =>
-    cost.from ? `${label} ${peso(pick(cost.from))} → ${peso(pick(cost.to!))}` : `${label} ${peso(pick(cost.to!))}`;
-  return `${part('Parts', (s) => s.partsCost)} · ${part('Labor', (s) => s.laborCost)}`;
+/** A stored amount ("1200.00") as pesos; an empty one reads as nothing recorded. */
+const peso = (amount: string | null) => (amount == null ? 'none' : formatPeso(Number(amount)));
+
+function moneyMove(change: AuditChange) {
+  return change.before == null ? peso(change.after) : `${peso(change.before)} → ${peso(change.after)}`;
+}
+
+/** "₱4,000 → ₱5,200 total", or null when the total didn't change. */
+export function costTotalLine(event: AuditEvent) {
+  const total = changeOf(event, 'totalCost');
+  return total ? `${moneyMove(total)} total` : null;
+}
+
+/** "Parts ₱3,000 → ₱3,500 · Labor ₱1,000 → ₱1,700 · Lump sum": only the parts that changed. */
+export function costDetailLine(event: AuditEvent) {
+  const parts = changeOf(event, 'partsCost');
+  const labor = changeOf(event, 'laborCost');
+  const lumpSum = changeOf(event, 'isLumpSum');
+  const bits = [
+    parts && `Parts ${moneyMove(parts)}`,
+    labor && `Labor ${moneyMove(labor)}`,
+    lumpSum && (lumpSum.after === 'true' ? 'Lump sum' : 'Itemized'),
+  ].filter(Boolean);
+  return bits.length ? bits.join(' · ') : null;
 }

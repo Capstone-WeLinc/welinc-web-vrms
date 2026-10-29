@@ -1,17 +1,18 @@
 import type { CSSProperties } from 'react';
 import type { AiStats } from '../../lib/api/analyticsApi';
 
+// Ticket status names from spec 0010; the analytics service catches up with feature 3.
 export const STATUS_COLORS: Record<string, string> = {
-  COMPLETED: 'var(--status-completed)',
+  CLOSED: 'var(--status-completed)',
   IN_PROGRESS: 'var(--status-in-progress)',
-  PENDING: 'var(--status-pending)',
+  ASSIGNED: 'var(--status-pending)',
   CANCELLED: 'var(--status-cancelled)',
   FOR_VERIFICATION: 'var(--status-for-verification)',
 };
 export const STATUS_LABELS: Record<string, string> = {
-  COMPLETED: 'Completed',
+  CLOSED: 'Closed',
   IN_PROGRESS: 'In Progress',
-  PENDING: 'Pending',
+  ASSIGNED: 'Assigned',
   CANCELLED: 'Cancelled',
   FOR_VERIFICATION: 'For Verification',
 };

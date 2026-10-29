@@ -130,7 +130,7 @@ export function RepairDetailPage() {
 
   const openAction = () => setDialog(action.kind === 'unlock' ? 'unlock' : 'status');
   const noMechanic = isAdmin && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
-  const noCosts = isAdmin && moveTo === 'COMPLETED' && !hasCosts(ticket);
+  const noCosts = isAdmin && moveTo === 'CLOSED' && !hasCosts(ticket);
 
   return (
     // Keyed by ticket, so a link to another ticket (similar repairs) starts every section fresh.
@@ -180,7 +180,7 @@ export function RepairDetailPage() {
           {noMechanic && <Callout tone="warning">No mechanic is assigned yet.</Callout>}
           {noCosts && (
             <Callout tone="warning">
-              <p>No costs are recorded yet. Once completed, the ticket locks, and costs can only be added after an unlock.</p>
+              <p>No costs are recorded yet. Once closed, the ticket locks, and costs can only be added after an unlock.</p>
               <Button
                 type="button"
                 variant="link"

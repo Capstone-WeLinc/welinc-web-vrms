@@ -35,7 +35,7 @@ export async function getRepairs(params: RepairListParams = {}): Promise<{ data:
 
 export interface RepairHistoryParams {
   search?: string;
-  status?: 'COMPLETED' | 'CANCELLED';
+  status?: 'CLOSED' | 'CANCELLED';
   garageId?: string;
   /** ISO instant, inclusive, on the close date. */
   from?: string;
@@ -68,7 +68,6 @@ export async function updateRepairStatus(
   status: RepairStatus,
   extras?: {
     cancellationReason?: string;
-    failedVerificationReason?: string;
     remarks?: string;
     lastUpdatedAt?: string;
     /** Spec 0007, AC-31: required on In progress to For verification. */

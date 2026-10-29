@@ -65,7 +65,6 @@ export function RepairFormPage() {
     handleSubmit,
     setValue,
     getValues,
-    setError,
     clearErrors,
     trigger,
     formState: { isDirty, submitCount },
@@ -195,8 +194,6 @@ export function RepairFormPage() {
           <AssignmentSection
             control={control}
             mechanics={options.mechanics}
-            setValue={setValue}
-            setError={setError}
             clearErrors={clearErrors}
           />
           <BillingSection control={control} setValue={setValue} clearErrors={clearErrors} />
