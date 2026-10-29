@@ -21,6 +21,7 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 
 | `src/lib/roles.ts` | `isMechanicRole` (mechanic or chief mechanic) and `isKnowledgeEditor` (admin or chief mechanic) |
 | `src/features/knowledge-base/` | Knowledge base library, entry, editor, suggestions and categories pages, backed by `/vrms/knowledge` (spec 0007) |
 | `src/context/toast.ts`, `ToastContext.tsx` | `useToast()` hook and context, and the provider component |
+| `src/lib/repairStatus.ts` | The one definition of open and finished ticket statuses (mirrors the backend's `ticket-statuses.ts`); screens read it, never a list of their own |
 | `src/types/index.ts` | Shared types: `RepairTicket`, `RepairStatus`, `UserRole`, `ManagedUser` |
 | `src/index.css` | Tailwind 4 entry (`@import 'tailwindcss'`), color tokens as CSS variables mapped in `@theme inline`, plus custom classes |
 | `src/features/analytics/` | Analytics page split into `hooks/`, `components/` (one per tab), `utils.ts`, `export.ts` (CSV and PDF) |
