@@ -8,17 +8,17 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 
 
 | File | Owns |
 |---|---|
-| `src/App.tsx` | All routes, the `RequireAuth` and `RequireRole` guards, user sync on mount, cross tab reload on token change |
-| `src/lib/api/axios.ts` | The one axios instance: base URL, `Bearer` token from `localStorage`, sign out and redirect on 401 or an "Account is locked" 403, a toast for the 503 and other 403s |
+| `src/App.tsx` | All routes, the `RequireAuth` guard and the permission guards (`<Can>` on a key), user sync on mount, cross tab reload on token change |
+| `src/lib/api/axios.ts` | The one axios instance: base URL, `Bearer` token from `localStorage`, sign out and redirect on 401 or an "Account is locked" 403, a toast for the 503, and on any other 403 an event that refetches the permissions plus the one fixed "You no longer have permission to do that." toast |
 | `src/lib/api/*Api.ts` | Typed wrappers per backend area: `authApi`, `repairApi`, `vrmsConfigApi`, `analyticsApi`, `aiApi`, `knowledgeApi` |
-| `src/lib/api/errors.ts` | `getApiErrorMessage(err, fallback)` and `getApiErrorStatus(err)` for `catch` blocks |
+| `src/lib/api/errors.ts` | `getApiErrorMessage(err, fallback)` and `getApiErrorStatus(err)` for `catch` blocks. A 403 always reads as the fixed denied text, so a page never shows the server's wording for one |
 | `src/store/authStore.ts` | Zustand auth store (token, user, login, logout), persisted |
 | `src/features/auth/pages/LoginPage.tsx` | SSO handoff (`?token=` from the portal); with no token it redirects to `{VITE_PORTAL_URL}/login`. There is no local login form |
 | `src/features/user-management/lib/mechanicSync.ts` | Calls `POST /vrms/mechanics/sync` after Users page saves and when `/users` or `/repairs/new` opens |
 | `src/components/SessionMonitor.tsx` | 15 minute inactivity logout with a warning modal |
 | `src/components/layout/` | `DashboardShell`, `AppHeader`, `SidebarNav`, `UserMenu`, `MobileNavSheet`, `MobileTabBar`, `PageHeader` |
 | `src/components/shared/`, `src/hooks/` | Widgets used by more than one feature (`GoToPageInput` for every paginated table, `Callout`, `DetailSection`, `FormSection`, `BackLink`, badges) and shared hooks (`useLeaveGuard` for unsaved forms) |
-| `src/lib/roles.ts` | `isMechanicRole` (mechanic or chief mechanic) and `isKnowledgeEditor` (admin or chief mechanic) |
+| `src/lib/permissions/` | The permission keys (`keys.ts`, mirroring the backend's `catalog.ts`), the CASL ability built from `/vrms/permissions/me` (`PermissionsProvider.tsx`, refetched on focus, every 60 seconds and after a 403), `<Can>`, `useCan()` and `usePermissions()` (spec 0011) |
 | `src/features/knowledge-base/` | Knowledge base library, entry, editor, suggestions and categories pages, backed by `/vrms/knowledge` (spec 0007) |
 | `src/context/toast.ts`, `ToastContext.tsx` | `useToast()` hook and context, and the provider component |
 | `src/lib/repairStatus.ts` | The one definition of open and finished ticket statuses (mirrors the backend's `ticket-statuses.ts`); screens read it, never a list of their own |
@@ -44,7 +44,7 @@ npm run build        # typecheck then vite build
 - Every backend call goes through the axios instance (via a wrapper in `src/lib/api/`), so it carries the token and the 401 handling. Don't use raw `fetch`.
 - In `catch` blocks, leave the error untyped and read it with `getApiErrorMessage`; no `err: any`.
 - Pages are named exports (`export function RepairListPage`). Imports mostly use relative paths; the `@` alias for `src` also works.
-- Three roles: `ADMIN`, `CHIEF_MECHANIC` and `MECHANIC`. Admin only routes are wrapped in `RequireRole role="ADMIN"` (it also takes an array, like `['ADMIN', 'CHIEF_MECHANIC']` for knowledge base editing); mechanics also get UI level restrictions inside pages. A chief mechanic gets the mechanic rules on tickets, so check with `isMechanicRole`, never `role === 'MECHANIC'`.
+- Never check a role in the UI. Roles are `ADMIN`, `CHIEF_MECHANIC` and `MECHANIC`, but routes, nav items and page buttons use `<Can I="<key>">` or `useCan(...keys)` on the keys the server sends, and ticket buttons use the ticket's `can` flags (`work`, `administer`, `editCosts`, `unlock`). The browser holds only keys and flags; rules with conditions are evaluated on the server (spec 0011).
 - Repair updates send `lastUpdatedAt` for optimistic locking; the backend rejects stale writes. Keep sending it on any new update call.
 - List endpoints may return either an array or `{ data, total }`; the API wrappers normalize both to `{ data, total }`.
 - Colors: no hex values in components. Use the CSS variables in inline styles (`var(--primary)`, `--danger`, `--success`, `--warning`, `--muted`, `--border`, `--status-*`, `--chart-1..5`) and the token utilities from `@theme inline` in `className` (`bg-primary`, `text-muted-foreground`, `bg-highlight`; Tailwind's default palette is off, so only tokens exist). `--danger`, `--warning`, `--on-accent` and `--on-primary` are older aliases that still work. Tint with `color-mix(...)` (see `tint()` in `features/analytics/utils.ts`). Gold is `--highlight`, and text on it is `--highlight-foreground` (dark). `--accent` is now a light slate, not gold. Text on navy is `--primary-foreground`.
