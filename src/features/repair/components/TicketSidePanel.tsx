@@ -3,6 +3,7 @@ import { AlertTriangle, BadgeCheck, CircleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { BadgePill } from '../../../components/shared/BadgePill';
+import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { dueLabel, isOpen } from '../../../lib/utils/due';
 import { formatShortDate } from '../../../lib/utils/format';
@@ -34,6 +35,7 @@ export function StatusCard({ ticket, readOnly, action, showCancel, onAction, onC
     <DetailSection title="Status">
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={ticket.status} />
+        <MechanicProblemBadge ticket={ticket} />
         {lockBadge}
       </div>
       {readOnly ? (

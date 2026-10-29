@@ -48,3 +48,17 @@ export async function changeOwnPassword(payload: { currentPassword: string; newP
   const response = await api.patch<ManagedUser>('/auth/profile/password', payload);
   return response.data;
 }
+
+export interface LookupAccount {
+  id: string;
+  name: string;
+  email: string;
+  /** Names of the other systems the account holds a role in. */
+  systems: SystemType[];
+}
+
+/** Active WeLinc accounts with no VRMS role, by name or email (ADMIN, spec 0011, AC-29). */
+export async function lookupAccounts(q: string, signal?: AbortSignal): Promise<LookupAccount[]> {
+  const response = await api.get<LookupAccount[]>('/auth/users/lookup', { params: { q }, signal });
+  return response.data;
+}

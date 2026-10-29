@@ -71,6 +71,7 @@ export function UsersPage() {
     list.upsertUser(user);
     syncAfterSave(showToast);
     if (outcome === 'created') showToast(`${user.name} added. A setup code was sent to ${user.email}.`);
+    else if (outcome === 'attached') showToast(`${user.name} added to VRMS. They keep their current password.`);
     else if (outcome === 'created-mail-failed')
       showToast(`${user.name} was added, but the setup email couldn’t be sent. Use Resend setup code.`, 'error');
     else showToast(`${user.name} updated.`);

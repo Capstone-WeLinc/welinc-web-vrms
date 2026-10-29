@@ -29,6 +29,11 @@ export function updatedText(ticket: RepairTicket, now: number) {
   return `Updated ${dayCount(days)} ago`;
 }
 
+/** Spec 0011, AC-34: an open ticket whose mechanic left, or that is being worked with no mechanic. */
+export function needsStaffing(ticket: RepairTicket) {
+  return !!ticket.hasInactiveMechanic || !!ticket.needsMechanic;
+}
+
 /** Admin Needs attention rows: overdue text, else the updated text (waiting rows). */
 export function attentionDueLabel(ticket: RepairTicket, now: number): DueLabel {
   if (isOverdue(ticket, now)) return { text: overdueText(ticket, now), overdue: true };
@@ -38,11 +43,17 @@ export function attentionDueLabel(ticket: RepairTicket, now: number): DueLabel {
 const byTime = (pick: (t: RepairTicket) => string | null | undefined, direction: 1 | -1) =>
   (a: RepairTicket, b: RepairTicket) => direction * ((toTime(pick(a)) ?? 0) - (toTime(pick(b)) ?? 0));
 
-/** Overdue first (oldest due date first), then waiting and not overdue (oldest update first). Each ticket once. */
+/**
+ * Overdue first (oldest due date first), then tickets with no active mechanic (oldest update first), then waiting
+ * for sign off (oldest update first). Each ticket once.
+ */
 export function attentionList(active: RepairTicket[], now: number, limit: number) {
   const overdue = active.filter((t) => isOverdue(t, now)).sort(byTime((t) => t.dueAt, 1));
-  const waiting = active.filter((t) => isWaiting(t) && !isOverdue(t, now)).sort(byTime((t) => t.updatedAt, 1));
-  return [...overdue, ...waiting].slice(0, limit);
+  const unstaffed = active.filter((t) => needsStaffing(t) && !isOverdue(t, now)).sort(byTime((t) => t.updatedAt, 1));
+  const waiting = active
+    .filter((t) => isWaiting(t) && !needsStaffing(t) && !isOverdue(t, now))
+    .sort(byTime((t) => t.updatedAt, 1));
+  return [...overdue, ...unstaffed, ...waiting].slice(0, limit);
 }
 
 /** A mechanic's ASSIGNED and IN_PROGRESS tickets: overdue first, then due soonest (none last), then newest update. */

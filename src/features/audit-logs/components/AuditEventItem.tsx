@@ -70,6 +70,8 @@ function Sentence({ event, showTicket }: { event: AuditEvent; showTicket: boolea
       return who ? withActor('moved', ' to a different garage') : <>{rep} was moved to a different garage</>;
     case 'KNOWLEDGE_LINK':
       return who ? withActor('changed a known fix on') : <>A known fix on {rep} was changed</>;
+    case 'MECHANIC_UNASSIGNED':
+      return who ? withActor('removed a mechanic from') : <>A mechanic was removed from {rep}</>;
     default:
       return who ? (
         <>
@@ -119,6 +121,16 @@ function Change({ event }: { event: AuditEvent }) {
       <p className="text-sm text-muted-foreground">
         {entry.after ? `Linked known fix: ${entry.after}` : 'Removed known fix'}
         {entry.before && entry.after && ` (was ${entry.before})`}
+      </p>
+    );
+  }
+  if (event.type === 'MECHANIC_UNASSIGNED') {
+    const mechanic = changeOf(event, 'mechanic');
+    const reopened = changeOf(event, 'repairStatus')?.after === 'OPEN';
+    if (!mechanic?.before) return null;
+    return (
+      <p className="text-sm text-muted-foreground">
+        {mechanic.before} was taken off{reopened ? '. The ticket went back to Open.' : '.'}
       </p>
     );
   }

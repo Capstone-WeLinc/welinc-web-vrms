@@ -7,6 +7,7 @@ import { PageHeader } from '../../../components/layout/PageHeader';
 import { DataTable } from '../../../components/shared/data-table/DataTable';
 import { lastPage, type Column, type RowAction } from '../../../components/shared/data-table/types';
 import { ErrorState } from '../../../components/shared/ErrorState';
+import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { getAvailableMechanics, getGarages, type GarageOption, type MechanicOption } from '../../../lib/api/vrmsConfigApi';
 import { dueLabel } from '../../../lib/utils/due';
@@ -58,7 +59,13 @@ function listColumns(now: number): Column<RepairTicket>[] {
       cell: (t) => <span className="text-sm font-medium md:whitespace-nowrap">{t.repairNumber}</span>,
     },
     { id: 'vehicle', header: 'Vehicle', mobile: 'subtitle', cell: (t) => <span className="whitespace-nowrap">{t.vehiclePlate}</span> },
-    { id: 'status', header: 'Status', mobile: 'badge', cell: (t) => <StatusBadge status={t.status} /> },
+    { id: 'status', header: 'Status', mobile: 'badge', cell: (t) => (
+        <span className="flex flex-wrap items-center gap-1">
+          <StatusBadge status={t.status} />
+          <MechanicProblemBadge ticket={t} />
+        </span>
+      ),
+    },
     { id: 'due', header: 'Due', mobile: 'field', cell: (t) => <DueCell ticket={t} now={now} /> },
     { id: 'issue', header: 'Issue', mobile: 'field', cell: (t) => <IssueCell ticket={t} /> },
     { id: 'garage', header: 'Garage', mobile: 'field', cell: (t) => t.garageLocation ?? '—' },

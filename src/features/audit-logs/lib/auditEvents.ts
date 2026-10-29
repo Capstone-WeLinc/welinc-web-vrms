@@ -4,6 +4,7 @@ import {
   BookOpen,
   FilePlus2,
   LockOpen,
+  UserMinus,
   PhilippinePeso,
   Warehouse,
   type LucideIcon,
@@ -61,6 +62,7 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   UNLOCK: { icon: LockOpen, tone: 'bg-highlight/25 text-highlight-foreground' },
   GARAGE_CHANGE: { icon: Warehouse, tone: 'bg-muted text-muted-strong' },
   KNOWLEDGE_LINK: { icon: BookOpen, tone: 'bg-primary/10 text-primary' },
+  MECHANIC_UNASSIGNED: { icon: UserMinus, tone: 'bg-muted text-muted-strong' },
 };
 
 export function eventStyle(type: string): EventStyle {
