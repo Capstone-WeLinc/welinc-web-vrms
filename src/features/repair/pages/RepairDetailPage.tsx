@@ -10,7 +10,8 @@ import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
 import { unlockRepairTicket, updateRepairStatus } from '../../../lib/api/repairApi';
-import { useAuthStore } from '../../../store/authStore';
+import { useHasTabBar } from '../../../components/layout/useNavSections';
+import { useCan } from '../../../lib/permissions/usePermissions';
 import type { IssueResolution, RepairStatus, RepairTicket } from '../../../types';
 import { ActivitySection } from '../components/ActivitySection';
 import { AiDiagnosisSection } from '../components/AiDiagnosisSection';
@@ -25,6 +26,7 @@ import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePan
 import { useRepairTicket } from '../hooks/useRepairTicket';
 import {
   canCancel,
+  canWorkTicket,
   COSTS_SECTION_ID,
   hasCosts,
   isClosed,
@@ -52,7 +54,10 @@ export function RepairDetailPage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const readOnly = searchParams.get('mode') === 'readonly';
-  const isAdmin = useAuthStore((state) => state.user?.role === 'ADMIN');
+  // Page level keys; what this caller may do on this ticket comes from ticket.can (spec 0011, AC-22)
+  const seesCosts = useCan('ticket.costs.view');
+  const seesActivity = useCan('audit.view');
+  const hasTabBar = useHasTabBar();
   const { showToast } = useToast();
   const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId);
   const [dialog, setDialog] = useState<DialogKind>(null);
@@ -86,7 +91,8 @@ export function RepairDetailPage() {
   }
 
   const rep = ticket.repairNumber;
-  const action = nextAction(ticket, isAdmin);
+  const action = nextAction(ticket);
+  const administers = ticket.can.administer;
   // The bottom bar shows only when AC-14 gives this user a button.
   const barLabel = !readOnly && action.kind !== 'note' ? action.label : null;
   const moveTo = action.kind === 'move' ? action.to : null;
@@ -129,8 +135,8 @@ export function RepairDetailPage() {
   };
 
   const openAction = () => setDialog(action.kind === 'unlock' ? 'unlock' : 'status');
-  const noMechanic = isAdmin && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
-  const noCosts = isAdmin && moveTo === 'CLOSED' && !hasCosts(ticket);
+  const noMechanic = administers && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
+  const noCosts = seesCosts && moveTo === 'CLOSED' && !hasCosts(ticket);
 
   return (
     // Keyed by ticket, so a link to another ticket (similar repairs) starts every section fresh.
@@ -142,28 +148,27 @@ export function RepairDetailPage() {
         <aside aria-label="Ticket summary" className="flex flex-col gap-4 lg:sticky lg:top-20 lg:col-start-3 lg:row-start-1">
           <StatusCard
             ticket={ticket}
-            isAdmin={isAdmin}
             readOnly={readOnly}
             action={action}
-            showCancel={!readOnly && canCancel(ticket, isAdmin)}
+            showCancel={!readOnly && canCancel(ticket)}
             onAction={openAction}
             onCancel={() => setDialog('cancel')}
           />
           <DetailsCard ticket={ticket} now={loadedAt} />
-          <PeopleCard ticket={ticket} isAdmin={isAdmin} />
+          <PeopleCard ticket={ticket} />
         </aside>
 
         <div className="flex min-w-0 flex-col gap-4 lg:col-span-2 lg:col-start-1 lg:row-start-1">
           <NotesSection ticket={ticket} />
           <VehicleSection ticket={ticket} />
-          <IssuesSection ticket={ticket} canWork={!readOnly} onChanged={replace} onStale={handleStale} />
+          <IssuesSection ticket={ticket} canWork={!readOnly && canWorkTicket(ticket)} onChanged={replace} onStale={handleStale} />
           <AiDiagnosisSection ticket={ticket} />
-          {isAdmin && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
-          {isAdmin && <ActivitySection ticketId={ticket.id} />}
+          {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
+          {seesActivity && <ActivitySection ticketId={ticket.id} />}
         </div>
       </div>
 
-      {barLabel && <NextActionBar label={barLabel} aboveTabBar={!isAdmin} onAction={openAction} />}
+      {barLabel && <NextActionBar label={barLabel} aboveTabBar={hasTabBar} onAction={openAction} />}
 
       {action.kind === 'move' && (
         <TicketNoteDialog
@@ -198,7 +203,7 @@ export function RepairDetailPage() {
         </TicketNoteDialog>
       )}
 
-      {canCancel(ticket, isAdmin) && (
+      {canCancel(ticket) && (
         <TicketNoteDialog
           open={dialog === 'cancel'}
           onOpenChange={(open) => setDialog(open ? 'cancel' : null)}

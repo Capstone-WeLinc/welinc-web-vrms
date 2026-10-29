@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { lastPage } from '../../../components/shared/data-table/types';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
-import { isKnowledgeEditor } from '../../../lib/roles';
-import { useAuthStore } from '../../../store/authStore';
+import { useCan } from '../../../lib/permissions/usePermissions';
 import { EntryResults, EntryResultsSkeleton } from '../components/EntryResults';
 import { KnowledgeHeader } from '../components/KnowledgeHeader';
 import { LibrarySearchBand } from '../components/LibrarySearchBand';
@@ -22,7 +21,9 @@ const PANEL = 'rounded-xl border border-border bg-card shadow-xs';
 
 /** The common issues library (spec 0007, AC-6 to AC-11). */
 export function KnowledgeLibraryPage() {
-  const isEditor = useAuthStore((state) => isKnowledgeEditor(state.user?.role));
+  const isEditor = useCan('knowledge.edit');
+  // Editors write entries themselves; a reader with knowledge.suggest sends a suggestion
+  const suggests = useCan('knowledge.suggest') && !isEditor;
   const location = useLocation();
   const { filters, page, searchText, setSearchText, clearSearch, setFilters, setPage, clearFilters } = useLibraryFilters(isEditor);
   const list = useEntryList(libraryParams(filters, page));
@@ -97,7 +98,7 @@ export function KnowledgeLibraryPage() {
               <Button variant="outline" onClick={clearFilters}>
                 Clear filters
               </Button>
-              {!isEditor && <Button onClick={() => setSuggesting(true)}>Suggest an entry</Button>}
+              {suggests && <Button onClick={() => setSuggesting(true)}>Suggest an entry</Button>}
             </div>
           }
         />
@@ -130,7 +131,7 @@ export function KnowledgeLibraryPage() {
         onChange={setFilters}
       />
       {body}
-      {!isEditor && (
+      {suggests && (
         <SuggestDialog open={suggesting} onOpenChange={setSuggesting} kind="NEW_ENTRY" initialBody={filters.q} />
       )}
     </div>

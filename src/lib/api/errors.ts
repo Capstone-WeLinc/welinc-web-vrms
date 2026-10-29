@@ -1,9 +1,15 @@
 import { isAxiosError } from 'axios';
+import { DENIED_MESSAGE } from '../permissions/keys';
 
 // Pull the backend's `message` out of an axios error, falling back when there is none
 export function getApiErrorMessage(err: unknown, fallback: string): string {
   if (isAxiosError<{ message?: string | string[] }>(err)) {
     const message = err.response?.data?.message;
+    // A 403 reads the same everywhere, whatever the body says (spec 0011, AC-24). A locked
+    // account keeps its own text, because the sign out flow shows it.
+    if (err.response?.status === 403 && !(typeof message === 'string' && message.startsWith('Account is locked'))) {
+      return DENIED_MESSAGE;
+    }
     if (Array.isArray(message)) return message.join(', ');
     if (message) return message;
   }
@@ -12,6 +18,14 @@ export function getApiErrorMessage(err: unknown, fallback: string): string {
 
 export function getApiErrorStatus(err: unknown): number | undefined {
   return isAxiosError(err) ? err.response?.status : undefined;
+}
+
+/** The 409 body welinc-auth sends when an email already has a WeLinc account (spec 0011, AC-30). */
+export function getAccountExists(err: unknown): { id: string; name: string; systems: string[] } | null {
+  if (!isAxiosError<{ code?: string; id?: string; name?: string; systems?: string[] }>(err) || err.response?.status !== 409) return null;
+  const body = err.response.data;
+  if (body?.code !== 'ACCOUNT_EXISTS' || !body.id || !body.name) return null;
+  return { id: body.id, name: body.name, systems: body.systems ?? [] };
 }
 
 /** The `code` on a 409 body, such as STALE or DUPLICATE_NAME (spec 0007, AC-20). */

@@ -26,6 +26,8 @@ export interface ManagedUser {
   createdAt: string;
   updatedAt: string;
   roles: UserRoleAssignment[];
+  /** Names of the other systems this account holds a role in (spec 0011, AC-26); empty when none. */
+  otherSystems?: SystemType[];
   contact?: string | null;
 }
 
@@ -35,6 +37,8 @@ export interface CreateUserPayload {
   password?: string;
   isActive?: boolean;
   roleAssignments: UserRoleAssignment[];
+  /** Spec 0011, AC-30: add the roles to the existing WeLinc account with this email. */
+  attachExisting?: boolean;
 }
 
 export interface UpdateUserPayload {
@@ -127,6 +131,14 @@ export interface RepairPart {
   subtotal: number;
 }
 
+/** What the caller may do on one ticket, computed by the server (spec 0011, AC-12a). */
+export interface TicketCan {
+  work: boolean;
+  administer: boolean;
+  editCosts: boolean;
+  unlock: boolean;
+}
+
 export interface RepairTicket {
   id: string;
   repairNumber: string;
@@ -164,6 +176,11 @@ export interface RepairTicket {
   unlockReason?: string;
   driverIsVerified?: boolean;
   repairParts?: RepairPart[];
+  /** An open ticket assigned to a mechanic who is no longer active (spec 0011, AC-34). */
+  hasInactiveMechanic?: boolean;
+  /** In progress or on hold with no active mechanic assigned (spec 0011, AC-34). */
+  needsMechanic?: boolean;
+  can: TicketCan;
 }
 
 export interface CreateRepairPayload {

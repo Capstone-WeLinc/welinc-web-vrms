@@ -155,7 +155,7 @@ function CostForm({ ticket, onSaved, onReload, onClose }: CostFormProps) {
       }
       // Stale: keep the typed values, reload underneath so the next save sends the new lastUpdatedAt.
       const latest = await onReload();
-      if (latest && !canEditCosts(latest, true)) {
+      if (latest && !canEditCosts(latest)) {
         showToast(STALE_TICKET_MESSAGE, 'error');
         onClose();
         return;
@@ -331,7 +331,7 @@ interface CostsSectionProps {
 /** Admins only; the API never sends costs to mechanics (spec 0004, AC-21). */
 export function CostsSection({ ticket, readOnly, onSaved, onReload }: CostsSectionProps) {
   const [editing, setEditing] = useState(false);
-  const editable = !readOnly && canEditCosts(ticket, true);
+  const editable = !readOnly && canEditCosts(ticket);
 
   return (
     <DetailSection

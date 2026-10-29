@@ -3,6 +3,7 @@ import { ArrowRight, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '../../../components/shared/data-table/DataTable';
 import type { Column } from '../../../components/shared/data-table/types';
+import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { cn } from '@/lib/utils';
 import type { RepairTicket } from '../../../types';
@@ -22,7 +23,13 @@ export function TicketAttentionTable({ rows, dueLabel, label, empty }: TicketAtt
   const columns: Column<RepairTicket>[] = [
     { id: 'repair', header: 'Repair #', mobile: 'title', cell: (t) => t.repairNumber },
     { id: 'vehicle', header: 'Vehicle', mobile: 'subtitle', cell: (t) => t.vehiclePlate },
-    { id: 'status', header: 'Status', mobile: 'badge', cell: (t) => <StatusBadge status={t.status} /> },
+    { id: 'status', header: 'Status', mobile: 'badge', cell: (t) => (
+        <span className="flex flex-wrap items-center gap-1">
+          <StatusBadge status={t.status} />
+          <MechanicProblemBadge ticket={t} />
+        </span>
+      ),
+    },
     {
       id: 'due',
       header: 'Due',

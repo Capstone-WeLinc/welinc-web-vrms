@@ -39,6 +39,14 @@ export function vrmsRoles(user: Pick<ManagedUser, 'roles'>): UserRole[] {
   return user.roles.filter((assignment) => assignment.system === 'VRMS').map((assignment) => assignment.role);
 }
 
+/**
+ * True when the account is on the mechanic roster (a mechanic or chief mechanic in VRMS). This
+ * describes the managed account, not what the signed in user may do.
+ */
+export function onMechanicRoster(user: Pick<ManagedUser, 'roles'>): boolean {
+  return vrmsRoles(user).some((role) => role === 'MECHANIC' || role === 'CHIEF_MECHANIC');
+}
+
 export function isEditableRole(role: string): role is EditableRole {
   return (EDITABLE_ROLES as readonly string[]).includes(role);
 }

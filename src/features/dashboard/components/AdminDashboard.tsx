@@ -78,7 +78,7 @@ export function AdminDashboard() {
               <h2 id="needs-attention-heading" className="text-lg font-semibold text-foreground">
                 Needs attention
               </h2>
-              <p className="text-sm text-muted-foreground">Overdue first, then tickets waiting for your sign off.</p>
+              <p className="text-sm text-muted-foreground">Overdue first, then tickets with no active mechanic, then tickets waiting for your sign off.</p>
             </div>
             <TicketAttentionTable
               rows={derived.attention}
@@ -86,7 +86,7 @@ export function AdminDashboard() {
               label="Tickets that need attention"
               empty={{
                 title: 'Nothing needs your attention',
-                description: 'No overdue tickets and nothing waiting for sign off.',
+                description: 'No overdue tickets, none without a mechanic, and nothing waiting for sign off.',
                 icon: CheckCircle2,
               }}
             />

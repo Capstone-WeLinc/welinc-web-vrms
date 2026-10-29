@@ -45,14 +45,14 @@ function readPage(value: string | null) {
   return value && /^\d+$/.test(value) && Number(value) >= 1 ? Number(value) : 1;
 }
 
-/** Filters and page from the URL. A mechanic's list ignores `mechanic`. */
-export function readListState(params: URLSearchParams, isAdmin: boolean) {
+/** Filters and page from the URL. A list of only your own tickets ignores `mechanic`. */
+export function readListState(params: URLSearchParams, seesAll: boolean) {
   const search = params.get('q')?.trim() ?? '';
   const filters: RepairListFilterValues = {
     search: search.length <= SEARCH_MAX_LENGTH ? search : '',
     status: readStatus(params.get('status')),
     garageId: readId(params.get('garage')),
-    mechanicId: isAdmin ? readId(params.get('mechanic')) : 'all',
+    mechanicId: seesAll ? readId(params.get('mechanic')) : 'all',
     overdue: params.get('overdue') === '1',
   };
   return { filters, page: readPage(params.get('page')) };

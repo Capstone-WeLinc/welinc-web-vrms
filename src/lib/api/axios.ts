@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { showToast } from '../../context/toast';
 import { getApiErrorMessage } from './errors';
+import { DENIED_MESSAGE, FORBIDDEN_EVENT } from '../permissions/keys';
 
 const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
 const UNAVAILABLE = 'Sign in service unavailable. Try again in a moment.';
@@ -70,9 +71,11 @@ api.interceptors.response.use(
       const message = getApiErrorMessage(error, "You don't have access to that.");
       if (message.startsWith('Account is locked')) {
         signOutToPortal(message);
-      } else if (!quiet) {
-        // A wrong role: stay signed in
-        showToast(message, 'error');
+      } else {
+        // A missing permission: stay signed in and refetch the keys at once. A page that now
+        // needs a key you lost sends you to the dashboard on its own (spec 0011, AC-23, AC-24).
+        window.dispatchEvent(new Event(FORBIDDEN_EVENT));
+        if (!quiet) showToast(DENIED_MESSAGE, 'error');
       }
     }
     return Promise.reject(error);

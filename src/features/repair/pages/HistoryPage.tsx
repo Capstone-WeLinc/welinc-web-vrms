@@ -13,7 +13,7 @@ import { resolveRange } from '../../../components/shared/date-range/dateRange';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { getGarages, type GarageOption } from '../../../lib/api/vrmsConfigApi';
 import { formatDuration, formatMonthHeading, formatPeso, formatShortDate, monthKey } from '../../../lib/utils/format';
-import { useAuthStore } from '../../../store/authStore';
+import { useCan } from '../../../lib/permissions/usePermissions';
 import type { RepairHistoryRow } from '../../../types';
 import { HistoryFilters } from '../components/HistoryFilters';
 import { HistorySummary } from '../components/HistorySummary';
@@ -59,7 +59,7 @@ function OutcomeCell({ row }: { row: RepairHistoryRow }) {
   );
 }
 
-function historyColumns(isAdmin: boolean): Column<RepairHistoryRow>[] {
+function historyColumns(showCosts: boolean): Column<RepairHistoryRow>[] {
   const columns: Column<RepairHistoryRow>[] = [
     { id: 'repair', header: 'Repair #', mobile: 'title', cell: (row) => <RepairNumberCell row={row} /> },
     {
@@ -80,7 +80,7 @@ function historyColumns(isAdmin: boolean): Column<RepairHistoryRow>[] {
     },
     { id: 'garage', header: 'Garage', cell: (row) => row.garageLocation ?? '—' },
   ];
-  if (isAdmin) {
+  if (showCosts) {
     columns.push({
       id: 'cost',
       header: 'Cost',
@@ -104,7 +104,9 @@ function historyColumns(isAdmin: boolean): Column<RepairHistoryRow>[] {
 }
 
 export function HistoryPage() {
-  const isAdmin = useAuthStore((state) => state.user?.role === 'ADMIN');
+  const seesCosts = useCan('ticket.costs.view');
+  // A finished ticket's only edits are unlock and then costs, so Edit shows with unlock
+  const canReopen = useCan('ticket.unlock');
   const navigate = useNavigate();
   const [filters, setFilters] = useState<HistoryFilterValues>(DEFAULT_HISTORY_FILTERS);
   const [page, setPage] = useState(1);
@@ -134,7 +136,7 @@ export function HistoryPage() {
 
   const rowActions = (row: RepairHistoryRow): RowAction[] => [
     { label: 'View details', onSelect: () => navigate(`/repairs/${row.id}?mode=readonly`) },
-    ...(isAdmin ? [{ label: 'Edit ticket', onSelect: () => navigate(`/repairs/${row.id}`) }] : []),
+    ...(canReopen ? [{ label: 'Edit ticket', onSelect: () => navigate(`/repairs/${row.id}`) }] : []),
   ];
 
   const filtered = hasActiveFilters(filters);
@@ -160,9 +162,9 @@ export function HistoryPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <HistorySummary summary={history.state === 'ready' ? history.summary : null} showSpend={isAdmin} />
+          <HistorySummary summary={history.state === 'ready' ? history.summary : null} showSpend={seesCosts} />
           <DataTable
-            columns={historyColumns(isAdmin)}
+            columns={historyColumns(seesCosts)}
             rows={history.rows}
             getRowId={(row) => row.id}
             state={history.state}

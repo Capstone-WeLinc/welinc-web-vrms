@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useId, useState, useSyncExternalStore } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   AlertDialog,
@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { confirmStore } from './confirm';
+import { confirmStore, type ConfirmRequest } from './confirm';
 
 /** Renders the confirm() dialog. Mount once, inside BrowserRouter (App.tsx). */
 export function ConfirmProvider() {
@@ -25,14 +25,18 @@ export function ConfirmProvider() {
     confirmStore.cancelAll();
   }, [routeKey]);
 
-  if (!current) return null;
+  // Keyed by request, so a queued confirm opens fresh after the previous one closes.
+  return current ? <ConfirmDialog key={current.id} request={current} /> : null;
+}
 
-  const { id, options, opener } = current;
+function ConfirmDialog({ request }: { request: ConfirmRequest }) {
+  const { id, options, opener } = request;
+  const groupName = useId();
+  const [choice, setChoice] = useState(options.choices?.[0]?.value);
   const cancel = () => confirmStore.settle(id, false);
 
   return (
-    // Keyed by request, so a queued confirm opens fresh after the previous one closes.
-    <AlertDialog key={id} open onOpenChange={(open) => !open && cancel()}>
+    <AlertDialog open onOpenChange={(open) => !open && cancel()}>
       <AlertDialogContent
         overlayProps={{ onClick: cancel }}
         onCloseAutoFocus={(event) => {
@@ -44,11 +48,29 @@ export function ConfirmProvider() {
           <AlertDialogTitle>{options.title}</AlertDialogTitle>
           {options.description && <AlertDialogDescription>{options.description}</AlertDialogDescription>}
         </AlertDialogHeader>
+        {options.choices && (
+          <fieldset className="flex flex-col gap-2">
+            <legend className="sr-only">{options.title}</legend>
+            {options.choices.map((item) => (
+              <label key={item.value} className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name={groupName}
+                  value={item.value}
+                  checked={choice === item.value}
+                  onChange={() => setChoice(item.value)}
+                  className="size-4 accent-primary"
+                />
+                {item.label}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel onClick={cancel}>{options.cancelText ?? 'Cancel'}</AlertDialogCancel>
           <AlertDialogAction
             variant={options.tone === 'destructive' ? 'destructive' : 'default'}
-            onClick={() => confirmStore.settle(id, true)}
+            onClick={() => confirmStore.settle(id, true, choice)}
           >
             {options.confirmText ?? 'Confirm'}
           </AlertDialogAction>

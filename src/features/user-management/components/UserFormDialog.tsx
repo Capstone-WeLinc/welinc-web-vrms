@@ -9,13 +9,16 @@ import { confirm } from '../../../components/shared/confirm/confirm';
 import { FormAlert } from '../../../components/shared/FormAlert';
 import { ResponsiveDialog } from '../../../components/shared/ResponsiveDialog';
 import { useToast } from '../../../context/toast';
-import { createUser, updateUser } from '../../../lib/api/authApi';
-import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
+import { createUser, updateUser, type LookupAccount } from '../../../lib/api/authApi';
+import { getAccountExists, getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
 import type { ManagedUser, UpdateUserPayload, UserRole } from '../../../types';
-import { hasUneditableRoles, vrmsRoles } from '../lib/accountStatus';
+import { hasUneditableRoles, onMechanicRoster, vrmsRoles } from '../lib/accountStatus';
+import { askAboutOpenWork, releaseAfterLeaving } from '../lib/openWorkFlow';
+import { systemsText } from '../lib/openWorkCopy';
+import { ExistingAccountPicker } from './ExistingAccountPicker';
 import { userFormSchema, type UserFormOutput, type UserFormValues } from '../lib/userFormSchema';
 
-export type SaveOutcome = 'created' | 'updated' | 'created-mail-failed';
+export type SaveOutcome = 'created' | 'updated' | 'created-mail-failed' | 'attached';
 
 interface UserFormDialogProps {
   open: boolean;
@@ -45,6 +48,9 @@ function mayHaveSaved(err: unknown) {
   return status === undefined || status >= 500;
 }
 
+/** The message welinc-auth sends when another system's admin owns the account (spec 0011, AC-28). */
+const ADMIN_ELSEWHERE = /is an admin in/i;
+
 /** New user and Edit user, in one react-hook-form dialog (spec 0006, AC-10 to AC-14, AC-22). */
 export function UserFormDialog({
   open,
@@ -69,7 +75,9 @@ export function UserFormDialog({
   const {
     control,
     handleSubmit,
+    getValues,
     setError,
+    resetField,
     formState: { isDirty },
   } = useForm<UserFormValues, unknown, UserFormOutput>({
     resolver: zodResolver(userFormSchema),
@@ -83,6 +91,12 @@ export function UserFormDialog({
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  // New user has two paths (spec 0011, AC-36); the existing path picks an account instead of typing one.
+  const [mode, setMode] = useState<'new' | 'existing'>('new');
+  const [picked, setPicked] = useState<LookupAccount | null>(null);
+  // Set once welinc-auth says the email is not ours to change (spec 0011, AC-28).
+  const [emailLocked, setEmailLocked] = useState(false);
+  const otherSystems = user?.otherSystems ?? [];
 
   const finish = () => {
     submittingRef.current = false;
@@ -93,7 +107,12 @@ export function UserFormDialog({
   const showSaveError = (err: unknown) => {
     const status = getApiErrorStatus(err);
     const message = getApiErrorMessage(err, '');
-    if (status === 409) {
+    if (status === 403 && ADMIN_ELSEWHERE.test(message)) {
+      resetField('email');
+      setEmailLocked(true);
+      setFormError(message);
+      showToast(message, 'error');
+    } else if (status === 409) {
       setError('email', { message: 'An account with this email already exists.' }, { shouldFocus: true });
     } else if (status === 400 && /email domain/i.test(message)) {
       setError('email', { message }, { shouldFocus: true });
@@ -102,6 +121,33 @@ export function UserFormDialog({
       setFormError(text);
       showToast(text, 'error');
     }
+  };
+
+  const roleLabel = (role: string) => ROLE_OPTIONS.find((option) => option.value === role)?.label ?? role;
+
+  /** Adds the VRMS role to an account that already exists; their password and name stay as they are. */
+  const attach = async (name: string, email: string, role: string) => {
+    setFormError(null);
+    setSaving(true);
+    try {
+      const saved = await runWrite(() =>
+        createUser({ name, email, roleAssignments: [{ role: role as UserRole, system: 'VRMS' }], attachExisting: true }),
+      );
+      finish();
+      onSaved(saved, 'attached');
+    } catch (err) {
+      finish();
+      showSaveError(err);
+    }
+  };
+
+  const saveExisting = async () => {
+    if (!picked) {
+      setFormError('Pick an account to add.');
+      finish();
+      return;
+    }
+    await attach(picked.name, picked.email, getValues('role'));
   };
 
   const save = async ({ name, email: typedEmail, role }: UserFormOutput) => {
@@ -119,11 +165,28 @@ export function UserFormDialog({
         title: 'Change their sign in email?',
         description: `${name} will sign in with ${email} from now on. ${user.email} will stop working.${
           isSelf ? ' Use the new address the next time you sign in.' : ''
-        }`,
+        }${otherSystems.length ? ` This changes their sign in for ${systemsText(otherSystems)} too.` : ''}`,
         confirmText: 'Change email',
         cancelText: 'Keep editing',
       });
       if (!ok) {
+        finish();
+        return;
+      }
+    }
+
+    // Leaving the mechanic roles for another one ends their hold on tickets, so ask about them first
+    const leavingMechanic =
+      !!user && !roleLockReason && onMechanicRoster(user) && role !== savedRole && role !== 'MECHANIC' && role !== 'CHIEF_MECHANIC';
+    let release: 'RELEASE' | 'KEEP' | 'STOP' = 'KEEP';
+    if (user && leavingMechanic) {
+      release = await askAboutOpenWork(user, {
+        title: `Change ${name}’s role?`,
+        description: 'They’ll lose their mechanic role.',
+        confirmText: 'Change role',
+        alwaysConfirm: false,
+      });
+      if (release === 'STOP') {
         finish();
         return;
       }
@@ -140,6 +203,7 @@ export function UserFormDialog({
         const saved = await runWrite(() => updateUser(user.id, payload));
         finish();
         onSaved(saved, 'updated');
+        if (release === 'RELEASE') void releaseAfterLeaving(user, 'ROLE_REMOVED', showToast, 'Role changed.');
       } else {
         // No password and no isActive, so welinc-auth emails the setup code.
         const saved = await runWrite(() => createUser({ name, email, roleAssignments }));
@@ -147,6 +211,23 @@ export function UserFormDialog({
         onSaved(saved, 'created');
       }
     } catch (err) {
+      const exists = !user ? getAccountExists(err) : null;
+      if (exists) {
+        finish();
+        const names = systemsText(exists.systems);
+        const ok = await confirm({
+          title: 'Add them to VRMS?',
+          description: `This email already has a WeLinc account${names ? ` (in ${names})` : ''}. Add the ${roleLabel(role)} role in VRMS to it? They keep their current password.`,
+          confirmText: 'Add to VRMS',
+          cancelText: 'Cancel',
+        });
+        if (ok) {
+          submittingRef.current = true;
+          setSubmitting(true);
+          await attach(exists.name, email, role);
+        }
+        return;
+      }
       if (!user && mayHaveSaved(err)) {
         const created = (await refetch())?.find((item) => item.email.toLowerCase() === email);
         if (created) {
@@ -165,7 +246,8 @@ export function UserFormDialog({
     if (submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
-    void handleSubmit(save, finish)(event);
+    if (!user && mode === 'existing') void saveExisting();
+    else void handleSubmit(save, finish)(event);
   };
 
   const changeOpen = async (next: boolean) => {
@@ -188,7 +270,15 @@ export function UserFormDialog({
       open={open}
       onOpenChange={(next) => void changeOpen(next)}
       title={user ? `Edit ${user.name}` : 'New user'}
-      description={user ? undefined : 'They’ll get an email with a code to set their password.'}
+      description={
+        user
+          ? otherSystems.length
+            ? `This account is also used in ${systemsText(otherSystems)}. A new email changes their sign in for every system.`
+            : undefined
+          : mode === 'new'
+            ? 'They’ll get an email with a code to set their password.'
+            : 'They keep their current password and sign in the way they do now.'
+      }
       finalFocusRef={finalFocusRef}
       footer={
         <>
@@ -203,29 +293,57 @@ export function UserFormDialog({
             Cancel
           </Button>
           <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" disabled={submitting} loading={saving}>
-            {user ? 'Save changes' : 'Create user'}
+            {user ? 'Save changes' : mode === 'new' ? 'Create user' : 'Add to VRMS'}
           </Button>
         </>
       }
     >
       <form id={formId} noValidate onSubmit={onSubmit} className="flex flex-col gap-5">
-        <FormField
-          control={control}
-          name="name"
-          label="Name"
-          required
-          render={({ field, controlProps }) => <Input {...field} {...controlProps} autoComplete="off" />}
-        />
-        <FormField
-          control={control}
-          name="email"
-          label="Email"
-          required
-          description="This is their sign in."
-          render={({ field, controlProps }) => (
-            <Input {...field} {...controlProps} type="email" autoComplete="off" spellCheck={false} />
-          )}
-        />
+        {!user && (
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="touch"
+            aria-label="Account type"
+            value={mode}
+            onValueChange={(value) => {
+              if (value !== 'new' && value !== 'existing') return;
+              setMode(value);
+              setFormError(null);
+            }}
+            className="grid w-full grid-cols-2"
+          >
+            <ToggleGroupItem value="new" className="md:h-10 md:text-sm">
+              New account
+            </ToggleGroupItem>
+            <ToggleGroupItem value="existing" className="md:h-10 md:text-sm">
+              Existing WeLinc account
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
+        {mode === 'existing' && !user ? (
+          <ExistingAccountPicker selected={picked} onSelect={setPicked} />
+        ) : (
+          <>
+            <FormField
+              control={control}
+              name="name"
+              label="Name"
+              required
+              render={({ field, controlProps }) => <Input {...field} {...controlProps} autoComplete="off" />}
+            />
+            <FormField
+              control={control}
+              name="email"
+              label="Email"
+              required
+              description={emailLocked ? 'This account is an admin in another system. Send a reset code instead.' : 'This is their sign in.'}
+              render={({ field, controlProps }) => (
+                <Input {...field} {...controlProps} type="email" autoComplete="off" spellCheck={false} readOnly={emailLocked} />
+              )}
+            />
+          </>
+        )}
         <FormField
           control={control}
           name="role"

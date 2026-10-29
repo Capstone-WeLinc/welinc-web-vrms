@@ -37,6 +37,15 @@ describe('attentionList', () => {
     expect(attentionList([fine, waiting, late, waitingOverdue, lateMost], now, 2)).toHaveLength(2);
   });
 
+  it('puts tickets with no active mechanic after overdue and before waiting ones (spec 0011, AC-34)', () => {
+    const late = ticket({ id: 'late', status: 'IN_PROGRESS', dueAt: at(-DAY) });
+    const orphan = ticket({ id: 'orphan', status: 'IN_PROGRESS', needsMechanic: true, updatedAt: at(-DAY) });
+    const gone = ticket({ id: 'gone', status: 'ASSIGNED', hasInactiveMechanic: true, updatedAt: at(-2 * DAY) });
+    const waiting = ticket({ id: 'wait', status: 'FOR_VERIFICATION', updatedAt: at(-5 * DAY) });
+    const ids = attentionList([waiting, orphan, gone, late], now, 10).map((t) => t.id);
+    expect(ids).toEqual(['late', 'gone', 'orphan', 'wait']);
+  });
+
   it('counts an ON_HOLD ticket past due as overdue (AC-4a)', () => {
     const held = ticket({ id: 'held', status: 'ON_HOLD', dueAt: at(-DAY) });
     expect(attentionList([held], now, 5).map((t) => t.id)).toEqual(['held']);

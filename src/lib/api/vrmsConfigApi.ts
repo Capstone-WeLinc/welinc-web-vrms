@@ -62,3 +62,26 @@ export async function getDrivers(): Promise<DriverOption[]> {
   const response = await api.get<DriverOption[]>('/vrms/config/drivers');
   return response.data;
 }
+
+export interface OpenWork {
+  total: number;
+  /** Every open status as a key, zeros included. */
+  byStatus: Record<string, number>;
+}
+
+/** What a person still holds in VRMS (users.manage, spec 0011, AC-32). */
+export async function getOpenWork(authUserId: string): Promise<OpenWork> {
+  const response = await api.get<OpenWork>(`/vrms/mechanics/${authUserId}/open-work`);
+  return response.data;
+}
+
+export interface ReleaseResult {
+  released: number;
+  reopened: number;
+}
+
+/** Ends the person's assignments after they left VRMS (users.manage, spec 0011, AC-33). */
+export async function releaseTickets(authUserId: string, reason: 'DEACTIVATED' | 'ROLE_REMOVED'): Promise<ReleaseResult> {
+  const response = await api.post<ReleaseResult>(`/vrms/mechanics/${authUserId}/release-tickets`, { reason }, { quiet: true });
+  return response.data;
+}

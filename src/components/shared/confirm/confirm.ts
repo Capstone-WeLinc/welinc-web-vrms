@@ -4,6 +4,8 @@ export type ConfirmOptions = {
   confirmText?: string; // default 'Confirm'
   cancelText?: string; // default 'Cancel'
   tone?: 'default' | 'destructive';
+  /** Radio choices shown under the description; the first is selected. Used by confirmChoice(). */
+  choices?: { value: string; label: string }[];
 };
 
 export type ConfirmRequest = {
@@ -11,7 +13,7 @@ export type ConfirmRequest = {
   options: ConfirmOptions;
   /** The element that had focus when confirm() was called; focus returns here. */
   opener: HTMLElement | null;
-  resolve: (confirmed: boolean) => void;
+  resolve: (confirmed: boolean, choice?: string) => void;
 };
 
 // A small external store: confirm() queues requests, ConfirmProvider shows the first one.
@@ -34,11 +36,11 @@ export const confirmStore = {
   getCurrent(): ConfirmRequest | null {
     return queue[0] ?? null;
   },
-  settle(id: number, confirmed: boolean) {
+  settle(id: number, confirmed: boolean, choice?: string) {
     const request = queue.find((item) => item.id === id);
     if (!request) return;
     queue = queue.filter((item) => item !== request);
-    request.resolve(confirmed);
+    request.resolve(confirmed, choice);
     emit();
   },
   /** Resolves the open confirm and every queued one false (route change, unmount). */
@@ -70,6 +72,24 @@ export function confirm(options: ConfirmOptions): Promise<boolean> {
   const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   return new Promise<boolean>((resolve) => {
     queue = [...queue, { id: nextId++, options, opener, resolve }];
+    emit();
+  });
+}
+
+/**
+ * Like confirm(), with radio choices (options.choices, at least one). Resolves the chosen value on
+ * confirm, and null on cancel, Esc, a click outside, or a route change.
+ */
+export function confirmChoice(options: ConfirmOptions & { choices: { value: string; label: string }[] }): Promise<string | null> {
+  if (mountedProviders === 0) {
+    throw new Error('confirm() needs <ConfirmProvider> mounted');
+  }
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  return new Promise<string | null>((resolve) => {
+    queue = [
+      ...queue,
+      { id: nextId++, options, opener, resolve: (confirmed, choice) => resolve(confirmed ? (choice ?? options.choices[0].value) : null) },
+    ];
     emit();
   });
 }

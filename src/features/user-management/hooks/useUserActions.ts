@@ -1,16 +1,14 @@
 import { useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { confirm } from '../../../components/shared/confirm/confirm';
 import type { RowAction } from '../../../components/shared/data-table/types';
 import { useToast } from '../../../context/toast';
 import { requestPasswordReset, setUserStatus, unlockUser } from '../../../lib/api/authApi';
 import { getApiErrorMessage } from '../../../lib/api/errors';
-import { isMechanicRole } from '../../../lib/roles';
-import { getAvailableMechanics, type MechanicOption } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
-import { getAccountStatus, vrmsRoles } from '../lib/accountStatus';
+import { getAccountStatus } from '../lib/accountStatus';
 import { returnFocusToRow } from '../lib/focusReturn';
-import { findMechanicWithOpenWork } from '../lib/openWork';
+import { askAboutOpenWork, releaseAfterLeaving } from '../lib/openWorkFlow';
+import { sharedBlockNote } from '../lib/openWorkCopy';
 import { syncAfterSave } from '../lib/mechanicSync';
 
 interface UserActionsOptions {
@@ -25,9 +23,8 @@ function reason(err: unknown) {
   return getApiErrorMessage(err, 'check your connection and try again').replace(/\.$/, '');
 }
 
-/** Each row's actions menu and the confirm, call and toast behind every item (spec 0006, AC-9, AC-15 to AC-21). */
+/** Each row's actions menu and the confirm, call and toast behind every item (spec 0006, AC-9, AC-15 to AC-21, spec 0011, AC-35). */
 export function useUserActions({ currentUserId, onEdit, runWrite, upsertUser }: UserActionsOptions) {
-  const navigate = useNavigate();
   const { showToast } = useToast();
   // Rows with an action between its confirm and its last response; their other actions do nothing.
   const busy = useRef(new Set<string>());
@@ -118,55 +115,26 @@ export function useUserActions({ currentUserId, onEdit, runWrite, upsertUser }: 
       }
     });
 
-  /**
-   * AC-16: a fresh mechanics list, never a cached one. 'clear' continues to the deactivate
-   * prompt; 'stop' ends the action (blocked, opened their tickets, or closed).
-   */
-  const checkOpenWork = async (user: ManagedUser): Promise<'clear' | 'stop'> => {
-    let mechanics: MechanicOption[];
-    try {
-      mechanics = await getAvailableMechanics();
-    } catch {
-      // Fails closed for a mechanic; an admin only account has no tickets to strand.
-      if (!vrmsRoles(user).some(isMechanicRole)) return 'clear';
-      const again = await confirm({
-        title: 'Couldn’t check open work',
-        description: `We couldn’t check whether ${user.name} has open repair tickets, so they can’t be deactivated yet.`,
-        confirmText: 'Try again',
-        cancelText: 'Close',
-      });
-      return again ? checkOpenWork(user) : 'stop';
-    }
-
-    const mechanic = findMechanicWithOpenWork(user, mechanics);
-    if (!mechanic) return 'clear';
-    const open = await confirm({
-      title: `Reassign ${user.name}’s work first`,
-      description: `${user.name} still has open repair tickets. Reassign or close them, then deactivate.`,
-      confirmText: 'Open their tickets',
-      cancelText: 'Close',
-    });
-    if (open) navigate(`/repairs?mechanic=${mechanic.id}`);
-    return 'stop';
-  };
-
   const deactivate = (user: ManagedUser) =>
     run(user, async () => {
-      if ((await checkOpenWork(user)) === 'stop') return;
-      const ok = await confirm({
+      const release = await askAboutOpenWork(user, {
         title: `Deactivate ${user.name}?`,
-        description: 'They’ll be signed out and can’t sign in until you reactivate them. Their tickets and history stay.',
+        description: `They’ll be signed out and can’t sign in until you reactivate them. Their history stays.${sharedBlockNote(user.otherSystems)}`,
         confirmText: 'Deactivate',
         tone: 'destructive',
+        alwaysConfirm: true,
       });
-      if (!ok) return;
+      if (release === 'STOP') return;
       try {
         upsertUser(await setUserStatus(user.id, false));
-        showToast(`${user.name} deactivated.`);
         syncAfterSave(showToast);
       } catch (err) {
         showToast(`Couldn’t deactivate ${user.name}: ${reason(err)}.`, 'error');
+        return;
       }
+      const done = `${user.name} deactivated.`;
+      if (release === 'RELEASE') await releaseAfterLeaving(user, 'DEACTIVATED', showToast, done);
+      else showToast(done);
     });
 
   const rowActions = (user: ManagedUser): RowAction[] => {
