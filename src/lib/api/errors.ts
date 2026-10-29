@@ -1,9 +1,15 @@
 import { isAxiosError } from 'axios';
+import { DENIED_MESSAGE } from '../permissions/keys';
 
 // Pull the backend's `message` out of an axios error, falling back when there is none
 export function getApiErrorMessage(err: unknown, fallback: string): string {
   if (isAxiosError<{ message?: string | string[] }>(err)) {
     const message = err.response?.data?.message;
+    // A 403 reads the same everywhere, whatever the body says (spec 0011, AC-24). A locked
+    // account keeps its own text, because the sign out flow shows it.
+    if (err.response?.status === 403 && !(typeof message === 'string' && message.startsWith('Account is locked'))) {
+      return DENIED_MESSAGE;
+    }
     if (Array.isArray(message)) return message.join(', ');
     if (message) return message;
   }

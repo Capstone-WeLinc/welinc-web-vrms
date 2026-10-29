@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { showToast } from '../../context/toast';
 import { getApiErrorMessage } from './errors';
-import { DENIED_MESSAGE, DENIED_TOAST_MS, FORBIDDEN_EVENT } from '../permissions/keys';
+import { DENIED_MESSAGE, FORBIDDEN_EVENT } from '../permissions/keys';
 
 const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
 const UNAVAILABLE = 'Sign in service unavailable. Try again in a moment.';
@@ -32,7 +32,6 @@ api.interceptors.request.use((config) => {
 });
 
 let lastUnavailableToast = 0;
-let lastDeniedToast = 0;
 let signingOut = false;
 
 /**
@@ -76,11 +75,7 @@ api.interceptors.response.use(
         // A missing permission: stay signed in and refetch the keys at once. A page that now
         // needs a key you lost sends you to the dashboard on its own (spec 0011, AC-23, AC-24).
         window.dispatchEvent(new Event(FORBIDDEN_EVENT));
-        const now = Date.now();
-        if (!quiet && now - lastDeniedToast >= DENIED_TOAST_MS) {
-          lastDeniedToast = now;
-          showToast(DENIED_MESSAGE, 'error');
-        }
+        if (!quiet) showToast(DENIED_MESSAGE, 'error');
       }
     }
     return Promise.reject(error);
