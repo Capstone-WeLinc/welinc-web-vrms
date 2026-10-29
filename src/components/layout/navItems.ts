@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { UserRole } from '../../types';
+import type { PermissionKey } from '../../lib/permissions/keys';
 
 export interface NavItem {
   to: string;
@@ -25,68 +26,63 @@ export interface NavSection {
   items: NavItem[];
 }
 
-const adminNavSections: NavSection[] = [
-  {
-    title: 'General',
-    items: [
-      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/profile', label: 'Profile', icon: User },
-    ],
-  },
-  {
-    title: 'Vehicle repairs',
-    items: [
-      { to: '/repairs', label: 'Repair tickets', icon: Wrench },
-      { to: '/repairs/new', label: 'New repair', icon: PlusCircle },
-      { to: '/history', label: 'Repair history', icon: History },
-    ],
-  },
-  {
-    title: 'Analytics & AI',
-    items: [
-      { to: '/analytics', label: 'Analytics', icon: BarChart2 },
-      { to: '/knowledge-base', label: 'Knowledge base', icon: BookOpen },
-    ],
-  },
-  {
-    title: 'Administration',
-    items: [
-      { to: '/users', label: 'Users', icon: Users },
-      { to: '/audit-logs', label: 'Audit logs', icon: ClipboardList },
-    ],
-  },
-];
+type NavEntry = NavItem | false;
 
-const mechanicNavSections: NavSection[] = [
-  {
-    title: 'General',
-    items: [
-      { to: '/dashboard', label: 'My dashboard', shortLabel: 'Dashboard', icon: LayoutDashboard },
-      { to: '/profile', label: 'Profile', icon: User },
-    ],
-  },
-  {
-    title: 'Vehicle repairs',
-    items: [
-      { to: '/repairs', label: 'My repairs', shortLabel: 'Repairs', icon: Wrench },
-      { to: '/history', label: 'Repair history', shortLabel: 'History', icon: History },
-    ],
-  },
-  {
-    title: 'Knowledge base',
-    items: [{ to: '/knowledge-base', label: 'Knowledge base', shortLabel: 'Guides', icon: BookOpen }],
-  },
-];
+const present = (entries: NavEntry[]) => entries.filter((entry): entry is NavItem => entry !== false);
 
-export function getNavSections(role: UserRole | undefined): NavSection[] {
-  return role === 'ADMIN' ? adminNavSections : mechanicNavSections;
+/**
+ * The nav for what the signed in user may do (spec 0011, AC-22): each item shows with the key
+ * its page needs. `role` only gates Analytics, which has no key in the catalog yet.
+ */
+export function getNavSections(can: (key: PermissionKey) => boolean, role: UserRole | undefined): NavSection[] {
+  const seesAll = can('ticket.view_all');
+  const seesTickets = seesAll || can('ticket.view');
+  const analytics = role === 'ADMIN';
+
+  const sections: NavSection[] = [
+    {
+      title: 'General',
+      items: [
+        { to: '/dashboard', label: seesAll ? 'Dashboard' : 'My dashboard', shortLabel: 'Dashboard', icon: LayoutDashboard },
+        { to: '/profile', label: 'Profile', icon: User },
+      ],
+    },
+    {
+      title: 'Vehicle repairs',
+      items: present([
+        seesTickets && {
+          to: '/repairs',
+          label: seesAll ? 'Repair tickets' : 'My repairs',
+          shortLabel: 'Repairs',
+          icon: Wrench,
+        },
+        can('ticket.create') && { to: '/repairs/new', label: 'New repair', icon: PlusCircle },
+        seesTickets && { to: '/history', label: 'Repair history', shortLabel: 'History', icon: History },
+      ]),
+    },
+    {
+      title: analytics ? 'Analytics & AI' : 'Knowledge base',
+      items: present([
+        analytics && { to: '/analytics', label: 'Analytics', icon: BarChart2 },
+        can('knowledge.view') && { to: '/knowledge-base', label: 'Knowledge base', shortLabel: 'Guides', icon: BookOpen },
+      ]),
+    },
+    {
+      title: 'Administration',
+      items: present([
+        can('users.manage') && { to: '/users', label: 'Users', icon: Users },
+        can('audit.view') && { to: '/audit-logs', label: 'Audit logs', icon: ClipboardList },
+      ]),
+    },
+  ];
+  return sections.filter((section) => section.items.length > 0);
 }
 
 // Phone tab bar order (design.md caps it at 5): the daily screens first, profile last.
 const MOBILE_TAB_ORDER = ['/dashboard', '/repairs', '/history', '/knowledge-base', '/profile'];
 
-export function getMobileTabs(role: UserRole | undefined): NavItem[] {
-  const items = getNavSections(role).flatMap((section) => section.items);
+export function getMobileTabs(sections: NavSection[]): NavItem[] {
+  const items = sections.flatMap((section) => section.items);
   return MOBILE_TAB_ORDER.flatMap((to) => items.filter((item) => item.to === to));
 }
 

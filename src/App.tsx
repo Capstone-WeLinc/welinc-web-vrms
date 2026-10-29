@@ -25,6 +25,10 @@ import { ConfirmProvider } from './components/shared/confirm/ConfirmProvider';
 import { TooltipProvider } from './components/ui/tooltip';
 import SessionMonitor from './components/SessionMonitor';
 import { KNOWLEDGE_EDITOR_ROLES } from './lib/roles';
+import { PermissionsProvider } from './lib/permissions/PermissionsProvider';
+import { PermissionsGate } from './components/layout/PermissionsGate';
+import { useCan } from './lib/permissions/usePermissions';
+import type { PermissionKey } from './lib/permissions/keys';
 
 // Development only: the condition is a build time constant, so production drops the import.
 const DevUiPage = import.meta.env.DEV
@@ -52,6 +56,14 @@ function RequireRole({ role, children }: { role: UserRole | UserRole[]; children
 
   return children;
 }
+
+/** Spec 0011, AC-22: the page needs any one of these keys, or it sends you to the dashboard. */
+function RequirePermission({ keys, children }: { keys: PermissionKey[]; children: ReactElement }) {
+  const allowed = useCan(...keys);
+  return allowed ? children : <Navigate to="/dashboard" replace />;
+}
+
+const TICKET_READ: PermissionKey[] = ['ticket.view', 'ticket.view_all'];
 
 function App() {
   const token = useAuthStore((state) => state.token);
@@ -107,23 +119,48 @@ function App() {
           path="/"
           element={
             <RequireAuth>
-              <DashboardShell />
+              <PermissionsProvider>
+                <PermissionsGate>
+                  <DashboardShell />
+                </PermissionsGate>
+              </PermissionsProvider>
             </RequireAuth>
           }
         >
           <Route index element={<DashboardPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="repairs" element={<RepairListPage />} />
+          <Route
+            path="repairs"
+            element={
+              <RequirePermission keys={TICKET_READ}>
+                <RepairListPage />
+              </RequirePermission>
+            }
+          />
           <Route
             path="repairs/new"
             element={
-              <RequireRole role="ADMIN">
+              <RequirePermission keys={['ticket.create']}>
                 <RepairFormPage />
-              </RequireRole>
+              </RequirePermission>
             }
           />
-          <Route path="repairs/:repairId" element={<RepairDetailPage />} />
-          <Route path="history" element={<HistoryPage />} />
+          <Route
+            path="repairs/:repairId"
+            element={
+              <RequirePermission keys={TICKET_READ}>
+                <RepairDetailPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="history"
+            element={
+              <RequirePermission keys={TICKET_READ}>
+                <HistoryPage />
+              </RequirePermission>
+            }
+          />
           <Route path="profile" element={<ProfilePage />} />
           <Route
             path="users"

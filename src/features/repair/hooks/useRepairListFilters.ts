@@ -14,9 +14,9 @@ const SEARCH_DELAY_MS = 300;
  * change replaces the history entry, and any filter change goes back to page 1. The search
  * box text is local and reaches the URL 300ms after typing stops.
  */
-export function useRepairListFilters(isAdmin: boolean) {
+export function useRepairListFilters(seesAll: boolean) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { filters, page } = readListState(searchParams, isAdmin);
+  const { filters, page } = readListState(searchParams, seesAll);
   const [searchText, setSearchTextState] = useState(filters.search);
   const timer = useRef<number | undefined>(undefined);
 
@@ -26,7 +26,7 @@ export function useRepairListFilters(isAdmin: boolean) {
   const setFilters = (patch: Partial<RepairListFilterValues>) =>
     setSearchParams(
       (current) => {
-        const state = readListState(current, isAdmin);
+        const state = readListState(current, seesAll);
         const next = { ...state.filters, ...patch };
         const keys = Object.keys(patch) as (keyof RepairListFilterValues)[];
         return keys.some((k) => next[k] !== state.filters[k]) ? writeListState(next, 1) : current;
@@ -35,7 +35,7 @@ export function useRepairListFilters(isAdmin: boolean) {
     );
 
   const setPage = (nextPage: number) =>
-    setSearchParams((current) => writeListState(readListState(current, isAdmin).filters, nextPage), { replace: true });
+    setSearchParams((current) => writeListState(readListState(current, seesAll).filters, nextPage), { replace: true });
 
   const setSearchText = (text: string) => {
     setSearchTextState(text);

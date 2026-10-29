@@ -5,10 +5,12 @@ import { AppHeader } from './AppHeader';
 import { MobileTabBar } from './MobileTabBar';
 import { Sidebar } from './Sidebar';
 import { getMobileTabs } from './navItems';
+import { useNavSections } from './useNavSections';
 import { useSidebarCollapsed } from './useSidebarCollapsed';
 
 export function DashboardShell() {
   const role = useAuthStore((state) => state.user?.role);
+  const sections = useNavSections();
   const { collapsed, toggle } = useSidebarCollapsed();
   // design.md: admins get a sheet menu on phones, everyone else a bottom tab bar.
   const hasTabBar = role !== 'ADMIN';
@@ -37,7 +39,7 @@ export function DashboardShell() {
           <Outlet />
         </main>
       </div>
-      {hasTabBar && <MobileTabBar items={getMobileTabs(role)} />}
+      {hasTabBar && <MobileTabBar items={getMobileTabs(sections)} />}
     </div>
   );
 }

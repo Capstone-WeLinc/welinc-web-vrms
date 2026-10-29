@@ -4,7 +4,8 @@ import { useAuthStore } from '../../store/authStore';
 import { BrandMark } from './BrandMark';
 import { MobileNavSheet } from './MobileNavSheet';
 import { UserMenu } from './UserMenu';
-import { getActiveNavTrail, getNavSections } from './navItems';
+import { getActiveNavTrail } from './navItems';
+import { useNavSections } from './useNavSections';
 
 /**
  * Top bar of the content column. Left: the menu and logo (phone), then where you are.
@@ -13,7 +14,7 @@ import { getActiveNavTrail, getNavSections } from './navItems';
 export function AppHeader() {
   const role = useAuthStore((state) => state.user?.role);
   const { pathname } = useLocation();
-  const sections = getNavSections(role);
+  const sections = useNavSections();
   const trail = getActiveNavTrail(pathname, sections);
 
   return (

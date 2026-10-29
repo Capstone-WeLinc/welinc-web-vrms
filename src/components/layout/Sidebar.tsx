@@ -1,9 +1,8 @@
 import { ArrowRightLeft, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
 import { cn } from '@/lib/utils';
 import { BrandMark } from './BrandMark';
 import { SidebarAction, SidebarNav } from './SidebarNav';
-import { getNavSections } from './navItems';
+import { useNavSections } from './useNavSections';
 import { useShellActions } from './useShellActions';
 
 interface SidebarProps {
@@ -13,7 +12,7 @@ interface SidebarProps {
 
 /** Desktop navigation (768px and up): w-64 expanded, w-16 icon only. */
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
-  const role = useAuthStore((state) => state.user?.role);
+  const sections = useNavSections();
   const { canSwitchToVmms, switchToVmms, signOut } = useShellActions();
 
   return (
@@ -34,7 +33,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
       </div>
 
       <div className={cn('flex-1 overflow-y-auto py-5', collapsed ? 'px-2' : 'px-3')}>
-        <SidebarNav sections={getNavSections(role)} collapsed={collapsed} />
+        <SidebarNav sections={sections} collapsed={collapsed} />
       </div>
 
       <div className={cn('flex shrink-0 flex-col gap-1 border-t border-sidebar-foreground/10 py-3', collapsed ? 'px-2' : 'px-3')}>

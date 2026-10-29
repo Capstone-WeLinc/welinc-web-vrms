@@ -10,7 +10,8 @@ import { ErrorState } from '../../../components/shared/ErrorState';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { getAvailableMechanics, getGarages, type GarageOption, type MechanicOption } from '../../../lib/api/vrmsConfigApi';
 import { dueLabel } from '../../../lib/utils/due';
-import { useAuthStore } from '../../../store/authStore';
+import { Can } from '../../../lib/permissions/Can';
+import { useCan } from '../../../lib/permissions/usePermissions';
 import type { RepairTicket } from '../../../types';
 import { RepairListFilters } from '../components/RepairListFilters';
 import { useRepairList } from '../hooks/useRepairList';
@@ -65,10 +66,12 @@ function listColumns(now: number): Column<RepairTicket>[] {
 }
 
 export function RepairListPage() {
-  const isAdmin = useAuthStore((state) => state.user?.role === 'ADMIN');
+  // Spec 0011: ticket.view_all reads every ticket and can filter by mechanic
+  const seesAll = useCan('ticket.view_all');
+  const canCreate = useCan('ticket.create');
   const navigate = useNavigate();
   const location = useLocation();
-  const { filters, page, searchText, setSearchText, setFilters, setPage, clearFilters } = useRepairListFilters(isAdmin);
+  const { filters, page, searchText, setSearchText, setFilters, setPage, clearFilters } = useRepairListFilters(seesAll);
   const list = useRepairList(repairListParams(filters, page));
   const [garages, setGarages] = useState<GarageOption[]>([]);
   const [mechanics, setMechanics] = useState<MechanicOption[]>([]);
@@ -81,7 +84,7 @@ export function RepairListPage() {
         if (!cancelled) setGarages(list);
       })
       .catch(() => {});
-    if (isAdmin) {
+    if (seesAll) {
       getAvailableMechanics()
         .then((list) => {
           if (!cancelled) setMechanics(list);
@@ -91,7 +94,7 @@ export function RepairListPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAdmin]);
+  }, [seesAll]);
 
   // A page past the last one (tickets closed since the link was made) moves to the last page (AC-8).
   const last = lastPage(list.total, REPAIR_LIST_PAGE_SIZE);
@@ -109,12 +112,14 @@ export function RepairListPage() {
   ];
 
   const newTicket = (
-    <Button asChild>
-      <Link to="/repairs/new">
-        <Plus aria-hidden="true" />
-        New repair ticket
-      </Link>
-    </Button>
+    <Can I="ticket.create">
+      <Button asChild>
+        <Link to="/repairs/new">
+          <Plus aria-hidden="true" />
+          New repair ticket
+        </Link>
+      </Button>
+    </Can>
   );
 
   const empty = hasActiveFilters(filters)
@@ -128,7 +133,7 @@ export function RepairListPage() {
           </Button>
         ),
       }
-    : isAdmin
+    : seesAll
       ? { title: 'No open repair tickets', description: 'New tickets show up here.', icon: ClipboardList, action: newTicket }
       : {
           title: 'No repair tickets assigned to you',
@@ -140,16 +145,16 @@ export function RepairListPage() {
     <div>
       <PageHeader
         title="Repair tickets"
-        subtitle={isAdmin ? 'Open repair tickets across every garage.' : 'Open repair tickets assigned to you.'}
+        subtitle={seesAll ? 'Open repair tickets across every garage.' : 'Open repair tickets assigned to you.'}
         icon={Wrench}
-        action={isAdmin ? newTicket : undefined}
+        action={canCreate ? newTicket : undefined}
       />
 
       <RepairListFilters
         value={filters}
         searchText={searchText}
         garages={garages}
-        mechanics={isAdmin ? mechanics : null}
+        mechanics={seesAll ? mechanics : null}
         onSearchTextChange={setSearchText}
         onChange={setFilters}
       />
