@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Setting } from '../../../lib/api/settingsApi';
 import { dependentsTurningOff, missingRequirements, reasonError } from './modules';
-import { hasInvalidEdit, isCustom, pendingChanges, thresholdError } from './thresholds';
+import { groupValues, hasInvalidEdit, isCustom, pendingChanges, shownText, thresholdError } from './thresholds';
 
 function value(overrides: Partial<Setting> = {}): Setting {
   return {
@@ -83,5 +83,29 @@ describe('modules (spec 0012, AC-9, AC-22)', () => {
     expect(reasonError('  abc ')).not.toBeNull();
     expect(reasonError('Testing the switch')).toBeNull();
     expect(reasonError('x'.repeat(501))).not.toBeNull();
+  });
+});
+
+describe('shownText and groupValues (spec 0012, AC-23)', () => {
+  it('shows the edit, the default after a reset, else the saved value', () => {
+    const setting = value({ value: 5, default: 2, isDefault: false });
+    expect(shownText(setting, undefined)).toBe('5');
+    expect(shownText(setting, { kind: 'value', text: '7' })).toBe('7');
+    expect(shownText(setting, { kind: 'reset' })).toBe('2');
+  });
+
+  it('groups only value settings by their catalog group, in catalog order', () => {
+    const groups = groupValues([
+      mod('module.ai', true),
+      value({ key: 'a', group: 'Knowledge base' }),
+      value({ key: 'b', group: 'Repairs' }),
+      value({ key: 'c', group: 'Knowledge base' }),
+    ]);
+    expect(groups.map((g) => g.group)).toEqual(['Knowledge base', 'Repairs']);
+    expect(groups[0].settings.map((s) => s.key)).toEqual(['a', 'c']);
+  });
+
+  it('gives no groups when there are no values', () => {
+    expect(groupValues([mod('module.ai', true)])).toEqual([]);
   });
 });
