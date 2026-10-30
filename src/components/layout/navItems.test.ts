@@ -19,6 +19,9 @@ const ADMIN: PermissionKey[] = [
   'knowledge.edit',
   'users.manage',
   'permissions.manage',
+  'settings.manage',
+  'lookups.manage',
+  'ai.use',
 ];
 const CHIEF: PermissionKey[] = ['ticket.view', 'ticket.view_all', 'ticket.work', 'config.read', 'knowledge.view', 'knowledge.suggest', 'knowledge.edit'];
 const MECHANIC: PermissionKey[] = ['ticket.view', 'ticket.work', 'config.read', 'knowledge.view', 'knowledge.suggest'];
@@ -39,7 +42,14 @@ describe('getNavSections', () => {
       '/knowledge-base',
       '/users',
       '/audit-logs',
+      '/settings',
     ]);
+  });
+
+  it('shows Settings to anyone holding one of its three keys (spec 0012, AC-21)', () => {
+    expect(paths(CHIEF)).not.toContain('/settings');
+    expect(paths([...CHIEF, 'lookups.manage'])).toContain('/settings');
+    expect(paths([...CHIEF, 'permissions.manage'])).toContain('/settings');
   });
 
   it('gives a mechanic their own repairs and the knowledge base, nothing to administer', () => {

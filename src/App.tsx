@@ -11,7 +11,6 @@ import { UsersPage } from './features/user-management/pages/UsersPage';
 import { AuditLogsPage } from './features/audit-logs/pages/AuditLogsPage';
 import { ProfilePage } from './features/auth/pages/ProfilePage';
 import { AnalyticsPage } from './features/analytics/pages/AnalyticsPage';
-import { KnowledgeCategoriesPage } from './features/knowledge-base/pages/KnowledgeCategoriesPage';
 import { KnowledgeEditorPage } from './features/knowledge-base/pages/KnowledgeEditorPage';
 import { KnowledgeEntryPage } from './features/knowledge-base/pages/KnowledgeEntryPage';
 import { KnowledgeLibraryPage } from './features/knowledge-base/pages/KnowledgeLibraryPage';
@@ -32,6 +31,9 @@ import { ModuleOffPage } from './pages/ModuleOffPage';
 import { RequireSection, SettingsIndex, SettingsPage } from './features/settings/pages/SettingsPage';
 import { ModulesSection } from './features/settings/components/ModulesSection';
 import { ThresholdsSection } from './features/settings/components/ThresholdsSection';
+import { RolesSection } from './features/settings/components/RolesSection';
+import { LookupsSection } from './features/settings/components/LookupsSection';
+import { HistorySection } from './features/settings/components/HistorySection';
 import { SETTINGS_KEYS } from './features/settings/lib/sections';
 
 // Development only: the condition is a build time constant, so production drops the import.
@@ -65,7 +67,6 @@ function RequirePermission({ keys, module, children }: { keys: PermissionKey[]; 
 const TICKET_READ: PermissionKey[] = ['ticket.view', 'ticket.view_all'];
 const KNOWLEDGE_READ: PermissionKey[] = ['knowledge.view'];
 const KNOWLEDGE_EDIT: PermissionKey[] = ['knowledge.edit'];
-const LOOKUPS_EDIT: PermissionKey[] = ['lookups.manage'];
 
 function App() {
   const token = useAuthStore((state) => state.token);
@@ -228,15 +229,7 @@ function App() {
               </RequirePermission>
             }
           />
-          <Route
-            path="knowledge-base/categories"
-            element={
-              // A lookup list since spec 0012 (AC-19), so it works while the knowledge base is off
-              <RequirePermission keys={LOOKUPS_EDIT}>
-                <KnowledgeCategoriesPage />
-              </RequirePermission>
-            }
-          />
+          <Route path="knowledge-base/categories" element={<Navigate to="/settings/lookups" replace />} />
           <Route
             path="settings"
             element={
@@ -259,6 +252,30 @@ function App() {
               element={
                 <RequireSection permission="settings.manage">
                   <ThresholdsSection />
+                </RequireSection>
+              }
+            />
+            <Route
+              path="roles"
+              element={
+                <RequireSection permission="permissions.manage">
+                  <RolesSection />
+                </RequireSection>
+              }
+            />
+            <Route
+              path="lookups"
+              element={
+                <RequireSection permission="lookups.manage">
+                  <LookupsSection />
+                </RequireSection>
+              }
+            />
+            <Route
+              path="history"
+              element={
+                <RequireSection permission="settings.manage">
+                  <HistorySection />
                 </RequireSection>
               }
             />

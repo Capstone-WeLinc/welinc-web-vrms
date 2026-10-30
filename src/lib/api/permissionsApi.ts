@@ -63,3 +63,15 @@ export async function getPermissionChanges(limit: number): Promise<{ data: Permi
   });
   return response.data;
 }
+
+export interface UpdatePermissions {
+  version: number;
+  changes: { role: string; permission: string; allowed: boolean }[];
+  note?: string;
+}
+
+/** All or nothing; a stale version answers 409 and the caller reloads (spec 0011, AC-18). */
+export async function updatePermissions(body: UpdatePermissions): Promise<PermissionMatrix> {
+  const response = await api.patch<PermissionMatrix>('/vrms/permissions', body);
+  return response.data;
+}

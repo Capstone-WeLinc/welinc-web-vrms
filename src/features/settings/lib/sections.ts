@@ -1,4 +1,4 @@
-import { Power, SlidersHorizontal, type LucideIcon } from 'lucide-react';
+import { History, ListTree, Power, ShieldCheck, SlidersHorizontal, type LucideIcon } from 'lucide-react';
 import type { PermissionKey } from '../../../lib/permissions/keys';
 
 export interface SettingsSection {
@@ -10,8 +10,7 @@ export interface SettingsSection {
   permission: PermissionKey;
 }
 
-// Spec 0012, AC-21, in order. Roles and permissions, Lookup lists and Change history join in
-// the build plan's later steps.
+// Spec 0012, AC-21, in order.
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     path: 'modules',
@@ -25,6 +24,27 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     label: 'Thresholds',
     description: 'The numbers behind repeat vehicles, typical times and suggestions.',
     icon: SlidersHorizontal,
+    permission: 'settings.manage',
+  },
+  {
+    path: 'roles',
+    label: 'Roles and permissions',
+    description: 'What each role may do.',
+    icon: ShieldCheck,
+    permission: 'permissions.manage',
+  },
+  {
+    path: 'lookups',
+    label: 'Lookup lists',
+    description: 'The lists behind dropdowns, starting with issue categories.',
+    icon: ListTree,
+    permission: 'lookups.manage',
+  },
+  {
+    path: 'history',
+    label: 'Change history',
+    description: 'Who changed which setting or permission, and why.',
+    icon: History,
     permission: 'settings.manage',
   },
 ];

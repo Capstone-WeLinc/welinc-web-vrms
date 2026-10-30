@@ -18,7 +18,6 @@ const fetchCount = () => getSuggestionCount();
 const TABS = [
   { to: '/knowledge-base', label: 'Library', end: true },
   { to: '/knowledge-base/suggestions', label: 'Suggestions', end: false },
-  { to: '/knowledge-base/categories', label: 'Categories', end: false },
 ];
 
 /** The knowledge base header, plus route tabs for editors (spec 0007, AC-6). */

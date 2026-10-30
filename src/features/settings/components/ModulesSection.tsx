@@ -11,6 +11,7 @@ import { useSettings } from '../hooks/useSettings';
 import { dependentsTurningOff, missingRequirements } from '../lib/modules';
 import { STALE_SETTINGS_TOAST } from '../lib/sections';
 import { ModuleConfirmDialog } from './ModuleConfirmDialog';
+import { RecentChanges } from './RecentChanges';
 
 function ModuleRow({ module, onFlip }: { module: Setting; onFlip: () => void }) {
   const labelId = useId();
@@ -101,7 +102,7 @@ export function ModulesSection() {
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <DetailSection title="Modules">
         <p className="-mt-2 text-sm text-muted-foreground">
           A module that is off disappears for everyone and its background work stops. Its data stays for when it comes back.
@@ -112,6 +113,7 @@ export function ModulesSection() {
           ))}
         </div>
       </DetailSection>
+      <RecentChanges keys={new Set(modules.map((m) => m.key))} refreshToken={data.version} />
       <ModuleConfirmDialog
         module={pending}
         dependents={pending && pending.value === true ? dependentsTurningOff(settings, pending.key) : []}
@@ -119,6 +121,6 @@ export function ModulesSection() {
         onConfirm={confirm}
         onCancel={() => setPending(null)}
       />
-    </>
+    </div>
   );
 }

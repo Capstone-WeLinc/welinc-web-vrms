@@ -14,6 +14,7 @@ import { updateSettings, type Setting } from '../../../lib/api/settingsApi';
 import { MODULE_LABELS } from '../../../lib/permissions/keys';
 import { usePermissions } from '../../../lib/permissions/usePermissions';
 import { useSettings } from '../hooks/useSettings';
+import { RecentChanges } from './RecentChanges';
 import { STALE_SETTINGS_TOAST } from '../lib/sections';
 import {
   groupValues,
@@ -188,6 +189,8 @@ export function ThresholdsSection() {
           </DetailSection>
         );
       })}
+
+      <RecentChanges keys={new Set(settings.filter((s) => s.kind === 'value').map((s) => s.key))} refreshToken={data.version} />
 
       {dirty && (
         <div role="region" aria-label="Unsaved changes" className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-lg md:flex-row md:items-end">
