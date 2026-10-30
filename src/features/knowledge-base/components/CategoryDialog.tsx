@@ -39,14 +39,20 @@ export function CategoryDialog({ category, open, onOpenChange, onSaved, onReload
   const [saving, setSaving] = useState(false);
   const [stale, setStale] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const { control, handleSubmit, setError, formState } = useForm<CategoryForm, unknown, CategoryValues>({
+  // isDirty is only tracked when it is read during render, so destructure it here, not inside save
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { isDirty },
+  } = useForm<CategoryForm, unknown, CategoryValues>({
     resolver,
     mode: 'onTouched',
     defaultValues: { name: category?.name ?? '', description: category?.description ?? '' },
   });
 
   const save = async (values: CategoryValues) => {
-    if (category && !formState.isDirty) {
+    if (category && !isDirty) {
       onOpenChange(false);
       return;
     }
