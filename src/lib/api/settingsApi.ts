@@ -69,10 +69,20 @@ export interface HistoryChange {
 
 export type HistoryKind = 'all' | 'setting' | 'permission';
 
-/** Newest first, 20 per page by default. Needs settings.manage. */
-export async function getSettingChanges(params: { limit?: number; cursor?: string; kind?: HistoryKind }) {
+/**
+ * Newest first, 20 per page by default. Needs settings.manage. `keys` keeps only those keys'
+ * rows (sorted and joined into one comma separated string, 1 to 50 keys, AC-31); send the same
+ * `kind` and `keys` on every page.
+ */
+export async function getSettingChanges(params: {
+  limit?: number;
+  cursor?: string;
+  kind?: HistoryKind;
+  keys?: string[];
+}) {
+  const { keys, ...rest } = params;
   const response = await api.get<{ data: HistoryChange[]; nextCursor: string | null }>('/vrms/settings/changes', {
-    params,
+    params: keys ? { ...rest, keys: [...new Set(keys)].sort().join(',') } : rest,
     quiet: true,
   });
   return response.data;

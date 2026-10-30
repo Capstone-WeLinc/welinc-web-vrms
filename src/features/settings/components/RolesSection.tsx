@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import { DetailSection } from '../../../components/shared/DetailSection';
 import { ErrorState } from '../../../components/shared/ErrorState';
+import { useHasTabBar } from '../../../components/layout/useNavSections';
 import { showToast } from '../../../context/toast';
 import { useLeaveGuard } from '../../../hooks/useLeaveGuard';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
@@ -20,6 +22,7 @@ import { STALE_SETTINGS_TOAST } from '../lib/sections';
 import { ChangeList } from './ChangeList';
 
 const NOTE_MAX = 500;
+const PINNED = 'sticky left-0 z-1 border-r border-border bg-card md:border-r-0';
 
 const fetchRoles = () =>
   Promise.all([getPermissionMatrix(), getPermissionChanges(RECENT_COUNT)]).then(([matrix, changes]) => ({ matrix, changes: changes.data }));
@@ -37,6 +40,7 @@ export function RolesSection() {
   const savingRef = useRef(false);
   const submittedRef = useRef(false);
   const noteId = useId();
+  const hasTabBar = useHasTabBar();
 
   const matrix = data?.matrix ?? null;
   const changes = matrix ? pendingGrants(matrix, edits) : [];
@@ -98,10 +102,13 @@ export function RolesSection() {
     <div className="flex flex-col gap-4">
       <DetailSection title="Roles and permissions">
         <p className="-mt-2 text-sm text-muted-foreground">What each VRMS role may do. A lock marks a right nobody can change.</p>
+        {/* The permission column stays pinned so a phone that scrolls to Mechanic still shows which row it is on */}
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead scope="col">Permission</TableHead>
+              <TableHead scope="col" className={PINNED}>
+                Permission
+              </TableHead>
               {matrix.roles.map((role) => (
                 <TableHead key={role.role} scope="col" className="w-24 text-center">
                   {role.label}
@@ -114,12 +121,12 @@ export function RolesSection() {
               <Fragment key={group.name}>
                 <TableRow className="hover:bg-transparent">
                   <TableHead scope="colgroup" colSpan={matrix.roles.length + 1} className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-                    {group.name}
+                    <span className="sticky left-2 inline-block">{group.name}</span>
                   </TableHead>
                 </TableRow>
                 {group.keys.map((key) => (
                   <TableRow key={key.key}>
-                    <TableHead scope="row" className="h-auto py-2 font-normal whitespace-normal text-foreground">
+                    <TableHead scope="row" className={cn(PINNED, 'h-auto min-w-40 py-2 font-normal whitespace-normal text-foreground')}>
                       <span className="flex flex-wrap items-center gap-2">
                         {key.label}
                         {key.module && !modules[key.module] && <Badge variant="secondary">Module off</Badge>}
@@ -162,7 +169,15 @@ export function RolesSection() {
       </DetailSection>
 
       {dirty && (
-        <div role="region" aria-label="Unsaved changes" className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-lg md:flex-row md:items-end">
+        <div
+          role="region"
+          aria-label="Unsaved changes"
+          // Above the phone tab bar (h-16) when this user has one
+          className={cn(
+            'sticky z-10 flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-lg md:flex-row md:items-end',
+            hasTabBar ? 'bottom-20 md:bottom-4' : 'bottom-4',
+          )}
+        >
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <Label htmlFor={noteId} className="text-sm font-medium text-foreground">
               {changes.length === 1 ? '1 permission changed' : `${changes.length} permissions changed`}

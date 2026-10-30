@@ -8,7 +8,8 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 import { getSettingChanges, type HistoryChange, type HistoryKind } from '../../../lib/api/settingsApi';
-import { HISTORY_PAGE_SIZE } from '../lib/changes';
+import { useSettings } from '../hooks/useSettings';
+import { HISTORY_PAGE_SIZE, unitsByKey } from '../lib/changes';
 import { ChangeList } from './ChangeList';
 
 const FILTERS: { value: HistoryKind; label: string }[] = [
@@ -17,15 +18,22 @@ const FILTERS: { value: HistoryKind; label: string }[] = [
   { value: 'permission', label: 'Permissions' },
 ];
 
-type Page = { kind: HistoryKind; attempt: number; rows: HistoryChange[]; next: string | null } | { kind: HistoryKind; attempt: number; error: string };
+type Load = { kind: HistoryKind; attempt: number };
+type Page = (Load & { rows: HistoryChange[]; next: string | null }) | (Load & { error: string });
+/** A Load more in flight or failed, for the page it was asked on. */
+type More = Load & { loading: boolean; error: string | null };
+
+const sameLoad = (a: Load | null, b: Load) => a !== null && a.kind === b.kind && a.attempt === b.attempt;
 
 /** Spec 0012, AC-26: setting and permission changes merged, newest first, 20 per page. */
 export function HistorySection() {
   const [kind, setKind] = useState<HistoryKind>('all');
   const [attempt, setAttempt] = useState(0);
   const [page, setPage] = useState<Page | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [moreError, setMoreError] = useState<string | null>(null);
+  const [more, setMore] = useState<More | null>(null);
+  // Only for the units beside each value; the history shows without them if this fails
+  const settings = useSettings();
+  const units = unitsByKey(settings.data?.settings ?? []);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,19 +49,23 @@ export function HistorySection() {
     };
   }, [kind, attempt]);
 
-  const current = page && page.kind === kind && page.attempt === attempt ? page : null;
+  const current = sameLoad(page, { kind, attempt }) ? page : null;
+  const currentMore = sameLoad(more, { kind, attempt }) ? more : null;
 
   const loadMore = async () => {
     if (!current || 'error' in current || !current.next) return;
-    setLoadingMore(true);
-    setMoreError(null);
+    const at: Load = { kind: current.kind, attempt: current.attempt };
+    setMore({ ...at, loading: true, error: null });
     try {
-      const res = await getSettingChanges({ kind, limit: HISTORY_PAGE_SIZE, cursor: current.next });
-      setPage({ ...current, rows: [...current.rows, ...res.data], next: res.nextCursor });
+      const res = await getSettingChanges({ kind: at.kind, limit: HISTORY_PAGE_SIZE, cursor: current.next });
+      // A filter switched while this loaded has its own page now; leave it alone
+      setPage((prev) =>
+        prev && sameLoad(prev, at) && !('error' in prev) ? { ...prev, rows: [...prev.rows, ...res.data], next: res.nextCursor } : prev,
+      );
+      setMore((prev) => (sameLoad(prev, at) ? null : prev));
     } catch (err) {
-      setMoreError(getApiErrorMessage(err, 'Could not load more changes.'));
-    } finally {
-      setLoadingMore(false);
+      const error = getApiErrorMessage(err, 'Could not load more changes.');
+      setMore((prev) => (sameLoad(prev, at) ? { ...at, loading: false, error } : prev));
     }
   };
 
@@ -73,10 +85,10 @@ export function HistorySection() {
   } else {
     body = (
       <>
-        <ChangeList changes={current.rows} />
-        {moreError && <p className="text-sm text-destructive">{moreError}</p>}
+        <ChangeList changes={current.rows} units={units} />
+        {currentMore?.error && <p className="text-sm text-destructive">{currentMore.error}</p>}
         {current.next && (
-          <Button type="button" variant="outline" className="self-start" onClick={loadMore} loading={loadingMore}>
+          <Button type="button" variant="outline" className="self-start" onClick={loadMore} loading={currentMore?.loading === true}>
             Load more
           </Button>
         )}

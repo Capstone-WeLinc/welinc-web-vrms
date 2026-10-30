@@ -2,6 +2,7 @@ import axios from 'axios';
 import { showToast } from '../../context/toast';
 import { getApiErrorMessage, getDisabledModule, MODULE_OFF_MESSAGE } from './errors';
 import { DENIED_MESSAGE, FORBIDDEN_EVENT } from '../permissions/keys';
+import { installDataModes } from '../../features/dev-ui/worst-case/install';
 
 const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
 const UNAVAILABLE = 'Sign in service unavailable. Try again in a moment.';
@@ -82,5 +83,9 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Development only: break-ui's datasets for the Settings hub (?data=worst). The condition is a
+// build time constant, so production drops the import.
+if (import.meta.env.DEV) installDataModes(api);
 
 export default api;

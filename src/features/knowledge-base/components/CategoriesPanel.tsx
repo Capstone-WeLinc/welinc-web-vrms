@@ -12,6 +12,8 @@ import { DetailSection } from '../../../components/shared/DetailSection';
 import { CategoryDialog } from './CategoryDialog';
 import { useCategories } from '../hooks/useKnowledgeData';
 
+const countFormat = new Intl.NumberFormat('en-PH');
+
 const COLUMNS: Column<IssueCategory>[] = [
   { id: 'name', header: 'Name', mobile: 'title', cell: (c) => <span className="font-medium">{c.name}</span> },
   {
@@ -20,7 +22,7 @@ const COLUMNS: Column<IssueCategory>[] = [
     mobile: 'subtitle',
     cell: (c) => <span className="text-muted-foreground">{c.description ?? '—'}</span>,
   },
-  { id: 'entries', header: 'Entries', align: 'end', cell: (c) => c.entryCount },
+  { id: 'entries', header: 'Entries', align: 'end', cell: (c) => <span className="tabular-nums">{countFormat.format(c.entryCount)}</span> },
   { id: 'status', header: 'Status', mobile: 'badge', cell: (c) => <StatusBadge status={c.isActive ? 'ACTIVE' : 'INACTIVE'} /> },
 ];
 

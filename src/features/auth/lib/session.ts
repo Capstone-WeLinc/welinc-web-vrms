@@ -37,6 +37,8 @@ export async function processToken(
     }
 
     localStorage.setItem('welinc_token', token);
+    // A fresh sign in starts a fresh idle clock; logouts that only drop the token leave the old stamp behind
+    localStorage.setItem('welinc_last_active', Date.now().toString());
 
     try {
       const fullUser = await getCurrentUser();

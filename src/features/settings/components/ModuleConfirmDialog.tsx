@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ResponsiveDialog } from '../../../components/shared/ResponsiveDialog';
 import type { Setting } from '../../../lib/api/settingsApi';
-import { REASON_MAX, reasonError } from '../lib/modules';
+import { REASON_COUNTER_FROM, REASON_MAX, reasonError } from '../lib/modules';
 
 interface ModuleConfirmDialogProps {
   /** The module being switched, or null when the dialog is closed. */
@@ -106,6 +106,11 @@ export function ModuleConfirmDialog({ module, dependents, saving, onConfirm, onC
             {showError && (
               <p id={errorId} className="text-sm text-destructive">
                 {error}
+              </p>
+            )}
+            {reason.length >= REASON_COUNTER_FROM && (
+              <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
+                {reason.length} of {REASON_MAX} characters
               </p>
             )}
           </div>

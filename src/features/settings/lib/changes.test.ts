@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { HistoryChange } from '../../../lib/api/settingsApi';
 import type { PermissionMatrix } from '../../../lib/api/permissionsApi';
-import { actorLabel, changeSides, changeWhat, fromPermissionChange, pendingGrants } from './changes';
+import type { Setting } from '../../../lib/api/settingsApi';
+import { actorLabel, changeSides, changeWhat, fromPermissionChange, isLongNote, pendingGrants, unitsByKey } from './changes';
+import { formatAmount } from './thresholds';
 
 // Spec 0012, AC-26 and AC-24
 
@@ -21,8 +23,10 @@ const row = (over: Partial<HistoryChange>): HistoryChange => ({
 });
 
 describe('changeSides', () => {
-  it('shows Default after a reset', () => {
-    expect(changeSides(row({ action: 'RESET', before: 5, after: 3 }))).toEqual({ before: '5', after: 'Default' });
+  it('names the default a reset went back to', () => {
+    expect(changeSides(row({ action: 'RESET', before: 5, after: 3 }))).toEqual({ before: '5', after: '3 (default)' });
+    expect(changeSides(row({ action: 'RESET', before: 20, after: 3 }), 'repairs')).toEqual({ before: '20 repairs', after: '3 repairs (default)' });
+    expect(changeSides(row({ action: 'RESET', before: false, after: true })).after).toBe('On (default)');
   });
   it('shows a module as On or Off', () => {
     expect(changeSides(row({ before: true, after: false }))).toEqual({ before: 'On', after: 'Off' });
@@ -30,6 +34,34 @@ describe('changeSides', () => {
   it('shows Added and Removed for a null permission side', () => {
     expect(changeSides(row({ kind: 'permission', before: null, after: true }))).toEqual({ before: 'Added', after: 'Allowed' });
     expect(changeSides(row({ kind: 'permission', before: true, after: null }))).toEqual({ before: 'Allowed', after: 'Removed' });
+  });
+  it('formats numbers and adds the unit when known', () => {
+    expect(changeSides(row({ before: 365, after: 1095 }), 'days')).toEqual({ before: '365 days', after: '1,095 days' });
+    expect(changeSides(row({ before: 25000, after: 999999 }))).toEqual({ before: '25,000', after: '999,999' });
+  });
+});
+
+describe('formatAmount', () => {
+  it('uses the singular unit for exactly 1', () => {
+    expect(formatAmount(1, 'repairs')).toBe('1 repair');
+    expect(formatAmount(0, 'repairs')).toBe('0 repairs');
+    expect(formatAmount(1, 'percent')).toBe('1 percent');
+    expect(formatAmount(1000000)).toBe('1,000,000');
+  });
+});
+
+describe('unitsByKey and isLongNote', () => {
+  it('maps only value settings that have a unit', () => {
+    const settings = [
+      { key: 'a', kind: 'value', unit: 'days' },
+      { key: 'module.ai', kind: 'module', unit: null },
+    ] as Setting[];
+    expect(unitsByKey(settings)).toEqual({ a: 'days' });
+  });
+  it('clamps a long note or one with a line break', () => {
+    expect(isLongNote('Gemini quota ran out')).toBe(false);
+    expect(isLongNote('x'.repeat(161))).toBe(true);
+    expect(isLongNote('Line one\nLine two')).toBe(true);
   });
 });
 
@@ -40,6 +72,12 @@ describe('actorLabel and changeWhat', () => {
   });
   it('adds the role for a permission row', () => {
     expect(changeWhat(row({ roleLabel: 'Mechanic', label: 'Edit entries' }))).toBe('Edit entries for Mechanic');
+  });
+  it('reads a key gone from the catalog as removed', () => {
+    expect(changeWhat(row({ kind: 'permission', key: 'ticket.legacy', label: 'ticket.legacy', roleLabel: 'Mechanic' }))).toBe(
+      'Removed permission (ticket.legacy) for Mechanic',
+    );
+    expect(changeWhat(row({ key: 'old.value', label: 'old.value' }))).toBe('Removed setting (old.value)');
   });
 });
 

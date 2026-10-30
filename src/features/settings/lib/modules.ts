@@ -4,6 +4,8 @@ import type { Setting } from '../../../lib/api/settingsApi';
 
 export const REASON_MIN = 5;
 export const REASON_MAX = 500;
+/** The field stops at the limit without a word, so a counter shows as it gets close. */
+export const REASON_COUNTER_FROM = 400;
 
 /** The modules that are on and would turn off with this one, transitively, in catalog order. */
 export function dependentsTurningOff(settings: Setting[], key: string): Setting[] {

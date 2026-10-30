@@ -2,6 +2,15 @@ import type { Setting, SettingChange } from '../../../lib/api/settingsApi';
 
 // Spec 0012, AC-23: the Thresholds section's edits, as pure functions so Vitest can run them.
 
+const amountFormat = new Intl.NumberFormat('en-PH');
+
+/** `1,095 days`. A value of 1 takes the singular unit (`1 repair`); the catalog units are plurals. */
+export function formatAmount(value: number, unit?: string | null): string {
+  const number = amountFormat.format(value);
+  if (!unit) return number;
+  return `${number} ${value === 1 && unit.endsWith('s') ? unit.slice(0, -1) : unit}`;
+}
+
 /** A typed value not saved yet, or a reset back to the default. */
 export type ThresholdEdit = { kind: 'value'; text: string } | { kind: 'reset' };
 export type ThresholdEdits = Record<string, ThresholdEdit>;
@@ -13,7 +22,7 @@ export function thresholdError(setting: Setting, text: string): string | null {
   if (!/^-?\d+$/.test(trimmed)) return 'Enter a whole number.';
   const value = Number(trimmed);
   if (setting.min != null && setting.max != null && (value < setting.min || value > setting.max)) {
-    return `Enter a number from ${setting.min} to ${setting.max}.`;
+    return `Enter a number from ${formatAmount(setting.min)} to ${formatAmount(setting.max)}.`;
   }
   return null;
 }

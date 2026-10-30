@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { DetailSection } from '../../../components/shared/DetailSection';
 import { ErrorState } from '../../../components/shared/ErrorState';
+import { useHasTabBar } from '../../../components/layout/useNavSections';
 import { showToast } from '../../../context/toast';
 import { useLeaveGuard } from '../../../hooks/useLeaveGuard';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
@@ -15,8 +17,10 @@ import { MODULE_LABELS } from '../../../lib/permissions/keys';
 import { usePermissions } from '../../../lib/permissions/usePermissions';
 import { useSettings } from '../hooks/useSettings';
 import { RecentChanges } from './RecentChanges';
+import { unitsByKey } from '../lib/changes';
 import { STALE_SETTINGS_TOAST } from '../lib/sections';
 import {
+  formatAmount,
   groupValues,
   hasInvalidEdit,
   isCustom,
@@ -55,7 +59,8 @@ function ThresholdField({
           {custom && <Badge variant="secondary">Custom</Badge>}
         </div>
         <p id={helpId} className="mt-1 text-sm text-muted-foreground">
-          {setting.description} Allowed {setting.min} to {setting.max} {setting.unit}. Default {String(setting.default)}.
+          {setting.description} Allowed {formatAmount(Number(setting.min))} to {formatAmount(Number(setting.max), setting.unit)}. Default{' '}
+          {formatAmount(Number(setting.default), setting.unit)}.
         </p>
       </div>
       <div className="flex flex-col gap-1 md:w-56 md:items-end">
@@ -100,6 +105,7 @@ export function ThresholdsSection() {
   const savingRef = useRef(false);
   const submittedRef = useRef(false);
   const noteId = useId();
+  const hasTabBar = useHasTabBar();
 
   const settings = data?.settings ?? [];
   const changes = pendingChanges(settings, edits);
@@ -190,13 +196,25 @@ export function ThresholdsSection() {
         );
       })}
 
-      <RecentChanges keys={new Set(settings.filter((s) => s.kind === 'value').map((s) => s.key))} refreshToken={data.version} />
+      <RecentChanges
+        keys={new Set(settings.filter((s) => s.kind === 'value').map((s) => s.key))}
+        refreshToken={data.version}
+        units={unitsByKey(settings)}
+      />
 
       {dirty && (
-        <div role="region" aria-label="Unsaved changes" className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-lg md:flex-row md:items-end">
+        <div
+          role="region"
+          aria-label="Unsaved changes"
+          // Above the phone tab bar (h-16) when this user has one
+          className={cn(
+            'sticky z-10 flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-lg md:flex-row md:items-end',
+            hasTabBar ? 'bottom-20 md:bottom-4' : 'bottom-4',
+          )}
+        >
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <Label htmlFor={noteId} className="text-sm font-medium text-foreground">
-              {changes.length === 1 ? '1 value changed' : `${changes.length} values changed`}
+              {changes.length === 0 ? 'Fix the highlighted value' : changes.length === 1 ? '1 value changed' : `${changes.length} values changed`}
               <span className="font-normal text-muted-foreground"> · note (optional)</span>
             </Label>
             <Input id={noteId} value={note} maxLength={NOTE_MAX} placeholder="Why this change?" onChange={(event) => setNote(event.target.value)} />
