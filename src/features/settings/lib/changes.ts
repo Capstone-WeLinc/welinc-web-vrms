@@ -5,7 +5,7 @@ import { formatAmount } from './thresholds';
 // Spec 0012, AC-26: how a change row reads.
 
 export const HISTORY_PAGE_SIZE = 20;
-export const RECENT_COUNT = 5;
+export const RECENT_COUNT = 3;
 /** A longer note, or one with a line break, starts clamped to two lines with Show more. */
 export const NOTE_PREVIEW = 160;
 
@@ -71,8 +71,10 @@ export type MatrixEdits = Record<string, boolean>;
 
 export const cellKey = (role: string, permission: string) => `${role}|${permission}`;
 
+export type GrantChange = { role: string; permission: string; allowed: boolean };
+
 export function pendingGrants(matrix: PermissionMatrix, edits: MatrixEdits) {
-  const changes: { role: string; permission: string; allowed: boolean }[] = [];
+  const changes: GrantChange[] = [];
   for (const group of matrix.groups) {
     for (const key of group.keys) {
       for (const role of matrix.roles) {
@@ -86,3 +88,18 @@ export function pendingGrants(matrix: PermissionMatrix, edits: MatrixEdits) {
   }
   return changes;
 }
+
+/** One review line per pending change, grouped by role in matrix order: who gains or loses what. */
+export function reviewGrants(matrix: PermissionMatrix, changes: GrantChange[]) {
+  const labels = new Map(matrix.groups.flatMap((group) => group.keys).map((k) => [k.key, k.label]));
+  return matrix.roles
+    .map((role) => ({
+      role: role.label,
+      gains: changes.filter((c) => c.role === role.role && c.allowed).map((c) => labels.get(c.permission) ?? c.permission),
+      losses: changes.filter((c) => c.role === role.role && !c.allowed).map((c) => labels.get(c.permission) ?? c.permission),
+    }))
+    .filter((r) => r.gains.length > 0 || r.losses.length > 0);
+}
+
+/** Taking a right away needs a reason, like a module switch (AC-8); adding one keeps the note optional. */
+export const removesAny = (changes: GrantChange[]) => changes.some((c) => !c.allowed);

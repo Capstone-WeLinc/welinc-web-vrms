@@ -16,15 +16,15 @@ export function SettingsSectionNav({ sections }: { sections: SettingsSection[] }
                 to={`/settings/${section.path}`}
                 className={({ isActive }) =>
                   cn(
-                    'flex min-h-11 items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring',
-                    isActive && 'border-border bg-card font-medium text-foreground',
+                    'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    isActive && 'bg-primary/8 hover:bg-primary/8',
                   )
                 }
               >
-                <Icon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                <Icon aria-hidden="true" className="size-4 shrink-0 self-start mt-0.5 text-muted-foreground group-aria-[current=page]:text-primary" />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-foreground">{section.label}</span>
-                  <span className="block text-xs text-muted-foreground md:hidden">{section.description}</span>
+                  <span className="block text-foreground group-aria-[current=page]:font-semibold group-aria-[current=page]:text-primary">{section.label}</span>
+                  <span className="block text-xs text-pretty text-muted-foreground">{section.description}</span>
                 </span>
                 <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground md:hidden" />
               </NavLink>

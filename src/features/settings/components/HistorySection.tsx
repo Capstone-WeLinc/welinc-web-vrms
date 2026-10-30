@@ -97,7 +97,7 @@ export function HistorySection() {
   }
 
   return (
-    <DetailSection title="Change history">
+    <DetailSection title="All changes">
       <ToggleGroup type="single" variant="outline" value={kind} onValueChange={(v) => v && setKind(v as HistoryKind)} aria-label="Show changes of">
         {FILTERS.map((f) => (
           <ToggleGroupItem key={f.value} value={f.value} className="min-h-11 px-4">

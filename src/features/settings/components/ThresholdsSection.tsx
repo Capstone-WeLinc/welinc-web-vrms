@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from 'react';
-import { Info, RotateCcw } from 'lucide-react';
+import { AlertCircle, Info, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,12 +58,12 @@ function ThresholdField({
           </Label>
           {custom && <Badge variant="secondary">Custom</Badge>}
         </div>
-        <p id={helpId} className="mt-1 text-sm text-muted-foreground">
+        <p id={helpId} className="mt-1 text-sm text-pretty text-muted-foreground">
           {setting.description} Allowed {formatAmount(Number(setting.min))} to {formatAmount(Number(setting.max), setting.unit)}. Default{' '}
           {formatAmount(Number(setting.default), setting.unit)}.
         </p>
       </div>
-      <div className="flex flex-col gap-1 md:w-56 md:items-end">
+      <div className="flex flex-col gap-1 md:w-60 md:items-start">
         <div className="flex items-center gap-2">
           <Input
             id={inputId}
@@ -74,15 +74,16 @@ function ThresholdField({
             aria-describedby={error ? `${helpId} ${errorId}` : helpId}
             className="w-24 text-right tabular-nums"
           />
-          <span className="text-sm text-muted-foreground">{setting.unit}</span>
+          <span className="w-20 text-sm text-muted-foreground">{setting.unit}</span>
         </div>
         {error && (
-          <p id={errorId} className="text-sm text-destructive">
+          <p id={errorId} className="flex items-center gap-1.5 text-xs text-destructive">
+            <AlertCircle aria-hidden="true" className="size-3.5 shrink-0" />
             {error}
           </p>
         )}
         {custom && (
-          <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(setting.isDefault ? undefined : { kind: 'reset' })}>
+          <Button type="button" variant="ghost" size="sm" className="-ml-2" onClick={() => onEdit(setting.isDefault ? undefined : { kind: 'reset' })}>
             <RotateCcw aria-hidden="true" />
             Reset to default
           </Button>
@@ -214,8 +215,8 @@ export function ThresholdsSection() {
         >
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <Label htmlFor={noteId} className="text-sm font-medium text-foreground">
-              {changes.length === 0 ? 'Fix the highlighted value' : changes.length === 1 ? '1 value changed' : `${changes.length} values changed`}
-              <span className="font-normal text-muted-foreground"> · note (optional)</span>
+              {changes.length === 0 ? 'Fix the value marked in red' : changes.length === 1 ? '1 value changed' : `${changes.length} values changed`}
+              <span className="font-normal text-muted-foreground"> · applies as soon as you save · note (optional)</span>
             </Label>
             <Input id={noteId} value={note} maxLength={NOTE_MAX} placeholder="Why this change?" onChange={(event) => setNote(event.target.value)} />
           </div>

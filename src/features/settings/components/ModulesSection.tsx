@@ -23,7 +23,7 @@ function ModuleRow({ module, onFlip }: { module: Setting; onFlip: () => void }) 
         <p id={labelId} className="text-sm font-medium text-foreground">
           {module.label}
         </p>
-        <p id={descriptionId} className="mt-1 text-sm text-muted-foreground">
+        <p id={descriptionId} className="mt-1 text-sm text-pretty text-muted-foreground">
           {module.description}
         </p>
       </div>
@@ -103,8 +103,8 @@ export function ModulesSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <DetailSection title="Modules">
-        <p className="-mt-2 text-sm text-muted-foreground">
+      <DetailSection title="Module switches">
+        <p className="-mt-2 text-sm text-pretty text-muted-foreground">
           A module that is off disappears for everyone and its background work stops. Its data stays for when it comes back.
         </p>
         <div>

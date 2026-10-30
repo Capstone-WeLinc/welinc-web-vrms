@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useEffect, useRef, type ReactElement } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAbility } from '@casl/react';
 import { Settings } from 'lucide-react';
@@ -26,10 +26,19 @@ export function SettingsPage() {
   const isMobile = useIsMobile();
   const { pathname } = useLocation();
   const atIndex = pathname.replace(/\/+$/, '') === '/settings';
+  const current = sections.find((s) => pathname.startsWith(`/settings/${s.path}`));
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const lastPath = useRef(pathname);
+
+  // A section picked from the list moves focus to its heading, so a keyboard user lands on it
+  useEffect(() => {
+    if (lastPath.current !== pathname && current) headingRef.current?.focus();
+    lastPath.current = pathname;
+  }, [pathname, current]);
 
   return (
     <div>
-      <PageHeader title="Settings" subtitle="How VRMS works for every garage. Changes apply at once." icon={Settings} />
+      <PageHeader title="Settings" subtitle="How VRMS works for every garage." icon={Settings} />
       <div className="md:grid md:grid-cols-4 md:gap-6">
         {(!isMobile || atIndex) && (
           <aside className="md:col-span-1">
@@ -39,6 +48,14 @@ export function SettingsPage() {
         {(!isMobile || !atIndex) && (
           <div className="min-w-0 md:col-span-3">
             {isMobile && <BackLink to="/settings" label="All settings" />}
+            {current && (
+              <div className="mb-4">
+                <h2 ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-foreground outline-none">
+                  {current.label}
+                </h2>
+                <p className="mt-1 text-sm text-pretty text-muted-foreground">{current.description}</p>
+              </div>
+            )}
             <Outlet />
           </div>
         )}
