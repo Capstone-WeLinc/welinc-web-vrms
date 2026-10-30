@@ -26,7 +26,7 @@ describe('changeActor', () => {
 describe('changeSubject', () => {
   const matrix: PermissionMatrix = {
     roles: [{ role: 'CHIEF_MECHANIC', label: 'Chief Mechanic' }],
-    groups: [{ name: 'Records', keys: [{ key: 'analytics.view', label: 'See the Analytics page', description: '', grants: {} }] }],
+    groups: [{ name: 'Records', keys: [{ key: 'analytics.view', label: 'See the Analytics page', description: '', module: 'analytics', grants: {} }] }],
     version: 1,
   };
 

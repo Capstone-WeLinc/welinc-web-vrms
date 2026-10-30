@@ -59,11 +59,12 @@ const EMPTY: AnalyticsSnapshot = {
   garageCosts: [], aging: [], velocity: [], issueFreq: [], aiStats: null,
 };
 
-async function fetchAnalytics(): Promise<AnalyticsSnapshot> {
+async function fetchAnalytics(aiOn: boolean): Promise<AnalyticsSnapshot> {
   try {
+    // Spec 0012, AC-13: no /ai/stats call while AI is off, so its 403 never sinks the whole page
     const [summary, trends, vehicles, statusBreakdown, garageCosts, aging, velocity, issueFreq, aiStats] = await Promise.all([
       getAnalyticsSummary(), getCostTrends(), getVehicleKpis(), getStatusBreakdown(),
-      getGarageCosts(), getAging(), getVelocity(), getIssueFrequency(), getAiStats(),
+      getGarageCosts(), getAging(), getVelocity(), getIssueFrequency(), aiOn ? getAiStats() : Promise.resolve(null),
     ]);
     return {
       lastUpdated: timeNow(), summary, statusBreakdown, garageCosts, aging, velocity, aiStats,
@@ -76,27 +77,27 @@ async function fetchAnalytics(): Promise<AnalyticsSnapshot> {
   }
 }
 
-export function useAnalyticsData() {
+export function useAnalyticsData(aiOn: boolean) {
   const [loading, setLoading] = useState(true);
   const [snapshot, setSnapshot] = useState<AnalyticsSnapshot>(EMPTY);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    fetchAnalytics().then(next => {
+    fetchAnalytics(aiOn).then(next => {
       if (cancelled) return;
       setSnapshot(next);
       setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [reloadKey]);
+  }, [reloadKey, aiOn]);
 
   const refresh = useCallback(() => {
     setLoading(true);
     setReloadKey(k => k + 1);
   }, []);
 
-  return { ...snapshot, loading, refresh };
+  return { ...snapshot, aiOn, loading, refresh };
 }
 
 export type AnalyticsData = ReturnType<typeof useAnalyticsData>;

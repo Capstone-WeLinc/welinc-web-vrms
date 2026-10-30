@@ -19,6 +19,7 @@ import { formatDateTime, formatHours } from '../../../lib/utils/format';
 import type { RepairIssue, RepairIssueStep, RepairTicket } from '../../../types';
 import { useEntryOptions } from '../hooks/useEntryOptions';
 import { SuggestDialog } from '../../knowledge-base/components/SuggestDialog';
+import { useModuleOn } from '../../../lib/permissions/usePermissions';
 
 interface IssuesSectionProps {
   ticket: RepairTicket;
@@ -77,13 +78,15 @@ interface IssueBlockProps {
   issue: RepairIssue;
   index: number;
   canLink: boolean;
+  /** Spec 0012, AC-15: while the knowledge base is off, a linked entry is plain text. */
+  knowledgeOn: boolean;
   canTick: boolean;
   entries: ReturnType<typeof useEntryOptions>;
   onChanged: (ticket: RepairTicket) => void;
   onStale: () => void;
 }
 
-function IssueBlock({ ticket, issue, index, canLink, canTick, entries, onChanged, onStale }: IssueBlockProps) {
+function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entries, onChanged, onStale }: IssueBlockProps) {
   const { showToast } = useToast();
   // Ticks show at once; a failed save puts the row back (AC-28).
   const [overrides, setOverrides] = useState<Record<string, Pick<RepairIssueStep, 'checkedAt' | 'checkedByEmail'>>>({});
@@ -184,12 +187,16 @@ function IssueBlock({ ticket, issue, index, canLink, canTick, entries, onChanged
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <BookOpen aria-hidden="true" className="size-4 shrink-0 text-primary" />
               <span className="text-xs font-medium tracking-wide text-muted-strong uppercase">Known fix</span>
-              <Link
-                to={`/knowledge-base/${entry.id}`}
-                className="rounded-sm text-sm font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {entry.name}
-              </Link>
+              {knowledgeOn ? (
+                <Link
+                  to={`/knowledge-base/${entry.id}`}
+                  className="rounded-sm text-sm font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {entry.name}
+                </Link>
+              ) : (
+                <span className="text-sm font-semibold text-foreground">{entry.name}</span>
+              )}
               {entry.status !== 'ACTIVE' && <StatusBadge status={entry.status} />}
             </div>
             {canLink && !changing && (
@@ -258,7 +265,7 @@ function IssueBlock({ ticket, issue, index, canLink, canTick, entries, onChanged
             </p>
           )}
         </section>
-      ) : (
+      ) : knowledgeOn ? (
         <div className="flex flex-col gap-2">
           {canLink && picker}
           {/* Any reader can propose a library entry from a problem with no known fix (AC-35). */}
@@ -274,7 +281,7 @@ function IssueBlock({ ticket, issue, index, canLink, canTick, entries, onChanged
             initialBody={issue.description.replace(/^\[[^\]]*\]\s*/, '')}
           />
         </div>
-      )}
+      ) : null}
 
       {issue.resolvedAt && (
         <dl className="grid gap-2 rounded-lg bg-muted p-3 text-sm sm:grid-cols-3">
@@ -298,7 +305,8 @@ function IssueBlock({ ticket, issue, index, canLink, canTick, entries, onChanged
 /** One block per issue with its known fix, checklist and "What fixed it" (spec 0007, AC-27 to AC-31). */
 export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSectionProps) {
   const issues = ticket.issues ?? [];
-  const canLink = canWork && (ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS');
+  const knowledgeOn = useModuleOn('knowledge');
+  const canLink = knowledgeOn && canWork && (ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS');
   const canTick = canWork && ticket.status === 'IN_PROGRESS';
   const entries = useEntryOptions(canLink);
 
@@ -315,6 +323,7 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
               issue={issue}
               index={index}
               canLink={canLink}
+              knowledgeOn={knowledgeOn}
               canTick={canTick}
               entries={entries}
               onChanged={onChanged}

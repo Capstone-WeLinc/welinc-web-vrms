@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { showToast } from '../../context/toast';
-import { getApiErrorMessage } from './errors';
+import { getApiErrorMessage, getDisabledModule, MODULE_OFF_MESSAGE } from './errors';
 import { DENIED_MESSAGE, FORBIDDEN_EVENT } from '../permissions/keys';
 
 const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
@@ -75,7 +75,8 @@ api.interceptors.response.use(
         // A missing permission: stay signed in and refetch the keys at once. A page that now
         // needs a key you lost sends you to the dashboard on its own (spec 0011, AC-23, AC-24).
         window.dispatchEvent(new Event(FORBIDDEN_EVENT));
-        if (!quiet) showToast(DENIED_MESSAGE, 'error');
+        // A switched off module says so instead (spec 0012, AC-11); the refetch then hides it
+        if (!quiet) showToast(getDisabledModule(error) ? MODULE_OFF_MESSAGE : DENIED_MESSAGE, 'error');
       }
     }
     return Promise.reject(error);

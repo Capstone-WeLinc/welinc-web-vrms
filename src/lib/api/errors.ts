@@ -1,5 +1,8 @@
 import { isAxiosError } from 'axios';
-import { DENIED_MESSAGE } from '../permissions/keys';
+import { DENIED_MESSAGE, type ModuleName } from '../permissions/keys';
+
+// Spec 0012, AC-11: what a 403 MODULE_DISABLED reads as, for every role
+export const MODULE_OFF_MESSAGE = 'This module is turned off by your Admin.';
 
 // Pull the backend's `message` out of an axios error, falling back when there is none
 export function getApiErrorMessage(err: unknown, fallback: string): string {
@@ -14,6 +17,13 @@ export function getApiErrorMessage(err: unknown, fallback: string): string {
     if (message) return message;
   }
   return fallback;
+}
+
+/** The module named by a 403 MODULE_DISABLED body, or null for any other error (spec 0012, AC-11). */
+export function getDisabledModule(err: unknown): ModuleName | null {
+  if (!isAxiosError<{ code?: string; module?: ModuleName }>(err) || err.response?.status !== 403) return null;
+  const body = err.response.data;
+  return body?.code === 'MODULE_DISABLED' && body.module ? body.module : null;
 }
 
 export function getApiErrorStatus(err: unknown): number | undefined {

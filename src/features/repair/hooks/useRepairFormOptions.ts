@@ -11,6 +11,7 @@ import {
 } from '../../../lib/api/vrmsConfigApi';
 import { getCategories, getEntryOptions, type EntryOption, type IssueCategory } from '../../../lib/api/knowledgeApi';
 import type { RepairFormLists } from '../lib/repairFormSchema';
+import { useModuleOn } from '../../../lib/permissions/usePermissions';
 
 interface ListSnapshot<T> {
   data: T[] | null;
@@ -27,6 +28,8 @@ export interface OptionList<T> extends ListSnapshot<T> {
 
 /** One server list with its own load, failure and retry. Refetches keep the old data on screen. */
 const getActiveCategories = () => getCategories();
+// Spec 0012, AC-15: no common issues while the knowledge base is off, and no refused call
+const noEntries = () => Promise.resolve<EntryOption[]>([]);
 
 function useOptionList<T>(fetcher: () => Promise<T[]>) {
   const [snapshot, setSnapshot] = useState<ListSnapshot<T>>({ data: null, failed: false });
@@ -86,7 +89,7 @@ export function useRepairFormOptions() {
   const garages = useOptionList<GarageOption>(getGarages);
   const mechanics = useOptionList<MechanicOption>(getAvailableMechanics);
   const categories = useOptionList<IssueCategory>(getActiveCategories);
-  const entries = useOptionList<EntryOption>(getEntryOptions);
+  const entries = useOptionList<EntryOption>(useModuleOn('knowledge') ? getEntryOptions : noEntries);
 
   const vehiclesLatest = vehicles.latest;
   const garagesLatest = garages.latest;

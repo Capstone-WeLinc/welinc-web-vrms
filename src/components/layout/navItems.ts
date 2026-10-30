@@ -5,12 +5,14 @@ import {
   History,
   LayoutDashboard,
   PlusCircle,
+  Settings,
   User,
   Users,
   Wrench,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { PermissionKey } from '../../lib/permissions/keys';
+import { SETTINGS_KEYS } from '../../features/settings/lib/sections';
 
 export interface NavItem {
   to: string;
@@ -71,6 +73,8 @@ export function getNavSections(can: (key: PermissionKey) => boolean): NavSection
       items: present([
         can('users.manage') && { to: '/users', label: 'Users', icon: Users },
         can('audit.view') && { to: '/audit-logs', label: 'Audit logs', icon: ClipboardList },
+        // Spec 0012, AC-21: with the key of any one section
+        SETTINGS_KEYS.some(can) && { to: '/settings', label: 'Settings', icon: Settings },
       ]),
     },
   ];

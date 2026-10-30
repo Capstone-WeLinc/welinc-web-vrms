@@ -1,7 +1,7 @@
 import { createMongoAbility, type MongoAbility } from '@casl/ability';
 
 /**
- * The permission keys of spec 0011, mirroring the backend's `src/auth/permissions/catalog.ts`.
+ * The permission keys of specs 0011 and 0012, mirroring the backend's `src/auth/permissions/catalog.ts`.
  * The server decides who holds which; the browser only reads the keys `/vrms/permissions/me`
  * sends and the per ticket `can` flags.
  */
@@ -14,6 +14,7 @@ export type PermissionKey =
   | 'ticket.costs.view'
   | 'ticket.costs.edit'
   | 'ticket.unlock'
+  | 'ai.use'
   | 'audit.view'
   | 'analytics.view'
   | 'config.read'
@@ -21,7 +22,21 @@ export type PermissionKey =
   | 'knowledge.suggest'
   | 'knowledge.edit'
   | 'users.manage'
-  | 'permissions.manage';
+  | 'permissions.manage'
+  | 'settings.manage'
+  | 'lookups.manage';
+
+/** The modules an Admin can switch off (spec 0012). An off module's keys never reach the browser. */
+export type ModuleName = 'ai' | 'analytics' | 'knowledge';
+export type Modules = Record<ModuleName, boolean>;
+
+export const ALL_MODULES_ON: Modules = { ai: true, analytics: true, knowledge: true };
+
+export const MODULE_LABELS: Record<ModuleName, string> = {
+  ai: 'AI',
+  analytics: 'Analytics',
+  knowledge: 'Knowledge base',
+};
 
 /** Only flag rules (`can(key, 'Permission')`): rules with conditions stay on the server (AC-16). */
 export type AppAbility = MongoAbility<[PermissionKey, 'Permission']>;

@@ -10,7 +10,7 @@ type ReportSort = typeof SORT_OPTIONS[number];
 const SORT_LABELS: Record<ReportSort, string> = { month: 'By Month', spend: 'By Spend', repairs: 'By Volume' };
 const REPORT_HEADERS = ['Month', 'Repair Count', 'Total Spend', 'Avg / Repair', 'Cumulative Spend', 'Spend %'];
 
-export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, aiStats }: AnalyticsData) {
+export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, aiStats, aiOn }: AnalyticsData) {
   const [reportSort, setReportSort] = useState<ReportSort>('month');
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
 
@@ -23,7 +23,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
   const totalSpendAll = trends.reduce((a, b) => a + b.total_spend, 0);
   const totalRepairsAll = trends.reduce((a, b) => a + b.repair_count, 0);
   const maxRepairs = Math.max(...trends.map(t => t.repair_count));
-  const exportData = { summary, trends, reportRows: sortedReport, vehicles, garageCosts, issueFreq, aiStats };
+  const exportData = { summary, trends, reportRows: sortedReport, vehicles, garageCosts, issueFreq, aiStats, aiOn };
 
   const quickStats = [
     { label: 'Highest Spend Month', value: trends.length ? trends.reduce((a, b) => a.total_spend > b.total_spend ? a : b).month : '—', icon: ArrowUpRight, color: 'var(--danger)' },
