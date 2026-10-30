@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { HistoryChange } from '../../../lib/api/settingsApi';
 import type { PermissionMatrix } from '../../../lib/api/permissionsApi';
 import type { Setting } from '../../../lib/api/settingsApi';
-import { actorLabel, changeSides, changeWhat, fromPermissionChange, isLongNote, pendingGrants, unitsByKey } from './changes';
+import { actorLabel, changeSides, changeWhat, fromPermissionChange, isLongNote, pendingGrants, removesAny, reviewGrants, unitsByKey } from './changes';
 import { formatAmount } from './thresholds';
 
 // Spec 0012, AC-26 and AC-24
@@ -106,5 +106,44 @@ describe('fromPermissionChange', () => {
     const base = { id: '1', before: null, after: true, actorName: null, actorEmail: null, note: null, createdAt: 'x' };
     expect(fromPermissionChange({ ...base, role: 'MECHANIC', permission: 'a' }, matrix)).toMatchObject({ label: 'A', roleLabel: 'Mechanic', actor: null });
     expect(fromPermissionChange({ ...base, role: 'X', permission: 'z' }, null)).toMatchObject({ label: 'z', roleLabel: 'X' });
+  });
+});
+
+describe('reviewGrants and removesAny', () => {
+  const wide: PermissionMatrix = {
+    version: 1,
+    roles: [{ role: 'ADMIN', label: 'Admin' }, { role: 'CHIEF_MECHANIC', label: 'Chief Mechanic' }, { role: 'MECHANIC', label: 'Mechanic' }],
+    groups: [
+      {
+        name: 'Tickets',
+        keys: [
+          { key: 'a', label: 'See every ticket', description: '', module: null, grants: {} },
+          { key: 'b', label: 'Encode costs', description: '', module: null, grants: {} },
+        ],
+      },
+    ],
+  };
+
+  it('lists each role once, in matrix order, with its gains and losses split', () => {
+    const changes = [
+      { role: 'MECHANIC', permission: 'a', allowed: false },
+      { role: 'CHIEF_MECHANIC', permission: 'b', allowed: true },
+      { role: 'CHIEF_MECHANIC', permission: 'a', allowed: false },
+    ];
+    expect(reviewGrants(wide, changes)).toEqual([
+      { role: 'Chief Mechanic', gains: ['Encode costs'], losses: ['See every ticket'] },
+      { role: 'Mechanic', gains: [], losses: ['See every ticket'] },
+    ]);
+  });
+
+  it('skips a role with no changes and names an unknown key by itself', () => {
+    expect(reviewGrants(wide, [])).toEqual([]);
+    expect(reviewGrants(wide, [{ role: 'ADMIN', permission: 'gone', allowed: true }])).toEqual([{ role: 'Admin', gains: ['gone'], losses: [] }]);
+  });
+
+  it('asks for a reason only when a right is taken away', () => {
+    expect(removesAny([])).toBe(false);
+    expect(removesAny([{ role: 'MECHANIC', permission: 'a', allowed: true }])).toBe(false);
+    expect(removesAny([{ role: 'MECHANIC', permission: 'a', allowed: true }, { role: 'MECHANIC', permission: 'b', allowed: false }])).toBe(true);
   });
 });

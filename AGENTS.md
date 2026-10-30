@@ -19,6 +19,7 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 
 | `src/components/layout/` | `DashboardShell`, `AppHeader`, `SidebarNav`, `UserMenu`, `MobileNavSheet`, `MobileTabBar`, `PageHeader` |
 | `src/components/shared/`, `src/hooks/` | Widgets used by more than one feature (`GoToPageInput` for every paginated table, `Callout`, `DetailSection`, `FormSection`, `BackLink`, badges) and shared hooks (`useLeaveGuard` for unsaved forms) |
 | `src/lib/permissions/` | The permission keys (`keys.ts`, mirroring the backend's `catalog.ts`), the CASL ability built from `/vrms/permissions/me` (`PermissionsProvider.tsx`, refetched on focus, every 60 seconds and after a 403), `<Can>`, `useCan()` and `usePermissions()` (spec 0011) |
+| `src/features/settings/` | The Admin Settings hub at `/settings` (spec 0012): Modules, Thresholds, Roles and permissions (the matrix editor with its review step), Lookup lists and Change history, backed by `settingsApi.ts` and `permissionsApi.ts`. Each section shows only for its permission key, and a switched off module comes from `modules` in `usePermissions()` |
 | `src/features/knowledge-base/` | Knowledge base library, entry, editor, suggestions and categories pages, backed by `/vrms/knowledge` (spec 0007) |
 | `src/context/toast.ts`, `ToastContext.tsx` | `useToast()` hook and context, and the provider component |
 | `src/lib/repairStatus.ts` | The one definition of open and finished ticket statuses (mirrors the backend's `ticket-statuses.ts`); screens read it, never a list of their own |
@@ -60,6 +61,7 @@ npm run build        # typecheck then vite build
 - `src/lib/repairOptions.ts` holds the fixed dropdown lists for the repair form and the locally remembered driver names (`welinc_driver_names` in `localStorage`).
 - shadcn components live in `src/components/ui/` (config in `components.json`). Check there before hand rolling a dialog, select, combobox or table.
 - For quick session timeout tests, set `window.__WELINC_INACTIVITY_LIMIT__ = 30` (seconds) in the browser console.
+- In development only, a "Demo data" pill on the Settings hub (or `?data=worst`) swaps in break-ui's worst case, empty, one and 1,284 row datasets (`src/features/dev-ui/worst-case/`). Production builds drop it.
 - Seed logins for local testing are in `welinc-auth/prisma/seeds/users.seed.ts` (for example `vrms.admin@welinc.com`). In portal mode, open `/login?token=<jwt>` to skip the portal.
 
 ## Agent skills
