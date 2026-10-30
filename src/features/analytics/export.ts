@@ -12,6 +12,8 @@ export interface MasterReportData {
   garageCosts: GarageCost[];
   issueFreq: IssueFreq[];
   aiStats: AiStats | null;
+  /** Spec 0012, AC-13: the AI section is left out while AI is off. */
+  aiOn: boolean;
 }
 
 // jsPDF needs RGB triples: brand navy, white, and the light row stripe
@@ -27,7 +29,7 @@ function riskLabel(repairs: number) {
 }
 
 // Always exports every month, whatever rows are selected in the table
-export function downloadMasterCsv({ summary, trends, reportRows, vehicles, garageCosts, issueFreq, aiStats }: MasterReportData) {
+export function downloadMasterCsv({ summary, trends, reportRows, vehicles, garageCosts, issueFreq, aiStats, aiOn }: MasterReportData) {
   const today = new Date().toISOString().slice(0, 10);
   const lines: string[] = [];
 
@@ -74,10 +76,12 @@ export function downloadMasterCsv({ summary, trends, reportRows, vehicles, garag
   });
   lines.push('');
 
-  lines.push('--- 6. AI DIAGNOSTIC TRIAGE TELEMETRY & CSAT ---');
-  lines.push(`Total AI Interactions,${aiStats?.total_interactions || 18}`);
-  lines.push(`Satisfaction Rate (%),${aiStats?.satisfaction?.satisfaction_rate || 94.4}%`);
-  lines.push(`Average Rating,${aiStats?.satisfaction?.avg_rating || 4.8} / 5.0`);
+  if (aiOn) {
+    lines.push('--- 6. AI DIAGNOSTIC TRIAGE TELEMETRY & CSAT ---');
+    lines.push(`Total AI Interactions,${aiStats?.total_interactions || 18}`);
+    lines.push(`Satisfaction Rate (%),${aiStats?.satisfaction?.satisfaction_rate || 94.4}%`);
+    lines.push(`Average Rating,${aiStats?.satisfaction?.avg_rating || 4.8} / 5.0`);
+  }
 
   // BOM so Excel opens the file as UTF-8
   const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });

@@ -11,7 +11,7 @@ import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
 import { unlockRepairTicket, updateRepairStatus } from '../../../lib/api/repairApi';
 import { useHasTabBar } from '../../../components/layout/useNavSections';
-import { useCan } from '../../../lib/permissions/usePermissions';
+import { useCan, useModuleOn } from '../../../lib/permissions/usePermissions';
 import type { IssueResolution, RepairStatus, RepairTicket } from '../../../types';
 import { ActivitySection } from '../components/ActivitySection';
 import { AiDiagnosisSection } from '../components/AiDiagnosisSection';
@@ -57,6 +57,10 @@ export function RepairDetailPage() {
   // Page level keys; what this caller may do on this ticket comes from ticket.can (spec 0011, AC-22)
   const seesCosts = useCan('ticket.costs.view');
   const seesActivity = useCan('audit.view');
+  // Spec 0012: ai.use shows the AI panel (its key leaves while AI is off, AC-13), and the
+  // "What fixed it" step skips while the knowledge base is off (AC-15)
+  const usesAi = useCan('ai.use');
+  const knowledgeOn = useModuleOn('knowledge');
   const hasTabBar = useHasTabBar();
   const { showToast } = useToast();
   const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId);
@@ -162,7 +166,7 @@ export function RepairDetailPage() {
           <NotesSection ticket={ticket} />
           <VehicleSection ticket={ticket} />
           <IssuesSection ticket={ticket} canWork={!readOnly && canWorkTicket(ticket)} onChanged={replace} onStale={handleStale} />
-          <AiDiagnosisSection ticket={ticket} />
+          {usesAi && <AiDiagnosisSection ticket={ticket} />}
           {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
           {seesActivity && <ActivitySection ticketId={ticket.id} />}
         </div>
@@ -179,7 +183,7 @@ export function RepairDetailPage() {
           confirmLabel={action.label}
           // Keyed by version, so the per issue blocks start from the ticket as it is now
           key={ticket.updatedAt}
-          resolutionIssues={action.to === 'FOR_VERIFICATION' ? (ticket.issues ?? []) : undefined}
+          resolutionIssues={action.to === 'FOR_VERIFICATION' && knowledgeOn ? (ticket.issues ?? []) : undefined}
           onSubmit={(note, resolutions) => changeStatus(action.to, { remarks: note.trim() || undefined, resolutions })}
         >
           {noMechanic && <Callout tone="warning">No mechanic is assigned yet.</Callout>}

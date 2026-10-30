@@ -21,6 +21,7 @@ import {
   type RepairFormInput,
 } from '../../lib/repairFormSchema';
 import { FieldSkeleton, ListError } from './RepairFormParts';
+import { useModuleOn } from '../../../../lib/permissions/usePermissions';
 
 type SelectRenderProps = {
   field: Pick<ControllerRenderProps, 'name' | 'value' | 'onChange' | 'onBlur' | 'ref'>;
@@ -93,6 +94,8 @@ function IssueCard({ control, index, canRemove, onRemove, categories, entries, s
   const picked = entries.data?.find((e) => e.id === entryId);
   const template = picked?.descriptionTemplate ?? null;
   const canUseTemplate = !!template && description.trim() !== '' && description !== template;
+  // Spec 0012, AC-15: the picker and its auto fill hide while the knowledge base is off
+  const knowledgeOn = useModuleOn('knowledge');
 
   /** AC-25: picking an entry fills what it can, and never lowers the priority. */
   const pick = (value: string) => {
@@ -129,39 +132,41 @@ function IssueCard({ control, index, canRemove, onRemove, categories, entries, s
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
-        {entries.loading ? (
-          <FieldSkeleton label="Common issue" />
-        ) : (
-          <FormField
-            control={control}
-            name={`issues.${index}.knowledgeEntryId`}
-            label="Common issue"
-            description="Pick a known problem to fill in this issue, or choose Other."
-            render={({ field, controlProps }) => (
-              <Combobox
-                {...controlProps}
-                ref={field.ref}
-                options={entryOptions(entries.data ?? [], activeCategories)}
-                pinnedOption={OTHER_OPTION}
-                value={field.value}
-                onValueChange={pick}
-                onBlur={field.onBlur}
-                placeholder="Choose a common issue"
-                searchPlaceholder="Search by name or symptom"
-                emptyText="No common issue matches."
-              />
-            )}
-          />
-        )}
-        {entries.failed && <ListError message="Couldn’t load common issues." retrying={entries.retrying} onRetry={entries.retry} />}
-        {picked && estimateLine(picked) && (
-          <p className="flex items-start gap-1.5 text-xs text-muted-foreground tabular-nums">
-            <Info aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-            {estimateLine(picked)}
-          </p>
-        )}
-      </div>
+      {knowledgeOn && (
+        <div className="flex flex-col gap-2">
+          {entries.loading ? (
+            <FieldSkeleton label="Common issue" />
+          ) : (
+            <FormField
+              control={control}
+              name={`issues.${index}.knowledgeEntryId`}
+              label="Common issue"
+              description="Pick a known problem to fill in this issue, or choose Other."
+              render={({ field, controlProps }) => (
+                <Combobox
+                  {...controlProps}
+                  ref={field.ref}
+                  options={entryOptions(entries.data ?? [], activeCategories)}
+                  pinnedOption={OTHER_OPTION}
+                  value={field.value}
+                  onValueChange={pick}
+                  onBlur={field.onBlur}
+                  placeholder="Choose a common issue"
+                  searchPlaceholder="Search by name or symptom"
+                  emptyText="No common issue matches."
+                />
+              )}
+            />
+          )}
+          {entries.failed && <ListError message="Couldn’t load common issues." retrying={entries.retrying} onRetry={entries.retry} />}
+          {picked && estimateLine(picked) && (
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground tabular-nums">
+              <Info aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+              {estimateLine(picked)}
+            </p>
+          )}
+        </div>
+      )}
 
       <FieldRow>
         <div className="flex flex-col gap-2">
@@ -240,6 +245,7 @@ interface IssueLoggingSectionProps {
 export function IssueLoggingSection({ control, categories, entries, setValue, getValues }: IssueLoggingSectionProps) {
   const { fields, append, remove } = useFieldArray({ control, name: 'issues' });
   const atLimit = fields.length >= MAX_ISSUES;
+  const firstField = useModuleOn('knowledge') ? 'knowledgeEntryId' : 'categoryId';
 
   return (
     <FormSection title="Issues">
@@ -266,7 +272,7 @@ export function IssueLoggingSection({ control, categories, entries, setValue, ge
           className="md:h-10 md:text-sm"
           disabled={atLimit}
           aria-describedby="issues-limit"
-          onClick={() => append(emptyIssue(), { shouldFocus: true, focusName: `issues.${fields.length}.knowledgeEntryId` })}
+          onClick={() => append(emptyIssue(), { shouldFocus: true, focusName: `issues.${fields.length}.${firstField}` })}
         >
           <Plus aria-hidden="true" />
           Add issue

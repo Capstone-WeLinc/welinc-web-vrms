@@ -3,12 +3,13 @@ import { AbilityProvider } from '@casl/react';
 import { getMyPermissions } from '../api/permissionsApi';
 import { getApiErrorMessage } from '../api/errors';
 import { NO_PERMISSIONS, PermissionsContext, type PermissionsStatus } from './context';
-import { buildAbility, FORBIDDEN_EVENT, PERMISSIONS_REFETCH_MS } from './keys';
+import { ALL_MODULES_ON, buildAbility, FORBIDDEN_EVENT, PERMISSIONS_REFETCH_MS, type Modules } from './keys';
 
 interface Loaded {
   status: PermissionsStatus;
   ability: typeof NO_PERMISSIONS;
   keys: readonly string[];
+  modules: Modules;
   error?: string;
 }
 
@@ -16,23 +17,33 @@ function sameKeys(a: readonly string[], b: readonly string[]) {
   return a.length === b.length && a.every((key) => b.includes(key));
 }
 
+function sameModules(a: Modules, b: Modules) {
+  return a.ai === b.ai && a.analytics === b.analytics && a.knowledge === b.knowledge;
+}
+
 /**
  * Spec 0011, AC-23: fetches the caller's keys after sign in, again on window focus, every
  * 60 seconds and right after any 403. Once loaded, a failed refetch keeps the last keys.
+ * Spec 0012, AC-12: the modules are compared too, so a modules only change still updates.
  */
 export function PermissionsProvider({ children }: { children: ReactNode }) {
-  const [loaded, setLoaded] = useState<Loaded>({ status: 'loading', ability: NO_PERMISSIONS, keys: [] });
+  const [loaded, setLoaded] = useState<Loaded>({
+    status: 'loading',
+    ability: NO_PERMISSIONS,
+    keys: [],
+    modules: ALL_MODULES_ON,
+  });
   const inFlight = useRef(false);
 
   const load = useCallback(() => {
     if (inFlight.current) return;
     inFlight.current = true;
     getMyPermissions()
-      .then(({ keys }) => {
+      .then(({ keys, modules }) => {
         setLoaded((prev) =>
-          prev.status === 'ready' && sameKeys(prev.keys, keys)
+          prev.status === 'ready' && sameKeys(prev.keys, keys) && sameModules(prev.modules, modules)
             ? prev
-            : { status: 'ready', ability: buildAbility(keys), keys },
+            : { status: 'ready', ability: buildAbility(keys), keys, modules },
         );
       })
       .catch((err) => {
@@ -65,7 +76,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     load();
   }, [load]);
 
-  const state = useMemo(() => ({ ...loaded, retry }), [loaded, retry]);
+  const state = useMemo(() => ({ ...loaded, retry, refresh: load }), [loaded, retry, load]);
 
   return (
     <PermissionsContext.Provider value={state}>

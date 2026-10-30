@@ -11,7 +11,6 @@ import { UsersPage } from './features/user-management/pages/UsersPage';
 import { AuditLogsPage } from './features/audit-logs/pages/AuditLogsPage';
 import { ProfilePage } from './features/auth/pages/ProfilePage';
 import { AnalyticsPage } from './features/analytics/pages/AnalyticsPage';
-import { KnowledgeCategoriesPage } from './features/knowledge-base/pages/KnowledgeCategoriesPage';
 import { KnowledgeEditorPage } from './features/knowledge-base/pages/KnowledgeEditorPage';
 import { KnowledgeEntryPage } from './features/knowledge-base/pages/KnowledgeEntryPage';
 import { KnowledgeLibraryPage } from './features/knowledge-base/pages/KnowledgeLibraryPage';
@@ -26,8 +25,16 @@ import { TooltipProvider } from './components/ui/tooltip';
 import SessionMonitor from './components/SessionMonitor';
 import { PermissionsProvider } from './lib/permissions/PermissionsProvider';
 import { PermissionsGate } from './components/layout/PermissionsGate';
-import { useCan } from './lib/permissions/usePermissions';
-import type { PermissionKey } from './lib/permissions/keys';
+import { useCan, usePermissions } from './lib/permissions/usePermissions';
+import type { ModuleName, PermissionKey } from './lib/permissions/keys';
+import { ModuleOffPage } from './pages/ModuleOffPage';
+import { RequireSection, SettingsIndex, SettingsPage } from './features/settings/pages/SettingsPage';
+import { ModulesSection } from './features/settings/components/ModulesSection';
+import { ThresholdsSection } from './features/settings/components/ThresholdsSection';
+import { RolesSection } from './features/settings/components/RolesSection';
+import { LookupsSection } from './features/settings/components/LookupsSection';
+import { HistorySection } from './features/settings/components/HistorySection';
+import { SETTINGS_KEYS } from './features/settings/lib/sections';
 
 // Development only: the condition is a build time constant, so production drops the import.
 const DevUiPage = import.meta.env.DEV
@@ -45,9 +52,15 @@ function RequireAuth({ children }: { children: ReactElement }) {
   return children;
 }
 
-/** Spec 0011, AC-22: the page needs any one of these keys, or it sends you to the dashboard. */
-function RequirePermission({ keys, children }: { keys: PermissionKey[]; children: ReactElement }) {
+/**
+ * Spec 0011, AC-22: the page needs any one of these keys, or it sends you to the dashboard.
+ * Spec 0012, AC-12: a page of a switched off module checks the module first, so its URL shows
+ * the module off page instead.
+ */
+function RequirePermission({ keys, module, children }: { keys: PermissionKey[]; module?: ModuleName; children: ReactElement }) {
   const allowed = useCan(...keys);
+  const { modules } = usePermissions();
+  if (module && !modules[module]) return <ModuleOffPage module={module} />;
   return allowed ? children : <Navigate to="/dashboard" replace />;
 }
 
@@ -171,7 +184,7 @@ function App() {
           <Route
             path="analytics"
             element={
-              <RequirePermission keys={['analytics.view']}>
+              <RequirePermission keys={['analytics.view']} module="analytics">
                 <AnalyticsPage />
               </RequirePermission>
             }
@@ -179,7 +192,7 @@ function App() {
           <Route
             path="knowledge-base"
             element={
-              <RequirePermission keys={KNOWLEDGE_READ}>
+              <RequirePermission keys={KNOWLEDGE_READ} module="knowledge">
                 <KnowledgeLibraryPage />
               </RequirePermission>
             }
@@ -187,7 +200,7 @@ function App() {
           <Route
             path="knowledge-base/:entryId"
             element={
-              <RequirePermission keys={KNOWLEDGE_READ}>
+              <RequirePermission keys={KNOWLEDGE_READ} module="knowledge">
                 <KnowledgeEntryPage />
               </RequirePermission>
             }
@@ -195,7 +208,7 @@ function App() {
           <Route
             path="knowledge-base/new"
             element={
-              <RequirePermission keys={KNOWLEDGE_EDIT}>
+              <RequirePermission keys={KNOWLEDGE_EDIT} module="knowledge">
                 <KnowledgeEditorPage />
               </RequirePermission>
             }
@@ -203,7 +216,7 @@ function App() {
           <Route
             path="knowledge-base/:entryId/edit"
             element={
-              <RequirePermission keys={KNOWLEDGE_EDIT}>
+              <RequirePermission keys={KNOWLEDGE_EDIT} module="knowledge">
                 <KnowledgeEditorPage />
               </RequirePermission>
             }
@@ -211,19 +224,62 @@ function App() {
           <Route
             path="knowledge-base/suggestions"
             element={
-              <RequirePermission keys={KNOWLEDGE_EDIT}>
+              <RequirePermission keys={KNOWLEDGE_EDIT} module="knowledge">
                 <KnowledgeSuggestionsPage />
               </RequirePermission>
             }
           />
+          <Route path="knowledge-base/categories" element={<Navigate to="/settings/lookups" replace />} />
           <Route
-            path="knowledge-base/categories"
+            path="settings"
             element={
-              <RequirePermission keys={KNOWLEDGE_EDIT}>
-                <KnowledgeCategoriesPage />
+              <RequirePermission keys={SETTINGS_KEYS}>
+                <SettingsPage />
               </RequirePermission>
             }
-          />
+          >
+            <Route index element={<SettingsIndex />} />
+            <Route
+              path="modules"
+              element={
+                <RequireSection permission="settings.manage">
+                  <ModulesSection />
+                </RequireSection>
+              }
+            />
+            <Route
+              path="thresholds"
+              element={
+                <RequireSection permission="settings.manage">
+                  <ThresholdsSection />
+                </RequireSection>
+              }
+            />
+            <Route
+              path="roles"
+              element={
+                <RequireSection permission="permissions.manage">
+                  <RolesSection />
+                </RequireSection>
+              }
+            />
+            <Route
+              path="lookups"
+              element={
+                <RequireSection permission="lookups.manage">
+                  <LookupsSection />
+                </RequireSection>
+              }
+            />
+            <Route
+              path="history"
+              element={
+                <RequireSection permission="settings.manage">
+                  <HistorySection />
+                </RequireSection>
+              }
+            />
+          </Route>
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

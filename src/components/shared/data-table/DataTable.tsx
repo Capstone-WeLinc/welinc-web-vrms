@@ -209,15 +209,15 @@ function MobileCards<T>({
                     type="button"
                     data-row-link
                     onClick={() => onRowClick(row)}
-                    className="text-left text-base font-semibold text-foreground outline-none after:absolute after:inset-0 after:rounded-xl"
+                    className="text-left text-base font-semibold wrap-anywhere text-foreground outline-none after:absolute after:inset-0 after:rounded-xl"
                   >
                     {titleColumn.cell(row)}
                   </button>
                 ) : (
-                  <p className="text-base font-semibold text-foreground">{titleColumn.cell(row)}</p>
+                  <p className="text-base font-semibold wrap-anywhere text-foreground">{titleColumn.cell(row)}</p>
                 ))}
               {subtitles.map((column) => (
-                <p key={column.id} className="text-sm text-muted-foreground">
+                <p key={column.id} className="text-sm wrap-anywhere text-muted-foreground">
                   {column.cell(row)}
                 </p>
               ))}

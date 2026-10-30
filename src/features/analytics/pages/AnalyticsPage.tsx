@@ -8,6 +8,7 @@ import { VehiclesTab } from '../components/VehiclesTab';
 import { AiInsightsTab } from '../components/AiInsightsTab';
 import { ReportsTab } from '../components/ReportsTab';
 import { fmt } from '../utils';
+import { useModuleOn } from '../../../lib/permissions/usePermissions';
 
 const TABS = [
   { key: 'overview', label: 'Fleet Overview', icon: BarChart2 },
@@ -20,7 +21,11 @@ type TabKey = typeof TABS[number]['key'];
 
 export function AnalyticsPage() {
   const [tab, setTab] = useState<TabKey>('overview');
-  const data = useAnalyticsData();
+  // Spec 0012, AC-13: the AI Insights tab hides while AI is off; the rest of the page works
+  const aiOn = useModuleOn('ai');
+  const tabs = aiOn ? TABS : TABS.filter(t => t.key !== 'ai');
+  const shownTab: TabKey = !aiOn && tab === 'ai' ? 'overview' : tab;
+  const data = useAnalyticsData(aiOn);
   const { loading, lastUpdated, refresh, summary, statusBreakdown } = data;
 
   const totalActiveTickets = statusBreakdown.filter(s => !['CLOSED', 'CANCELLED'].includes(s.status)).reduce((a, b) => a + Number(b.count), 0);
@@ -76,7 +81,7 @@ export function AnalyticsPage() {
       )}
 
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
-        {TABS.map(t => {
+        {tabs.map(t => {
           const Icon = t.icon;
           return (
             <button
@@ -86,8 +91,8 @@ export function AnalyticsPage() {
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '9px 18px', border: 'none', background: 'transparent', cursor: 'pointer',
                 fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.15s',
-                color: tab === t.key ? 'var(--highlight)' : 'var(--muted-foreground)',
-                borderBottom: tab === t.key ? '2px solid var(--highlight)' : '2px solid transparent',
+                color: shownTab === t.key ? 'var(--highlight)' : 'var(--muted-foreground)',
+                borderBottom: shownTab === t.key ? '2px solid var(--highlight)' : '2px solid transparent',
                 marginBottom: -1,
               }}
             >
@@ -98,10 +103,10 @@ export function AnalyticsPage() {
         })}
       </div>
 
-      {tab === 'overview' && <OverviewTab {...data} />}
-      {tab === 'vehicles' && <VehiclesTab {...data} />}
-      {tab === 'ai' && <AiInsightsTab {...data} />}
-      {tab === 'reports' && <ReportsTab {...data} />}
+      {shownTab === 'overview' && <OverviewTab {...data} />}
+      {shownTab === 'vehicles' && <VehiclesTab {...data} />}
+      {shownTab === 'ai' && <AiInsightsTab {...data} />}
+      {shownTab === 'reports' && <ReportsTab {...data} />}
     </div>
   );
 }

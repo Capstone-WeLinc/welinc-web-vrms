@@ -9,8 +9,6 @@ import { lastPage } from '../../../components/shared/data-table/types';
 import { useToast } from '../../../context/toast';
 import { useAuthStore } from '../../../store/authStore';
 import type { ManagedUser } from '../../../types';
-import { Can } from '../../../lib/permissions/Can';
-import { RolesPermissionsSection } from '../components/RolesPermissionsSection';
 import { UserFormDialog, type SaveOutcome } from '../components/UserFormDialog';
 import { UserListFilters } from '../components/UserListFilters';
 import { UserStatusTiles } from '../components/UserStatusTiles';
@@ -168,10 +166,6 @@ export function UsersPage() {
         }
         empty={empty}
       />
-
-      <Can I="permissions.manage">
-        <RolesPermissionsSection />
-      </Can>
 
       <UserFormDialog
         key={dialog.session}

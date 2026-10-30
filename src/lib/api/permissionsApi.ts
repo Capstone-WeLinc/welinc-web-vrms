@@ -1,11 +1,13 @@
 import api from './axios';
+import type { ModuleName, Modules } from '../permissions/keys';
 
 export interface MyPermissions {
   keys: string[];
   version: number | null;
+  modules: Modules;
 }
 
-/** The caller's granted keys and the matrix version (spec 0011, AC-16). */
+/** The caller's granted keys, the matrix version and which modules are on (spec 0011, AC-16; spec 0012, AC-12). */
 export async function getMyPermissions(): Promise<MyPermissions> {
   // Quiet: the shell shows its own error state with Retry instead of a toast
   const response = await api.get<MyPermissions>('/vrms/permissions/me', { quiet: true });
@@ -21,6 +23,8 @@ export interface MatrixKey {
   key: string;
   label: string;
   description: string;
+  /** The module that removes this key while off (spec 0012, AC-24). */
+  module: ModuleName | null;
   grants: Record<string, MatrixGrant>;
 }
 
@@ -57,5 +61,17 @@ export async function getPermissionChanges(limit: number): Promise<{ data: Permi
     params: { limit },
     quiet: true,
   });
+  return response.data;
+}
+
+export interface UpdatePermissions {
+  version: number;
+  changes: { role: string; permission: string; allowed: boolean }[];
+  note?: string;
+}
+
+/** All or nothing; a stale version answers 409 and the caller reloads (spec 0011, AC-18). */
+export async function updatePermissions(body: UpdatePermissions): Promise<PermissionMatrix> {
+  const response = await api.patch<PermissionMatrix>('/vrms/permissions', body);
   return response.data;
 }

@@ -8,9 +8,11 @@ import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getConflictCode } from '../../../lib/api/errors';
 import { updateCategory, type IssueCategory } from '../../../lib/api/knowledgeApi';
-import { CategoryDialog } from '../components/CategoryDialog';
-import { KnowledgeHeader } from '../components/KnowledgeHeader';
+import { DetailSection } from '../../../components/shared/DetailSection';
+import { CategoryDialog } from './CategoryDialog';
 import { useCategories } from '../hooks/useKnowledgeData';
+
+const countFormat = new Intl.NumberFormat('en-PH');
 
 const COLUMNS: Column<IssueCategory>[] = [
   { id: 'name', header: 'Name', mobile: 'title', cell: (c) => <span className="font-medium">{c.name}</span> },
@@ -20,14 +22,17 @@ const COLUMNS: Column<IssueCategory>[] = [
     mobile: 'subtitle',
     cell: (c) => <span className="text-muted-foreground">{c.description ?? '—'}</span>,
   },
-  { id: 'entries', header: 'Entries', align: 'end', cell: (c) => c.entryCount },
+  { id: 'entries', header: 'Entries', align: 'end', cell: (c) => <span className="tabular-nums">{countFormat.format(c.entryCount)}</span> },
   { id: 'status', header: 'Status', mobile: 'badge', cell: (c) => <StatusBadge status={c.isActive ? 'ACTIVE' : 'INACTIVE'} /> },
 ];
 
 type DialogState = { category: IssueCategory | null; key: number } | null;
 
-/** Every category in sortOrder, with edit, reorder and deactivate (spec 0007, AC-22, AC-23). */
-export function KnowledgeCategoriesPage() {
+/**
+ * Every category in sortOrder, with edit, reorder and deactivate (spec 0007, AC-22, AC-23). Lives in
+ * the Settings hub's Lookup lists section since spec 0012 (AC-25).
+ */
+export function CategoriesPanel() {
   const { showToast } = useToast();
   const categories = useCategories(true);
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -84,16 +89,15 @@ export function KnowledgeCategoriesPage() {
   };
 
   return (
-    <div>
-      <KnowledgeHeader
-        isEditor
-        action={
-          <Button onClick={() => openDialog(null)}>
-            <Plus aria-hidden="true" />
-            New category
-          </Button>
-        }
-      />
+    <DetailSection
+      title="Issue categories"
+      action={
+        <Button onClick={() => openDialog(null)}>
+          <Plus aria-hidden="true" />
+          New category
+        </Button>
+      }
+    >
       <DataTable
         columns={COLUMNS}
         rows={rows}
@@ -116,6 +120,6 @@ export function KnowledgeCategoriesPage() {
           onReload={categories.retry}
         />
       )}
-    </div>
+    </DetailSection>
   );
 }
