@@ -6,7 +6,7 @@ vi.mock('sonner', () => sonner);
 
 import { showToast } from '../../context/toast';
 import { DENIED_MESSAGE, DENIED_TOAST_MS } from '../permissions/keys';
-import { getApiErrorMessage } from './errors';
+import { getApiErrorMessage, getDisabledModule } from './errors';
 
 function httpError(status: number, message: string | string[]) {
   const response = { status, data: { message } } as AxiosResponse;
@@ -28,6 +28,40 @@ describe('a 403 reads the same everywhere', () => {
   it('leaves other statuses alone', () => {
     expect(getApiErrorMessage(httpError(409, 'Duplicate name'), 'fallback')).toBe('Duplicate name');
     expect(getApiErrorMessage(httpError(400, ['a', 'b']), 'fallback')).toBe('a, b');
+  });
+});
+
+function bodyError(status: number, data: unknown) {
+  const response = { status, data } as AxiosResponse;
+  return new AxiosError('failed', 'ERR', undefined, undefined, response);
+}
+
+// Spec 0012, AC-11
+describe('getDisabledModule', () => {
+  it('names the module of a 403 MODULE_DISABLED body', () => {
+    const body = { statusCode: 403, code: 'MODULE_DISABLED', module: 'knowledge', message: 'This module is turned off by your Admin.' };
+
+    expect(getDisabledModule(bodyError(403, body))).toBe('knowledge');
+    expect(getDisabledModule(bodyError(403, { ...body, module: 'ai' }))).toBe('ai');
+  });
+
+  it('answers null for an ordinary permission denial', () => {
+    expect(getDisabledModule(bodyError(403, { statusCode: 403, message: 'You do not have permission to do that.' }))).toBeNull();
+  });
+
+  it('answers null when the code matches but the status is not 403', () => {
+    expect(getDisabledModule(bodyError(500, { code: 'MODULE_DISABLED', module: 'ai' }))).toBeNull();
+  });
+
+  it('answers null when the body names no module, or has no body', () => {
+    expect(getDisabledModule(bodyError(403, { code: 'MODULE_DISABLED' }))).toBeNull();
+    expect(getDisabledModule(bodyError(403, undefined))).toBeNull();
+  });
+
+  it('answers null for an error that did not come from a response', () => {
+    expect(getDisabledModule(new Error('Network Error'))).toBeNull();
+    expect(getDisabledModule(undefined)).toBeNull();
+    expect(getDisabledModule(new AxiosError('timeout', 'ECONNABORTED'))).toBeNull();
   });
 });
 
