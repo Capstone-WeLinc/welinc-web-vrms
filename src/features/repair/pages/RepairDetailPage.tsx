@@ -4,6 +4,7 @@ import { SearchX, ShieldAlert, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { BackLink } from '../../../components/shared/BackLink';
+import { DataModeToggle } from '../../dev-ui/components/DataModeToggle';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
@@ -201,6 +202,8 @@ export function RepairDetailPage() {
           onSecondary={() => setDialog('secondary')}
         />
       )}
+
+      {import.meta.env.DEV && <DataModeToggle aboveActionBar />}
 
       {move && (
         <TicketNoteDialog

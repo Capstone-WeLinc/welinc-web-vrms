@@ -4,11 +4,14 @@ import { DATA_MODES, readDataMode, switchDataMode } from '../worst-case/dataMode
  * Development only (break-ui): Demo data / Worst case and the extra states, fixed at the bottom
  * center. Plain chrome, not part of the design under test.
  */
-export function DataModeToggle() {
+export function DataModeToggle({ aboveActionBar = false }: { aboveActionBar?: boolean }) {
   const current = readDataMode();
   return (
-    // The outer strip keeps a 16px gutter; the pill scrolls inside it on a narrow phone
-    <div className="pointer-events-none fixed inset-x-4 bottom-20 z-50 flex justify-center md:bottom-4">
+    // The outer strip keeps a 16px gutter; the pill scrolls inside it on a narrow phone.
+    // A page with a fixed Next action bar (the ticket detail) lifts it clear of the bar below 1024px.
+    <div
+      className={`pointer-events-none fixed inset-x-4 z-50 flex justify-center ${aboveActionBar ? 'bottom-44 lg:bottom-4' : 'bottom-20 md:bottom-4'}`}
+    >
       <div
         role="radiogroup"
         aria-label="Dataset"
