@@ -169,6 +169,8 @@ export interface RepairTicket {
   createdAt: string;
   updatedAt: string;
   lastActivityAt?: string;
+  /** When the status last changed (spec 0015). */
+  statusChangedAt: string;
   /** Set on the move to Closed or Cancelled. */
   closedAt?: string | null;
   totalCost?: number | null;
