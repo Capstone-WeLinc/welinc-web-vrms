@@ -6,10 +6,10 @@ vi.mock('sonner', () => sonner);
 
 import { showToast } from '../../context/toast';
 import { DENIED_MESSAGE, DENIED_TOAST_MS } from '../permissions/keys';
-import { getApiErrorMessage, getDisabledModule } from './errors';
+import { getApiErrorMessage, getDisabledModule, getInvalidTransition } from './errors';
 
-function httpError(status: number, message: string | string[]) {
-  const response = { status, data: { message } } as AxiosResponse;
+function httpError(status: number, message: string | string[], code?: string) {
+  const response = { status, data: { message, code } } as AxiosResponse;
   return new AxiosError('failed', 'ERR', undefined, undefined, response);
 }
 
@@ -91,5 +91,25 @@ describe('the denied toast', () => {
     showToast('Something else', 'error');
     showToast('Something else', 'error');
     expect(sonner.toast.error).toHaveBeenCalledTimes(2);
+  });
+});
+
+// Spec 0014, AC-19
+describe('getInvalidTransition', () => {
+  it('returns the server message on a 400 INVALID_TRANSITION', () => {
+    const message = 'A ticket goes On hold when a hold is filed, not from here.';
+    expect(getInvalidTransition(httpError(400, message, 'INVALID_TRANSITION'))).toBe(message);
+  });
+
+  it('falls back to a plain sentence when the body has no message', () => {
+    const response = { status: 400, data: { code: 'INVALID_TRANSITION' } } as AxiosResponse;
+    const err = new AxiosError('failed', 'ERR', undefined, undefined, response);
+    expect(getInvalidTransition(err)).toBe('That move isn’t possible any more.');
+  });
+
+  it('ignores other 400s, other statuses and non http errors', () => {
+    expect(getInvalidTransition(httpError(400, 'Say what needs fixing.'))).toBeNull();
+    expect(getInvalidTransition(httpError(409, 'stale', 'INVALID_TRANSITION'))).toBeNull();
+    expect(getInvalidTransition(new Error('boom'))).toBeNull();
   });
 });
