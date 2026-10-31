@@ -8,10 +8,10 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
-import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
+import { getApiErrorMessage, getApiErrorStatus, getInvalidTransition } from '../../../lib/api/errors';
 import { unlockRepairTicket, updateRepairStatus } from '../../../lib/api/repairApi';
 import { useHasTabBar } from '../../../components/layout/useNavSections';
-import { useCan, useModuleOn } from '../../../lib/permissions/usePermissions';
+import { useCan } from '../../../lib/permissions/usePermissions';
 import type { IssueResolution, RepairStatus, RepairTicket } from '../../../types';
 import { ActivitySection } from '../components/ActivitySection';
 import { AiDiagnosisSection } from '../components/AiDiagnosisSection';
@@ -25,16 +25,17 @@ import { TicketNoteDialog } from '../components/TicketNoteDialog';
 import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePanel';
 import { useRepairTicket } from '../hooks/useRepairTicket';
 import {
-  canCancel,
   canWorkTicket,
   COSTS_SECTION_ID,
   hasCosts,
   isClosed,
-  nextAction,
+  primaryTarget,
   STALE_TICKET_MESSAGE,
+  ticketActions,
 } from '../lib/nextAction';
 
-type DialogKind = 'status' | 'cancel' | 'unlock' | null;
+/** Primary is the forward move or Unlock; secondary is Send back (spec 0014, AC-15). */
+type DialogKind = 'primary' | 'secondary' | 'cancel' | null;
 
 /** The list passes its own URL as `state.from`, so Back returns to the same filters and page. */
 function backLink(ticket: RepairTicket | null, from: unknown) {
@@ -57,10 +58,9 @@ export function RepairDetailPage() {
   // Page level keys; what this caller may do on this ticket comes from ticket.can (spec 0011, AC-22)
   const seesCosts = useCan('ticket.costs.view');
   const seesActivity = useCan('audit.view');
-  // Spec 0012: ai.use shows the AI panel (its key leaves while AI is off, AC-13), and the
-  // "What fixed it" step skips while the knowledge base is off (AC-15)
+  // Spec 0012: ai.use shows the AI panel (its key leaves while AI is off, AC-13). Whether the
+  // "What fixed it" step runs comes from the move's `needs` (spec 0014, AC-13)
   const usesAi = useCan('ai.use');
-  const knowledgeOn = useModuleOn('knowledge');
   const hasTabBar = useHasTabBar();
   const { showToast } = useToast();
   const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId);
@@ -95,17 +95,34 @@ export function RepairDetailPage() {
   }
 
   const rep = ticket.repairNumber;
-  const action = nextAction(ticket);
-  const administers = ticket.can.administer;
-  // The bottom bar shows only when AC-14 gives this user a button.
-  const barLabel = !readOnly && action.kind !== 'note' ? action.label : null;
-  const moveTo = action.kind === 'move' ? action.to : null;
+  // Spec 0014, AC-15: every button comes from the moves the server sent
+  const actions = ticketActions(ticket);
+  const { primary, secondary, cancel } = actions;
+  const move = primary?.kind === 'move' ? primary.move : null;
+  // The bottom bar shows only when this user has a primary button.
+  const barLabel = !readOnly && primary ? (primary.kind === 'move' ? primary.move.label : primary.label) : null;
+  const barSecondary = barLabel && secondary ? secondary.label : null;
+  const moveTo = primaryTarget(actions);
 
-  // AC-19: a 409 closes the dialog, says so, and shows the latest ticket with its own next action.
+  // A 409 closes the dialog, says so, and shows the latest ticket with its own next action.
   const handleStale = () => {
     setDialog(null);
     showToast(STALE_TICKET_MESSAGE, 'error');
     void reload();
+  };
+
+  /** AC-19: a move the server no longer allows closes the dialog, says why and reloads. */
+  const handleRefused = (err: unknown) => {
+    if (getApiErrorStatus(err) === 409) {
+      handleStale();
+      return true;
+    }
+    const invalid = getInvalidTransition(err);
+    if (!invalid) return false;
+    setDialog(null);
+    showToast(invalid, 'error');
+    void reload();
+    return true;
   };
 
   const changeStatus = async (
@@ -118,19 +135,20 @@ export function RepairDetailPage() {
       replace(updated);
       showToast(`${rep} moved to ${statusLabel(updated.status)}.`, 'success');
     } catch (err) {
-      if (getApiErrorStatus(err) === 409) return handleStale();
-      throw err;
+      // Other 400s show their message inside the dialog, with the typed note kept
+      if (!handleRefused(err)) throw err;
     }
   };
 
   const unlock = async (reason: string) => {
     try {
-      const updated = await unlockRepairTicket(ticket.id, reason.trim());
+      const updated = await unlockRepairTicket(ticket.id, reason.trim(), ticket.updatedAt);
       setDialog(null);
       replace(updated);
       showToast(`${rep} is unlocked.`, 'success');
     } catch (err) {
-      // Unlock has no lastUpdatedAt; a 400 means someone else unlocked it or it reopened.
+      if (getApiErrorStatus(err) === 409) return handleStale();
+      // A 400 means someone else unlocked it first.
       if (getApiErrorStatus(err) !== 400) throw err;
       setDialog(null);
       showToast(getApiErrorMessage(err, 'This ticket can’t be unlocked right now.'), 'error');
@@ -138,13 +156,13 @@ export function RepairDetailPage() {
     }
   };
 
-  const openAction = () => setDialog(action.kind === 'unlock' ? 'unlock' : 'status');
-  const noMechanic = administers && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
+  const noMechanic =
+    ticket.can.administer && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
   const noCosts = seesCosts && moveTo === 'CLOSED' && !hasCosts(ticket);
 
   return (
     // Keyed by ticket, so a link to another ticket (similar repairs) starts every section fresh.
-    <div key={ticket.id} className={barLabel ? 'pb-20 lg:pb-0' : undefined}>
+    <div key={ticket.id} className={barLabel ? (barSecondary ? 'pb-36 md:pb-20 lg:pb-0' : 'pb-20 lg:pb-0') : undefined}>
       <BackLink to={back.to} label={back.label} />
       <PageHeader title={rep} subtitle={ticket.vehicleModel ? `${ticket.vehiclePlate} · ${ticket.vehicleModel}` : ticket.vehiclePlate} icon={Wrench} />
 
@@ -153,9 +171,9 @@ export function RepairDetailPage() {
           <StatusCard
             ticket={ticket}
             readOnly={readOnly}
-            action={action}
-            showCancel={!readOnly && canCancel(ticket)}
-            onAction={openAction}
+            actions={actions}
+            onPrimary={() => setDialog('primary')}
+            onSecondary={() => setDialog('secondary')}
             onCancel={() => setDialog('cancel')}
           />
           <DetailsCard ticket={ticket} now={loadedAt} />
@@ -172,19 +190,27 @@ export function RepairDetailPage() {
         </div>
       </div>
 
-      {barLabel && <NextActionBar label={barLabel} aboveTabBar={hasTabBar} onAction={openAction} />}
+      {barLabel && (
+        <NextActionBar
+          label={barLabel}
+          secondaryLabel={barSecondary}
+          aboveTabBar={hasTabBar}
+          onAction={() => setDialog('primary')}
+          onSecondary={() => setDialog('secondary')}
+        />
+      )}
 
-      {action.kind === 'move' && (
+      {move && (
         <TicketNoteDialog
-          open={dialog === 'status'}
-          onOpenChange={(open) => setDialog(open ? 'status' : null)}
-          title={`${action.label} on ${rep}?`}
+          open={dialog === 'primary'}
+          onOpenChange={(open) => setDialog(open ? 'primary' : null)}
+          title={`${move.label} on ${rep}?`}
           fieldLabel="Remarks"
-          confirmLabel={action.label}
+          confirmLabel={move.label}
           // Keyed by version, so the per issue blocks start from the ticket as it is now
           key={ticket.updatedAt}
-          resolutionIssues={action.to === 'FOR_VERIFICATION' && knowledgeOn ? (ticket.issues ?? []) : undefined}
-          onSubmit={(note, resolutions) => changeStatus(action.to, { remarks: note.trim() || undefined, resolutions })}
+          resolutionIssues={move.needs === 'resolutions' ? (ticket.issues ?? []) : undefined}
+          onSubmit={(note, resolutions) => changeStatus(move.to, { remarks: note.trim() || undefined, resolutions })}
         >
           {noMechanic && <Callout tone="warning">No mechanic is assigned yet.</Callout>}
           {noCosts && (
@@ -207,24 +233,39 @@ export function RepairDetailPage() {
         </TicketNoteDialog>
       )}
 
-      {canCancel(ticket) && (
+      {secondary && (
+        <TicketNoteDialog
+          open={dialog === 'secondary'}
+          onOpenChange={(open) => setDialog(open ? 'secondary' : null)}
+          title={`${secondary.label} ${rep}?`}
+          description="The ticket goes back to In progress. Ticked steps and saved notes stay."
+          fieldLabel="What needs fixing?"
+          requiredMessage="Say what needs fixing."
+          minLength={5}
+          confirmLabel={secondary.label}
+          key={`back-${ticket.updatedAt}`}
+          onSubmit={(note) => changeStatus(secondary.to, { remarks: note.trim() })}
+        />
+      )}
+
+      {cancel && (
         <TicketNoteDialog
           open={dialog === 'cancel'}
           onOpenChange={(open) => setDialog(open ? 'cancel' : null)}
           title={`Cancel ${rep}?`}
           fieldLabel="Cancellation reason"
           requiredMessage="Enter a reason for cancelling."
-          confirmLabel="Cancel ticket"
+          confirmLabel={cancel.label}
           cancelLabel="Keep ticket"
           destructive
-          onSubmit={(reason) => changeStatus('CANCELLED', { cancellationReason: reason.trim() })}
+          onSubmit={(reason) => changeStatus(cancel.to, { cancellationReason: reason.trim() })}
         />
       )}
 
-      {action.kind === 'unlock' && (
+      {primary?.kind === 'unlock' && (
         <TicketNoteDialog
-          open={dialog === 'unlock'}
-          onOpenChange={(open) => setDialog(open ? 'unlock' : null)}
+          open={dialog === 'primary'}
+          onOpenChange={(open) => setDialog(open ? 'primary' : null)}
           title={`Unlock ${rep}?`}
           description="Unlocking lets you edit costs. Saving costs locks it again."
           fieldLabel="Reason"

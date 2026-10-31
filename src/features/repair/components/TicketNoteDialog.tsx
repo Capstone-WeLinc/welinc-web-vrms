@@ -11,6 +11,7 @@ import type { IssueResolution, RepairIssue } from '../../../types';
 import {
   NOTE_MAX,
   noteFormSchema,
+  noteLongEnough,
   requiredNotesValid,
   resolutionDefaults,
   toResolutions,
@@ -26,6 +27,11 @@ interface TicketNoteDialogProps {
   fieldLabel: string;
   /** The inline error for an empty note; leave it out for an optional note. */
   requiredMessage?: string;
+  /**
+   * A required note shorter than this (trimmed) keeps the submit disabled (Send back: 5,
+   * spec 0014, AC-16). Only read with `requiredMessage`.
+   */
+  minLength?: number;
   confirmLabel: string;
   cancelLabel?: string;
   destructive?: boolean;
@@ -48,6 +54,7 @@ export function TicketNoteDialog({
   description,
   fieldLabel,
   requiredMessage,
+  minLength,
   confirmLabel,
   cancelLabel = 'Cancel',
   destructive = false,
@@ -63,12 +70,15 @@ export function TicketNoteDialog({
     reset,
     formState: { isSubmitting },
   } = useForm<NoteFormValues>({
-    resolver: zodResolver(noteFormSchema(requiredMessage)),
+    resolver: zodResolver(noteFormSchema(requiredMessage, minLength)),
     defaultValues: { note: '', resolutions: resolutionDefaults(resolutionIssues) },
   });
   const rows = useWatch({ control, name: 'resolutions' });
-  // AC-30: the submit waits until every required "What fixed it" is valid.
-  const blocked = !!resolutionIssues && !requiredNotesValid(rows);
+  const note = useWatch({ control, name: 'note' });
+  // AC-30: the submit waits until every required "What fixed it" is valid, and a note with a
+  // minimum until it is long enough (spec 0014, AC-16).
+  const blocked =
+    (!!resolutionIssues && !requiredNotesValid(rows)) || (!!requiredMessage && minLength !== undefined && !noteLongEnough(note, minLength));
 
   const submit = async ({ note, resolutions }: NoteFormValues) => {
     setFormError(null);
@@ -120,7 +130,7 @@ export function TicketNoteDialog({
           name="note"
           label={fieldLabel}
           required={!!requiredMessage}
-          description={`Up to ${NOTE_MAX} characters.`}
+          description={minLength && requiredMessage ? `${minLength} to ${NOTE_MAX} characters.` : `Up to ${NOTE_MAX} characters.`}
           render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={3} maxLength={NOTE_MAX} />}
         />
         {formError && <FormAlert message={formError} />}

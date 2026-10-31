@@ -8,19 +8,22 @@ import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { dueLabel, isOpen } from '../../../lib/utils/due';
 import { formatShortDate } from '../../../lib/utils/format';
 import type { RepairTicket } from '../../../types';
-import { hasActionButton, isClosed, type NextAction } from '../lib/nextAction';
+import { isClosed, type TicketActions } from '../lib/nextAction';
 import { DetailItem, DetailSection } from '../../../components/shared/DetailSection';
 
 interface StatusCardProps {
   ticket: RepairTicket;
   readOnly: boolean;
-  action: NextAction;
-  showCancel: boolean;
-  onAction: () => void;
+  actions: TicketActions;
+  onPrimary: () => void;
+  onSecondary: () => void;
   onCancel: () => void;
 }
 
-export function StatusCard({ ticket, readOnly, action, showCancel, onAction, onCancel }: StatusCardProps) {
+/** Spec 0014, AC-15: the primary move and Send back side by side, Cancel under them. */
+export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, onCancel }: StatusCardProps) {
+  const { primary, secondary, cancel } = actions;
+  const hasButton = !!(primary || secondary || cancel);
   // Only someone who may unlock sees the lock state (spec 0011, AC-12a)
   const lockBadge =
     ticket.can.unlock && isClosed(ticket) ? (
@@ -41,7 +44,7 @@ export function StatusCard({ ticket, readOnly, action, showCancel, onAction, onC
       {readOnly ? (
         <div className="flex flex-col items-start gap-1 text-sm text-muted-foreground">
           <p>View only</p>
-          {hasActionButton(action) && (
+          {hasButton && (
             <Button asChild variant="link" className="h-auto px-0">
               <Link to={`/repairs/${ticket.id}`}>Open editable view</Link>
             </Button>
@@ -49,21 +52,29 @@ export function StatusCard({ ticket, readOnly, action, showCancel, onAction, onC
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {action.kind === 'note' ? (
-            <p className="text-sm text-muted-foreground">{action.text}</p>
-          ) : (
-            <Button size="touch" className="w-full lg:h-10 lg:text-sm" onClick={onAction}>
-              {action.label}
-            </Button>
+          {actions.note && <p className="text-sm text-muted-foreground">{actions.note}</p>}
+          {(primary || secondary) && (
+            <div className={cn('grid gap-2', primary && secondary && 'grid-cols-2')}>
+              {primary && (
+                <Button size="touch" className="w-full lg:h-10 lg:text-sm" onClick={onPrimary}>
+                  {primary.kind === 'move' ? primary.move.label : primary.label}
+                </Button>
+              )}
+              {secondary && (
+                <Button variant="outline" size="touch" className="w-full lg:h-10 lg:text-sm" onClick={onSecondary}>
+                  {secondary.label}
+                </Button>
+              )}
+            </div>
           )}
-          {showCancel && (
+          {cancel && (
             <Button
               variant="outline"
               size="touch"
               className="w-full border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive lg:h-10 lg:text-sm"
               onClick={onCancel}
             >
-              Cancel ticket
+              {cancel.label}
             </Button>
           )}
         </div>

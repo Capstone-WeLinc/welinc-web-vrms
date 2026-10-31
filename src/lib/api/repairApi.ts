@@ -66,10 +66,11 @@ export async function getRepair(repairId: string): Promise<RepairTicket> {
 export async function updateRepairStatus(
   repairId: string,
   status: RepairStatus,
-  extras?: {
+  extras: {
     cancellationReason?: string;
     remarks?: string;
-    lastUpdatedAt?: string;
+    /** Required: the server refuses a move without it (spec 0014, AC-12). */
+    lastUpdatedAt: string;
     /** Spec 0007, AC-31: required on In progress to For verification. */
     resolutions?: IssueResolution[];
   },
@@ -111,7 +112,7 @@ export interface UpdateCostsPayload {
   partsCost?: number;
   laborCost?: number;
   parts?: { description: string; unitCost: number; quantity: number }[];
-  lastUpdatedAt?: string;
+  lastUpdatedAt: string;
 }
 
 export async function updateRepairCosts(
@@ -125,9 +126,11 @@ export async function updateRepairCosts(
 export async function unlockRepairTicket(
   repairId: string,
   unlockReason: string,
+  lastUpdatedAt: string,
 ): Promise<RepairTicket> {
   const response = await api.patch<RepairTicket>(`/vrms/repairs/${repairId}/unlock`, {
     unlockReason,
+    lastUpdatedAt,
   });
   return response.data;
 }

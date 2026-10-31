@@ -37,14 +37,21 @@ const resolutionRow = z
     }
   });
 
-export function noteFormSchema(requiredMessage: string | undefined) {
+/** `minLength` counts trimmed characters, as the server does (Send back: 5, spec 0014, AC-16). */
+export function noteFormSchema(requiredMessage: string | undefined, minLength = 1) {
   return z.object({
     note: z
       .string()
       .max(NOTE_MAX, `Keep it to ${NOTE_MAX} characters or fewer.`)
-      .refine((note) => !requiredMessage || note.trim() !== '', requiredMessage ?? ''),
+      .refine((note) => !requiredMessage || note.trim().length >= minLength, requiredMessage ?? ''),
     resolutions: z.array(resolutionRow),
   });
+}
+
+/** Whether a required note is long enough to send; the submit waits for it (spec 0014, AC-16). */
+export function noteLongEnough(note: string | undefined, minLength: number) {
+  const length = (note ?? '').trim().length;
+  return length >= minLength && length <= NOTE_MAX;
 }
 
 export function resolutionDefaults(issues: RepairIssue[] | undefined): ResolutionRow[] {
