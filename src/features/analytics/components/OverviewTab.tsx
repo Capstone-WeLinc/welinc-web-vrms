@@ -5,7 +5,7 @@ import {
   Legend, ResponsiveContainer,
 } from 'recharts';
 import type { AnalyticsData } from '../hooks/useAnalyticsData';
-import { ChartCard, EmptyState } from './ChartPrimitives';
+import { ChartCard, EmptyState, SectionGate } from './ChartPrimitives';
 import {
   PALETTE, STATUS_COLORS, STATUS_LABELS, axisTick, chartTooltipProps, filterByPeriod, fmt, fmtThousands,
 } from '../utils';
@@ -20,7 +20,7 @@ function agingColor(bucket: string) {
   return AGING_LEGEND.find(a => a.bucket === bucket)?.color ?? 'var(--danger)';
 }
 
-export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCosts }: AnalyticsData) {
+export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCosts, sections, retry, costsHidden }: AnalyticsData) {
   const [trendPeriod, setTrendPeriod] = useState('ALL');
   const [velocityPeriod, setVelocityPeriod] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -34,7 +34,8 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
 
       {/* Row 1: Trend + Status Donut */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
-        <ChartCard title="Monthly Expense & Volume Trend" period={trendPeriod} onPeriodChange={setTrendPeriod}>
+        <ChartCard title={costsHidden ? 'Monthly Repair Volume' : 'Monthly Expense & Volume Trend'} period={trendPeriod} onPeriodChange={setTrendPeriod}>
+          <SectionGate state={sections.trends} onRetry={() => retry('trends')} height={260}>
           {filteredTrends.length === 0
             ? <EmptyState label="No data for this period" />
             : (
@@ -49,19 +50,20 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                     </defs>
                     <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="month" tick={axisTick} tickLine={false} axisLine={false} />
-                    <YAxis yAxisId="left" tick={axisTick} tickFormatter={v => fmtThousands(v)} axisLine={false} tickLine={false} />
+                    {!costsHidden && <YAxis yAxisId="left" tick={axisTick} tickFormatter={v => fmtThousands(v)} axisLine={false} tickLine={false} />}
                     <YAxis yAxisId="right" orientation="right" tick={axisTick} allowDecimals={false} axisLine={false} tickLine={false} />
                     <Tooltip
                       {...chartTooltipProps}
                       formatter={(val, name) => name === 'Spend' ? [fmt(Number(val)), 'Total Spend'] : [val, 'Repair Count']}
                     />
                     <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)', paddingTop: 8 }} />
-                    <Area yAxisId="left" type="monotone" dataKey="total_spend" name="Spend" fill="url(#gradSpend)" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
+                    {!costsHidden && <Area yAxisId="left" type="monotone" dataKey="total_spend" name="Spend" fill="url(#gradSpend)" stroke="var(--chart-1)" strokeWidth={2} dot={false} />}
                     <Line yAxisId="right" type="monotone" dataKey="repair_count" name="Repairs" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 4, fill: 'var(--chart-2)', strokeWidth: 0 }} activeDot={{ r: 6 }} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             )}
+          </SectionGate>
         </ChartCard>
 
         <ChartCard
@@ -77,6 +79,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
             </select>
           }
         >
+          <SectionGate state={sections.statusBreakdown} onRetry={() => retry('statusBreakdown')} height={260}>
           {filteredStatus.length === 0
             ? <EmptyState label="No ticket data" />
             : (
@@ -110,12 +113,14 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                 </ResponsiveContainer>
               </div>
             )}
+          </SectionGate>
         </ChartCard>
       </div>
 
       {/* Row 2: Velocity + Aging */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <ChartCard title="Ticket Creation Velocity" period={velocityPeriod} onPeriodChange={setVelocityPeriod}>
+          <SectionGate state={sections.velocity} onRetry={() => retry('velocity')} height={230}>
           {filteredVelocity.length === 0
             ? <EmptyState label="No data for this period" />
             : (
@@ -137,10 +142,12 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                 </ResponsiveContainer>
               </div>
             )}
+          </SectionGate>
         </ChartCard>
 
         <ChartCard title="Open Ticket Aging Distribution">
-          {aging.length === 0
+          <SectionGate state={sections.aging} onRetry={() => retry('aging')} height={230}>
+          {aging.every(a => a.count === 0)
             ? <EmptyState label="No open tickets" />
             : (
               <div style={{ height: 230 }}>
@@ -157,6 +164,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                 </ResponsiveContainer>
               </div>
             )}
+          </SectionGate>
           <div style={{ display: 'flex', gap: 16, marginTop: 10, justifyContent: 'center' }}>
             {AGING_LEGEND.map(({ bucket, color, note }) => (
               <div key={bucket} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
@@ -169,8 +177,9 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
       </div>
 
       {/* Row 3: Garage Costs + Cumulative Spend */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <ChartCard title="Repair Spend by Garage">
+      <div style={{ display: 'grid', gridTemplateColumns: costsHidden ? '1fr' : '1fr 1fr', gap: 16 }}>
+        <ChartCard title={costsHidden ? 'Repairs by Garage' : 'Repair Spend by Garage'}>
+          <SectionGate state={sections.garageCosts} onRetry={() => retry('garageCosts')} height={230}>
           {garageCosts.length === 0
             ? <EmptyState label="No garage data" />
             : (
@@ -184,17 +193,19 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" tick={axisTick} tickFormatter={v => fmtThousands(v)} axisLine={false} tickLine={false} />
+                    <XAxis type="number" tick={axisTick} tickFormatter={v => costsHidden ? String(v) : fmtThousands(v)} allowDecimals={false} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="garage" tick={axisTick} width={90} axisLine={false} tickLine={false} />
-                    <Tooltip {...chartTooltipProps} formatter={(v) => [fmt(Number(v)), 'Total Spend']} />
-                    <Bar dataKey="total_spend" fill="url(#gradGarage)" radius={[0, 6, 6, 0]} label={{ position: 'right', fill: 'var(--muted-foreground)', fontSize: 10, formatter: (v: unknown) => fmtThousands(v) }} />
+                    <Tooltip {...chartTooltipProps} formatter={(v) => costsHidden ? [v, 'Repairs'] : [fmt(Number(v)), 'Total Spend']} />
+                    <Bar dataKey={costsHidden ? 'repair_count' : 'total_spend'} fill="url(#gradGarage)" radius={[0, 6, 6, 0]} label={{ position: 'right', fill: 'var(--muted-foreground)', fontSize: 10, formatter: (v: unknown) => costsHidden ? String(v) : fmtThousands(v) }} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
+          </SectionGate>
         </ChartCard>
 
-        <ChartCard title="Cumulative Repair Spend" period={trendPeriod} onPeriodChange={setTrendPeriod}>
+        {!costsHidden && <ChartCard title="Cumulative Repair Spend" period={trendPeriod} onPeriodChange={setTrendPeriod}>
+          <SectionGate state={sections.trends} onRetry={() => retry('trends')} height={230}>
           {filteredTrends.length === 0
             ? <EmptyState label="No data for this period" />
             : (
@@ -216,7 +227,8 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                 </ResponsiveContainer>
               </div>
             )}
-        </ChartCard>
+          </SectionGate>
+        </ChartCard>}
       </div>
     </div>
   );

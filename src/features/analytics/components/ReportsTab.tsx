@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowUpRight, ArrowDownRight, FileText, Download } from 'lucide-react';
 import type { AnalyticsData } from '../hooks/useAnalyticsData';
-import { EmptyState, PillToggle } from './ChartPrimitives';
+import { EmptyState, PillToggle, SectionGate } from './ChartPrimitives';
 import { downloadMasterCsv, downloadMasterPdf } from '../export';
 import { fmt, tint } from '../utils';
 
@@ -9,25 +9,34 @@ const SORT_OPTIONS = ['month', 'spend', 'repairs'] as const;
 type ReportSort = typeof SORT_OPTIONS[number];
 const SORT_LABELS: Record<ReportSort, string> = { month: 'By Month', spend: 'By Spend', repairs: 'By Volume' };
 const REPORT_HEADERS = ['Month', 'Repair Count', 'Total Spend', 'Avg / Repair', 'Cumulative Spend', 'Spend %'];
+const COUNT_HEADERS = ['Month', 'Repair Count'];
+// With costs hidden, sorting by spend would leak it
+const COUNT_SORT_OPTIONS = ['month', 'repairs'] as const;
 
-export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, aiStats, aiOn }: AnalyticsData) {
+export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, aiStats, aiOn, sections, retry, costsHidden, complete }: AnalyticsData) {
   const [reportSort, setReportSort] = useState<ReportSort>('month');
+  const sort: ReportSort = costsHidden && reportSort === 'spend' ? 'month' : reportSort;
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
 
   const sortedReport = [...trends].sort((a, b) => {
-    if (reportSort === 'spend') return b.total_spend - a.total_spend;
-    if (reportSort === 'repairs') return b.repair_count - a.repair_count;
+    if (sort === 'spend') return (b.total_spend ?? 0) - (a.total_spend ?? 0);
+    if (sort === 'repairs') return b.repair_count - a.repair_count;
     return b.month.localeCompare(a.month);
   });
 
-  const totalSpendAll = trends.reduce((a, b) => a + b.total_spend, 0);
+  const totalSpendAll = trends.reduce((a, b) => a + (b.total_spend ?? 0), 0);
   const totalRepairsAll = trends.reduce((a, b) => a + b.repair_count, 0);
   const maxRepairs = Math.max(...trends.map(t => t.repair_count));
-  const exportData = { summary, trends, reportRows: sortedReport, vehicles, garageCosts, issueFreq, aiStats, aiOn };
+  const exportData = { summary, trends, reportRows: sortedReport, vehicles, garageCosts, issueFreq, aiStats, aiOn, costsHidden };
+  // Spec 0013, AC-6: never export while a section is loading or failed
+  const exportBlocked = !complete;
+  const exportTitle = exportBlocked ? 'Export is available once every section has loaded' : undefined;
 
   const quickStats = [
-    { label: 'Highest Spend Month', value: trends.length ? trends.reduce((a, b) => a.total_spend > b.total_spend ? a : b).month : '—', icon: ArrowUpRight, color: 'var(--danger)' },
-    { label: 'Lowest Spend Month', value: trends.length ? trends.reduce((a, b) => a.total_spend < b.total_spend ? a : b).month : '—', icon: ArrowDownRight, color: 'var(--success)' },
+    ...(costsHidden ? [] : [
+      { label: 'Highest Spend Month', value: trends.length ? trends.reduce((a, b) => (a.total_spend ?? 0) > (b.total_spend ?? 0) ? a : b).month : '—', icon: ArrowUpRight, color: 'var(--danger)' },
+      { label: 'Lowest Spend Month', value: trends.length ? trends.reduce((a, b) => (a.total_spend ?? 0) < (b.total_spend ?? 0) ? a : b).month : '—', icon: ArrowDownRight, color: 'var(--success)' },
+    ]),
     { label: 'Avg Monthly Repairs', value: trends.length ? Math.round(totalRepairsAll / trends.length) : 0, icon: FileText, color: 'var(--primary)' },
   ];
 
@@ -40,7 +49,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
       <div className="premium-card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text)' }}>Monthly Repair Cost Report</span>
+            <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text)' }}>{costsHidden ? 'Monthly Repair Report' : 'Monthly Repair Cost Report'}</span>
             <div style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginTop: 2 }}>
               {selectedMonths.length > 0
                 ? <span style={{ color: 'var(--highlight)', fontWeight: 700 }}>{selectedMonths.length} of {sortedReport.length} months selected for export</span>
@@ -49,7 +58,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <PillToggle options={SORT_OPTIONS} value={reportSort} onChange={setReportSort} labels={SORT_LABELS} size="md" />
+            <PillToggle options={costsHidden ? COUNT_SORT_OPTIONS : SORT_OPTIONS} value={sort} onChange={setReportSort} labels={SORT_LABELS} size="md" />
 
             {selectedMonths.length > 0 && (
               <button
@@ -62,7 +71,9 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
 
             <button
               onClick={() => downloadMasterCsv(exportData)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--highlight)', color: 'var(--on-accent)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', boxShadow: `0 2px 8px ${tint('var(--highlight)', 25)}` }}
+              disabled={exportBlocked}
+              title={exportTitle}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--highlight)', color: 'var(--on-accent)', fontSize: '0.8rem', fontWeight: 700, cursor: exportBlocked ? 'not-allowed' : 'pointer', opacity: exportBlocked ? 0.5 : 1, boxShadow: `0 2px 8px ${tint('var(--highlight)', 25)}` }}
             >
               <Download size={14} />
               {selectedMonths.length > 0 ? `Export Selected CSV (${selectedMonths.length})` : 'Export Master CSV'}
@@ -71,7 +82,9 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
             <button
               type="button"
               onClick={() => downloadMasterPdf(exportData)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+              disabled={exportBlocked}
+              title={exportTitle}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 700, cursor: exportBlocked ? 'not-allowed' : 'pointer', opacity: exportBlocked ? 0.5 : 1 }}
             >
               <FileText size={14} color="var(--danger)" />
               Export Master PDF Report
@@ -79,6 +92,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
           </div>
         </div>
 
+        <SectionGate state={sections.trends} onRetry={() => retry('trends')} height={240}>
         {trends.length === 0
           ? <EmptyState label="No monthly data available" />
           : (
@@ -98,7 +112,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                         title="Select all rows"
                       />
                     </th>
-                    {REPORT_HEADERS.map(h => (
+                    {(costsHidden ? COUNT_HEADERS : REPORT_HEADERS).map(h => (
                       <th key={h} style={{ padding: '9px 14px', textAlign: 'left', color: 'var(--muted-foreground)', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
@@ -106,8 +120,9 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                 <tbody>
                   {sortedReport.map((row, i) => {
                     const isSelected = selectedMonths.includes(row.month);
-                    const pct = totalSpendAll > 0 ? ((row.total_spend / totalSpendAll) * 100).toFixed(1) : '0';
-                    const avg = row.repair_count > 0 ? row.total_spend / row.repair_count : 0;
+                    const spend = row.total_spend ?? 0;
+                    const pct = totalSpendAll > 0 ? ((spend / totalSpendAll) * 100).toFixed(1) : '0';
+                    const avg = row.repair_count > 0 ? spend / row.repair_count : 0;
                     return (
                       <tr
                         key={i}
@@ -136,6 +151,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                             </div>
                           </div>
                         </td>
+                        {!costsHidden && <>
                         <td style={{ padding: '10px 14px', color: 'var(--text)', fontWeight: 600 }}>{fmt(row.total_spend)}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--muted-foreground)' }}>{fmt(avg)}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--muted-foreground)' }}>{fmt(row.cumulative_spend)}</td>
@@ -147,6 +163,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                             <span style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', fontWeight: 600 }}>{pct}%</span>
                           </div>
                         </td>
+                        </>}
                       </tr>
                     );
                   })}
@@ -156,17 +173,20 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                     <td style={{ padding: '10px 12px' }} />
                     <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--text)', fontSize: '0.8rem' }}>TOTAL</td>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text)' }}>{totalRepairsAll}</td>
+                    {!costsHidden && <>
                     <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--highlight)' }}>{fmt(totalSpendAll)}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--muted-foreground)' }}>{fmt(totalSpendAll / Math.max(1, totalRepairsAll))}</td>
                     <td colSpan={2} />
+                    </>}
                   </tr>
                 </tfoot>
               </table>
             </div>
           )}
+        </SectionGate>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${quickStats.length}, 1fr)`, gap: 14 }}>
         {quickStats.map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="premium-card" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: tint(color, 9), color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
