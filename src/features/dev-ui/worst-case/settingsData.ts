@@ -2,6 +2,7 @@ import type { IssueCategory } from '../../../lib/api/knowledgeApi';
 import type { MyPermissions, PermissionChange } from '../../../lib/api/permissionsApi';
 import type { HistoryChange, Setting, SettingsView } from '../../../lib/api/settingsApi';
 import type { DataMode } from './dataMode';
+import { dashboardTickets } from './dashboardData';
 import { decoratedTicket } from './ticketData';
 
 // Development only (break-ui): the Settings hub's datasets. Each takes the real response and
@@ -284,6 +285,8 @@ function categories(mode: DataMode): IssueCategory[] {
  */
 export function madeUpData(mode: DataMode, url: string, params: Record<string, unknown>): unknown {
   if (mode === 'demo') return undefined;
+  const tickets = dashboardTickets(mode, url, params);
+  if (tickets) return tickets;
   switch (url.split('?')[0]) {
     case '/vrms/settings/changes':
       return settingChanges(mode, params);
