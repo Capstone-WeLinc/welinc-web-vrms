@@ -54,14 +54,26 @@ export function noteLongEnough(note: string | undefined, minLength: number) {
   return length >= minLength && length <= NOTE_MAX;
 }
 
+/**
+ * Spec 0014, AC-18: after a Send back the dialog opens with each issue's saved note, hours and
+ * "Followed the known fix". A linked issue with no saved choice still defaults to ticked.
+ */
 export function resolutionDefaults(issues: RepairIssue[] | undefined): ResolutionRow[] {
   return (issues ?? []).map((issue) => ({
     issueId: issue.id,
     linked: issue.knowledgeEntry != null,
-    followedKnownFix: true,
-    resolutionNote: '',
-    hoursSpent: '',
+    followedKnownFix: issue.followedKnownFix ?? true,
+    resolutionNote: issue.resolutionNote ?? '',
+    hoursSpent: issue.hoursSpent != null ? String(issue.hoursSpent) : '',
   }));
+}
+
+/**
+ * Whether an issue has a "What fixed it" to show: resolved, or saved and then sent back
+ * (resolvedAt cleared, the notes kept; spec 0014, AC-21).
+ */
+export function hasSavedResolution(issue: RepairIssue) {
+  return issue.resolvedAt != null || issue.resolutionNote != null || issue.hoursSpent != null;
 }
 
 /** True when every unlinked issue has a note the server accepts; the submit waits for it (AC-30). */
