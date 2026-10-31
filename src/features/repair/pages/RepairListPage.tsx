@@ -8,6 +8,8 @@ import { DataTable } from '../../../components/shared/data-table/DataTable';
 import { lastPage, type Column, type RowAction } from '../../../components/shared/data-table/types';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
+import { PlateChip } from '../../../components/shared/PlateChip';
+import { PriorityBadge } from '../../../components/shared/PriorityBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { getAvailableMechanics, getGarages, type GarageOption, type MechanicOption } from '../../../lib/api/vrmsConfigApi';
 import { dueLabel } from '../../../lib/utils/due';
@@ -21,7 +23,7 @@ import { hasActiveFilters, REPAIR_LIST_PAGE_SIZE, repairListParams } from '../li
 
 function DueCell({ ticket, now }: { ticket: RepairTicket; now: number }) {
   const due = dueLabel(ticket, now);
-  if (!due) return <span>—</span>;
+  if (!due) return <span className="text-muted-foreground">—</span>;
   if (!due.overdue) return <span>{due.text}</span>;
   return (
     <span className="inline-flex items-start gap-1.5 font-medium text-destructive">
@@ -31,15 +33,28 @@ function DueCell({ ticket, now }: { ticket: RepairTicket; now: number }) {
   );
 }
 
+// design.md "Naming a ticket": the plate leads, the ticket ID is metadata and never breaks.
+function TruckCell({ ticket }: { ticket: RepairTicket }) {
+  return (
+    <span className="flex flex-col gap-1">
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <PlateChip plate={ticket.vehiclePlate} />
+        {ticket.vehicleModel && <span className="text-sm font-normal text-foreground">{ticket.vehicleModel}</span>}
+      </span>
+      <span translate="no" className="text-xs font-normal whitespace-nowrap text-muted-foreground tabular-nums">{ticket.repairNumber}</span>
+    </span>
+  );
+}
+
 function IssueCell({ ticket }: { ticket: RepairTicket }) {
-  if (!ticket.issueDescription) return <span>—</span>;
+  if (!ticket.issueDescription) return <span className="text-muted-foreground">—</span>;
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        {/* Focusable so keyboard users can read the full issue too. */}
+        {/* Two lines in the list; focusable so keyboard users can read the full issue too. */}
         <span
           tabIndex={0}
-          className="block max-w-32 truncate rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring 2xl:max-w-72"
+          className="line-clamp-2 min-w-48 rounded-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {ticket.issueDescription}
         </span>
@@ -49,16 +64,24 @@ function IssueCell({ ticket }: { ticket: RepairTicket }) {
   );
 }
 
-function listColumns(now: number): Column<RepairTicket>[] {
-  return [
+function MechanicCell({ ticket }: { ticket: RepairTicket }) {
+  const names = (ticket.mechanics ?? []).map((m) => m.name);
+  if (names.length === 0) return <span className="text-muted-foreground">Unassigned</span>;
+  return <span>{names.join(', ')}</span>;
+}
+
+function listColumns(rows: RepairTicket[], now: number, seesAll: boolean): Column<RepairTicket>[] {
+  // design.md "Empty values": a column empty for every row is hidden (due dates arrive with feature 42).
+  const anyDue = rows.some((t) => dueLabel(t, now) !== null);
+  const columns: (Column<RepairTicket> | false)[] = [
+    { id: 'truck', header: 'Truck', mobile: 'title', cell: (t) => <TruckCell ticket={t} /> },
+    { id: 'issue', header: 'Issue', mobile: 'subtitle', cell: (t) => <IssueCell ticket={t} /> },
     {
-      id: 'repair',
-      header: 'Repair #',
-      mobile: 'title',
-      // Beside the status badge on a 375px card the number wraps once, at a hyphen.
-      cell: (t) => <span className="text-sm font-medium md:whitespace-nowrap">{t.repairNumber}</span>,
+      id: 'priority',
+      header: 'Priority',
+      mobile: 'field',
+      cell: (t) => (t.priority ? <PriorityBadge priority={t.priority} /> : <span className="text-muted-foreground">—</span>),
     },
-    { id: 'vehicle', header: 'Vehicle', mobile: 'subtitle', cell: (t) => <span className="whitespace-nowrap">{t.vehiclePlate}</span> },
     { id: 'status', header: 'Status', mobile: 'badge', cell: (t) => (
         <span className="flex flex-wrap items-center gap-1">
           <StatusBadge status={t.status} />
@@ -66,10 +89,12 @@ function listColumns(now: number): Column<RepairTicket>[] {
         </span>
       ),
     },
-    { id: 'due', header: 'Due', mobile: 'field', cell: (t) => <DueCell ticket={t} now={now} /> },
-    { id: 'issue', header: 'Issue', mobile: 'field', cell: (t) => <IssueCell ticket={t} /> },
-    { id: 'garage', header: 'Garage', mobile: 'field', cell: (t) => t.garageLocation ?? '—' },
+    // A mechanic only sees their own tickets, so the column says nothing new for them.
+    seesAll && { id: 'mechanic', header: 'Mechanic', mobile: 'field', cell: (t) => <MechanicCell ticket={t} /> },
+    anyDue && { id: 'due', header: 'Due', mobile: 'field', cell: (t) => <DueCell ticket={t} now={now} /> },
+    { id: 'garage', header: 'Garage', mobile: 'field', cell: (t) => t.garageLocation ?? <span className="text-muted-foreground">—</span> },
   ];
+  return columns.filter((column): column is Column<RepairTicket> => column !== false);
 }
 
 export function RepairListPage() {
@@ -176,7 +201,7 @@ export function RepairListPage() {
         </div>
       ) : (
         <DataTable
-          columns={listColumns(list.fetchedAt)}
+          columns={listColumns(list.rows, list.fetchedAt, seesAll)}
           rows={list.rows}
           getRowId={(row) => row.id}
           state={pastEnd ? 'loading' : list.state}

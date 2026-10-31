@@ -1,7 +1,8 @@
 import type { UseFormClearErrors } from 'react-hook-form';
 import { FormField } from '@/components/ui/field';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { PRIORITY_TOGGLE_ON } from '../../../../components/shared/priorityStyles';
+import { cn } from '@/lib/utils';
+import { PRIORITY_DOT } from '../../../../components/shared/priorityStyles';
 import type { MechanicOption } from '../../../../lib/api/vrmsConfigApi';
 import { PRIORITY_OPTIONS } from '../../../../lib/repairOptions';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
@@ -41,8 +42,8 @@ export function AssignmentSection({ control, mechanics, clearErrors }: Assignmen
                 value={option.value}
                 ref={option.value === field.value ? field.ref : undefined}
                 onBlur={field.onBlur}
-                className={PRIORITY_TOGGLE_ON[option.value]}
               >
+                <span aria-hidden="true" className={cn('size-2.5 shrink-0 rounded-full', PRIORITY_DOT[option.value])} />
                 {option.label}
               </ToggleGroupItem>
             ))}

@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 import { FieldRow, FormSection } from '../../../components/shared/FormSection';
-import { PRIORITY_TOGGLE_ON } from '../../../components/shared/priorityStyles';
+import { PRIORITY_DOT } from '../../../components/shared/priorityStyles';
 import type { IssueCategory } from '../../../lib/api/knowledgeApi';
 import { PRIORITY_OPTIONS } from '../../../lib/repairOptions';
 import {
@@ -111,8 +111,8 @@ export function BasicsSection({ control, categories }: { control: EntryFormContr
                 value={option.value}
                 ref={option.value === field.value ? field.ref : undefined}
                 onBlur={field.onBlur}
-                className={PRIORITY_TOGGLE_ON[option.value]}
               >
+                <span aria-hidden="true" className={cn('size-2.5 shrink-0 rounded-full', PRIORITY_DOT[option.value])} />
                 {option.label}
               </ToggleGroupItem>
             ))}
