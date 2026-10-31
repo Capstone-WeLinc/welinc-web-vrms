@@ -2,7 +2,7 @@
 
 ## Overview
 
-The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 where admins and mechanics manage repair tickets, users, audit logs, analytics and the knowledge base. It talks to the gateway on port 3000 (`/auth/*`, `/vrms/*`, `/analytics/*`, `/ai/*`) and usually receives its login token from the SSO portal.
+The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 where admins and mechanics manage repair tickets, users, audit logs, analytics and the knowledge base. It talks to the gateway on port 3000 (`/auth/*` and `/vrms/*`, which includes `/vrms/analytics/*` and `/vrms/ai/*`) and usually receives its login token from the SSO portal.
 
 ## Key files
 
@@ -56,8 +56,7 @@ npm run build        # typecheck then vite build
 
 - The auth token is stored three times: `welinc_token` and `welinc_user` in `localStorage`, plus the Zustand persist key `welinc-auth-storage`. Login, logout and the 401 handler must keep all three in step.
 - There is no dark mode. No component toggles a theme and `index.css` has no `.dark` color rules, so the app is light only.
-- The analytics page shows hardcoded sample data when the service returns nothing (`SAMPLE_*` in `useAnalyticsData.ts`, and fallback AI numbers in `getAiFeedbackStats`). On screen it looks like real data.
-- The analytics and AI service (`/analytics/*`, `/ai/*`) does not check the JWT, so the token this app sends there is ignored.
+- The analytics page never shows sample data: a failed section shows the shared error state with Retry, and CSV and PDF export stay disabled while any section is loading or failed. Peso fields arrive as `null` without `ticket.costs.view`, and the page hides money columns with a note.
 - `src/lib/repairOptions.ts` holds the fixed dropdown lists for the repair form and the locally remembered driver names (`welinc_driver_names` in `localStorage`).
 - shadcn components live in `src/components/ui/` (config in `components.json`). Check there before hand rolling a dialog, select, combobox or table.
 - For quick session timeout tests, set `window.__WELINC_INACTIVITY_LIMIT__ = 30` (seconds) in the browser console.
