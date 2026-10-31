@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { BadgePill } from '../../../components/shared/BadgePill';
 import { Callout } from '../../../components/shared/Callout';
 import { confirm } from '../../../components/shared/confirm/confirm';
 import { DetailSection } from '../../../components/shared/DetailSection';
@@ -18,6 +19,7 @@ import { checkIssueStep, linkIssueKnowledge } from '../../../lib/api/repairApi';
 import { formatDateTime, formatHours } from '../../../lib/utils/format';
 import type { RepairIssue, RepairIssueStep, RepairTicket } from '../../../types';
 import { useEntryOptions } from '../hooks/useEntryOptions';
+import { hasSavedResolution } from '../lib/resolutionForm';
 import { SuggestDialog } from '../../knowledge-base/components/SuggestDialog';
 import { useModuleOn } from '../../../lib/permissions/usePermissions';
 
@@ -269,7 +271,7 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
         <div className="flex flex-col gap-2">
           {canLink && picker}
           {/* Any reader can propose a library entry from a problem with no known fix (AC-35). */}
-          <Button type="button" variant="link" size="sm" className="h-auto min-h-11 self-start px-0 md:min-h-0" onClick={() => setSuggesting(true)}>
+          <Button type="button" variant="link" size="sm" className="h-auto min-h-11 max-w-full self-start px-0 text-left whitespace-normal md:min-h-0" onClick={() => setSuggesting(true)}>
             <MessageSquarePlus aria-hidden="true" />
             Suggest an entry
           </Button>
@@ -283,8 +285,14 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
         </div>
       ) : null}
 
-      {issue.resolvedAt && (
+      {hasSavedResolution(issue) && (
         <dl className="grid gap-2 rounded-lg bg-muted p-3 text-sm sm:grid-cols-3">
+          {/* Spec 0014, AC-21: Send back keeps the notes but clears resolvedAt */}
+          {!issue.resolvedAt && (
+            <div className="sm:col-span-3">
+              <BadgePill className="h-auto max-w-full bg-highlight py-0.5 text-highlight-foreground whitespace-normal">Sent back, not resent yet</BadgePill>
+            </div>
+          )}
           <div className="min-w-0 sm:col-span-2">
             <dt className="text-xs font-medium text-muted-strong">What fixed it</dt>
             <dd className="break-words text-foreground">{issue.resolutionNote ?? (issue.followedKnownFix ? 'Followed the known fix' : '—')}</dd>

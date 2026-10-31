@@ -1,54 +1,57 @@
-import type { RepairStatus, RepairTicket } from '../../../types';
+import type { RepairTicket, TicketMove } from '../../../types';
 import { isFinishedStatus } from '../../../lib/repairStatus';
 
-// Spec 0004, AC-14: the one next step a ticket offers. It mirrors the server's forward only
-// rule (ASSIGNED → IN_PROGRESS → FOR_VERIFICATION → CLOSED, spec 0010), so the page never offers a
-// move the server rejects.
+// Spec 0014, AC-15: the detail page's actions come from `ticket.moves` only, the moves the server
+// lets this caller make right now. The page holds no copy of the transition table, so it never
+// offers a move the server rejects.
 
-export type NextAction =
-  | { kind: 'move'; label: string; to: RepairStatus }
-  | { kind: 'unlock'; label: string }
-  | { kind: 'note'; text: string };
+/** The main button: the forward move, or Unlock on a finished ticket. */
+export type PrimaryAction = { kind: 'move'; move: TicketMove } | { kind: 'unlock'; label: string };
 
-const FORWARD: Partial<Record<RepairStatus, { to: RepairStatus; label: string }>> = {
-  ASSIGNED: { to: 'IN_PROGRESS', label: 'Start work' },
-  IN_PROGRESS: { to: 'FOR_VERIFICATION', label: 'Send for verification' },
-  FOR_VERIFICATION: { to: 'CLOSED', label: 'Verify and close' },
-};
+export interface TicketActions {
+  primary: PrimaryAction | null;
+  /** Send back, beside or under the primary button. */
+  secondary: TicketMove | null;
+  cancel: TicketMove | null;
+  /** What the status card says when there is no primary button. */
+  note: string | null;
+}
 
 export function isClosed(ticket: Pick<RepairTicket, 'status'>) {
   return isFinishedStatus(ticket.status);
 }
 
-/**
- * From the ticket's own `can` flags, which the server computes for the caller (spec 0011, AC-12a).
- * `administer` offers every forward move; `work` stops before close; neither is view only.
- */
-export function nextAction(ticket: RepairTicket): NextAction {
-  const { can } = ticket;
-  if (isClosed(ticket)) {
-    if (!can.unlock) return { kind: 'note', text: 'This ticket is closed.' };
-    return ticket.isUnlocked
-      ? { kind: 'note', text: 'Unlocked for editing. Saving costs locks it again.' }
-      : { kind: 'unlock', label: 'Unlock ticket' };
-  }
-  if (!can.administer && !can.work) {
-    return { kind: 'note', text: 'This ticket is assigned to someone else.' };
-  }
-  if (ticket.status === 'FOR_VERIFICATION' && !can.administer) {
-    return { kind: 'note', text: 'Waiting for an admin to sign off.' };
-  }
-  const step = FORWARD[ticket.status];
-  return step ? { kind: 'move', ...step } : { kind: 'note', text: 'No next step for this status.' };
+function finishedActions(ticket: RepairTicket): TicketActions {
+  const none = { secondary: null, cancel: null };
+  // Unlock stays on its own flag (AC-13)
+  if (!ticket.can.unlock) return { ...none, primary: null, note: 'This ticket is closed.' };
+  return ticket.isUnlocked
+    ? { ...none, primary: null, note: 'Unlocked for editing. Saving costs locks it again.' }
+    : { ...none, primary: { kind: 'unlock', label: 'Unlock ticket' }, note: null };
 }
 
-export function hasActionButton(action: NextAction) {
-  return action.kind !== 'note';
+/** Why there is no forward button on an open ticket. */
+function openNote(ticket: RepairTicket, moves: TicketMove[]): string {
+  if (ticket.status === 'FOR_VERIFICATION') return 'Waiting for verification.';
+  if (moves.length === 0 && !ticket.can.work && !ticket.can.administer) return 'This ticket is assigned to someone else.';
+  return 'No next step for this status.';
 }
 
-/** Cancelling is an administer move, on open tickets only; finished work is feature 33's override. */
-export function canCancel(ticket: RepairTicket) {
-  return ticket.can.administer && !isClosed(ticket);
+export function ticketActions(ticket: RepairTicket): TicketActions {
+  if (isClosed(ticket)) return finishedActions(ticket);
+  const moves = ticket.moves ?? [];
+  const forward = moves.find((m) => m.kind === 'forward') ?? null;
+  return {
+    primary: forward ? { kind: 'move', move: forward } : null,
+    secondary: moves.find((m) => m.kind === 'back') ?? null,
+    cancel: moves.find((m) => m.kind === 'cancel') ?? null,
+    note: forward ? null : openNote(ticket, moves),
+  };
+}
+
+/** The primary move's target, for the callouts in its dialog (AC-15). */
+export function primaryTarget(actions: TicketActions) {
+  return actions.primary?.kind === 'move' ? actions.primary.move.to : null;
 }
 
 /** Matches the server: costs open at For verification, and on a closed ticket only while unlocked. */
@@ -56,7 +59,7 @@ export function canEditCosts(ticket: RepairTicket) {
   return ticket.can.editCosts && (ticket.status === 'FOR_VERIFICATION' || (isClosed(ticket) && !!ticket.isUnlocked));
 }
 
-/** Status moves, steps and known fixes: the caller's own ticket, or any with administer (AC-12). */
+/** Steps and known fixes: the caller's own ticket, or any with administer (spec 0011, AC-12). */
 export function canWorkTicket(ticket: RepairTicket) {
   return ticket.can.work || ticket.can.administer;
 }

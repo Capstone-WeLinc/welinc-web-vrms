@@ -38,6 +38,16 @@ export function getAccountExists(err: unknown): { id: string; name: string; syst
   return { id: body.id, name: body.name, systems: body.systems ?? [] };
 }
 
+/**
+ * The server's message on a 400 INVALID_TRANSITION (spec 0014, AC-19): the move is no longer
+ * possible, so the page says why and reloads. Null for any other error.
+ */
+export function getInvalidTransition(err: unknown): string | null {
+  if (!isAxiosError<{ code?: string; message?: string }>(err) || err.response?.status !== 400) return null;
+  const body = err.response.data;
+  return body?.code === 'INVALID_TRANSITION' ? (body.message ?? 'That move isn’t possible any more.') : null;
+}
+
 /** The `code` on a 409 body, such as STALE or DUPLICATE_NAME (spec 0007, AC-20). */
 export function getConflictCode(err: unknown): string | undefined {
   if (!isAxiosError<{ code?: string }>(err) || err.response?.status !== 409) return undefined;

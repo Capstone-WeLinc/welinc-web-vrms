@@ -135,8 +135,27 @@ export interface RepairPart {
 export interface TicketCan {
   work: boolean;
   administer: boolean;
+  /** Verify or send back; false on a ticket the caller is assigned to (spec 0014, AC-13). */
+  verify: boolean;
   editCosts: boolean;
   unlock: boolean;
+}
+
+/** One status move the server lets this caller make now (spec 0014, AC-13). */
+export interface TicketMove {
+  to: RepairStatus;
+  label: string;
+  kind: 'forward' | 'back' | 'cancel';
+  /** What the move's dialog must collect; resolutions only while the knowledge base is on. */
+  needs: 'resolutions' | 'remarks' | 'cancellationReason' | null;
+}
+
+/** The newest Send back still in force (spec 0014, AC-14). */
+export interface TicketRejection {
+  remarks: string;
+  byName: string;
+  /** ISO instant. */
+  at: string;
 }
 
 export interface RepairTicket {
@@ -181,6 +200,10 @@ export interface RepairTicket {
   /** In progress or on hold with no active mechanic assigned (spec 0011, AC-34). */
   needsMechanic?: boolean;
   can: TicketCan;
+  /** Single ticket responses only; the page offers these and nothing else (spec 0014, AC-13). */
+  moves?: TicketMove[];
+  /** Single ticket responses only (spec 0014, AC-14). */
+  lastRejection?: TicketRejection | null;
 }
 
 export interface CreateRepairPayload {

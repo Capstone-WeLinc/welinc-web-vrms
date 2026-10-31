@@ -1,75 +1,62 @@
 import { describe, expect, it } from 'vitest';
 import { ticket } from '../../../test/ticketFixture';
-import type { TicketCan } from '../../../types';
-import { canCancel, canEditCosts, canWorkTicket, hasActionButton, hasCosts, nextAction } from './nextAction';
+import type { TicketCan, TicketMove } from '../../../types';
+import { canEditCosts, canWorkTicket, hasCosts, primaryTarget, ticketActions } from './nextAction';
 
-// Spec 0004 AC-14 in the spec 0010 shape, on the spec 0011 ticket flags: the page never offers a
-// move the server rejects.
+// Spec 0014, AC-15: the page's actions come from ticket.moves only, so it never offers a move
+// the server rejects. Spec 0011's flags still drive Unlock, costs and the steps.
 
-const NONE: TicketCan = { work: false, administer: false, editCosts: false, unlock: false };
+const NONE: TicketCan = { work: false, administer: false, verify: false, editCosts: false, unlock: false };
 const WORKER: TicketCan = { ...NONE, work: true };
-const ADMIN: TicketCan = { work: false, administer: true, editCosts: true, unlock: true };
+const ADMIN: TicketCan = { work: false, administer: true, verify: true, editCosts: true, unlock: true };
 
-describe('nextAction', () => {
-  it.each([
-    ['ASSIGNED', 'Start work', 'IN_PROGRESS'],
-    ['IN_PROGRESS', 'Send for verification', 'FOR_VERIFICATION'],
-  ] as const)('%s offers "%s" with work or administer', (status, label, to) => {
-    for (const can of [WORKER, ADMIN]) {
-      expect(nextAction(ticket({ status, can }))).toEqual({ kind: 'move', label, to });
-    }
+const START: TicketMove = { to: 'IN_PROGRESS', label: 'Start work', kind: 'forward', needs: null };
+const VERIFY: TicketMove = { to: 'CLOSED', label: 'Verify and close', kind: 'forward', needs: null };
+const SEND_BACK: TicketMove = { to: 'IN_PROGRESS', label: 'Send back', kind: 'back', needs: 'remarks' };
+const CANCEL: TicketMove = { to: 'CANCELLED', label: 'Cancel ticket', kind: 'cancel', needs: 'cancellationReason' };
+
+describe('ticketActions', () => {
+  it('makes the forward move primary and Cancel its own action', () => {
+    const actions = ticketActions(ticket({ status: 'ASSIGNED', can: ADMIN, moves: [START, CANCEL] }));
+    expect(actions).toEqual({ primary: { kind: 'move', move: START }, secondary: null, cancel: CANCEL, note: null });
+    expect(primaryTarget(actions)).toBe('IN_PROGRESS');
   });
 
-  it('lets only administer verify and close (AC-4, spec 0011 AC-12)', () => {
-    expect(nextAction(ticket({ status: 'FOR_VERIFICATION', can: ADMIN }))).toEqual({
-      kind: 'move',
-      label: 'Verify and close',
-      to: 'CLOSED',
-    });
-    expect(nextAction(ticket({ status: 'FOR_VERIFICATION', can: WORKER }))).toMatchObject({
-      kind: 'note',
-      text: 'Waiting for an admin to sign off.',
+  it('puts Send back beside Verify at For verification', () => {
+    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [VERIFY, SEND_BACK, CANCEL] }));
+    expect(actions.primary).toEqual({ kind: 'move', move: VERIFY });
+    expect(actions.secondary).toBe(SEND_BACK);
+  });
+
+  it('reads "Waiting for verification." at For verification with no move', () => {
+    expect(ticketActions(ticket({ status: 'FOR_VERIFICATION', can: WORKER, moves: [] }))).toEqual({
+      primary: null,
+      secondary: null,
+      cancel: null,
+      note: 'Waiting for verification.',
     });
   });
 
-  it('acts as administer when the caller has both', () => {
-    const t = ticket({ status: 'FOR_VERIFICATION', can: { ...ADMIN, work: true } });
-    expect(nextAction(t)).toMatchObject({ kind: 'move', to: 'CLOSED' });
+  it('offers nothing the server did not send, whatever the flags say', () => {
+    const actions = ticketActions(ticket({ status: 'IN_PROGRESS', can: ADMIN, moves: [] }));
+    expect(actions.primary).toBeNull();
+    expect(actions.cancel).toBeNull();
+    // A list row carries no moves at all
+    expect(ticketActions(ticket({ status: 'IN_PROGRESS', can: ADMIN })).primary).toBeNull();
   });
 
-  it("shows another mechanic's ticket as view only (spec 0011, AC-12)", () => {
-    expect(nextAction(ticket({ status: 'ASSIGNED', can: NONE }))).toEqual({
-      kind: 'note',
-      text: 'This ticket is assigned to someone else.',
-    });
+  it("shows another mechanic's ticket as view only", () => {
+    expect(ticketActions(ticket({ status: 'ASSIGNED', can: NONE, moves: [] })).note).toBe('This ticket is assigned to someone else.');
   });
 
   it('offers unlock with the unlock flag on a finished locked ticket, and only a note otherwise', () => {
     for (const status of ['CLOSED', 'CANCELLED'] as const) {
-      expect(nextAction(ticket({ status, can: ADMIN }))).toEqual({ kind: 'unlock', label: 'Unlock ticket' });
-      expect(nextAction(ticket({ status, can: WORKER }))).toMatchObject({ kind: 'note' });
+      expect(ticketActions(ticket({ status, can: ADMIN, moves: [] })).primary).toEqual({ kind: 'unlock', label: 'Unlock ticket' });
+      expect(ticketActions(ticket({ status, can: WORKER, moves: [] })).note).toBe('This ticket is closed.');
     }
-    expect(nextAction(ticket({ status: 'CLOSED', isUnlocked: true, can: ADMIN })).kind).toBe('note');
-  });
-
-  it('has no move for statuses the flow does not drive yet', () => {
-    for (const status of ['OPEN', 'ON_HOLD', 'OUTSOURCED', 'PENDING_APPROVAL'] as const) {
-      expect(nextAction(ticket({ status, can: ADMIN }))).toMatchObject({ kind: 'note' });
-    }
-  });
-
-  it('shows a button only for move and unlock', () => {
-    expect(hasActionButton({ kind: 'note', text: 'x' })).toBe(false);
-    expect(hasActionButton({ kind: 'unlock', label: 'x' })).toBe(true);
-  });
-});
-
-describe('canCancel', () => {
-  it('is for administer on open tickets only', () => {
-    expect(canCancel(ticket({ status: 'IN_PROGRESS', can: ADMIN }))).toBe(true);
-    expect(canCancel(ticket({ status: 'IN_PROGRESS', can: WORKER }))).toBe(false);
-    expect(canCancel(ticket({ status: 'CLOSED', can: ADMIN }))).toBe(false);
-    expect(canCancel(ticket({ status: 'CANCELLED', can: ADMIN }))).toBe(false);
+    const unlocked = ticketActions(ticket({ status: 'CLOSED', isUnlocked: true, can: ADMIN }));
+    expect(unlocked.primary).toBeNull();
+    expect(unlocked.note).toBe('Unlocked for editing. Saving costs locks it again.');
   });
 });
 

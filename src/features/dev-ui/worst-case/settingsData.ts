@@ -2,6 +2,7 @@ import type { IssueCategory } from '../../../lib/api/knowledgeApi';
 import type { MyPermissions, PermissionChange } from '../../../lib/api/permissionsApi';
 import type { HistoryChange, Setting, SettingsView } from '../../../lib/api/settingsApi';
 import type { DataMode } from './dataMode';
+import { decoratedTicket } from './ticketData';
 
 // Development only (break-ui): the Settings hub's datasets. Each takes the real response and
 // changes only what a real admin, actor or catalog could produce. Limits: actor name 100 and
@@ -300,6 +301,9 @@ export function madeUpData(mode: DataMode, url: string, params: Record<string, u
  * the live catalog still shows.
  */
 export function decoratedData(mode: DataMode, url: string, real: unknown): unknown {
+  // The ticket detail page has its own datasets for every mode (spec 0014 UI)
+  const ticket = decoratedTicket(mode, url, real);
+  if (ticket) return ticket;
   if (mode !== 'worst') return undefined;
   switch (url.split('?')[0]) {
     case '/vrms/settings':
