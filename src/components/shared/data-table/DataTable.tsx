@@ -238,7 +238,7 @@ function MobileCards<T>({
               {fields.map((column) => (
                 <div key={column.id} className="flex min-w-0 flex-col gap-0.5">
                   <dt className="text-xs font-medium text-muted-foreground">{column.header}</dt>
-                  <dd className={cn('text-sm text-foreground', column.align === 'end' && 'tabular-nums')}>{column.cell(row)}</dd>
+                  <dd className={cn('text-sm wrap-anywhere text-foreground', column.align === 'end' && 'tabular-nums')}>{column.cell(row)}</dd>
                 </div>
               ))}
             </dl>

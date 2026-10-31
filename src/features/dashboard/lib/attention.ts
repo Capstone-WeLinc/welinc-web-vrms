@@ -56,6 +56,33 @@ export function attentionList(active: RepairTicket[], now: number, limit: number
   return [...overdue, ...unstaffed, ...waiting].slice(0, limit);
 }
 
+/**
+ * Spec 0015, AC-14 and AC-16: open tickets in For verification the caller can verify, oldest wait first
+ * (id breaks ties, as the server does). The caller's own assigned tickets have can.verify false and stay out.
+ */
+export function verificationQueue(active: RepairTicket[]) {
+  return active
+    .filter((t) => isWaiting(t) && t.can.verify)
+    .sort((a, b) => {
+      const diff = (toTime(a.statusChangedAt) ?? 0) - (toTime(b.statusChangedAt) ?? 0);
+      if (diff !== 0) return diff;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+}
+
+/** Spec 0015, AC-15: how long a ticket has sat in its status. A negative gap (clock skew) counts as 0. */
+export function waitingText(ticket: RepairTicket, now: number) {
+  const since = toTime(ticket.statusChangedAt);
+  // An unreadable date must not pose as a fresh wait
+  if (since === null) return 'Waiting time unknown';
+  const minutes = Math.max(0, Math.floor((now - since) / 60_000));
+  if (minutes < 60) return 'Waiting under an hour';
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Waiting ${hours} h`;
+  const days = Math.floor(hours / 24);
+  return `Waiting ${days} ${days === 1 ? 'day' : 'days'}`;
+}
+
 /** A mechanic's ASSIGNED and IN_PROGRESS tickets: overdue first, then due soonest (none last), then newest update. */
 export function mechanicWorkList(active: RepairTicket[], now: number) {
   return active

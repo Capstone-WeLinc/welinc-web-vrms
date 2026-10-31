@@ -9,6 +9,8 @@ import {
   mechanicWorkList,
   pipelineCounts,
   spendFor,
+  verificationQueue,
+  waitingText,
 } from './attention';
 
 // Spec 0002 dashboard rules in the spec 0010 statuses (AC-16, AC-4a).
@@ -134,5 +136,50 @@ describe('greeting', () => {
     expect(greeting(' Ana ')).toBe('Welcome back, Ana.');
     expect(greeting('  ')).toBe('Welcome back.');
     expect(greeting(null)).toBe('Welcome back.');
+  });
+});
+
+describe('verificationQueue', () => {
+  const verifiable = (id: string, statusChangedAt: string, over = {}) =>
+    ticket({
+      id,
+      status: 'FOR_VERIFICATION',
+      statusChangedAt,
+      can: { work: false, administer: false, verify: true, editCosts: false, unlock: false },
+      ...over,
+    });
+
+  it('lists only waiting tickets the caller can verify, oldest wait first, id breaking ties', () => {
+    const rows = [
+      verifiable('c', '2026-10-03T00:00:00.000Z'),
+      verifiable('b', '2026-10-01T00:00:00.000Z'),
+      verifiable('a', '2026-10-01T00:00:00.000Z'),
+      ticket({ id: 'own', status: 'FOR_VERIFICATION', statusChangedAt: '2026-09-01T00:00:00.000Z' }),
+      ticket({ id: 'busy', status: 'IN_PROGRESS' }),
+    ];
+    expect(verificationQueue(rows).map((t) => t.id)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('waitingText', () => {
+  const since = '2026-10-10T00:00:00.000Z';
+  const base = Date.parse(since);
+  const t = ticket({ statusChangedAt: since });
+  const MIN = 60_000;
+
+  it('reads under an hour, hours, then days, rounded down', () => {
+    expect(waitingText(t, base + 59 * MIN)).toBe('Waiting under an hour');
+    expect(waitingText(t, base + 60 * MIN)).toBe('Waiting 1 h');
+    expect(waitingText(t, base + 23 * 60 * MIN + 59 * MIN)).toBe('Waiting 23 h');
+    expect(waitingText(t, base + 24 * 60 * MIN)).toBe('Waiting 1 day');
+    expect(waitingText(t, base + 50 * 60 * MIN)).toBe('Waiting 2 days');
+  });
+
+  it('counts a negative gap (clock skew) as 0', () => {
+    expect(waitingText(t, base - 5 * 60 * MIN)).toBe('Waiting under an hour');
+  });
+
+  it('says the wait is unknown when the date cannot be read', () => {
+    expect(waitingText(ticket({ statusChangedAt: 'not a date' }), base)).toBe('Waiting time unknown');
   });
 });

@@ -9,7 +9,6 @@ import type { AppAbility, PermissionKey } from '../../../lib/permissions/keys';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import { ForbiddenPage } from '../../../pages/ForbiddenPage';
 import { SettingsSectionNav } from '../components/SettingsSectionNav';
-import { DataModeToggle } from '../../dev-ui/components/DataModeToggle';
 import { allowedSections } from '../lib/sections';
 
 function useAllowedSections() {
@@ -60,7 +59,6 @@ export function SettingsPage() {
           </div>
         )}
       </div>
-      {import.meta.env.DEV && <DataModeToggle />}
     </div>
   );
 }

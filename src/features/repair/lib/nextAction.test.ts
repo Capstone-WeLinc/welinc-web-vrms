@@ -18,7 +18,7 @@ const CANCEL: TicketMove = { to: 'CANCELLED', label: 'Cancel ticket', kind: 'can
 describe('ticketActions', () => {
   it('makes the forward move primary and Cancel its own action', () => {
     const actions = ticketActions(ticket({ status: 'ASSIGNED', can: ADMIN, moves: [START, CANCEL] }));
-    expect(actions).toEqual({ primary: { kind: 'move', move: START }, secondary: null, cancel: CANCEL, note: null });
+    expect(actions).toEqual({ primary: { kind: 'move', move: START }, secondary: null, cancel: CANCEL, note: null, blocked: null });
     expect(primaryTarget(actions)).toBe('IN_PROGRESS');
   });
 
@@ -34,6 +34,7 @@ describe('ticketActions', () => {
       secondary: null,
       cancel: null,
       note: 'Waiting for verification.',
+      blocked: null,
     });
   });
 
@@ -57,6 +58,39 @@ describe('ticketActions', () => {
     const unlocked = ticketActions(ticket({ status: 'CLOSED', isUnlocked: true, can: ADMIN }));
     expect(unlocked.primary).toBeNull();
     expect(unlocked.note).toBe('Unlocked for editing. Saving costs locks it again.');
+  });
+});
+
+describe('ticketActions, self verification (spec 0015, AC-16)', () => {
+  const own = ticket({ status: 'FOR_VERIFICATION', can: WORKER, moves: [] });
+  it('tells a verifier assigned to the ticket why they cannot close it', () => {
+    expect(ticketActions(own, true).note).toBe("Someone else must verify work on a ticket you're assigned to.");
+  });
+  it('keeps the plain note for a mechanic without the verify right', () => {
+    expect(ticketActions(own, false).note).toBe('Waiting for verification.');
+  });
+  it('keeps the plain note when the verifier is not assigned to the ticket', () => {
+    const other = ticket({ status: 'FOR_VERIFICATION', can: { ...WORKER, verify: true }, moves: [] });
+    expect(ticketActions(other, true).note).toBe('Waiting for verification.');
+  });
+  it('only swaps the note at For verification', () => {
+    const early = ticket({ status: 'IN_PROGRESS', can: WORKER, moves: [] });
+    expect(ticketActions(early, true).note).toBe('No next step for this status.');
+  });
+});
+
+describe('ticketActions, costs before closing (spec 0015, AC-5)', () => {
+  const NEEDS_COSTS: TicketMove = { ...VERIFY, needs: 'costs' };
+
+  it('blocks Verify and close with the reason while the ticket has no costs', () => {
+    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [NEEDS_COSTS, SEND_BACK] }));
+    expect(actions.primary).toEqual({ kind: 'move', move: NEEDS_COSTS });
+    expect(actions.blocked).toBe('Add the costs before closing this ticket.');
+  });
+
+  it('lets it through once a cost is recorded', () => {
+    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [NEEDS_COSTS], totalCost: 10 }));
+    expect(actions.blocked).toBeNull();
   });
 });
 

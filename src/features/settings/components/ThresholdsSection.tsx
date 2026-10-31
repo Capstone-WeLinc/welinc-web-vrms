@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { DetailSection } from '../../../components/shared/DetailSection';
 import { ErrorState } from '../../../components/shared/ErrorState';
@@ -48,6 +49,34 @@ function ThresholdField({
   const text = shownText(setting, edit);
   const error = edit?.kind === 'value' ? thresholdError(setting, edit.text) : null;
   const custom = isCustom(setting, edit);
+
+  if (setting.type === 'boolean') {
+    // Spec 0015, AC-4: a yes or no value is a switch; saving still goes through the one Save bar
+    return (
+      <div className="flex items-start justify-between gap-4 border-t border-border py-4 first:border-t-0 first:pt-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Label htmlFor={inputId} className="text-sm font-medium text-foreground">
+              {setting.label}
+            </Label>
+            {custom && <Badge variant="secondary">Custom</Badge>}
+          </div>
+          <p id={helpId} className="mt-1 text-sm text-pretty text-muted-foreground">
+            {setting.description} Default {setting.default ? 'on' : 'off'}.
+          </p>
+        </div>
+        <Switch
+          id={inputId}
+          checked={text === 'true'}
+          onCheckedChange={(on) => {
+            const next = String(on);
+            onEdit(next === String(setting.value) ? undefined : { kind: 'value', text: next });
+          }}
+          aria-describedby={helpId}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2 border-t border-border py-4 first:border-t-0 first:pt-0 md:flex-row md:items-start md:justify-between md:gap-6">
