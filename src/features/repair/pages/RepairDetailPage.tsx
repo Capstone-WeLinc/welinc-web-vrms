@@ -198,6 +198,7 @@ export function RepairDetailPage() {
           label={barLabel}
           secondaryLabel={barSecondary}
           aboveTabBar={hasTabBar}
+          blockedReason={actions.blocked}
           onAction={() => setDialog('primary')}
           onSecondary={() => setDialog('secondary')}
         />
@@ -220,19 +221,25 @@ export function RepairDetailPage() {
           {noMechanic && <Callout tone="warning">No mechanic is assigned yet.</Callout>}
           {noCosts && (
             <Callout tone="warning">
-              <p>No costs are recorded yet. Once closed, the ticket locks, and costs can only be added after an unlock.</p>
-              <Button
-                type="button"
-                variant="link"
-                className="h-auto px-0"
-                onClick={() => {
-                  setDialog(null);
-                  // After the dialog's close animation hands focus back, move to Costs.
-                  window.setTimeout(scrollToCosts, 250);
-                }}
-              >
-                Go to costs
-              </Button>
+              {ticket.can.editCosts ? (
+                <>
+                  <p>No costs are recorded yet. Once closed, the ticket locks, and costs can only be added after an unlock.</p>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto px-0"
+                    onClick={() => {
+                      setDialog(null);
+                      // After the dialog's close animation hands focus back, move to Costs.
+                      window.setTimeout(scrollToCosts, 250);
+                    }}
+                  >
+                    Go to costs
+                  </Button>
+                </>
+              ) : (
+                <p>No costs recorded yet. An Admin will need to unlock this ticket to add them.</p>
+              )}
             </Callout>
           )}
         </TicketNoteDialog>

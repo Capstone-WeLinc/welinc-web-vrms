@@ -15,6 +15,8 @@ export interface TicketActions {
   cancel: TicketMove | null;
   /** What the status card says when there is no primary button. */
   note: string | null;
+  /** Why the primary button is disabled, or null when it works (spec 0015, AC-5). */
+  blocked: string | null;
 }
 
 export function isClosed(ticket: Pick<RepairTicket, 'status'>) {
@@ -22,7 +24,7 @@ export function isClosed(ticket: Pick<RepairTicket, 'status'>) {
 }
 
 function finishedActions(ticket: RepairTicket): TicketActions {
-  const none = { secondary: null, cancel: null };
+  const none = { secondary: null, cancel: null, blocked: null };
   // Unlock stays on its own flag (AC-13)
   if (!ticket.can.unlock) return { ...none, primary: null, note: 'This ticket is closed.' };
   return ticket.isUnlocked
@@ -37,6 +39,9 @@ function openNote(ticket: RepairTicket, moves: TicketMove[]): string {
   return 'No next step for this status.';
 }
 
+/** Spec 0015, AC-5: the same words as the server's 422. */
+export const COSTS_REQUIRED_REASON = 'Add the costs before closing this ticket.';
+
 export function ticketActions(ticket: RepairTicket): TicketActions {
   if (isClosed(ticket)) return finishedActions(ticket);
   const moves = ticket.moves ?? [];
@@ -46,6 +51,8 @@ export function ticketActions(ticket: RepairTicket): TicketActions {
     secondary: moves.find((m) => m.kind === 'back') ?? null,
     cancel: moves.find((m) => m.kind === 'cancel') ?? null,
     note: forward ? null : openNote(ticket, moves),
+    // The server sends needs 'costs' on the close while the setting is on; it still refuses with no costs
+    blocked: forward?.needs === 'costs' && !hasCosts(ticket) ? COSTS_REQUIRED_REASON : null,
   };
 }
 

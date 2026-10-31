@@ -17,6 +17,8 @@ export type ThresholdEdits = Record<string, ThresholdEdit>;
 
 /** The same rules the server checks (AC-6), worded for the field. Null when the text is valid. */
 export function thresholdError(setting: Setting, text: string): string | null {
+  // A yes or no value (spec 0015) is a switch: its text is only ever 'true' or 'false'
+  if (setting.type === 'boolean') return null;
   const trimmed = text.trim();
   if (trimmed === '') return 'Enter a number.';
   if (!/^-?\d+$/.test(trimmed)) return 'Enter a whole number.';
@@ -55,7 +57,7 @@ export function pendingChanges(settings: Setting[], edits: ThresholdEdits): Sett
       continue;
     }
     if (thresholdError(setting, edit.text) !== null) continue;
-    const value = Number(edit.text.trim());
+    const value = setting.type === 'boolean' ? edit.text.trim() === 'true' : Number(edit.text.trim());
     if (value !== setting.value) changes.push({ key: setting.key, value });
   }
   return changes;

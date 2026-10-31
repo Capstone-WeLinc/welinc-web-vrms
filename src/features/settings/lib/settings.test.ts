@@ -52,6 +52,13 @@ describe('thresholds (spec 0012, AC-23)', () => {
     ]);
   });
 
+  it('saves a yes or no value as a boolean and never flags it invalid (spec 0015)', () => {
+    const toggle = value({ key: 'tickets.require_costs_to_close', type: 'boolean', default: false, value: false, min: null, max: null, unit: null, module: null });
+    expect(pendingChanges([toggle], { [toggle.key]: { kind: 'value', text: 'true' } })).toEqual([{ key: toggle.key, value: true }]);
+    expect(pendingChanges([toggle], { [toggle.key]: { kind: 'value', text: 'false' } })).toEqual([]);
+    expect(hasInvalidEdit([toggle], { [toggle.key]: { kind: 'value', text: 'true' } })).toBe(false);
+  });
+
   it('blocks Save on an invalid edit and leaves it out of the changes', () => {
     const settings = [value()];
     const edits = { 'knowledge.repeat_threshold': { kind: 'value', text: 'x' } } as const;

@@ -147,7 +147,7 @@ export interface TicketMove {
   label: string;
   kind: 'forward' | 'back' | 'cancel';
   /** What the move's dialog must collect; resolutions only while the knowledge base is on. */
-  needs: 'resolutions' | 'remarks' | 'cancellationReason' | null;
+  needs: 'resolutions' | 'remarks' | 'cancellationReason' | 'costs' | null;
 }
 
 /** The newest Send back still in force (spec 0014, AC-14). */

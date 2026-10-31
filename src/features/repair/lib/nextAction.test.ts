@@ -18,7 +18,7 @@ const CANCEL: TicketMove = { to: 'CANCELLED', label: 'Cancel ticket', kind: 'can
 describe('ticketActions', () => {
   it('makes the forward move primary and Cancel its own action', () => {
     const actions = ticketActions(ticket({ status: 'ASSIGNED', can: ADMIN, moves: [START, CANCEL] }));
-    expect(actions).toEqual({ primary: { kind: 'move', move: START }, secondary: null, cancel: CANCEL, note: null });
+    expect(actions).toEqual({ primary: { kind: 'move', move: START }, secondary: null, cancel: CANCEL, note: null, blocked: null });
     expect(primaryTarget(actions)).toBe('IN_PROGRESS');
   });
 
@@ -34,6 +34,7 @@ describe('ticketActions', () => {
       secondary: null,
       cancel: null,
       note: 'Waiting for verification.',
+      blocked: null,
     });
   });
 
@@ -57,6 +58,21 @@ describe('ticketActions', () => {
     const unlocked = ticketActions(ticket({ status: 'CLOSED', isUnlocked: true, can: ADMIN }));
     expect(unlocked.primary).toBeNull();
     expect(unlocked.note).toBe('Unlocked for editing. Saving costs locks it again.');
+  });
+});
+
+describe('ticketActions, costs before closing (spec 0015, AC-5)', () => {
+  const NEEDS_COSTS: TicketMove = { ...VERIFY, needs: 'costs' };
+
+  it('blocks Verify and close with the reason while the ticket has no costs', () => {
+    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [NEEDS_COSTS, SEND_BACK] }));
+    expect(actions.primary).toEqual({ kind: 'move', move: NEEDS_COSTS });
+    expect(actions.blocked).toBe('Add the costs before closing this ticket.');
+  });
+
+  it('lets it through once a cost is recorded', () => {
+    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [NEEDS_COSTS], totalCost: 10 }));
+    expect(actions.blocked).toBeNull();
   });
 });
 
