@@ -167,10 +167,10 @@ export function RepairDetailPage() {
     <div key={ticket.id} className={barLabel ? (barSecondary ? 'pb-36 md:pb-20 lg:pb-0' : 'pb-20 lg:pb-0') : undefined}>
       <BackLink to={back.to} label={back.label} />
       <PageHeader title={rep} subtitle={ticket.vehicleModel ? `${ticket.vehiclePlate} · ${ticket.vehicleModel}` : ticket.vehiclePlate} icon={Wrench} />
-      {ticket.lastRejection && <SendBackBanner rejection={ticket.lastRejection} now={loadedAt} />}
+      {ticket.lastRejection && <SendBackBanner key={`${ticket.lastRejection.at}:${loadedAt}`} rejection={ticket.lastRejection} now={loadedAt} />}
 
       <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
-        <aside aria-label="Ticket summary" className="flex flex-col gap-4 lg:sticky lg:top-20 lg:col-start-3 lg:row-start-1">
+        <aside aria-label="Ticket summary" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20 lg:col-start-3 lg:row-start-1">
           <StatusCard
             ticket={ticket}
             readOnly={readOnly}

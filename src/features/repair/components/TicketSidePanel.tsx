@@ -54,7 +54,10 @@ export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, 
         <div className="flex flex-col gap-2">
           {actions.note && <p className="text-sm text-muted-foreground">{actions.note}</p>}
           {(primary || secondary) && (
-            <div className={cn('grid gap-2', primary && secondary && 'grid-cols-2')}>
+            // Below lg the fixed bar carries the primary and Send back, so the card hides its copy (one
+            // button per action for a screen reader). Without a primary the bar has nothing, so it stays.
+            // One column under 300px, where two side by side overflow the card (about 400% zoom).
+            <div className={cn(primary ? 'hidden lg:grid' : 'grid', 'gap-2', primary && secondary && 'min-[300px]:grid-cols-2')}>
               {primary && (
                 <Button size="touch" className="w-full lg:h-10 lg:text-sm" onClick={onPrimary}>
                   {primary.kind === 'move' ? primary.move.label : primary.label}

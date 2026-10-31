@@ -130,8 +130,15 @@ export function TicketNoteDialog({
           name="note"
           label={fieldLabel}
           required={!!requiredMessage}
-          description={minLength && requiredMessage ? `${minLength} to ${NOTE_MAX} characters.` : `Up to ${NOTE_MAX} characters.`}
-          render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={3} maxLength={NOTE_MAX} />}
+          description={
+            note.length > NOTE_MAX
+              ? `${note.length - NOTE_MAX} too many. Keep it to ${NOTE_MAX} characters.`
+              : minLength && requiredMessage
+                ? `${minLength} to ${NOTE_MAX} characters.`
+                : `Up to ${NOTE_MAX} characters.`
+          }
+          // No maxLength: it would cut a pasted comment with no word. The count above says what to trim.
+          render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={3} />}
         />
         {formError && <FormAlert message={formError} />}
       </form>
