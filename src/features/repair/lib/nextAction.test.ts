@@ -61,6 +61,24 @@ describe('ticketActions', () => {
   });
 });
 
+describe('ticketActions, self verification (spec 0015, AC-16)', () => {
+  const own = ticket({ status: 'FOR_VERIFICATION', can: WORKER, moves: [] });
+  it('tells a verifier assigned to the ticket why they cannot close it', () => {
+    expect(ticketActions(own, true).note).toBe("Someone else must verify work on a ticket you're assigned to.");
+  });
+  it('keeps the plain note for a mechanic without the verify right', () => {
+    expect(ticketActions(own, false).note).toBe('Waiting for verification.');
+  });
+  it('keeps the plain note when the verifier is not assigned to the ticket', () => {
+    const other = ticket({ status: 'FOR_VERIFICATION', can: { ...WORKER, verify: true }, moves: [] });
+    expect(ticketActions(other, true).note).toBe('Waiting for verification.');
+  });
+  it('only swaps the note at For verification', () => {
+    const early = ticket({ status: 'IN_PROGRESS', can: WORKER, moves: [] });
+    expect(ticketActions(early, true).note).toBe('No next step for this status.');
+  });
+});
+
 describe('ticketActions, costs before closing (spec 0015, AC-5)', () => {
   const NEEDS_COSTS: TicketMove = { ...VERIFY, needs: 'costs' };
 

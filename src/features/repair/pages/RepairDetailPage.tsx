@@ -4,7 +4,6 @@ import { SearchX, ShieldAlert, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { BackLink } from '../../../components/shared/BackLink';
-import { DataModeToggle } from '../../dev-ui/components/DataModeToggle';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
@@ -59,6 +58,7 @@ export function RepairDetailPage() {
   const readOnly = searchParams.get('mode') === 'readonly';
   // Page level keys; what this caller may do on this ticket comes from ticket.can (spec 0011, AC-22)
   const seesCosts = useCan('ticket.costs.view');
+  const holdsVerify = useCan('ticket.verify');
   const seesActivity = useCan('audit.view');
   // Spec 0012: ai.use shows the AI panel (its key leaves while AI is off, AC-13). Whether the
   // "What fixed it" step runs comes from the move's `needs` (spec 0014, AC-13)
@@ -98,7 +98,7 @@ export function RepairDetailPage() {
 
   const rep = ticket.repairNumber;
   // Spec 0014, AC-15: every button comes from the moves the server sent
-  const actions = ticketActions(ticket);
+  const actions = ticketActions(ticket, holdsVerify);
   const { primary, secondary, cancel } = actions;
   const move = primary?.kind === 'move' ? primary.move : null;
   // The bottom bar shows only when this user has a primary button.
@@ -203,8 +203,6 @@ export function RepairDetailPage() {
           onSecondary={() => setDialog('secondary')}
         />
       )}
-
-      {import.meta.env.DEV && <DataModeToggle aboveActionBar />}
 
       {move && (
         <TicketNoteDialog

@@ -33,8 +33,11 @@ function finishedActions(ticket: RepairTicket): TicketActions {
 }
 
 /** Why there is no forward button on an open ticket. */
-function openNote(ticket: RepairTicket, moves: TicketMove[]): string {
-  if (ticket.status === 'FOR_VERIFICATION') return 'Waiting for verification.';
+function openNote(ticket: RepairTicket, moves: TicketMove[], holdsVerify: boolean): string {
+  if (ticket.status === 'FOR_VERIFICATION') {
+    // Spec 0015, AC-16: the same words as the server's 403 for a verifier assigned to the ticket
+    return holdsVerify && ticket.can.work && !ticket.can.verify ? SELF_VERIFY_REASON : 'Waiting for verification.';
+  }
   if (moves.length === 0 && !ticket.can.work && !ticket.can.administer) return 'This ticket is assigned to someone else.';
   return 'No next step for this status.';
 }
@@ -42,7 +45,10 @@ function openNote(ticket: RepairTicket, moves: TicketMove[]): string {
 /** Spec 0015, AC-5: the same words as the server's 422. */
 export const COSTS_REQUIRED_REASON = 'Add the costs before closing this ticket.';
 
-export function ticketActions(ticket: RepairTicket): TicketActions {
+export const SELF_VERIFY_REASON = "Someone else must verify work on a ticket you're assigned to.";
+
+/** `holdsVerify` is the caller's `ticket.verify` right, so a verifier assigned to the ticket sees why they can't close it. */
+export function ticketActions(ticket: RepairTicket, holdsVerify = false): TicketActions {
   if (isClosed(ticket)) return finishedActions(ticket);
   const moves = ticket.moves ?? [];
   const forward = moves.find((m) => m.kind === 'forward') ?? null;
@@ -50,7 +56,7 @@ export function ticketActions(ticket: RepairTicket): TicketActions {
     primary: forward ? { kind: 'move', move: forward } : null,
     secondary: moves.find((m) => m.kind === 'back') ?? null,
     cancel: moves.find((m) => m.kind === 'cancel') ?? null,
-    note: forward ? null : openNote(ticket, moves),
+    note: forward ? null : openNote(ticket, moves, holdsVerify),
     // The server sends needs 'costs' on the close while the setting is on; it still refuses with no costs
     blocked: forward?.needs === 'costs' && !hasCosts(ticket) ? COSTS_REQUIRED_REASON : null,
   };
