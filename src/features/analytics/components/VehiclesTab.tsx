@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { AnalyticsData } from '../hooks/useAnalyticsData';
-import { ChartCard, EmptyState, PillToggle } from './ChartPrimitives';
+import { ChartCard, EmptyState, PillToggle, SectionGate } from './ChartPrimitives';
 import { IssueFrequencyChart } from './IssueFrequencyChart';
 import {
   TOP_N_LABELS, TOP_N_OPTIONS, axisTick, chartTooltipProps, fmt, fmtThousands, getRisk, takeTopN,
@@ -9,13 +9,15 @@ import {
 import type { TopN } from '../utils';
 
 const SCORECARD_HEADERS = ['Plate No.', 'Model', 'Total Repairs', 'Parts Cost', 'Avg Cost/Repair', 'Last Repair', 'Risk Level'];
+const MONEY_HEADERS = ['Parts Cost', 'Avg Cost/Repair'];
 
-export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
+export function VehiclesTab({ vehicles, issueFreq, sections, retry, costsHidden }: AnalyticsData) {
   const [vehPeriod, setVehPeriod] = useState<TopN>('top5');
   const [issuePeriod, setIssuePeriod] = useState<TopN>('top5');
 
   const filteredVehicles = takeTopN(vehicles, vehPeriod);
   const filteredIssues = takeTopN(issueFreq, issuePeriod);
+  const headers = costsHidden ? SCORECARD_HEADERS.filter(h => !MONEY_HEADERS.includes(h)) : SCORECARD_HEADERS;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -26,6 +28,7 @@ export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
           <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>Vehicle Reliability Scorecard</span>
           <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{vehicles.length} vehicles tracked</span>
         </div>
+        <SectionGate state={sections.vehicles} onRetry={() => retry('vehicles')} height={240}>
         {vehicles.length === 0
           ? <EmptyState label="No vehicle data" />
           : (
@@ -33,7 +36,7 @@ export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    {SCORECARD_HEADERS.map(h => (
+                    {headers.map(h => (
                       <th key={h} style={{ padding: '9px 12px', textAlign: 'left', color: 'var(--muted-foreground)', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
@@ -56,8 +59,8 @@ export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
                             </div>
                           </div>
                         </td>
-                        <td style={{ padding: '10px 12px', color: 'var(--text)' }}>{fmt(v.total_parts_cost)}</td>
-                        <td style={{ padding: '10px 12px', color: 'var(--muted-foreground)' }}>{fmt(v.avg_repair_cost)}</td>
+                        {!costsHidden && <td style={{ padding: '10px 12px', color: 'var(--text)' }}>{fmt(v.total_parts_cost)}</td>}
+                        {!costsHidden && <td style={{ padding: '10px 12px', color: 'var(--muted-foreground)' }}>{fmt(v.avg_repair_cost)}</td>}
                         <td style={{ padding: '10px 12px', color: 'var(--muted-foreground)', fontSize: '0.8rem' }}>{v.latest_repair_date ? new Date(v.latest_repair_date).toLocaleDateString('en-PH') : '—'}</td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ background: risk.bg, color: risk.color, padding: '3px 9px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.04em' }}>
@@ -71,22 +74,26 @@ export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
               </table>
             </div>
           )}
+        </SectionGate>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: costsHidden ? '1fr' : '1fr 1fr', gap: 16 }}>
         <ChartCard
           title="Top Recurring Repair Issues"
           extraRight={<PillToggle options={TOP_N_OPTIONS} value={issuePeriod} onChange={setIssuePeriod} labels={TOP_N_LABELS} />}
         >
+          <SectionGate state={sections.issueFreq} onRetry={() => retry('issueFreq')} height={220}>
           {filteredIssues.length === 0
             ? <EmptyState label="No issue frequency data" />
             : <IssueFrequencyChart data={filteredIssues} gradientId="gradIssueBar" />}
+          </SectionGate>
         </ChartCard>
 
-        <ChartCard
+        {!costsHidden && <ChartCard
           title="Repair Spend by Vehicle"
           extraRight={<PillToggle options={TOP_N_OPTIONS} value={vehPeriod} onChange={setVehPeriod} labels={TOP_N_LABELS} />}
         >
+          <SectionGate state={sections.vehicles} onRetry={() => retry('vehicles')} height={220}>
           {filteredVehicles.length === 0
             ? <EmptyState label="No vehicle data" />
             : (
@@ -105,7 +112,8 @@ export function VehiclesTab({ vehicles, issueFreq }: AnalyticsData) {
                 </div>
               </div>
             )}
-        </ChartCard>
+          </SectionGate>
+        </ChartCard>}
       </div>
     </div>
   );

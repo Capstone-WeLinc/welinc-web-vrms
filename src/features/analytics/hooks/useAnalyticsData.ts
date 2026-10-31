@@ -7,42 +7,12 @@ import type {
   AiStats, Aging, AnalyticsSummary, CostTrend, GarageCost, IssueFreq,
   StatusBreakdown, VehicleKpi, Velocity,
 } from '../../../lib/api/analyticsApi';
+import { getApiErrorMessage } from '../../../lib/api/errors';
 
-// Presentation fallbacks, shown when the analytics service returns nothing
-const SAMPLE_VEHICLES: VehicleKpi[] = [
-  { vehicle_plate: 'CAK 9043', vehicle_model: 'Mitsubishi Fuso FE', total_repairs: 17, total_parts_cost: 58000, avg_repair_cost: 3411.76, latest_repair_date: '2026-07-24' },
-  { vehicle_plate: 'WOB 2947', vehicle_model: 'Hino 300 Series', total_repairs: 16, total_parts_cost: 40400, avg_repair_cost: 2525.00, latest_repair_date: '2026-06-18' },
-  { vehicle_plate: 'NDG 5821', vehicle_model: 'Isuzu Elf NKR', total_repairs: 16, total_parts_cost: 35100, avg_repair_cost: 2193.75, latest_repair_date: '2026-06-19' },
-  { vehicle_plate: 'PXW 382', vehicle_model: 'Toyota Hilux', total_repairs: 14, total_parts_cost: 64500, avg_repair_cost: 4607.14, latest_repair_date: '2026-06-15' },
-  { vehicle_plate: 'TGD 908', vehicle_model: 'Foton Tornado', total_repairs: 14, total_parts_cost: 41000, avg_repair_cost: 2928.57, latest_repair_date: '2026-06-16' },
-  { vehicle_plate: 'NRE 471', vehicle_model: 'Isuzu Giga Heavy Duty', total_repairs: 14, total_parts_cost: 19760, avg_repair_cost: 1411.43, latest_repair_date: '2026-06-17' },
-];
-const SAMPLE_TRENDS: CostTrend[] = [
-  { month: '2026-04', repair_count: 29, total_spend: 80730, cumulative_spend: 80730 },
-  { month: '2026-05', repair_count: 31, total_spend: 80730, cumulative_spend: 161460 },
-  { month: '2026-06', repair_count: 30, total_spend: 97300, cumulative_spend: 258760 },
-];
-const SAMPLE_ISSUES: IssueFreq[] = [
-  { description: 'Soft brake pedal feel', occurrence_count: 14 },
-  { description: 'Hard shifting from 1st to 2nd gear', occurrence_count: 14 },
-  { description: 'Starter motor clicks but does not crank', occurrence_count: 13 },
-  { description: 'Water pump bearing noise & coolant leak', occurrence_count: 13 },
-  { description: 'Clunking noise over bumps (worn bushings)', occurrence_count: 13 },
-  { description: 'Oil pressure warning light illuminated', occurrence_count: 7 },
-  { description: 'Engine misfire code P0301', occurrence_count: 6 },
-  { description: 'Starter motor intermittent fault', occurrence_count: 1 },
-];
+// Spec 0013, AC-6: each section loads on its own, so one failed call shows that section's error
+// with Retry and never invented numbers.
 
-function orSample<T>(data: T[], sample: T[]) {
-  return data.length > 0 ? data : sample;
-}
-
-function timeNow() {
-  return new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
-}
-
-export interface AnalyticsSnapshot {
-  lastUpdated: string;
+interface SectionData {
   summary: AnalyticsSummary | null;
   trends: CostTrend[];
   vehicles: VehicleKpi[];
@@ -54,50 +24,104 @@ export interface AnalyticsSnapshot {
   aiStats: AiStats | null;
 }
 
-const EMPTY: AnalyticsSnapshot = {
-  lastUpdated: '', summary: null, trends: [], vehicles: [], statusBreakdown: [],
-  garageCosts: [], aging: [], velocity: [], issueFreq: [], aiStats: null,
+export type SectionKey = keyof SectionData;
+
+export interface SectionState {
+  status: 'loading' | 'error' | 'ready';
+  error: string;
+}
+
+const SECTION_KEYS: SectionKey[] = [
+  'summary', 'trends', 'vehicles', 'statusBreakdown', 'garageCosts', 'aging', 'velocity', 'issueFreq', 'aiStats',
+];
+
+const EMPTY_DATA: SectionData = {
+  summary: null, trends: [], vehicles: [], statusBreakdown: [], garageCosts: [],
+  aging: [], velocity: [], issueFreq: [], aiStats: null,
 };
 
-async function fetchAnalytics(aiOn: boolean): Promise<AnalyticsSnapshot> {
-  try {
-    // Spec 0012, AC-13: no /ai/stats call while AI is off, so its 403 never sinks the whole page
-    const [summary, trends, vehicles, statusBreakdown, garageCosts, aging, velocity, issueFreq, aiStats] = await Promise.all([
-      getAnalyticsSummary(), getCostTrends(), getVehicleKpis(), getStatusBreakdown(),
-      getGarageCosts(), getAging(), getVelocity(), getIssueFrequency(), aiOn ? getAiStats() : Promise.resolve(null),
-    ]);
-    return {
-      lastUpdated: timeNow(), summary, statusBreakdown, garageCosts, aging, velocity, aiStats,
-      trends: orSample(trends, SAMPLE_TRENDS),
-      vehicles: orSample(vehicles, SAMPLE_VEHICLES),
-      issueFreq: orSample(issueFreq, SAMPLE_ISSUES),
-    };
-  } catch {
-    return { ...EMPTY, lastUpdated: timeNow(), vehicles: SAMPLE_VEHICLES, trends: SAMPLE_TRENDS, issueFreq: SAMPLE_ISSUES };
+const ALL_LOADING = Object.fromEntries(
+  SECTION_KEYS.map(key => [key, { status: 'loading', error: '' }]),
+) as Record<SectionKey, SectionState>;
+
+function loader(key: SectionKey, aiOn: boolean): () => Promise<SectionData[SectionKey]> {
+  switch (key) {
+    case 'summary': return getAnalyticsSummary;
+    case 'trends': return getCostTrends;
+    case 'vehicles': return getVehicleKpis;
+    case 'statusBreakdown': return getStatusBreakdown;
+    case 'garageCosts': return getGarageCosts;
+    case 'aging': return getAging;
+    case 'velocity': return getVelocity;
+    case 'issueFreq': return getIssueFrequency;
+    // Spec 0012, AC-13: no /vrms/ai/stats call while AI is off
+    case 'aiStats': return aiOn ? getAiStats : () => Promise.resolve(null);
   }
 }
 
+type Loaded = { key: SectionKey; data: SectionData[SectionKey]; state: SectionState };
+
+/** Never rejects: a failure comes back as that section's error. */
+function loadSection(key: SectionKey, aiOn: boolean): Promise<Loaded> {
+  return loader(key, aiOn)()
+    .then(data => ({ key, data, state: { status: 'ready' as const, error: '' } }))
+    .catch(err => ({
+      key,
+      data: EMPTY_DATA[key],
+      state: { status: 'error' as const, error: getApiErrorMessage(err, 'This section didn’t load.') },
+    }));
+}
+
+function timeNow() {
+  return new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+}
+
 export function useAnalyticsData(aiOn: boolean) {
-  const [loading, setLoading] = useState(true);
-  const [snapshot, setSnapshot] = useState<AnalyticsSnapshot>(EMPTY);
+  const [data, setData] = useState<SectionData>(EMPTY_DATA);
+  const [sections, setSections] = useState<Record<SectionKey, SectionState>>(ALL_LOADING);
+  const [lastUpdated, setLastUpdated] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
+
+  const apply = useCallback(({ key, data: next, state }: Loaded) => {
+    setData(prev => ({ ...prev, [key]: next }));
+    setSections(prev => ({ ...prev, [key]: state }));
+    setLastUpdated(timeNow());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    fetchAnalytics(aiOn).then(next => {
-      if (cancelled) return;
-      setSnapshot(next);
-      setLoading(false);
-    });
+    for (const key of SECTION_KEYS) {
+      loadSection(key, aiOn).then(loaded => { if (!cancelled) apply(loaded); });
+    }
     return () => { cancelled = true; };
-  }, [reloadKey, aiOn]);
+  }, [reloadKey, aiOn, apply]);
 
   const refresh = useCallback(() => {
-    setLoading(true);
+    setSections(ALL_LOADING);
     setReloadKey(k => k + 1);
   }, []);
 
-  return { ...snapshot, aiOn, loading, refresh };
+  const retry = useCallback((key: SectionKey) => {
+    setSections(prev => ({ ...prev, [key]: { status: 'loading', error: '' } }));
+    loadSection(key, aiOn).then(apply);
+  }, [aiOn, apply]);
+
+  const states = Object.values(sections);
+  // The server nulls every peso field together, so one is enough to tell
+  const costsHidden = data.summary?.total_spend === null || data.trends.some(t => t.total_spend === null);
+
+  return {
+    ...data,
+    aiOn,
+    sections,
+    lastUpdated,
+    refresh,
+    retry,
+    costsHidden,
+    loading: states.some(s => s.status === 'loading'),
+    /** Every section loaded, so an export holds nothing missing or made up. */
+    complete: states.every(s => s.status === 'ready'),
+  };
 }
 
 export type AnalyticsData = ReturnType<typeof useAnalyticsData>;

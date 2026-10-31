@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, CircleCheck, Sparkles, Star, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { FormAlert } from '../../../components/shared/FormAlert';
-import { diagnoseRepair, sendAiFeedback, type DiagnosticResponse } from '../../../lib/api/aiApi';
+import { getAiError, getLatestDiagnosis, runDiagnosis, sendDiagnosisFeedback, type Diagnosis } from '../../../lib/api/aiApi';
 import { getApiErrorMessage } from '../../../lib/api/errors';
-import { formatPeso } from '../../../lib/utils/format';
+import { formatPeso, formatRelativeTime } from '../../../lib/utils/format';
 import type { RepairTicket } from '../../../types';
 import { isClosed } from '../lib/nextAction';
 import { Callout } from '../../../components/shared/Callout';
@@ -24,7 +24,17 @@ function percent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-function Feedback({ ticketId }: { ticketId: string }) {
+/** What a failed run says; the server's text for every code except the hourly limit. */
+function runErrorMessage(err: unknown) {
+  const { code, retryAfterSeconds } = getAiError(err);
+  if (code === 'AI_RATE_LIMITED') {
+    const minutes = Math.max(1, Math.ceil((retryAfterSeconds ?? 60) / 60));
+    return `You’ve reached the hourly limit for AI diagnoses. Try again in ${minutes === 1 ? '1 minute' : `${minutes} minutes`}.`;
+  }
+  return getApiErrorMessage(err, 'AI is unavailable right now. Try again in a moment.');
+}
+
+function Feedback({ diagnosisId }: { diagnosisId: string }) {
   const [rating, setRating] = useState(0);
   const [sent, setSent] = useState(false);
 
@@ -33,7 +43,7 @@ function Feedback({ ticketId }: { ticketId: string }) {
     setRating(value);
     setSent(true);
     // A lost rating is not worth interrupting anyone for.
-    sendAiFeedback({ ticket_id: ticketId, helpful, rating: value }).catch(() => {});
+    sendDiagnosisFeedback(diagnosisId, { helpful, rating: value }).catch(() => {});
   };
 
   if (sent) {
@@ -80,33 +90,33 @@ function Feedback({ ticketId }: { ticketId: string }) {
   );
 }
 
-function Results({ data, ticketId }: { data: DiagnosticResponse; ticketId: string }) {
-  const diagnosis = data.ai_diagnosis;
-  const lineage = data.context_lineage;
+function Results({ data }: { data: Diagnosis }) {
+  const diagnosis = data.result;
   const [showSimilar, setShowSimilar] = useState(false);
-  const similar = data.similar_past_repairs ?? [];
-  const critical = diagnosis.predicted_priority?.toLowerCase() === 'critical';
+  const similar = data.similar;
+  const similarityAvg = similar.length ? similar.reduce((sum, c) => sum + c.similarity, 0) / similar.length : 0;
+  const historyCount = data.vehicleHistory.length;
+  const critical = diagnosis.predictedPriority === 'CRITICAL';
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">
-        {diagnosis.model_used}
-        {lineage && ` · ${CONFIDENCE_TEXT[lineage.confidence] ?? lineage.confidence}`}
+        Ran {formatRelativeTime(data.createdAt)} · {data.model} · {CONFIDENCE_TEXT[data.confidence] ?? data.confidence}
       </p>
 
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <DetailItem label="Predicted category">{diagnosis.predicted_category || '—'}</DetailItem>
+        <DetailItem label="Predicted category">{diagnosis.predictedCategory || '—'}</DetailItem>
         <DetailItem label="Predicted priority">
-          <span className={cn(critical && 'font-medium text-destructive')}>{diagnosis.predicted_priority || '—'}</span>
+          <span className={cn('capitalize', critical && 'font-medium text-destructive')}>{diagnosis.predictedPriority.toLowerCase()}</span>
         </DetailItem>
         <DetailItem label="Estimated time">
-          {diagnosis.estimated_sla_hours != null ? `About ${diagnosis.estimated_sla_hours} hours` : '—'}
+          About {diagnosis.estimatedHours} hours
         </DetailItem>
       </dl>
 
-      {diagnosis.safety_note && (
+      {diagnosis.safetyNote && (
         <Callout tone="warning" title="Safety note">
-          {diagnosis.safety_note}
+          {diagnosis.safetyNote}
         </Callout>
       )}
 
@@ -118,9 +128,9 @@ function Results({ data, ticketId }: { data: DiagnosticResponse; ticketId: strin
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-2">
           <h3 className={LABEL}>Probable causes</h3>
-          {diagnosis.probable_causes?.length ? (
+          {diagnosis.probableCauses.length ? (
             <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-sm text-foreground">
-              {diagnosis.probable_causes.map((cause, index) => (
+              {diagnosis.probableCauses.map((cause, index) => (
                 <li key={index}>{cause}</li>
               ))}
             </ol>
@@ -130,12 +140,12 @@ function Results({ data, ticketId }: { data: DiagnosticResponse; ticketId: strin
         </div>
         <div className="flex flex-col gap-2">
           <h3 className={LABEL}>Recommended parts</h3>
-          {diagnosis.recommended_parts?.length ? (
+          {diagnosis.recommendedParts.length ? (
             <ul className="flex flex-col divide-y divide-border text-sm">
-              {diagnosis.recommended_parts.map((part, index) => (
+              {diagnosis.recommendedParts.map((part, index) => (
                 <li key={index} className="flex justify-between gap-3 py-1.5">
-                  <span className="min-w-0 break-words">{part.part_name}</span>
-                  {part.est_cost_php != null && <span className="shrink-0 tabular-nums">{formatPeso(part.est_cost_php)}</span>}
+                  <span className="min-w-0 break-words">{part.partName}</span>
+                  {part.estCostPhp != null && <span className="shrink-0 tabular-nums">{formatPeso(part.estCostPhp)}</span>}
                 </li>
               ))}
             </ul>
@@ -145,22 +155,19 @@ function Results({ data, ticketId }: { data: DiagnosticResponse; ticketId: strin
         </div>
       </div>
 
-      {lineage && (
-        <div className="flex flex-col gap-2">
-          <h3 className={LABEL}>Based on</h3>
-          <dl className="grid gap-3 sm:grid-cols-3">
-            <DetailItem label="Vehicle history">
-              {lineage.vehicle_history_count > 0 ? `${lineage.vehicle_history_count} past repairs` : 'No earlier repairs'}
-            </DetailItem>
-            <DetailItem label="Similar fleet cases">
-              {lineage.vector_matches_count > 0
-                ? `${lineage.vector_matches_count} matches, ${percent(lineage.similarity_avg)} similar on average`
-                : 'None at 60% or more'}
-            </DetailItem>
-            <DetailItem label="Model">{lineage.model_used || diagnosis.model_used}</DetailItem>
-          </dl>
-        </div>
-      )}
+      <div className="flex flex-col gap-2">
+        <h3 className={LABEL}>Based on</h3>
+        <dl className="grid gap-3 sm:grid-cols-2">
+          <DetailItem label="Vehicle history">
+            {historyCount > 0 ? `${historyCount} past repairs` : 'No earlier repairs'}
+          </DetailItem>
+          <DetailItem label="Similar fleet cases">
+            {similar.length > 0
+              ? `${similar.length} matches, ${percent(similarityAvg)} similar on average`
+              : 'None at 60% or more'}
+          </DetailItem>
+        </dl>
+      </div>
 
       {similar.length > 0 && (
         <div className="flex flex-col gap-2">
@@ -176,12 +183,12 @@ function Results({ data, ticketId }: { data: DiagnosticResponse; ticketId: strin
           {showSimilar && (
             <ul className="flex flex-col divide-y divide-border text-sm">
               {similar.map((repair) => (
-                <li key={repair.issue_id} className="flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <li key={repair.issueId} className="flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <p className="min-w-0 break-words text-foreground">{repair.description}</p>
                   <span className="flex shrink-0 items-center gap-3">
-                    <span className="text-muted-foreground tabular-nums">{percent(repair.similarity_score)} similar</span>
-                    <Link to={`/repairs/${repair.ticket_id}`} className="font-medium text-primary underline-offset-4 hover:underline">
-                      View ticket
+                    <span className="text-muted-foreground tabular-nums">{percent(repair.similarity)} similar</span>
+                    <Link to={`/repairs/${repair.ticketId}`} className="font-medium text-primary underline-offset-4 hover:underline">
+                      View {repair.repairNumber}
                     </Link>
                   </span>
                 </li>
@@ -191,69 +198,80 @@ function Results({ data, ticketId }: { data: DiagnosticResponse; ticketId: strin
         </div>
       )}
 
-      <Feedback ticketId={ticketId} />
+      <Feedback diagnosisId={data.id} />
     </div>
   );
 }
 
-/** Runs the AI diagnosis on the ticket's issues (spec 0004, AC-22). The rest of the page works if the service is down. */
+/**
+ * The ticket's latest AI diagnosis, loaded on open, with Run again while the ticket is open
+ * (spec 0013, AC-9). A closed ticket shows its latest read only. The rest of the page works if
+ * AI is down.
+ */
 export function AiDiagnosisSection({ ticket }: { ticket: RepairTicket }) {
-  const [state, setState] = useState<'idle' | 'loading' | 'error' | 'ready'>('idle');
-  const [data, setData] = useState<DiagnosticResponse | null>(null);
+  const [latest, setLatest] = useState<{ ticketId: string; diagnosis: Diagnosis | null } | null>(null);
+  const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
-  const issues = (ticket.issues ?? []).map((issue) => issue.description);
-  const runLabel = isClosed(ticket) ? 'Run AI review' : 'Run AI diagnosis';
+  const closed = isClosed(ticket);
+  const hasIssues = (ticket.issues ?? []).length > 0;
+  // A result for another ticket means this one is still loading
+  const loaded = latest?.ticketId === ticket.id ? latest : null;
+  const diagnosis = loaded?.diagnosis ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    getLatestDiagnosis(ticket.id)
+      .then((found) => { if (!cancelled) setLatest({ ticketId: ticket.id, diagnosis: found }); })
+      // A failed load reads as no diagnosis yet; a run reports its own error
+      .catch(() => { if (!cancelled) setLatest({ ticketId: ticket.id, diagnosis: null }); });
+    return () => { cancelled = true; };
+  }, [ticket.id]);
 
   const run = () => {
-    setState('loading');
-    diagnoseRepair({
-      symptom: issues.join('. '),
-      ticket_id: ticket.id,
-      vehicle_plate: ticket.vehiclePlate,
-      vehicle_model: ticket.vehicleModel ?? '',
-      issues,
-    })
-      .then((response) => {
-        setData(response);
-        setState('ready');
-      })
-      .catch((err) => {
-        setError(getApiErrorMessage(err, 'The AI diagnosis didn’t run. Try again.'));
-        setState('error');
-      });
+    setRunning(true);
+    setError('');
+    runDiagnosis(ticket.id)
+      .then((created) => setLatest({ ticketId: ticket.id, diagnosis: created }))
+      .catch((err) => setError(runErrorMessage(err)))
+      .finally(() => setRunning(false));
   };
 
   return (
     <DetailSection
       title="AI diagnosis"
-      action={
-        state === 'ready' ? (
-          <Button variant="outline" size="sm" onClick={run}>
-            Run again
-          </Button>
-        ) : null
-      }
+      action={diagnosis && !closed && !running ? (
+        <Button variant="outline" size="sm" onClick={run}>
+          Run again
+        </Button>
+      ) : null}
     >
-      {state === 'ready' && data ? (
-        <Results key={data.symptom + data.ai_diagnosis.summary} data={data} ticketId={ticket.id} />
-      ) : state === 'loading' ? (
+      {!loaded || running ? (
         <div aria-live="polite" className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">Running the diagnosis on {ticket.vehiclePlate}…</p>
+          <p className="text-sm text-muted-foreground">
+            {running ? `Running the diagnosis on ${ticket.vehiclePlate}…` : 'Loading the last diagnosis…'}
+          </p>
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-4 w-1/2" />
           <Skeleton className="h-4 w-2/3" />
         </div>
+      ) : diagnosis ? (
+        <div className="flex flex-col gap-4">
+          {error && <FormAlert message={error} />}
+          <Results key={diagnosis.id} data={diagnosis} />
+        </div>
+      ) : closed ? (
+        <p className="text-sm text-muted-foreground">No AI diagnosis was run while this ticket was open.</p>
       ) : (
         <div className="flex flex-col items-start gap-3">
           <p className="text-sm text-muted-foreground">
-            {issues.length === 0
-              ? 'Log an issue on this ticket to run a diagnosis.'
-              : 'Suggests likely causes and parts from this ticket’s issues and similar past repairs.'}
+            {hasIssues
+              ? 'Suggests likely causes and parts from this ticket’s issues and similar past repairs.'
+              : 'Log an issue on this ticket to run a diagnosis.'}
           </p>
-          {state === 'error' && <FormAlert message={error} />}
-          <Button variant="outline" disabled={issues.length === 0} onClick={run}>
+          {error && <FormAlert message={error} />}
+          <Button variant="outline" disabled={!hasIssues} onClick={run}>
             <Sparkles aria-hidden="true" />
-            {state === 'error' ? 'Try again' : runLabel}
+            {error ? 'Try again' : 'Run AI diagnosis'}
           </Button>
         </div>
       )}

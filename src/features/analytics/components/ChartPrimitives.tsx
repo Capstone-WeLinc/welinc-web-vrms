@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { ArrowUpRight, ArrowDownRight, Minus, ChevronDown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { ErrorState } from '../../../components/shared/ErrorState';
+import type { SectionState } from '../hooks/useAnalyticsData';
 import { PERIOD_OPTIONS, tint } from '../utils';
 
 export function PillToggle<T extends string>({
@@ -83,4 +85,17 @@ export function EmptyState({ label }: { label: string }) {
       {label}
     </div>
   );
+}
+
+/** One section's loading, error with Retry, or its content (spec 0013, AC-6). */
+export function SectionGate({ state, onRetry, height = 160, children }: {
+  state: SectionState; onRetry: () => void; height?: number; children: ReactNode;
+}) {
+  if (state.status === 'loading') {
+    return <div aria-busy="true" style={{ height, borderRadius: 8, background: 'var(--surface-alt)', animation: 'pulse 1.5s ease-in-out infinite' }} />;
+  }
+  if (state.status === 'error') {
+    return <ErrorState title="This section didn’t load" message={state.error} onRetry={onRetry} retryText="Retry" />;
+  }
+  return <>{children}</>;
 }

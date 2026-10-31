@@ -88,3 +88,15 @@ export function getInitials(name: string) {
   const letters = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.trim().slice(0, 2);
   return letters.toUpperCase();
 }
+
+/** "just now", "5 minutes ago", "3 hours ago", "2 days ago", else a short date. */
+export function formatRelativeTime(value: string | Date, now: Date = new Date()) {
+  const minutes = Math.floor((now.getTime() - new Date(value).getTime()) / 60_000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return days === 1 ? '1 day ago' : `${days} days ago`;
+  return formatShortDate(value);
+}

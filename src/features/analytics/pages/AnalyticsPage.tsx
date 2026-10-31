@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { BarChart2, TrendingUp, Wrench, Car, PhilippinePeso, RefreshCw, Clock, Zap, FileText } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { useAnalyticsData } from '../hooks/useAnalyticsData';
-import { KpiCard } from '../components/ChartPrimitives';
+import { KpiCard, SectionGate } from '../components/ChartPrimitives';
+import { Callout } from '../../../components/shared/Callout';
 import { OverviewTab } from '../components/OverviewTab';
 import { VehiclesTab } from '../components/VehiclesTab';
 import { AiInsightsTab } from '../components/AiInsightsTab';
@@ -26,28 +27,12 @@ export function AnalyticsPage() {
   const tabs = aiOn ? TABS : TABS.filter(t => t.key !== 'ai');
   const shownTab: TabKey = !aiOn && tab === 'ai' ? 'overview' : tab;
   const data = useAnalyticsData(aiOn);
-  const { loading, lastUpdated, refresh, summary, statusBreakdown } = data;
+  const { loading, lastUpdated, refresh, summary, statusBreakdown, sections, retry, costsHidden } = data;
 
   const totalActiveTickets = statusBreakdown.filter(s => !['CLOSED', 'CANCELLED'].includes(s.status)).reduce((a, b) => a + Number(b.count), 0);
   const completedCount = statusBreakdown.find(s => s.status === 'CLOSED')?.count || 0;
   const totalAll = statusBreakdown.reduce((a, b) => a + Number(b.count), 0);
   const completionRate = totalAll > 0 ? Math.round((Number(completedCount) / totalAll) * 100) : 0;
-
-  if (loading) return (
-    <div className="dashboard-page">
-      <PageHeader title="Fleet Analytics" subtitle="Loading dashboard data..." icon={BarChart2} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
-        {[0, 1, 2, 3].map(i => (
-          <div key={i} className="premium-card" style={{ height: 88, background: 'var(--surface)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-        ))}
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {[0, 1, 2, 3].map(i => (
-          <div key={i} className="premium-card" style={{ height: 260, background: 'var(--surface)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-        ))}
-      </div>
-    </div>
-  );
 
   return (
     <div className="dashboard-page">
@@ -60,10 +45,11 @@ export function AnalyticsPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted-foreground)', fontSize: '0.78rem' }}>
             <Clock size={13} />
-            <span>Updated {lastUpdated}</span>
+            <span>{loading ? 'Loading…' : `Updated ${lastUpdated}`}</span>
           </div>
           <button
             onClick={refresh}
+            disabled={loading}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
           >
             <RefreshCw size={13} /> Refresh
@@ -71,14 +57,26 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      {summary && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
-          <KpiCard label="Total Repair Spend" value={fmt(summary.total_spend)} icon={PhilippinePeso} color="var(--primary)" />
-          <KpiCard label="Total Repairs" value={summary.total_repairs} icon={Wrench} color="var(--primary)" note={`${totalActiveTickets} currently active`} />
-          <KpiCard label="Vehicles Tracked" value={summary.total_vehicles} icon={Car} color="var(--success)" note={`${completionRate}% completion rate`} />
-          <KpiCard label="Avg Cost / Repair" value={fmt(summary.avg_cost_per_repair)} icon={TrendingUp} color="var(--warning)" />
+      {costsHidden && (
+        <div style={{ marginBottom: 16 }}>
+          <Callout tone="info" title="Costs are hidden for your role">
+            Spend and cost figures need the "See costs" permission.
+          </Callout>
         </div>
       )}
+
+      <div style={{ marginBottom: 20 }}>
+        <SectionGate state={sections.summary} onRetry={() => retry('summary')} height={88}>
+          {summary && (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${costsHidden ? 2 : 4}, 1fr)`, gap: 14 }}>
+              {!costsHidden && <KpiCard label="Total Repair Spend" value={fmt(summary.total_spend)} icon={PhilippinePeso} color="var(--primary)" />}
+              <KpiCard label="Total Repairs" value={summary.total_repairs} icon={Wrench} color="var(--primary)" note={`${totalActiveTickets} currently active`} />
+              <KpiCard label="Vehicles Tracked" value={summary.total_vehicles} icon={Car} color="var(--success)" note={`${completionRate}% completion rate`} />
+              {!costsHidden && <KpiCard label="Avg Cost / Repair" value={fmt(summary.avg_cost_per_repair)} icon={TrendingUp} color="var(--warning)" />}
+            </div>
+          )}
+        </SectionGate>
+      </div>
 
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
         {tabs.map(t => {

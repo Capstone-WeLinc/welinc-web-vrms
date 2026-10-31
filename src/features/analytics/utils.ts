@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { AiStats } from '../../lib/api/analyticsApi';
 
-// Ticket status names from spec 0010; the analytics service catches up with feature 3.
+// Ticket status names from spec 0010
 export const STATUS_COLORS: Record<string, string> = {
   CLOSED: 'var(--status-completed)',
   IN_PROGRESS: 'var(--status-in-progress)',
@@ -31,7 +31,8 @@ export function tint(color: string, percent: number) {
   return `color-mix(in srgb, ${color} ${percent}%, transparent)`;
 }
 
-export function fmt(n: number) { return `₱${Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`; }
+/** A peso amount; null (costs hidden for this role) reads as a dash, never ₱0. */
+export function fmt(n: number | null) { return n === null ? '—' : `₱${n.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`; }
 
 export function fmtThousands(v: unknown, digits = 0) { return `₱${(Number(v) / 1000).toFixed(digits)}k`; }
 
@@ -59,24 +60,24 @@ export function filterByPeriod<T extends { month?: string; date?: string }>(data
   });
 }
 
-// Falls back to presentation numbers when no feedback has been recorded yet
+/** The feedback numbers as stored; all zero when nobody has rated a diagnosis yet. */
 export function getAiFeedbackStats(aiStats: AiStats | null) {
   const s = aiStats?.satisfaction;
-  const rawTotalFb = Number(s?.total_feedback || 0);
-  const totalFb = rawTotalFb > 0 ? rawTotalFb : (aiStats?.total_interactions ? aiStats.total_interactions : 16);
-  const helpful = rawTotalFb > 0 ? Number(s?.helpful_count || 0) : Math.round(totalFb * 0.94);
-  const notHelpful = Math.max(0, totalFb - helpful);
-  const satRate = totalFb > 0 ? (s?.satisfaction_rate ?? Math.round((helpful / totalFb) * 100)) : 94;
-  const avgRating = (rawTotalFb > 0 && s?.avg_rating) ? Number(s.avg_rating) : 4.8;
-  return { totalFb, helpful, notHelpful, satRate, avgRating };
+  const totalFb = s?.total_feedback ?? 0;
+  const helpful = s?.helpful_count ?? 0;
+  return {
+    totalFb,
+    helpful,
+    notHelpful: Math.max(0, totalFb - helpful),
+    satRate: s?.satisfaction_rate ?? 0,
+    avgRating: s?.avg_rating ?? 0,
+  };
 }
 
 export function modelDisplayName(model: string) {
   if (model.includes('2.0-flash')) return 'Gemini 2.0 Flash';
   if (model.includes('1.5-pro')) return 'Gemini 1.5 Pro';
   if (model.includes('1.5-flash')) return 'Gemini 1.5 Flash';
-  if (model.includes('Local Fallback') || model === 'dynamic_fallback') return 'Local Fallback Engine';
-  if (model === 'mock') return 'Offline Engine';
   return model;
 }
 

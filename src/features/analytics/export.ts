@@ -14,6 +14,8 @@ export interface MasterReportData {
   aiStats: AiStats | null;
   /** Spec 0012, AC-13: the AI section is left out while AI is off. */
   aiOn: boolean;
+  /** Spec 0013, AC-6: without ticket.costs.view every money column is left out. */
+  costsHidden: boolean;
 }
 
 // jsPDF needs RGB triples: brand navy, white, and the light row stripe
@@ -28,59 +30,83 @@ function riskLabel(repairs: number) {
   return repairs >= 10 ? 'HIGH' : repairs >= 5 ? 'MEDIUM' : 'LOW';
 }
 
+/** A money value for a file; only read when costs are shown, so null never reaches it. */
+function amount(n: number | null) {
+  return n ?? 0;
+}
+
+function peso(n: number | null) {
+  return `PHP ${Math.round(amount(n)).toLocaleString()}`;
+}
+
+function csvCell(value: string | number) {
+  return typeof value === 'number' ? String(value) : `"${value.replace(/"/g, '""')}"`;
+}
+
 // Always exports every month, whatever rows are selected in the table
-export function downloadMasterCsv({ summary, trends, reportRows, vehicles, garageCosts, issueFreq, aiStats, aiOn }: MasterReportData) {
+export function downloadMasterCsv({ summary, trends, reportRows, vehicles, garageCosts, issueFreq, aiStats, aiOn, costsHidden }: MasterReportData) {
   const today = new Date().toISOString().slice(0, 10);
   const lines: string[] = [];
+  const row = (...cells: (string | number)[]) => lines.push(cells.map(csvCell).join(','));
 
   lines.push('WELINC LOGISTICS INC. — ENTERPRISE MASTER FLEET ANALYTICS REPORT');
   lines.push(`Generated Date,${today}`);
+  if (costsHidden) lines.push('Costs are hidden for your role');
   lines.push('');
 
   lines.push('--- 1. EXECUTIVE FLEET SUMMARY ---');
-  lines.push(`Total Fleet Spend (PHP),${summary?.total_spend || 0}`);
-  lines.push(`Total Repair Tickets,${summary?.total_repairs || 0}`);
-  lines.push(`Average Cost Per Repair (PHP),${summary?.avg_cost_per_repair || 0}`);
-  lines.push(`Active Fleet Vehicles,${summary?.total_vehicles || 0}`);
+  if (!costsHidden) lines.push(`Total Fleet Spend (PHP),${amount(summary?.total_spend ?? null)}`);
+  lines.push(`Total Repair Tickets,${summary?.total_repairs ?? 0}`);
+  if (!costsHidden) lines.push(`Average Cost Per Repair (PHP),${amount(summary?.avg_cost_per_repair ?? null)}`);
+  lines.push(`Active Fleet Vehicles,${summary?.total_vehicles ?? 0}`);
   lines.push('');
 
   lines.push('--- 2. MONTHLY REPAIR COST TRENDS ---');
-  lines.push('Month,Period,Repair Tickets,Total Spend (PHP),Avg Cost Per Repair (PHP),Cumulative Spend (PHP),Share of Total (%),Operational Status');
-  const totalSpendAll = trends.reduce((a, b) => a + b.total_spend, 0);
-  reportRows.forEach(r => {
-    const avgCost = r.repair_count > 0 ? (r.total_spend / r.repair_count).toFixed(2) : '0.00';
-    const sharePct = totalSpendAll > 0 ? ((r.total_spend / totalSpendAll) * 100).toFixed(1) + '%' : '0.0%';
-    const status = (r.repair_count > 0 && Number(avgCost) > 3000) ? 'ELEVATED SPEND' : r.repair_count > 0 ? 'OPTIMAL' : 'NO ACTIVITY';
-    lines.push(`"${r.month}","${r.month}",${r.repair_count},${r.total_spend.toFixed(2)},${avgCost},${r.cumulative_spend.toFixed(2)},"${sharePct}","${status}"`);
-  });
+  const totalSpendAll = trends.reduce((a, b) => a + amount(b.total_spend), 0);
+  if (costsHidden) {
+    lines.push('Month,Repair Tickets');
+    reportRows.forEach(r => row(r.month, r.repair_count));
+  } else {
+    lines.push('Month,Period,Repair Tickets,Total Spend (PHP),Avg Cost Per Repair (PHP),Cumulative Spend (PHP),Share of Total (%),Operational Status');
+    reportRows.forEach(r => {
+      const spend = amount(r.total_spend);
+      const avgCost = r.repair_count > 0 ? (spend / r.repair_count).toFixed(2) : '0.00';
+      const sharePct = totalSpendAll > 0 ? ((spend / totalSpendAll) * 100).toFixed(1) + '%' : '0.0%';
+      const status = (r.repair_count > 0 && Number(avgCost) > 3000) ? 'ELEVATED SPEND' : r.repair_count > 0 ? 'OPTIMAL' : 'NO ACTIVITY';
+      row(r.month, r.month, r.repair_count, spend.toFixed(2), avgCost, amount(r.cumulative_spend).toFixed(2), sharePct, status);
+    });
+  }
   lines.push('');
 
   lines.push('--- 3. VEHICLE RELIABILITY & MAINTENANCE RISK SCORECARD ---');
-  lines.push('Plate Number,Vehicle Model,Total Repairs,Total Parts Cost (PHP),Avg Repair Cost (PHP),Risk Level');
+  lines.push(costsHidden
+    ? 'Plate Number,Vehicle Model,Total Repairs,Risk Level'
+    : 'Plate Number,Vehicle Model,Total Repairs,Total Parts Cost (PHP),Avg Repair Cost (PHP),Risk Level');
   vehicles.forEach(v => {
-    lines.push(`"${v.vehicle_plate}","${v.vehicle_model}",${v.total_repairs},${v.total_parts_cost.toFixed(2)},${v.avg_repair_cost.toFixed(2)},"${riskLabel(v.total_repairs)}"`);
+    if (costsHidden) row(v.vehicle_plate, v.vehicle_model, v.total_repairs, riskLabel(v.total_repairs));
+    else row(v.vehicle_plate, v.vehicle_model, v.total_repairs, amount(v.total_parts_cost).toFixed(2), amount(v.avg_repair_cost).toFixed(2), riskLabel(v.total_repairs));
   });
   lines.push('');
 
   lines.push('--- 4. GARAGE BRANCH COST DISTRIBUTION ---');
-  lines.push('Garage Branch,Repair Count,Total Spend (PHP)');
+  lines.push(costsHidden ? 'Garage Branch,Repair Count' : 'Garage Branch,Repair Count,Total Spend (PHP)');
   garageCosts.forEach(g => {
-    lines.push(`"${g.garage}",${g.repair_count},${g.total_spend.toFixed(2)}`);
+    if (costsHidden) row(g.garage, g.repair_count);
+    else row(g.garage, g.repair_count, amount(g.total_spend).toFixed(2));
   });
   lines.push('');
 
   lines.push('--- 5. TOP RECURRING FLEET REPAIR ISSUES ---');
   lines.push('Issue Description,Occurrence Count');
-  issueFreq.forEach(f => {
-    lines.push(`"${f.description}",${f.occurrence_count}`);
-  });
+  issueFreq.forEach(f => row(f.description, f.occurrence_count));
   lines.push('');
 
-  if (aiOn) {
-    lines.push('--- 6. AI DIAGNOSTIC TRIAGE TELEMETRY & CSAT ---');
-    lines.push(`Total AI Interactions,${aiStats?.total_interactions || 18}`);
-    lines.push(`Satisfaction Rate (%),${aiStats?.satisfaction?.satisfaction_rate || 94.4}%`);
-    lines.push(`Average Rating,${aiStats?.satisfaction?.avg_rating || 4.8} / 5.0`);
+  if (aiOn && aiStats) {
+    lines.push('--- 6. AI DIAGNOSES AND RATINGS ---');
+    lines.push(`Total AI Diagnoses,${aiStats.total_interactions}`);
+    lines.push(`Ratings Received,${aiStats.satisfaction.total_feedback}`);
+    lines.push(`Satisfaction Rate (%),${aiStats.satisfaction.satisfaction_rate}%`);
+    lines.push(`Average Rating,${aiStats.satisfaction.avg_rating} / 5.0`);
   }
 
   // BOM so Excel opens the file as UTF-8
@@ -91,7 +117,7 @@ export function downloadMasterCsv({ summary, trends, reportRows, vehicles, garag
   a.click();
 }
 
-export function downloadMasterPdf({ summary, trends, reportRows, vehicles, garageCosts, issueFreq }: MasterReportData) {
+export function downloadMasterPdf({ summary, trends, reportRows, vehicles, garageCosts, issueFreq, costsHidden }: MasterReportData) {
   const doc = new jsPDF() as DocWithAutoTable;
   const today = new Date().toLocaleDateString('en-US');
 
@@ -130,39 +156,44 @@ export function downloadMasterPdf({ summary, trends, reportRows, vehicles, garag
   doc.setFillColor(245, 247, 250);
   doc.roundedRect(14, 36, 182, 24, 3, 3, 'F');
 
-  doc.setFontSize(8);
-  doc.setTextColor(100);
-  doc.text('Total Fleet Spend', 20, 44);
-  doc.text('Total Repairs', 70, 44);
-  doc.text('Avg Cost / Repair', 115, 44);
-  doc.text('Active Vehicles', 160, 44);
-
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...PDF_NAVY);
-  doc.text(`PHP ${(summary?.total_spend || 0).toLocaleString()}`, 20, 54);
-  doc.text(`${summary?.total_repairs || 0}`, 70, 54);
-  doc.text(`PHP ${(summary?.avg_cost_per_repair || 0).toLocaleString()}`, 115, 54);
-  doc.text(`${summary?.total_vehicles || 0}`, 160, 54);
+  const boxes: [string, string][] = [
+    ...(costsHidden ? [] : [['Total Fleet Spend', peso(summary?.total_spend ?? null)] as [string, string]]),
+    ['Total Repairs', `${summary?.total_repairs ?? 0}`],
+    ...(costsHidden ? [] : [['Avg Cost / Repair', peso(summary?.avg_cost_per_repair ?? null)] as [string, string]]),
+    ['Active Vehicles', `${summary?.total_vehicles ?? 0}`],
+  ];
+  boxes.forEach(([label, value], i) => {
+    const x = 20 + i * (180 / boxes.length);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text(label, x, 44);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PDF_NAVY);
+    doc.text(value, x, 54);
+  });
 
   let y = 68;
+  if (costsHidden) {
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100);
+    doc.text('Costs are hidden for your role.', 14, y - 2);
+    y += 6;
+  }
 
-  sectionTitle('1. REPAIR COST TRENDS & MONTHLY BREAKDOWN', y);
-  const totalSpendAll = trends.reduce((a, b) => a + b.total_spend, 0);
+  sectionTitle('1. MONTHLY REPAIRS', y);
+  const totalSpendAll = trends.reduce((a, b) => a + amount(b.total_spend), 0);
   autoTable(doc, {
     startY: y + 4,
-    head: [['Month', 'Repairs', 'Total Spend', 'Avg / Repair', 'Cumulative Spend', 'Spend %']],
+    head: [costsHidden ? ['Month', 'Repairs'] : ['Month', 'Repairs', 'Total Spend', 'Avg / Repair', 'Cumulative Spend', 'Spend %']],
     body: reportRows.map(row => {
-      const avg = row.repair_count > 0 ? row.total_spend / row.repair_count : 0;
-      const pct = totalSpendAll > 0 ? ((row.total_spend / totalSpendAll) * 100).toFixed(1) + '%' : '0%';
-      return [
-        row.month,
-        row.repair_count.toString(),
-        `PHP ${row.total_spend.toLocaleString()}`,
-        `PHP ${Math.round(avg).toLocaleString()}`,
-        `PHP ${(row.cumulative_spend || 0).toLocaleString()}`,
-        pct,
-      ];
+      if (costsHidden) return [row.month, row.repair_count.toString()];
+      const spend = amount(row.total_spend);
+      const avg = row.repair_count > 0 ? spend / row.repair_count : 0;
+      const pct = totalSpendAll > 0 ? ((spend / totalSpendAll) * 100).toFixed(1) + '%' : '0%';
+      return [row.month, row.repair_count.toString(), peso(spend), peso(avg), peso(row.cumulative_spend), pct];
     }),
     headStyles,
     alternateRowStyles: { fillColor: PDF_STRIPE },
@@ -171,11 +202,13 @@ export function downloadMasterPdf({ summary, trends, reportRows, vehicles, garag
   y = doc.lastAutoTable.finalY + 12;
 
   y = checkNewPage(45, y);
-  sectionTitle('2. GARAGE BRANCH COST DISTRIBUTION', y);
+  sectionTitle('2. GARAGE BRANCHES', y);
   autoTable(doc, {
     startY: y + 4,
-    head: [['Garage Branch', 'Repair Count', 'Total Spend']],
-    body: garageCosts.map(g => [g.garage, g.repair_count.toString(), `PHP ${g.total_spend.toLocaleString()}`]),
+    head: [costsHidden ? ['Garage Branch', 'Repair Count'] : ['Garage Branch', 'Repair Count', 'Total Spend']],
+    body: garageCosts.map(g => costsHidden
+      ? [g.garage, g.repair_count.toString()]
+      : [g.garage, g.repair_count.toString(), peso(g.total_spend)]),
     headStyles,
     styles: { fontSize: 8, cellPadding: 2.5 },
   });
@@ -185,12 +218,12 @@ export function downloadMasterPdf({ summary, trends, reportRows, vehicles, garag
   sectionTitle('3. VEHICLE RELIABILITY & RISK SCORECARD', y);
   autoTable(doc, {
     startY: y + 4,
-    head: [['Vehicle Plate', 'Model', 'Repairs', 'Total Parts Cost', 'Avg Cost', 'Risk Level']],
-    body: vehicles.slice(0, 8).map(v => [
-      v.vehicle_plate, v.vehicle_model, v.total_repairs.toString(),
-      `PHP ${v.total_parts_cost.toLocaleString()}`, `PHP ${Math.round(v.avg_repair_cost).toLocaleString()}`,
-      riskLabel(v.total_repairs),
-    ]),
+    head: [costsHidden
+      ? ['Vehicle Plate', 'Model', 'Repairs', 'Risk Level']
+      : ['Vehicle Plate', 'Model', 'Repairs', 'Total Parts Cost', 'Avg Cost', 'Risk Level']],
+    body: vehicles.slice(0, 8).map(v => costsHidden
+      ? [v.vehicle_plate, v.vehicle_model, v.total_repairs.toString(), riskLabel(v.total_repairs)]
+      : [v.vehicle_plate, v.vehicle_model, v.total_repairs.toString(), peso(v.total_parts_cost), peso(v.avg_repair_cost), riskLabel(v.total_repairs)]),
     headStyles,
     alternateRowStyles: { fillColor: PDF_STRIPE },
     styles: { fontSize: 7.5, cellPadding: 2.5 },

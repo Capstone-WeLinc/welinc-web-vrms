@@ -1,7 +1,7 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Zap, ThumbsUp, ThumbsDown, Activity, Shield } from 'lucide-react';
 import type { AnalyticsData } from '../hooks/useAnalyticsData';
-import { ChartCard, EmptyState, KpiCard } from './ChartPrimitives';
+import { ChartCard, EmptyState, KpiCard, SectionGate } from './ChartPrimitives';
 import { IssueFrequencyChart } from './IssueFrequencyChart';
 import { PALETTE, chartTooltipProps, getAiFeedbackStats, modelDisplayName, tint } from '../utils';
 
@@ -19,7 +19,7 @@ function FeedbackStat({ count, label, color, icon: Icon }: { count: number; labe
   );
 }
 
-export function AiInsightsTab({ aiStats, issueFreq }: AnalyticsData) {
+export function AiInsightsTab({ aiStats, issueFreq, sections, retry }: AnalyticsData) {
   const { totalFb, helpful, notHelpful, satRate, avgRating } = getAiFeedbackStats(aiStats);
 
   // Merge raw model ids that share a display name
@@ -34,8 +34,10 @@ export function AiInsightsTab({ aiStats, issueFreq }: AnalyticsData) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <SectionGate state={sections.aiStats} onRetry={() => retry('aiStats')} height={300}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-        <KpiCard label="Total AI Diagnoses" value={aiStats?.total_interactions ?? 16} icon={Zap} color="var(--primary)" />
+        <KpiCard label="Total AI Diagnoses" value={aiStats?.total_interactions ?? 0} icon={Zap} color="var(--primary)" />
         <KpiCard label="Satisfaction Rate" value={`${satRate}%`} icon={ThumbsUp} color="var(--success)" note={`Based on ${totalFb} mechanic ratings`} />
         <KpiCard label="Avg Rating" value={`${avgRating.toFixed(1)} / 5`} icon={Activity} color="var(--primary)" />
         <KpiCard label="Feedback Received" value={totalFb} icon={Shield} color="var(--warning)" />
@@ -61,6 +63,7 @@ export function AiInsightsTab({ aiStats, issueFreq }: AnalyticsData) {
         </ChartCard>
 
         <ChartCard title="Mechanic Feedback Summary">
+          {totalFb === 0 ? <EmptyState label="No ratings yet" /> : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 4 }}>
             <div style={{ display: 'flex', gap: 16 }}>
               <FeedbackStat count={helpful} label="Helpful Feedback" color="var(--success)" icon={ThumbsUp} />
@@ -89,13 +92,18 @@ export function AiInsightsTab({ aiStats, issueFreq }: AnalyticsData) {
               </div>
             </div>
           </div>
+          )}
         </ChartCard>
       </div>
+      </div>
+      </SectionGate>
 
       <ChartCard title="Top Recurring Repair Issues (AI Knowledge Base)">
+        <SectionGate state={sections.issueFreq} onRetry={() => retry('issueFreq')} height={220}>
         {issueFreq.length === 0
           ? <EmptyState label="No issue frequency data" />
           : <IssueFrequencyChart data={issueFreq.slice(0, 8)} gradientId="gradAiIssueBar" />}
+        </SectionGate>
       </ChartCard>
     </div>
   );
