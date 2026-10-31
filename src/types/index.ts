@@ -135,6 +135,8 @@ export interface RepairPart {
 export interface TicketCan {
   work: boolean;
   administer: boolean;
+  /** Verify or send back; false on a ticket the caller is assigned to (spec 0014, AC-13). */
+  verify: boolean;
   editCosts: boolean;
   unlock: boolean;
 }
