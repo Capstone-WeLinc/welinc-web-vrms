@@ -13,6 +13,21 @@ interface VerificationQueueTableProps {
   now: number;
 }
 
+const NAMES_SHOWN = 2;
+
+/** A row is for scanning: two names, then "+N more", with the full list on hover. */
+function MechanicNames({ mechanics }: { mechanics: RepairTicket['mechanics'] }) {
+  if (!mechanics?.length) return <>No mechanic</>;
+  const names = mechanics.map((m) => m.name);
+  const extra = names.length - NAMES_SHOWN;
+  return (
+    <span className="wrap-anywhere" title={extra > 0 ? names.join(', ') : undefined}>
+      {names.slice(0, NAMES_SHOWN).join(', ')}
+      {extra > 0 && ` +${extra} more`}
+    </span>
+  );
+}
+
 // Spec 0015, AC-14: the Chief Mechanic's sign off queue, oldest wait first.
 export function VerificationQueueTable({ rows, now }: VerificationQueueTableProps) {
   const navigate = useNavigate();
@@ -24,9 +39,9 @@ export function VerificationQueueTable({ rows, now }: VerificationQueueTableProp
       id: 'mechanics',
       header: 'Mechanics',
       mobile: 'field',
-      cell: (t) => (t.mechanics?.length ? t.mechanics.map((m) => m.name).join(', ') : 'No mechanic'),
+      cell: (t) => <MechanicNames mechanics={t.mechanics} />,
     },
-    { id: 'garage', header: 'Garage', mobile: 'field', cell: (t) => t.garageLocation ?? '' },
+    { id: 'garage', header: 'Garage', mobile: 'field', cell: (t) => <span className="wrap-anywhere">{t.garageLocation || 'No garage'}</span> },
     {
       id: 'wait',
       header: 'Waiting',

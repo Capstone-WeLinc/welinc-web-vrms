@@ -178,4 +178,8 @@ describe('waitingText', () => {
   it('counts a negative gap (clock skew) as 0', () => {
     expect(waitingText(t, base - 5 * 60 * MIN)).toBe('Waiting under an hour');
   });
+
+  it('says the wait is unknown when the date cannot be read', () => {
+    expect(waitingText(ticket({ statusChangedAt: 'not a date' }), base)).toBe('Waiting time unknown');
+  });
 });

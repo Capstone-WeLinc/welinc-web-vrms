@@ -72,7 +72,10 @@ export function verificationQueue(active: RepairTicket[]) {
 
 /** Spec 0015, AC-15: how long a ticket has sat in its status. A negative gap (clock skew) counts as 0. */
 export function waitingText(ticket: RepairTicket, now: number) {
-  const minutes = Math.max(0, Math.floor((now - (toTime(ticket.statusChangedAt) ?? now)) / 60_000));
+  const since = toTime(ticket.statusChangedAt);
+  // An unreadable date must not pose as a fresh wait
+  if (since === null) return 'Waiting time unknown';
+  const minutes = Math.max(0, Math.floor((now - since) / 60_000));
   if (minutes < 60) return 'Waiting under an hour';
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `Waiting ${hours} h`;
