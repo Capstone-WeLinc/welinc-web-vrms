@@ -6,12 +6,14 @@ interface RepairFormActionsProps {
   saving: boolean;
   /** A required list failed or is empty, so the form can't be completed (AC-15). */
   listsBlocked: boolean;
+  /** The truck already has an open ticket, so a second one is refused (spec 0016, AC-12). */
+  openTicketBlocked?: boolean;
   onCancel: () => void;
 }
 
 const BLOCKED_NOTE = 'Some lists couldn’t load. Try again above before creating the ticket.';
 
-function Actions({ saving, listsBlocked, onCancel, className }: RepairFormActionsProps & { className?: string }) {
+function Actions({ saving, listsBlocked, openTicketBlocked = false, onCancel, className }: RepairFormActionsProps & { className?: string }) {
   const noteId = useId();
   return (
     <div className={cn('flex flex-col gap-2', className)}>
@@ -29,7 +31,7 @@ function Actions({ saving, listsBlocked, onCancel, className }: RepairFormAction
           type="submit"
           size="touch"
           className="flex-1 md:flex-none lg:h-10 lg:text-sm"
-          disabled={saving || listsBlocked}
+          disabled={saving || listsBlocked || openTicketBlocked}
           aria-describedby={listsBlocked ? noteId : undefined}
         >
           Create ticket

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, type Resolver } from 'react-hook-form';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -9,6 +9,7 @@ import { FormAlert } from '../../../components/shared/FormAlert';
 import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getDriverExists, getOdometerProblem, getOpenTicketExists } from '../../../lib/api/errors';
 import { createRepair } from '../../../lib/api/repairApi';
+import { useVehicleSummary } from '../hooks/useVehicleSummary';
 import { syncMechanics } from '../../../lib/api/vrmsConfigApi';
 import { formatShortDate } from '../../../lib/utils/format';
 import { useAuthStore } from '../../../store/authStore';
@@ -79,6 +80,20 @@ export function RepairFormPage() {
     // Focus goes to the first invalid field in page order instead (below).
     shouldFocusError: false,
   });
+
+  // Facts about the picked truck, and its usual driver in the empty driver field (spec 0016, AC-12)
+  const plate = useWatch({ control, name: 'vehiclePlate' });
+  const vehicleId = options.vehicles.data?.find((v) => v.plateNumber === plate)?.id ?? '';
+  const vehicleSummary = useVehicleSummary(vehicleId);
+  const lastDriver = vehicleSummary.summary?.lastDriver ?? null;
+  useEffect(() => {
+    if (!lastDriver) return;
+    const current = getValues();
+    if (current.addingDriver || current.driverId) return;
+    setValue('driverId', lastDriver.id, { shouldDirty: true });
+    setValue('driverLabel', lastDriver.name);
+    clearErrors('driverId');
+  }, [lastDriver, getValues, setValue, clearErrors]);
 
   const [summaryValues, setSummaryValues] = useState<RepairFormValues | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -230,6 +245,7 @@ export function RepairFormPage() {
             control={control}
             vehicles={options.vehicles}
             garages={options.garages}
+            summary={vehicleSummary}
             setValue={setValue}
             clearErrors={clearErrors}
           />
@@ -274,7 +290,7 @@ export function RepairFormPage() {
         )}
 
         <div className="xl:col-span-3">
-          <RepairFormActions saving={saving} listsBlocked={listsBlocked} onCancel={() => navigate('/repairs')} />
+          <RepairFormActions saving={saving} listsBlocked={listsBlocked} openTicketBlocked={!!vehicleSummary.summary?.openTicket} onCancel={() => navigate('/repairs')} />
         </div>
       </form>
 

@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { PriorityBadge } from '../../../../components/shared/PriorityBadge';
 import { ResponsiveDialog } from '../../../../components/shared/ResponsiveDialog';
 import type { VehicleOption } from '../../../../lib/api/vrmsConfigApi';
-import { UNDER_REPAIR_WARNING, type RepairFormValues } from '../../lib/repairFormSchema';
+import { type RepairFormValues } from '../../lib/repairFormSchema';
 
 interface RepairSummaryDialogProps {
   open: boolean;
@@ -74,12 +74,6 @@ export function RepairSummaryDialog({
         <dl>
           <Row term="Vehicle">
             <p>{vehicle?.model ? `${values.vehiclePlate} · ${vehicle.model}` : values.vehiclePlate}</p>
-            {vehicle?.status === 'UNDER_REPAIR' && (
-              <p className="mt-1 flex items-start gap-1.5 text-xs">
-                <AlertTriangle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-                {UNDER_REPAIR_WARNING}
-              </p>
-            )}
           </Row>
           <Row term="Priority">
             <PriorityBadge priority={values.priority} />

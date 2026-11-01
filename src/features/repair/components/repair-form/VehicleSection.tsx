@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { useWatch, type UseFormClearErrors, type UseFormSetValue } from 'react-hook-form';
-import { AlertTriangle } from 'lucide-react';
+import { type UseFormClearErrors, type UseFormSetValue } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { FormField } from '@/components/ui/field';
@@ -9,9 +8,11 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { GarageOption, VehicleOption } from '../../../../lib/api/vrmsConfigApi';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
-import { UNDER_REPAIR_WARNING, type RepairFormControl, type RepairFormInput } from '../../lib/repairFormSchema';
+import { type RepairFormControl, type RepairFormInput } from '../../lib/repairFormSchema';
 import { FieldRow, FormSection } from '../../../../components/shared/FormSection';
+import type { VehicleSummaryState } from '../../hooks/useVehicleSummary';
 import { DriverField } from './DriverField';
+import { VehicleCard } from './VehicleCard';
 import { FieldSkeleton, ListError } from './RepairFormParts';
 
 interface VehicleSectionProps {
@@ -20,10 +21,10 @@ interface VehicleSectionProps {
   garages: OptionList<GarageOption>;
   setValue: UseFormSetValue<RepairFormInput>;
   clearErrors: UseFormClearErrors<RepairFormInput>;
+  summary: VehicleSummaryState;
 }
 
-export function VehicleSection({ control, vehicles, garages, setValue, clearErrors }: VehicleSectionProps) {
-  const plate = useWatch({ control, name: 'vehiclePlate' });
+export function VehicleSection({ control, vehicles, garages, setValue, clearErrors, summary }: VehicleSectionProps) {
 
   const vehicleOptions = useMemo<ComboboxOption[]>(
     () =>
@@ -44,7 +45,6 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
     [vehicles.data],
   );
 
-  const underRepair = vehicles.data?.some((v) => v.plateNumber === plate && v.status === 'UNDER_REPAIR') ?? false;
   const noVehicles = vehicles.data?.length === 0;
   const noGarages = garages.data?.length === 0;
 
@@ -60,16 +60,7 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
               name="vehiclePlate"
               label="Vehicle"
               required
-              description={
-                underRepair ? (
-                  <span className="flex items-start gap-1.5 text-foreground">
-                    <AlertTriangle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-                    {UNDER_REPAIR_WARNING}
-                  </span>
-                ) : noVehicles ? (
-                  'No vehicles are registered yet.'
-                ) : undefined
-              }
+              description={noVehicles ? 'No vehicles are registered yet.' : undefined}
               render={({ field, controlProps }) => (
                 <Combobox
                   {...controlProps}
@@ -89,6 +80,8 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
             <ListError message="Couldn’t load vehicles." retrying={vehicles.retrying} onRetry={vehicles.retry} />
           )}
         </div>
+
+        <VehicleCard state={summary} />
 
         <DriverField control={control} setValue={setValue} clearErrors={clearErrors} />
 
@@ -137,6 +130,7 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
           control={control}
           name="odometerReading"
           label="Odometer reading"
+          description={summary.summary && summary.summary.lastOdometer > 0 ? `Last reading ${summary.summary.lastOdometer.toLocaleString('en-US')} km` : undefined}
           required
           render={({ field, controlProps }) => (
             <div className="relative">

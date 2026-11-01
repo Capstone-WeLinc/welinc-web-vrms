@@ -29,9 +29,6 @@ export interface RepairFormLists {
   corporationIds: string[] | null;
 }
 
-export const UNDER_REPAIR_WARNING =
-  'This vehicle already has a repair in progress. Check its open tickets before adding another.';
-
 const ODOMETER_PATTERN = /^\d{1,7}$/;
 
 /** A required pick that must still be in its loaded list. One message at a time. */

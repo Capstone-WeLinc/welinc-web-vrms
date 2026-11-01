@@ -16,6 +16,10 @@ export interface MechanicOption {
   id: string;
   name: string;
   isAvailable: boolean;
+  /** Assignments on tickets in an open status (spec 0016, AC-14). */
+  openCount: number;
+  /** One of those tickets is In Progress. */
+  busy: boolean;
   /** The welinc-auth user's email, lowercased; null for a row with no login. */
   email?: string | null;
   /** The welinc-auth user id; the Users page matches people to mechanics on it (spec 0009, AC-9). */
@@ -96,5 +100,23 @@ export interface ReleaseResult {
 /** Ends the person's assignments after they left VRMS (users.manage, spec 0011, AC-33). */
 export async function releaseTickets(authUserId: string, reason: 'DEACTIVATED' | 'ROLE_REMOVED'): Promise<ReleaseResult> {
   const response = await api.post<ReleaseResult>(`/vrms/mechanics/${authUserId}/release-tickets`, { reason }, { quiet: true });
+  return response.data;
+}
+
+export interface VehicleSummary {
+  id: string;
+  plateNumber: string;
+  model: string;
+  status: string;
+  type: { id: string; name: string } | null;
+  lastOdometer: number;
+  lastRepairAt: string | null;
+  lastDriver: { id: string; name: string; licenseNumber: string } | null;
+  openTicket: { id: string; repairNumber: string; repairStatus: string } | null;
+}
+
+/** What the system knows about a truck, for the new ticket form (ticket.create, spec 0016, AC-11). */
+export async function getVehicleSummary(id: string): Promise<VehicleSummary> {
+  const response = await api.get<VehicleSummary>(`/vrms/vehicles/${id}/summary`, { quiet: true });
   return response.data;
 }
