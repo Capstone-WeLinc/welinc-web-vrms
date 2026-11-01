@@ -23,8 +23,7 @@ import { hasSavedResolution } from '../lib/resolutionForm';
 import { SuggestDialog } from '../../knowledge-base/components/SuggestDialog';
 import { useModuleOn } from '../../../lib/permissions/usePermissions';
 import { removeAttachment, type Attachment } from '../../../lib/api/attachmentsApi';
-import { usePhotoUploadQueue } from '../hooks/usePhotoUploadQueue';
-import { useTicketAttachments } from '../hooks/useTicketAttachments';
+import { useTicketFiles } from '../hooks/ticketFiles';
 import { photoRoomLeft } from '../lib/photoUpload';
 import { PhotoStrip } from './PhotoStrip';
 
@@ -330,8 +329,9 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
   const canTick = canWork && ticket.status === 'IN_PROGRESS';
   const entries = useEntryOptions(canLink);
   const { showToast } = useToast();
-  const attachments = useTicketAttachments(ticket.id);
-  const queue = usePhotoUploadQueue(ticket.id, attachments.reload);
+  const { attachments, queue } = useTicketFiles();
+  /** Photo uploads only; documents queue in the Documents card. */
+  const photoQueue = queue.items.filter((item) => item.kind === 'VEHICLE_PHOTO');
   /** Index into `photos` while the viewer is open, else -1 (AC-24). */
   const [viewerIndex, setViewerIndex] = useState(-1);
   /** The viewer's code loads on first open only. */
@@ -343,7 +343,7 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
   const canAddPhotos = list != null && list.can.addFiles && photoKind != null;
   /** Every live photo in list order: the viewer walks all of them (AC-24). */
   const photos = list?.items.filter((a) => a.kind === 'VEHICLE_PHOTO') ?? [];
-  const inFlight = queue.items.filter((item) => item.status === 'waiting' || item.status === 'uploading').length;
+  const inFlight = photoQueue.filter((item) => item.status === 'waiting' || item.status === 'uploading').length;
   const room = list ? photoRoomLeft(list.limits, inFlight) : 0;
   const limitText =
     list && room === 0
@@ -397,7 +397,7 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
     list ? (
       <PhotoStrip
         photos={photos.filter((p) => p.issueId === issueId)}
-        queue={queue.items.filter((item) => item.issueId === issueId)}
+        queue={photoQueue.filter((item) => item.issueId === issueId)}
         canAdd={canAddPhotos}
         limitText={limitText}
         label={label}

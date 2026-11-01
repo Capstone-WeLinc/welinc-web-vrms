@@ -67,6 +67,11 @@ export function isRetryable(status: number | undefined): boolean {
   return status === undefined || status >= 500;
 }
 
+/** Receipts plus other documents the ticket can still take, after the ones already queued (AC-27). */
+export function documentRoomLeft(limits: AttachmentList['limits'], queued: number): number {
+  return Math.max(0, limits.maxDocuments - limits.documentCount - queued);
+}
+
 /** Photos the ticket can still take, after the ones already queued (AC-21). */
 export function photoRoomLeft(limits: AttachmentList['limits'], queued: number): number {
   return Math.max(0, limits.maxVehiclePhotos - limits.vehiclePhotoCount - queued);

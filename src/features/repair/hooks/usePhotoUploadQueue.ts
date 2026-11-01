@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { uploadAttachment, type AttachmentKindInfo } from '../../../lib/api/attachmentsApi';
+import { uploadAttachment, type AttachmentKind, type AttachmentKindInfo } from '../../../lib/api/attachmentsApi';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
-import { isRetryable, RETRY_DELAYS_MS, sizeProblem, typeProblem } from '../lib/photoUpload';
+import { isRetryable, normalizeType, RETRY_DELAYS_MS, sizeProblem, typeProblem } from '../lib/photoUpload';
 import { shrinkPhoto } from '../lib/shrinkPhoto';
 
 export type QueueStatus = 'waiting' | 'uploading' | 'done' | 'failed';
 
 export interface QueuedPhoto {
   id: string;
-  /** The strip it belongs to: an issue id, or null for the ticket strip. */
+  /** What it uploads as: photos show in their strip, documents in the Documents card. */
+  kind: AttachmentKind;
+  /** The strip it belongs to: an issue id, or null for the ticket strip (and for documents). */
   issueId: string | null;
   name: string;
   status: QueueStatus;
@@ -38,8 +40,8 @@ function sleep(ms: number, signal: AbortSignal) {
 let nextId = 1;
 
 /**
- * Spec 0017, AC-22 and AC-23: one in memory upload queue per ticket. Files go up one at a time,
- * each shrunk first; a network error or a 5xx retries twice (after 2 s, then 6 s), a 4xx stops
+ * Spec 0017, AC-22, AC-23 and AC-27: one in memory upload queue per ticket, for photos and
+ * documents alike. Files go up one at a time, photos shrunk first; a network error or a 5xx retries twice (after 2 s, then 6 s), a 4xx stops
  * with the server's message. Leaving the page drops what hasn't finished.
  */
 export function usePhotoUploadQueue(ticketId: string, onUploaded: () => Promise<unknown>) {
@@ -64,7 +66,8 @@ export function usePhotoUploadQueue(ticketId: string, onUploaded: () => Promise<
     async (job: Job, signal: AbortSignal): Promise<string | null> => {
       const typeError = typeProblem(job.file, job.kind);
       if (typeError) return typeError;
-      const file = await shrinkPhoto(job.file);
+      // Only photos shrink; a PDF goes up as chosen (the server rebuilds it, AC-7)
+      const file = normalizeType(job.file.type) === 'application/pdf' ? job.file : await shrinkPhoto(job.file);
       const sizeError = sizeProblem(file, job.maxFileMb);
       if (sizeError) return sizeError;
 
@@ -73,7 +76,7 @@ export function usePhotoUploadQueue(ticketId: string, onUploaded: () => Promise<
           patch(job.id, { status: 'uploading', progress: 0 });
           // A 200 duplicate counts as done (AC-8)
           await uploadAttachment(ticketId, file, {
-            kind: 'VEHICLE_PHOTO',
+            kind: job.kind.kind,
             issueId: job.issueId,
             signal,
             onProgress: (progress) => patch(job.id, { progress }),
@@ -136,7 +139,7 @@ export function usePhotoUploadQueue(ticketId: string, onUploaded: () => Promise<
       const added = files.map((file) => {
         const job: Job = { id: `upload-${nextId++}`, issueId, file, kind, maxFileMb };
         jobs.current.set(job.id, job);
-        return { id: job.id, issueId, name: file.name, status: 'waiting' as const, progress: 0 };
+        return { id: job.id, kind: kind.kind, issueId, name: file.name, status: 'waiting' as const, progress: 0 };
       });
       setItems((list) => [...list, ...added]);
       void run();

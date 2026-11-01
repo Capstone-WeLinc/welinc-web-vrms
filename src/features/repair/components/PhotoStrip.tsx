@@ -1,11 +1,12 @@
 import { useRef, useState, type DragEvent } from 'react';
-import { Camera, ImageOff, ImagePlus, RotateCw, X } from 'lucide-react';
+import { Camera, ImageOff, ImagePlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsTouchDevice } from '../../../hooks/useIsTouchDevice';
 import type { Attachment } from '../../../lib/api/attachmentsApi';
 import type { QueuedPhoto } from '../hooks/usePhotoUploadQueue';
 import { formatManilaDateTime } from '../lib/photoCaption';
+import { UploadQueueRow } from './UploadQueueRow';
 
 interface PhotoStripProps {
   photos: Attachment[];
@@ -81,45 +82,6 @@ function Thumb({ photo, onOpen, onRemove, onLinkError }: Pick<PhotoStripProps, '
   );
 }
 
-function QueueRow({ item, onRetry, onDismiss }: { item: QueuedPhoto; onRetry: () => void; onDismiss: () => void }) {
-  const status =
-    item.status === 'uploading' ? `Uploading ${item.progress}%` : item.status === 'done' ? 'Done' : item.status === 'waiting' ? 'Waiting' : 'Failed';
-  return (
-    <li className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-2 text-sm">
-      <div className="flex min-w-0 items-center justify-between gap-2">
-        <span className="min-w-0 truncate text-foreground">{item.name}</span>
-        <span className={cn('shrink-0 text-xs tabular-nums', item.status === 'failed' ? 'text-destructive' : 'text-muted-foreground')}>{status}</span>
-      </div>
-      {(item.status === 'uploading' || item.status === 'done') && (
-        <div
-          role="progressbar"
-          aria-label={`Uploading ${item.name}`}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={item.progress}
-          className="h-1.5 overflow-hidden rounded-full bg-muted"
-        >
-          <div className="h-full bg-primary transition-all motion-reduce:transition-none" style={{ width: `${item.progress}%` }} />
-        </div>
-      )}
-      {item.status === 'failed' && (
-        <>
-          <p className="text-xs break-words text-destructive">{item.error}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onRetry} aria-label={`Retry ${item.name}`}>
-              <RotateCw aria-hidden="true" />
-              Retry
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={onDismiss} aria-label={`Remove ${item.name} from uploads`}>
-              Remove
-            </Button>
-          </div>
-        </>
-      )}
-    </li>
-  );
-}
-
 /** Thumbnails for one place on the ticket, the add buttons and its uploads (spec 0017, AC-20 to AC-26). */
 export function PhotoStrip({ photos, queue, canAdd, limitText, label, onAdd, onRetry, onDismiss, onOpen, onRemove, onLinkError }: PhotoStripProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -183,7 +145,7 @@ export function PhotoStrip({ photos, queue, canAdd, limitText, label, onAdd, onR
       {queue.length > 0 && (
         <ul aria-live="polite" className="flex flex-col gap-2">
           {queue.map((item) => (
-            <QueueRow key={item.id} item={item} onRetry={() => onRetry(item.id)} onDismiss={() => onDismiss(item.id)} />
+            <UploadQueueRow key={item.id} item={item} onRetry={() => onRetry(item.id)} onDismiss={() => onDismiss(item.id)} />
           ))}
         </ul>
       )}

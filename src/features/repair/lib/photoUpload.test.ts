@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AttachmentKindInfo } from '../../../lib/api/attachmentsApi';
-import { isRetryable, jpegName, normalizeType, photoRoomLeft, shrinkSize, sizeProblem, typeProblem } from './photoUpload';
+import { documentRoomLeft, isRetryable, jpegName, normalizeType, photoRoomLeft, shrinkSize, sizeProblem, typeProblem } from './photoUpload';
 import { formatManilaDateTime } from './photoCaption';
 
 const PHOTO: AttachmentKindInfo = {
@@ -72,6 +72,23 @@ describe('photoRoomLeft (AC-21)', () => {
     expect(photoRoomLeft(limits, 0)).toBe(2);
     expect(photoRoomLeft(limits, 2)).toBe(0);
     expect(photoRoomLeft(limits, 4)).toBe(0);
+  });
+});
+
+describe('documentRoomLeft (AC-27)', () => {
+  const limits = { maxFileMb: 10, maxVehiclePhotos: 5, maxDocuments: 3, vehiclePhotoCount: 5, documentCount: 1 };
+  it('counts documents in flight and ignores photos', () => {
+    expect(documentRoomLeft(limits, 0)).toBe(2);
+    expect(documentRoomLeft(limits, 2)).toBe(0);
+    expect(documentRoomLeft({ ...limits, documentCount: 4 }, 0)).toBe(0);
+  });
+});
+
+describe('typeProblem for documents (AC-4, AC-27)', () => {
+  const OTHER: AttachmentKindInfo = { kind: 'OTHER_DOCUMENT', label: 'Other document', accepts: ['application/pdf'], acceptsLabel: 'PDF files' };
+  it('lets a PDF through and refuses a photo the way the server words it', () => {
+    expect(typeProblem({ type: 'application/pdf' }, OTHER)).toBeNull();
+    expect(typeProblem({ type: 'image/jpeg' }, OTHER)).toBe('Other document accepts PDF files. This file is JPEG.');
   });
 });
 
