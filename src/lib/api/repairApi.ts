@@ -134,3 +134,16 @@ export async function unlockRepairTicket(
   });
   return response.data;
 }
+
+/** Assigns in house mechanics to an Open ticket, which then goes Assigned (ticket.assign, spec 0016, AC-17). */
+export async function assignMechanics(
+  repairId: string,
+  mechanicIds: string[],
+  lastUpdatedAt: string,
+): Promise<RepairTicket> {
+  const response = await api.post<RepairTicket>(`/vrms/repairs/${repairId}/assignments`, {
+    mechanics: mechanicIds.map((id) => ({ id })),
+    lastUpdatedAt,
+  });
+  return response.data;
+}

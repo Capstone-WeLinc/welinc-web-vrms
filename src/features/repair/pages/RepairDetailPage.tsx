@@ -9,7 +9,7 @@ import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getApiErrorStatus, getInvalidTransition } from '../../../lib/api/errors';
-import { unlockRepairTicket, updateRepairStatus } from '../../../lib/api/repairApi';
+import { assignMechanics, unlockRepairTicket, updateRepairStatus } from '../../../lib/api/repairApi';
 import { useHasTabBar } from '../../../components/layout/useNavSections';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import type { IssueResolution, RepairStatus, RepairTicket } from '../../../types';
@@ -17,6 +17,7 @@ import { ActivitySection } from '../components/ActivitySection';
 import { AiDiagnosisSection } from '../components/AiDiagnosisSection';
 import { Callout } from '../../../components/shared/Callout';
 import { CostsSection } from '../components/CostsSection';
+import { AssignMechanicDialog } from '../components/AssignMechanicDialog';
 import { NextActionBar } from '../components/NextActionBar';
 import { RepairDetailSkeleton } from '../components/RepairDetailSkeleton';
 import { SendBackBanner } from '../components/SendBackBanner';
@@ -158,6 +159,19 @@ export function RepairDetailPage() {
     }
   };
 
+  const assign = async (mechanicIds: string[]) => {
+    try {
+      const updated = await assignMechanics(ticket.id, mechanicIds, ticket.updatedAt);
+      setDialog(null);
+      replace(updated);
+      showToast(`${rep} is assigned.`, 'success');
+    } catch (err) {
+      // A stale ticket or a ticket that is no longer Open closes the dialog and reloads, like the other actions
+      if (handleRefused(err)) return;
+      throw err;
+    }
+  };
+
   const noMechanic =
     ticket.can.administer && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
   const noCosts = seesCosts && moveTo === 'CLOSED' && !hasCosts(ticket);
@@ -269,6 +283,15 @@ export function RepairDetailPage() {
           cancelLabel="Keep ticket"
           destructive
           onSubmit={(reason) => changeStatus(cancel.to, { cancellationReason: reason.trim() })}
+        />
+      )}
+
+      {primary?.kind === 'assign' && (
+        <AssignMechanicDialog
+          open={dialog === 'primary'}
+          onOpenChange={(open) => setDialog(open ? 'primary' : null)}
+          repairNumber={rep}
+          onSubmit={assign}
         />
       )}
 

@@ -5,6 +5,7 @@ import {
   FilePlus2,
   LockOpen,
   UserMinus,
+  UserPlus,
   PhilippinePeso,
   Warehouse,
   type LucideIcon,
@@ -63,6 +64,7 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   GARAGE_CHANGE: { icon: Warehouse, tone: 'bg-muted text-muted-strong' },
   KNOWLEDGE_LINK: { icon: BookOpen, tone: 'bg-primary/10 text-primary' },
   MECHANIC_UNASSIGNED: { icon: UserMinus, tone: 'bg-muted text-muted-strong' },
+  MECHANIC_ASSIGNED: { icon: UserPlus, tone: 'bg-primary/10 text-primary' },
 };
 
 export function eventStyle(type: string): EventStyle {

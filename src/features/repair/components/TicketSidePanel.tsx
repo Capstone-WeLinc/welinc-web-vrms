@@ -172,7 +172,7 @@ export function PeopleCard({ ticket }: { ticket: RepairTicket }) {
         </DetailItem>
         <DetailItem label={mechanics.length === 1 ? 'Mechanic' : 'Mechanics'}>
           {mechanics.length === 0 ? (
-            'None assigned'
+            'No mechanic yet.'
           ) : (
             <ul className="flex flex-col gap-1">
               {mechanics.map((mechanic) => (

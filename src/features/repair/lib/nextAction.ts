@@ -6,7 +6,10 @@ import { isFinishedStatus } from '../../../lib/repairStatus';
 // offers a move the server rejects.
 
 /** The main button: the forward move, or Unlock on a finished ticket. */
-export type PrimaryAction = { kind: 'move'; move: TicketMove } | { kind: 'unlock'; label: string };
+export type PrimaryAction =
+  | { kind: 'move'; move: TicketMove }
+  | { kind: 'unlock'; label: string }
+  | { kind: 'assign'; label: string };
 
 export interface TicketActions {
   primary: PrimaryAction | null;
@@ -38,6 +41,7 @@ function openNote(ticket: RepairTicket, moves: TicketMove[], holdsVerify: boolea
     // Spec 0015, AC-16: the same words as the server's 403 for a verifier assigned to the ticket
     return holdsVerify && ticket.can.work && !ticket.can.verify ? SELF_VERIFY_REASON : 'Waiting for verification.';
   }
+  if (ticket.status === 'OPEN') return 'No mechanic yet.';
   if (moves.length === 0 && !ticket.can.work && !ticket.can.administer) return 'This ticket is assigned to someone else.';
   return 'No next step for this status.';
 }
@@ -52,11 +56,14 @@ export function ticketActions(ticket: RepairTicket, holdsVerify = false): Ticket
   if (isClosed(ticket)) return finishedActions(ticket);
   const moves = ticket.moves ?? [];
   const forward = moves.find((m) => m.kind === 'forward') ?? null;
+  // Spec 0016, AC-18: an Open ticket has no status move forward; assigning is its next action,
+  // derived from the status and the flag because M1 carries no label
+  const assign = !forward && ticket.status === 'OPEN' && ticket.can.assign;
   return {
-    primary: forward ? { kind: 'move', move: forward } : null,
+    primary: forward ? { kind: 'move', move: forward } : assign ? { kind: 'assign', label: 'Assign mechanic' } : null,
     secondary: moves.find((m) => m.kind === 'back') ?? null,
     cancel: moves.find((m) => m.kind === 'cancel') ?? null,
-    note: forward ? null : openNote(ticket, moves, holdsVerify),
+    note: forward || assign ? null : openNote(ticket, moves, holdsVerify),
     // The server sends needs 'costs' on the close while the setting is on; it still refuses with no costs
     blocked: forward?.needs === 'costs' && !hasCosts(ticket) ? COSTS_REQUIRED_REASON : null,
   };

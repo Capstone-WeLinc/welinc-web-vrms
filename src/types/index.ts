@@ -140,6 +140,8 @@ export interface TicketCan {
   verify: boolean;
   editCosts: boolean;
   unlock: boolean;
+  /** Assign mechanics to an Open ticket (spec 0016, AC-16). */
+  assign: boolean;
 }
 
 /** One status move the server lets this caller make now (spec 0014, AC-13). */
