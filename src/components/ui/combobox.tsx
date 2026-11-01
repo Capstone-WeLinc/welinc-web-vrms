@@ -122,7 +122,7 @@ function Combobox({
                   <span className="flex min-w-0 flex-1 items-baseline gap-2">
                     <span className="truncate">{option.label}</span>
                     {option.description && (
-                      <span className="truncate text-xs text-muted-foreground">{option.description}</span>
+                      <span className="truncate text-xs text-muted-foreground in-data-[selected=true]:text-accent-foreground">{option.description}</span>
                     )}
                   </span>
                   {option.badge}
@@ -166,6 +166,7 @@ function Combobox({
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        aria-label={searchPlaceholder}
         className="w-(--radix-popover-trigger-width) p-0"
       >
         <Command filter={trimmedFilter} shouldFilter={!serverFiltered}>
