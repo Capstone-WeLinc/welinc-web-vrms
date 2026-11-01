@@ -89,10 +89,7 @@ export function buildRepairFormSchema(lists: RepairFormLists) {
       issues: z.array(issueSchema).min(1).max(MAX_ISSUES),
       priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
       mechanics: z.array(mechanicSchema).superRefine((mechanics, ctx) => {
-        if (mechanics.length === 0) {
-          ctx.addIssue({ code: 'custom', message: 'Assign at least one mechanic.' });
-          return;
-        }
+        // Optional (spec 0016, AC-15): none means the ticket starts Open
         const ids = lists.mechanicIds;
         if (!ids) return;
         mechanics.forEach((mechanic, index) => {

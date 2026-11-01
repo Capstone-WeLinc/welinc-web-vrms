@@ -216,8 +216,8 @@ export interface CreateRepairPayload {
   corporation?: string;
   garageLocation: string;
   odometerReading: number;
-  /** In house mechanics by Mechanic id (spec 0010, AC-12). */
-  mechanics: { id: string }[];
+  /** In house mechanics by Mechanic id (spec 0010, AC-12). Empty or left out: the ticket starts Open (spec 0016, AC-1). */
+  mechanics?: { id: string }[];
   priority: PriorityLevel;
   issues: CreateRepairIssue[];
 }

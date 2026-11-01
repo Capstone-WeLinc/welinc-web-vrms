@@ -63,7 +63,7 @@ export function MechanicPicker({ control, mechanics, clearErrors }: MechanicPick
 
         return (
           <Field data-invalid={invalid || undefined}>
-            <FieldLabel htmlFor={id} required>
+            <FieldLabel htmlFor={id}>
               Mechanics
             </FieldLabel>
             <Combobox

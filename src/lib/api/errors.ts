@@ -48,6 +48,16 @@ export function getInvalidTransition(err: unknown): string | null {
   return body?.code === 'INVALID_TRANSITION' ? (body.message ?? 'That move isn’t possible any more.') : null;
 }
 
+/** The 409 body of a create on a truck that already has an open repair (spec 0016, AC-3). */
+export function getOpenTicketExists(err: unknown): { message: string; ticket: { id: string; repairNumber: string } } | null {
+  if (!isAxiosError<{ code?: string; message?: string; ticket?: { id: string; repairNumber: string } }>(err) || err.response?.status !== 409) {
+    return null;
+  }
+  const body = err.response.data;
+  if (body?.code !== 'OPEN_TICKET_EXISTS' || !body.ticket) return null;
+  return { message: body.message ?? 'This truck already has an open repair.', ticket: body.ticket };
+}
+
 /** The `code` on a 409 body, such as STALE or DUPLICATE_NAME (spec 0007, AC-20). */
 export function getConflictCode(err: unknown): string | undefined {
   if (!isAxiosError<{ code?: string }>(err) || err.response?.status !== 409) return undefined;

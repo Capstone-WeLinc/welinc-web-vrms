@@ -77,13 +77,15 @@ export function RepairSummaryDialog({
             <PriorityBadge priority={values.priority} />
           </Row>
           <Row term="Mechanics">
-            <ul className="flex flex-col gap-0.5">
-              {values.mechanics.map((m) => (
-                <li key={m.id}>
-                  {m.name}
-                </li>
-              ))}
-            </ul>
+            {values.mechanics.length === 0 ? (
+              <p>This ticket will be Open until someone is assigned.</p>
+            ) : (
+              <ul className="flex flex-col gap-0.5">
+                {values.mechanics.map((m) => (
+                  <li key={m.id}>{m.name}</li>
+                ))}
+              </ul>
+            )}
           </Row>
           <Row term="Issues">
             {issueCount} {issueCount === 1 ? 'issue' : 'issues'}: {values.issues.map((i) => categoryNames[i.categoryId] ?? 'Unknown system').join(', ')}

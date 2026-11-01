@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, type Resolver } from 'react-hook-form';
 import { Wrench } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { FormAlert } from '../../../components/shared/FormAlert';
 import { useToast } from '../../../context/toast';
-import { getApiErrorMessage } from '../../../lib/api/errors';
+import { getApiErrorMessage, getOpenTicketExists } from '../../../lib/api/errors';
 import { createRepair } from '../../../lib/api/repairApi';
 import { syncMechanics } from '../../../lib/api/vrmsConfigApi';
 import { formatShortDate } from '../../../lib/utils/format';
@@ -81,7 +81,7 @@ export function RepairFormPage() {
   const [summaryValues, setSummaryValues] = useState<RepairFormValues | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [failure, setFailure] = useState<{ message: string; at: number } | null>(null);
+  const [failure, setFailure] = useState<{ message: string; at: number; ticket?: { id: string; repairNumber: string } } | null>(null);
 
   const formRef = useRef<HTMLFormElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
@@ -144,11 +144,16 @@ export function RepairFormPage() {
     } catch (err) {
       savingRef.current = false;
       if (!mountedRef.current) return;
+      const openTicket = getOpenTicketExists(err);
       const serverMessage = getApiErrorMessage(err, '');
-      const message = serverMessage ? `Couldn’t create the ticket: ${serverMessage}` : CREATE_FAILED;
+      const message = openTicket
+        ? openTicket.message
+        : serverMessage
+          ? `Couldn’t create the ticket: ${serverMessage}`
+          : CREATE_FAILED;
       setSaving(false);
       setSummaryOpen(false);
-      setFailure({ message, at: Date.now() });
+      setFailure({ message, at: Date.now(), ticket: openTicket?.ticket });
       showToast(message, 'error');
       // Lists may have changed under the form; refetch, then show what is no longer available.
       void refetchAll().then(() => {
@@ -207,7 +212,16 @@ export function RepairFormPage() {
             tabIndex={-1}
             className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring xl:col-span-3"
           >
-            <FormAlert message={failure.message} />
+            <FormAlert
+              message={failure.message}
+              action={
+                failure.ticket && (
+                  <Link to={`/repairs/${failure.ticket.id}`} className="font-medium underline underline-offset-2">
+                    Open {failure.ticket.repairNumber}
+                  </Link>
+                )
+              }
+            />
           </div>
         )}
 
