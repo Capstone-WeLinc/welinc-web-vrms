@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Clock, MessageSquarePlus, Unlink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -22,9 +22,14 @@ import { useEntryOptions } from '../hooks/useEntryOptions';
 import { hasSavedResolution } from '../lib/resolutionForm';
 import { SuggestDialog } from '../../knowledge-base/components/SuggestDialog';
 import { useModuleOn } from '../../../lib/permissions/usePermissions';
-import { uploadAttachment, type Attachment } from '../../../lib/api/attachmentsApi';
+import { removeAttachment, type Attachment } from '../../../lib/api/attachmentsApi';
+import { usePhotoUploadQueue } from '../hooks/usePhotoUploadQueue';
 import { useTicketAttachments } from '../hooks/useTicketAttachments';
+import { photoRoomLeft } from '../lib/photoUpload';
 import { PhotoStrip } from './PhotoStrip';
+
+// Spec 0017, AC-24: the viewer and its library load on first open only
+const PhotoViewer = lazy(() => import('./PhotoViewer').then((m) => ({ default: m.PhotoViewer })));
 
 interface IssuesSectionProps {
   ticket: RepairTicket;
@@ -326,44 +331,98 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
   const entries = useEntryOptions(canLink);
   const { showToast } = useToast();
   const attachments = useTicketAttachments(ticket.id);
-  /** Which strip is uploading: an issue id, or '' for the ticket strip. */
-  const [uploadingTo, setUploadingTo] = useState<string | null>(null);
+  const queue = usePhotoUploadQueue(ticket.id, attachments.reload);
+  /** Index into `photos` while the viewer is open, else -1 (AC-24). */
+  const [viewerIndex, setViewerIndex] = useState(-1);
+  /** The viewer's code loads on first open only. */
+  const [viewerLoaded, setViewerLoaded] = useState(false);
+  const opener = useRef<HTMLButtonElement | null>(null);
 
   const list = attachments.list;
-  const canAddPhotos = list != null && list.can.addFiles;
-  const photosFor = (issueId: string | null): Attachment[] =>
-    list?.items.filter((a) => a.kind === 'VEHICLE_PHOTO' && a.issueId === issueId) ?? [];
+  const photoKind = list?.kinds.find((k) => k.kind === 'VEHICLE_PHOTO');
+  const canAddPhotos = list != null && list.can.addFiles && photoKind != null;
+  /** Every live photo in list order: the viewer walks all of them (AC-24). */
+  const photos = list?.items.filter((a) => a.kind === 'VEHICLE_PHOTO') ?? [];
+  const inFlight = queue.items.filter((item) => item.status === 'waiting' || item.status === 'uploading').length;
+  const room = list ? photoRoomLeft(list.limits, inFlight) : 0;
+  const limitText =
+    list && room === 0
+      ? `Photo limit reached (${Math.min(list.limits.maxVehiclePhotos, list.limits.vehiclePhotoCount + inFlight)} of ${list.limits.maxVehiclePhotos})`
+      : null;
+  const issueNames = new Map(issues.map((issue, index) => [issue.id, `Issue ${index + 1}: ${issue.description}`]));
 
-  /** One file at a time, then fresh links (spec 0017, AC-21). */
-  const addPhotos = async (files: File[], issueId: string | null) => {
-    setUploadingTo(issueId ?? '');
-    try {
-      for (const file of files) {
-        try {
-          await uploadAttachment(ticket.id, file, { kind: 'VEHICLE_PHOTO', issueId });
-        } catch (err) {
-          showToast(getApiErrorMessage(err, `Couldn’t upload ${file.name}. Try again.`), 'error');
-        }
-      }
-      await attachments.reload();
-    } finally {
-      setUploadingTo(null);
+  /** Queue what fits under the photo limit; the queue uploads one at a time (AC-21, AC-23). */
+  const addPhotos = (files: File[], issueId: string | null) => {
+    if (!list || !photoKind) return;
+    const taken = files.slice(0, room);
+    if (taken.length < files.length) {
+      showToast(
+        room === 0
+          ? `This ticket already has ${list.limits.maxVehiclePhotos} photos, the most allowed.`
+          : `Only ${room} more ${room === 1 ? 'photo fits' : 'photos fit'} on this ticket, so the rest were left out.`,
+        'error',
+      );
     }
+    if (taken.length) queue.add(taken, issueId, photoKind, list.limits.maxFileMb);
+  };
+
+  /** AC-25: ask first, then the photo leaves the strip and the viewer. */
+  const removePhoto = async (photo: Attachment) => {
+    const ok = await confirm({
+      title: 'Remove this photo?',
+      description: 'It disappears from the ticket for everyone.',
+      confirmText: 'Remove',
+      tone: 'destructive',
+    });
+    if (!ok) return;
+    try {
+      await removeAttachment(ticket.id, photo.id);
+      const fresh = await attachments.reload();
+      const left = fresh?.items.filter((a) => a.kind === 'VEHICLE_PHOTO').length ?? 0;
+      setViewerIndex((i) => (i >= left ? left - 1 : i));
+      showToast('Photo removed', 'success');
+    } catch (err) {
+      // A 403 already showed the fixed denied toast
+      if (getApiErrorStatus(err) !== 403) showToast(getApiErrorMessage(err, 'Couldn’t remove the photo. Try again.'), 'error');
+    }
+  };
+
+  const openViewer = (photo: Attachment, thumb: HTMLButtonElement) => {
+    opener.current = thumb;
+    setViewerLoaded(true);
+    setViewerIndex(photos.findIndex((p) => p.id === photo.id));
   };
 
   const strip = (issueId: string | null, label: string) =>
     list ? (
       <PhotoStrip
-        photos={photosFor(issueId)}
+        photos={photos.filter((p) => p.issueId === issueId)}
+        queue={queue.items.filter((item) => item.issueId === issueId)}
         canAdd={canAddPhotos}
+        limitText={limitText}
         label={label}
-        busy={uploadingTo === (issueId ?? '')}
-        onAdd={(files) => void addPhotos(files, issueId)}
+        onAdd={(files) => addPhotos(files, issueId)}
+        onRetry={queue.retry}
+        onDismiss={queue.remove}
+        onOpen={openViewer}
+        onRemove={(photo) => void removePhoto(photo)}
+        onLinkError={attachments.reload}
       />
     ) : null;
 
   return (
     <DetailSection title="Issues">
+      {viewerLoaded && (
+        <Suspense fallback={null}>
+          <PhotoViewer
+            photos={photos}
+            index={viewerIndex}
+            issueNames={issueNames}
+            onIndexChange={setViewerIndex}
+            onClosed={() => opener.current?.focus()}
+          />
+        </Suspense>
+      )}
       {attachments.state === 'error' ? (
         <p className="text-sm text-muted-foreground">{attachments.errorMessage}</p>
       ) : (
