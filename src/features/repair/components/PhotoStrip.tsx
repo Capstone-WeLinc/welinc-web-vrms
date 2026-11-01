@@ -16,6 +16,8 @@ interface PhotoStripProps {
   canAdd: boolean;
   /** Set when the ticket is at its photo limit: the buttons disable and say so (AC-21). */
   limitText: string | null;
+  /** The ticket is at its photo limit: the buttons disable, whether or not this strip says so. */
+  atLimit: boolean;
   /** "Photos" for the ticket, or "Photos for issue 2". */
   label: string;
   onAdd: (files: File[]) => void;
@@ -83,7 +85,7 @@ function Thumb({ photo, onOpen, onRemove, onLinkError }: Pick<PhotoStripProps, '
 }
 
 /** Thumbnails for one place on the ticket, the add buttons and its uploads (spec 0017, AC-20 to AC-26). */
-export function PhotoStrip({ photos, queue, canAdd, limitText, label, onAdd, onRetry, onDismiss, onOpen, onRemove, onLinkError }: PhotoStripProps) {
+export function PhotoStrip({ photos, queue, canAdd, limitText, atLimit, label, onAdd, onRetry, onDismiss, onOpen, onRemove, onLinkError }: PhotoStripProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const chooseRef = useRef<HTMLInputElement>(null);
   // AC-21: "Take photo" is for phones (a real camera), not for a narrow desktop window
@@ -93,7 +95,6 @@ export function PhotoStrip({ photos, queue, canAdd, limitText, label, onAdd, onR
   // AC-20: with no photos, people who can't add see nothing
   if (photos.length === 0 && queue.length === 0 && !canAdd) return null;
 
-  const atLimit = limitText != null;
   const dropEnabled = canAdd && !isTouch && !atLimit;
 
   const pick = (input: HTMLInputElement) => {
@@ -137,7 +138,7 @@ export function PhotoStrip({ photos, queue, canAdd, limitText, label, onAdd, onR
       ) : (
         queue.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            No photos yet. Add one so others can see the problem.{dropEnabled && ' You can also drop photos here.'}
+            No photos yet.{!atLimit && ' Add one so others can see the problem.'}{dropEnabled && ' You can also drop photos here.'}
           </p>
         )
       )}

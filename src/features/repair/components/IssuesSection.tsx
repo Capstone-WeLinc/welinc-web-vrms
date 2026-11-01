@@ -399,7 +399,9 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
         photos={photos.filter((p) => p.issueId === issueId)}
         queue={photoQueue.filter((item) => item.issueId === issueId)}
         canAdd={canAddPhotos}
-        limitText={limitText}
+        // The ticket's own strip says it once; the issue strips only disable their buttons
+        limitText={issueId === null ? limitText : null}
+        atLimit={limitText != null}
         label={label}
         onAdd={(files) => addPhotos(files, issueId)}
         onRetry={queue.retry}
@@ -419,6 +421,7 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
             index={viewerIndex}
             issueNames={issueNames}
             onIndexChange={setViewerIndex}
+            onLinkError={attachments.reload}
             onClosed={() => opener.current?.focus()}
           />
         </Suspense>

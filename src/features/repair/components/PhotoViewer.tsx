@@ -1,4 +1,5 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
+import { ImageOff } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
@@ -14,6 +15,8 @@ interface PhotoViewerProps {
   /** Issue descriptions by id, for the caption of a tagged photo. */
   issueNames: Map<string, string>;
   onIndexChange: (index: number) => void;
+  /** First load error on a photo: fetch fresh links once, like a thumbnail does (AC-26). */
+  onLinkError: () => Promise<unknown>;
   /** After the close animation; the caller puts focus back on the thumbnail. */
   onClosed: () => void;
 }
@@ -46,8 +49,21 @@ function prefersReducedMotion() {
   return window.matchMedia(REDUCED_MOTION).matches;
 }
 
+/** Shown by the viewer when a photo will not load; asks for fresh links once, so the next open works (AC-26). */
+function LinkError({ onError }: { onError: () => Promise<unknown> }) {
+  useEffect(() => {
+    void onError();
+  }, [onError]);
+  return (
+    <div role="alert" className="flex max-w-xs flex-col items-center gap-2 p-4 text-center text-sm text-primary-foreground">
+      <ImageOff aria-hidden="true" className="size-8" />
+      Could not load this photo. Close the viewer and open it again.
+    </div>
+  );
+}
+
 /** Every live photo on the ticket, with swipe, arrows, pinch and double tap zoom (spec 0017, AC-24). */
-export function PhotoViewer({ photos, index, issueNames, onIndexChange, onClosed }: PhotoViewerProps) {
+export function PhotoViewer({ photos, index, issueNames, onIndexChange, onLinkError, onClosed }: PhotoViewerProps) {
   const still = useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, () => false);
   return (
     <Lightbox
@@ -70,6 +86,7 @@ export function PhotoViewer({ photos, index, issueNames, onIndexChange, onClosed
       animation={still ? { fade: 0, swipe: 0, navigation: 0, zoom: 0 } : undefined}
       zoom={{ doubleTapDelay: 300, scrollToZoom: true }}
       captions={{ descriptionTextAlign: 'start', descriptionMaxLines: 3 }}
+      render={{ iconError: () => <LinkError onError={onLinkError} /> }}
       controller={{ closeOnBackdropClick: true }}
       styles={{ root: THEME }}
     />

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { ExternalLink, FilePlus, FileText, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { confirm } from '../../../components/shared/confirm/confirm';
@@ -12,6 +12,9 @@ import { documentRoomLeft } from '../lib/photoUpload';
 import { UploadQueueRow } from './UploadQueueRow';
 
 const DOCUMENT_KINDS = new Set(['RECEIPT', 'OTHER_DOCUMENT']);
+
+/** A ticket can hold 100 documents; the newest this many show until someone asks for the rest. */
+const RECENT_DOCUMENTS = 10;
 
 function DocumentRow({ doc, kindLabel, onRemove }: { doc: Attachment; kindLabel: string; onRemove: () => void }) {
   return (
@@ -48,9 +51,12 @@ export function DocumentsCard() {
   const { ticketId, attachments, queue } = useTicketFiles();
   const { showToast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const list = attachments.list;
   const docs = list?.items.filter((a) => DOCUMENT_KINDS.has(a.kind)) ?? [];
+  const collapsed = !showAll && docs.length > RECENT_DOCUMENTS;
+  const shownDocs = collapsed ? docs.slice(-RECENT_DOCUMENTS) : docs;
   const docQueue = queue.items.filter((item) => DOCUMENT_KINDS.has(item.kind));
   const otherKind = list?.kinds.find((k) => k.kind === 'OTHER_DOCUMENT');
   const labels = new Map(list?.kinds.map((k) => [k.kind, k.label]));
@@ -99,9 +105,14 @@ export function DocumentsCard() {
   } else {
     body = (
       <div className="flex flex-col gap-3">
+        {docs.length > RECENT_DOCUMENTS && (
+          <Button type="button" variant="ghost" size="sm" aria-expanded={!collapsed} className="self-start" onClick={() => setShowAll(!showAll)}>
+            {collapsed ? `Show ${docs.length - RECENT_DOCUMENTS} earlier documents` : 'Show fewer documents'}
+          </Button>
+        )}
         {docs.length > 0 ? (
           <ul className="flex flex-col divide-y divide-border">
-            {docs.map((doc) => (
+            {shownDocs.map((doc) => (
               <DocumentRow key={doc.id} doc={doc} kindLabel={labels.get(doc.kind) ?? doc.kind} onRemove={() => void remove(doc)} />
             ))}
           </ul>
