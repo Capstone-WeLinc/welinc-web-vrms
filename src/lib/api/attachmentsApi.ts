@@ -43,7 +43,8 @@ export interface AttachmentList {
 }
 
 export async function getAttachments(ticketId: string): Promise<AttachmentList> {
-  const response = await api.get<AttachmentList>(`/vrms/repairs/${ticketId}/attachments`);
+  // Quiet: the ticket page shows STORAGE_UNAVAILABLE in place of the photos (AC-3), not a toast
+  const response = await api.get<AttachmentList>(`/vrms/repairs/${ticketId}/attachments`, { quiet: true });
   return response.data;
 }
 
@@ -65,6 +66,11 @@ export async function uploadAttachment(
   if (issueId) body.append('issueId', issueId);
   body.append('file', file);
   const response = await api.post<Attachment & { duplicate?: boolean }>(`/vrms/repairs/${ticketId}/attachments`, body, {
+    // The instance default is JSON, which would make axios turn the FormData into JSON;
+    // the browser adds the multipart boundary itself
+    headers: { 'Content-Type': 'multipart/form-data' },
+    // The upload tile shows the server's message, so no global toast (AC-23)
+    quiet: true,
     signal,
     onUploadProgress: (event) => {
       if (onProgress && event.total) onProgress(Math.round((event.loaded / event.total) * 100));
