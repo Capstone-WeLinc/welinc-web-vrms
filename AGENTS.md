@@ -20,6 +20,7 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 
 | `src/components/shared/`, `src/hooks/` | Widgets used by more than one feature (`GoToPageInput` for every paginated table, `Callout`, `DetailSection`, `FormSection`, `BackLink`, `PlateChip` for naming a truck, badges) and shared hooks (`useLeaveGuard` for unsaved forms) |
 | `src/lib/permissions/` | The permission keys (`keys.ts`, mirroring the backend's `catalog.ts`), the CASL ability built from `/vrms/permissions/me` (`PermissionsProvider.tsx`, refetched on focus, every 60 seconds and after a 403), `<Can>`, `useCan()` and `usePermissions()` (spec 0011) |
 | `src/features/settings/` | The Admin Settings hub at `/settings` (spec 0012): Modules, Thresholds, Roles and permissions (the matrix editor with its review step), Lookup lists and Change history, backed by `settingsApi.ts` and `permissionsApi.ts`. Each section shows only for its permission key, and a switched off module comes from `modules` in `usePermissions()` |
+| `src/features/dashboard/` | `DashboardPage` picks one of three dashboards from permission keys, never the role name: Chief (work, verify and see all without administer, spec 0015), Mechanic (work only) or Admin; the pure list rules live in `lib/attention.ts` |
 | `src/features/knowledge-base/` | Knowledge base library, entry, editor, suggestions and categories pages, backed by `/vrms/knowledge` (spec 0007) |
 | `src/context/toast.ts`, `ToastContext.tsx` | `useToast()` hook and context, and the provider component |
 | `src/lib/repairStatus.ts` | The one definition of open and finished ticket statuses (mirrors the backend's `ticket-statuses.ts`); screens read it, never a list of their own |
@@ -45,7 +46,7 @@ npm run build        # typecheck then vite build
 - Every backend call goes through the axios instance (via a wrapper in `src/lib/api/`), so it carries the token and the 401 handling. Don't use raw `fetch`.
 - In `catch` blocks, leave the error untyped and read it with `getApiErrorMessage`; no `err: any`.
 - Pages are named exports (`export function RepairListPage`). Imports mostly use relative paths; the `@` alias for `src` also works.
-- Never check a role in the UI. Roles are `ADMIN`, `CHIEF_MECHANIC` and `MECHANIC`, but routes, nav items and page buttons use `<Can I="<key>">` or `useCan(...keys)` on the keys the server sends, and ticket buttons use the ticket's `can` flags (`work`, `administer`, `editCosts`, `unlock`). The browser holds only keys and flags; rules with conditions are evaluated on the server (spec 0011).
+- Never check a role in the UI. Roles are `ADMIN`, `CHIEF_MECHANIC` and `MECHANIC`, but routes, nav items and page buttons use `<Can I="<key>">` or `useCan(...keys)` on the keys the server sends, and ticket buttons use the ticket's `can` flags (`work`, `administer`, `verify`, `editCosts`, `unlock`). The browser holds only keys and flags; rules with conditions are evaluated on the server (spec 0011).
 - Repair updates send `lastUpdatedAt` for optimistic locking; the backend rejects stale writes. Keep sending it on any new update call.
 - List endpoints may return either an array or `{ data, total }`; the API wrappers normalize both to `{ data, total }`.
 - Colors: no hex values in components. Use the CSS variables in inline styles (`var(--primary)`, `--danger`, `--success`, `--warning`, `--muted`, `--border`, `--status-*`, `--chart-1..5`) and the token utilities from `@theme inline` in `className` (`bg-primary`, `text-muted-foreground`, `bg-highlight`; Tailwind's default palette is off, so only tokens exist). `--danger`, `--warning`, `--on-accent` and `--on-primary` are older aliases that still work. Tint with `color-mix(...)` (see `tint()` in `features/analytics/utils.ts`). Gold is `--highlight`, and text on it is `--highlight-foreground` (dark). `--accent` is now a light slate, not gold. Text on navy is `--primary-foreground`.
@@ -60,7 +61,7 @@ npm run build        # typecheck then vite build
 - `src/lib/repairOptions.ts` holds the fixed dropdown lists for the repair form and the locally remembered driver names (`welinc_driver_names` in `localStorage`).
 - shadcn components live in `src/components/ui/` (config in `components.json`). Check there before hand rolling a dialog, select, combobox or table.
 - For quick session timeout tests, set `window.__WELINC_INACTIVITY_LIMIT__ = 30` (seconds) in the browser console.
-- In development only, a "Demo data" pill on the Settings hub (or `?data=worst`) swaps in break-ui's worst case, empty, one and 1,284 row datasets (`src/features/dev-ui/worst-case/`). Production builds drop it.
+- In development only, a "Demo data" pill on every page (mounted in `DashboardShell`; the x folds it to a dot, Alt+Shift+D shows or hides it, an amber dot means a fixture is on; or `?data=worst`) swaps in break-ui's worst case, empty, one and 1,284 row datasets (`src/features/dev-ui/worst-case/`). Production builds drop it.
 - Seed logins for local testing are in `welinc-auth/prisma/seeds/users.seed.ts` (for example `vrms.admin@welinc.com`). In portal mode, open `/login?token=<jwt>` to skip the portal.
 
 ## Agent skills
