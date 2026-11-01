@@ -1,10 +1,11 @@
 import type { ReactNode, RefObject } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { PriorityBadge } from '../../../../components/shared/PriorityBadge';
 import { ResponsiveDialog } from '../../../../components/shared/ResponsiveDialog';
 import type { VehicleOption } from '../../../../lib/api/vrmsConfigApi';
-import { UNDER_REPAIR_WARNING, type RepairFormValues } from '../../lib/repairFormSchema';
+import { type RepairFormValues } from '../../lib/repairFormSchema';
 
 interface RepairSummaryDialogProps {
   open: boolean;
@@ -13,6 +14,10 @@ interface RepairSummaryDialogProps {
   /** Category names by id, for each issue's System. */
   categoryNames: Record<string, string>;
   saving: boolean;
+  /** The server found a big jump above the last reading and wants it confirmed (spec 0016, AC-7). */
+  jump: { message: string } | null;
+  jumpConfirmed: boolean;
+  onJumpConfirmedChange: (confirmed: boolean) => void;
   /** Where focus goes on close instead of the opener, when it exists (the failure alert, AC-20). */
   finalFocusRef: RefObject<HTMLElement | null>;
   onCancel: () => void;
@@ -36,6 +41,9 @@ export function RepairSummaryDialog({
   vehicle,
   categoryNames,
   saving,
+  jump,
+  jumpConfirmed,
+  onJumpConfirmedChange,
   finalFocusRef,
   onCancel,
   onConfirm,
@@ -56,7 +64,7 @@ export function RepairSummaryDialog({
           <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={saving} onClick={onCancel}>
             Keep editing
           </Button>
-          <Button type="button" size="touch" className="md:h-10 md:text-sm" loading={saving} onClick={onConfirm}>
+          <Button type="button" size="touch" className="md:h-10 md:text-sm" loading={saving} disabled={!!jump && !jumpConfirmed} onClick={onConfirm}>
             Create ticket
           </Button>
         </>
@@ -66,29 +74,37 @@ export function RepairSummaryDialog({
         <dl>
           <Row term="Vehicle">
             <p>{vehicle?.model ? `${values.vehiclePlate} · ${vehicle.model}` : values.vehiclePlate}</p>
-            {vehicle?.status === 'UNDER_REPAIR' && (
-              <p className="mt-1 flex items-start gap-1.5 text-xs">
-                <AlertTriangle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-                {UNDER_REPAIR_WARNING}
-              </p>
-            )}
           </Row>
           <Row term="Priority">
             <PriorityBadge priority={values.priority} />
           </Row>
           <Row term="Mechanics">
-            <ul className="flex flex-col gap-0.5">
-              {values.mechanics.map((m) => (
-                <li key={m.id}>
-                  {m.name}
-                </li>
-              ))}
-            </ul>
+            {values.mechanics.length === 0 ? (
+              <p>This ticket will be Open until someone is assigned.</p>
+            ) : (
+              <ul className="flex flex-col gap-0.5">
+                {values.mechanics.map((m) => (
+                  <li key={m.id}>{m.name}</li>
+                ))}
+              </ul>
+            )}
           </Row>
           <Row term="Issues">
             {issueCount} {issueCount === 1 ? 'issue' : 'issues'}: {values.issues.map((i) => categoryNames[i.categoryId] ?? 'Unknown system').join(', ')}
           </Row>
           <Row term="Garage">{values.garageLocation}</Row>
+          {jump && (
+            <Row term="Odometer">
+              <p className="flex items-start gap-1.5">
+                <AlertTriangle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+                {jump.message}
+              </p>
+              <label className="mt-2 flex min-h-11 items-center gap-2 text-sm md:min-h-0">
+                <Checkbox checked={jumpConfirmed} onCheckedChange={(checked) => onJumpConfirmedChange(checked === true)} />
+                The reading is right
+              </label>
+            </Row>
+          )}
         </dl>
       )}
     </ResponsiveDialog>

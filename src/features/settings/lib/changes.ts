@@ -23,6 +23,23 @@ export function actorLabel(actor: HistoryChange['actor']): string {
   return actor?.name ?? actor?.email ?? 'System';
 }
 
+const LOOKUP_ACTION_WORD = { CREATE: 'Added', RENAME: 'Renamed', DEACTIVATE: 'Deactivated', REACTIVATE: 'Reactivated' } as const;
+
+/** A lookup row: a rename shows the old and new name, anything else the state before and after (spec 0016, AC-20). */
+function lookupSides(change: HistoryChange): { before: string; after: string } {
+  const name = (value: HistoryChange['before']) => (value && typeof value === 'object' ? value.name : '');
+  switch (change.action) {
+    case 'RENAME':
+      return { before: name(change.before), after: name(change.after) };
+    case 'DEACTIVATE':
+      return { before: 'Active', after: 'Inactive' };
+    case 'REACTIVATE':
+      return { before: 'Inactive', after: 'Active' };
+    default:
+      return { before: 'Not in the list', after: 'Active' };
+  }
+}
+
 function sideLabel(change: HistoryChange, side: 'before' | 'after', unit: string | undefined): string {
   const value = change[side];
   // A reset stores the default it went back to, so the row names it
@@ -35,6 +52,7 @@ function sideLabel(change: HistoryChange, side: 'before' | 'after', unit: string
 
 /** What the row shows for the value before and after, with the setting's unit when known. */
 export function changeSides(change: HistoryChange, unit?: string): { before: string; after: string } {
+  if (change.kind === 'lookup') return lookupSides(change);
   return { before: sideLabel(change, 'before', unit), after: sideLabel(change, 'after', unit) };
 }
 
@@ -44,6 +62,9 @@ export function changeSides(change: HistoryChange, unit?: string): { before: str
  */
 export function changeWhat(change: HistoryChange): string {
   const label = change.label === change.key ? `Removed ${change.kind === 'permission' ? 'permission' : 'setting'} (${change.key})` : change.label;
+  if (change.kind === 'lookup' && change.action && change.action !== 'SET' && change.action !== 'RESET') {
+    return `${label} (${LOOKUP_ACTION_WORD[change.action]})`;
+  }
   return change.roleLabel ? `${label} for ${change.roleLabel}` : label;
 }
 

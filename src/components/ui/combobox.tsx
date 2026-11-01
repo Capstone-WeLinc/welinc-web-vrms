@@ -49,6 +49,10 @@ type ComboboxProps = Omit<
   canCreate?: (text: string) => boolean
   /** Always the last row, whatever is typed, such as "Other (describe it yourself)". */
   pinnedOption?: ComboboxOption
+  /** Called as the search text changes, so the caller can load matching options. */
+  onSearchChange?: (text: string) => void
+  /** The options already match the search (a server search): skip the built in filter. */
+  serverFiltered?: boolean
 }
 
 const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
@@ -82,10 +86,16 @@ function Combobox({
   createLabel = (text) => `Add "${text}"`,
   canCreate,
   pinnedOption,
+  onSearchChange,
+  serverFiltered,
   ...props
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
-  const [search, setSearch] = React.useState("")
+  const [search, setSearchState] = React.useState("")
+  const setSearch = (text: string) => {
+    setSearchState(text)
+    onSearchChange?.(text)
+  }
   const selected = [...options, ...(pinnedOption ? [pinnedOption] : [])].find((option) => option.value === value)
   // A value from the Add row is not in the options, so show it as typed.
   const display = selected ? selected.label : value
@@ -112,7 +122,7 @@ function Combobox({
                   <span className="flex min-w-0 flex-1 items-baseline gap-2">
                     <span className="truncate">{option.label}</span>
                     {option.description && (
-                      <span className="truncate text-xs text-muted-foreground">{option.description}</span>
+                      <span className="truncate text-xs text-muted-foreground in-data-[selected=true]:text-accent-foreground">{option.description}</span>
                     )}
                   </span>
                   {option.badge}
@@ -156,9 +166,10 @@ function Combobox({
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        aria-label={searchPlaceholder}
         className="w-(--radix-popover-trigger-width) p-0"
       >
-        <Command filter={trimmedFilter}>
+        <Command filter={trimmedFilter} shouldFilter={!serverFiltered}>
           <CommandInput
             placeholder={searchPlaceholder}
             value={search}

@@ -147,3 +147,22 @@ describe('reviewGrants and removesAny', () => {
     expect(removesAny([{ role: 'MECHANIC', permission: 'a', allowed: true }, { role: 'MECHANIC', permission: 'b', allowed: false }])).toBe(true);
   });
 });
+
+// Spec 0016, AC-20: lookup list changes in the same feed
+describe('lookup rows', () => {
+  const lookup = (over: Partial<HistoryChange>) =>
+    row({ kind: 'lookup', key: 'lookup.vehicle_type', label: 'Vehicle types: Reefer', ...over });
+
+  it('shows a rename as the old and new name, with the action named', () => {
+    const change = lookup({ action: 'RENAME', before: { name: 'Trailer', isActive: true }, after: { name: 'Reefer', isActive: true } });
+    expect(changeSides(change)).toEqual({ before: 'Trailer', after: 'Reefer' });
+    expect(changeWhat(change)).toBe('Vehicle types: Reefer (Renamed)');
+  });
+
+  it('shows add, deactivate and reactivate as states', () => {
+    expect(changeSides(lookup({ action: 'CREATE', before: null, after: { name: 'Reefer', isActive: true } })).after).toBe('Active');
+    expect(changeSides(lookup({ action: 'DEACTIVATE' }))).toEqual({ before: 'Active', after: 'Inactive' });
+    expect(changeSides(lookup({ action: 'REACTIVATE' }))).toEqual({ before: 'Inactive', after: 'Active' });
+    expect(changeWhat(lookup({ action: 'CREATE' }))).toBe('Vehicle types: Reefer (Added)');
+  });
+});

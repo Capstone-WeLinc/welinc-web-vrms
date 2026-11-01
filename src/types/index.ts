@@ -118,7 +118,8 @@ export interface CreateRepairIssue {
   /** An active IssueCategory, shown as System. */
   categoryId: string;
   rootCause: string;
-  description: string;
+  /** Left out when blank and a common issue is picked: the server uses its name (spec 0016, AC-5). */
+  description?: string;
   /** The picked common issue; left out for Other. */
   knowledgeEntryId?: string;
 }
@@ -139,6 +140,8 @@ export interface TicketCan {
   verify: boolean;
   editCosts: boolean;
   unlock: boolean;
+  /** Assign mechanics to an Open ticket (spec 0016, AC-16). */
+  assign: boolean;
 }
 
 /** One status move the server lets this caller make now (spec 0014, AC-13). */
@@ -174,8 +177,8 @@ export interface RepairTicket {
   /** Set on the move to Closed or Cancelled. */
   closedAt?: string | null;
   totalCost?: number | null;
-  accountType?: AccountType;
-  corporation?: string;
+  accountType?: AccountType | null;
+  corporation?: string | null;
   garageLocation?: string;
   odometerReading?: number;
   mechanics?: MechanicAssignment[];
@@ -210,14 +213,18 @@ export interface RepairTicket {
 
 export interface CreateRepairPayload {
   vehiclePlate: string;
-  driverName: string;
-  issueDescription: string;
+  /** Exactly one of driverId and newDriver (spec 0016, AC-6). */
+  driverId?: string;
+  newDriver?: { name: string; licenseNumber: string };
   accountType: AccountType;
-  corporation?: string;
+  /** An active value of the corporation list; sent with CORPORATE only. */
+  corporationId?: string;
   garageLocation: string;
   odometerReading: number;
-  /** In house mechanics by Mechanic id (spec 0010, AC-12). */
-  mechanics: { id: string }[];
+  /** The reading is right although it jumps far above the last one (spec 0016, AC-7). */
+  confirmOdometerJump?: boolean;
+  /** In house mechanics by Mechanic id (spec 0010, AC-12). Empty or left out: the ticket starts Open (spec 0016, AC-1). */
+  mechanics?: { id: string }[];
   priority: PriorityLevel;
   issues: CreateRepairIssue[];
 }

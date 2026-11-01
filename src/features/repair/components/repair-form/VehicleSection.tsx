@@ -1,27 +1,30 @@
 import { useMemo } from 'react';
-import { useWatch } from 'react-hook-form';
-import { AlertTriangle } from 'lucide-react';
+import { type UseFormClearErrors, type UseFormSetValue } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { DriverOption, GarageOption, VehicleOption } from '../../../../lib/api/vrmsConfigApi';
+import type { GarageOption, VehicleOption } from '../../../../lib/api/vrmsConfigApi';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
-import { sameName, UNDER_REPAIR_WARNING, type RepairFormControl } from '../../lib/repairFormSchema';
+import { type RepairFormControl, type RepairFormInput } from '../../lib/repairFormSchema';
 import { FieldRow, FormSection } from '../../../../components/shared/FormSection';
+import type { VehicleSummaryState } from '../../hooks/useVehicleSummary';
+import { DriverField } from './DriverField';
+import { VehicleCard } from './VehicleCard';
 import { FieldSkeleton, ListError } from './RepairFormParts';
 
 interface VehicleSectionProps {
   control: RepairFormControl;
   vehicles: OptionList<VehicleOption>;
-  drivers: OptionList<DriverOption>;
   garages: OptionList<GarageOption>;
+  setValue: UseFormSetValue<RepairFormInput>;
+  clearErrors: UseFormClearErrors<RepairFormInput>;
+  summary: VehicleSummaryState;
 }
 
-export function VehicleSection({ control, vehicles, drivers, garages }: VehicleSectionProps) {
-  const plate = useWatch({ control, name: 'vehiclePlate' });
+export function VehicleSection({ control, vehicles, garages, setValue, clearErrors, summary }: VehicleSectionProps) {
 
   const vehicleOptions = useMemo<ComboboxOption[]>(
     () =>
@@ -42,17 +45,6 @@ export function VehicleSection({ control, vehicles, drivers, garages }: VehicleS
     [vehicles.data],
   );
 
-  // Drivers are matched by name on the server, so the name is the value; the first of each name wins.
-  const driverOptions = useMemo<ComboboxOption[]>(() => {
-    const unique: ComboboxOption[] = [];
-    for (const driver of drivers.data ?? []) {
-      const name = driver.name.trim();
-      if (name && !unique.some((option) => sameName(option.value, name))) unique.push({ value: name, label: name });
-    }
-    return unique;
-  }, [drivers.data]);
-
-  const underRepair = vehicles.data?.some((v) => v.plateNumber === plate && v.status === 'UNDER_REPAIR') ?? false;
   const noVehicles = vehicles.data?.length === 0;
   const noGarages = garages.data?.length === 0;
 
@@ -68,16 +60,7 @@ export function VehicleSection({ control, vehicles, drivers, garages }: VehicleS
               name="vehiclePlate"
               label="Vehicle"
               required
-              description={
-                underRepair ? (
-                  <span className="flex items-start gap-1.5 text-foreground">
-                    <AlertTriangle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-                    {UNDER_REPAIR_WARNING}
-                  </span>
-                ) : noVehicles ? (
-                  'No vehicles are registered yet.'
-                ) : undefined
-              }
+              description={noVehicles ? 'No vehicles are registered yet.' : undefined}
               render={({ field, controlProps }) => (
                 <Combobox
                   {...controlProps}
@@ -98,37 +81,9 @@ export function VehicleSection({ control, vehicles, drivers, garages }: VehicleS
           )}
         </div>
 
-        <div className="flex flex-col gap-2">
-          {drivers.loading ? (
-            <FieldSkeleton label="Driver" />
-          ) : (
-            <FormField
-              control={control}
-              name="driverName"
-              label="Driver"
-              required
-              description="New names are saved as unverified drivers."
-              render={({ field, controlProps }) => (
-                <Combobox
-                  {...controlProps}
-                  ref={field.ref}
-                  options={driverOptions}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  onBlur={field.onBlur}
-                  onCreate={field.onChange}
-                  createLabel={(text) => `Add "${text}" as a new driver`}
-                  placeholder="Choose or add a driver"
-                  searchPlaceholder="Search or type a new name"
-                  emptyText="No driver matches."
-                />
-              )}
-            />
-          )}
-          {drivers.failed && (
-            <ListError message="Couldn’t load drivers." retrying={drivers.retrying} onRetry={drivers.retry} />
-          )}
-        </div>
+        <VehicleCard state={summary} />
+
+        <DriverField control={control} setValue={setValue} clearErrors={clearErrors} />
 
         <div className="flex flex-col gap-2">
           {garages.loading ? (
@@ -175,6 +130,7 @@ export function VehicleSection({ control, vehicles, drivers, garages }: VehicleS
           control={control}
           name="odometerReading"
           label="Odometer reading"
+          description={summary.summary && summary.summary.lastOdometer > 0 ? `Last reading ${summary.summary.lastOdometer.toLocaleString('en-US')} km` : undefined}
           required
           render={({ field, controlProps }) => (
             <div className="relative">

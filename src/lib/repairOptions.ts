@@ -13,8 +13,6 @@ export const PRIORITY_OPTIONS = [
   { value: 'CRITICAL', label: 'Critical' },
 ] as const;
 
-const CORPORATION_OPTIONS = ['WeLinc Transport Corp', 'Metro Freight Corp', 'Global Logistics Inc'];
-
 const ROOT_CAUSE_OPTIONS = [
   'Wear and tear',
   'Hydraulic leak',
@@ -25,12 +23,10 @@ const ROOT_CAUSE_OPTIONS = [
 ];
 
 export interface RepairFormOptions {
-  corporations: readonly string[];
   rootCauses: readonly string[];
 }
 
 const REPAIR_FORM_OPTIONS: RepairFormOptions = {
-  corporations: CORPORATION_OPTIONS,
   rootCauses: ROOT_CAUSE_OPTIONS,
 };
 

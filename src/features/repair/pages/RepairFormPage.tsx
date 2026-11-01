@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, type Resolver } from 'react-hook-form';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { Wrench } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { FormAlert } from '../../../components/shared/FormAlert';
 import { useToast } from '../../../context/toast';
-import { getApiErrorMessage } from '../../../lib/api/errors';
+import { getApiErrorMessage, getDriverExists, getOdometerProblem, getOpenTicketExists } from '../../../lib/api/errors';
 import { createRepair } from '../../../lib/api/repairApi';
+import { useVehicleSummary } from '../hooks/useVehicleSummary';
 import { syncMechanics } from '../../../lib/api/vrmsConfigApi';
 import { formatShortDate } from '../../../lib/utils/format';
 import { useAuthStore } from '../../../store/authStore';
@@ -68,6 +70,7 @@ export function RepairFormPage() {
     setValue,
     getValues,
     clearErrors,
+    setError,
     trigger,
     formState: { isDirty, submitCount },
   } = useForm<RepairFormInput, unknown, RepairFormValues>({
@@ -78,10 +81,32 @@ export function RepairFormPage() {
     shouldFocusError: false,
   });
 
+  // Facts about the picked truck, and its usual driver in the empty driver field (spec 0016, AC-12)
+  const plate = useWatch({ control, name: 'vehiclePlate' });
+  const vehicleId = options.vehicles.data?.find((v) => v.plateNumber === plate)?.id ?? '';
+  const vehicleSummary = useVehicleSummary(vehicleId);
+  const lastDriver = vehicleSummary.summary?.lastDriver ?? null;
+  useEffect(() => {
+    if (!lastDriver) return;
+    const current = getValues();
+    if (current.addingDriver || current.driverId) return;
+    setValue('driverId', lastDriver.id, { shouldDirty: true });
+    setValue('driverLabel', lastDriver.name);
+    clearErrors('driverId');
+  }, [lastDriver, getValues, setValue, clearErrors]);
+
   const [summaryValues, setSummaryValues] = useState<RepairFormValues | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [failure, setFailure] = useState<{ message: string; at: number } | null>(null);
+  const [failure, setFailure] = useState<{
+    message: string;
+    at: number;
+    ticket?: { id: string; repairNumber: string };
+    driver?: { id: string; name: string };
+  } | null>(null);
+  // A big odometer jump the server wants confirmed (spec 0016, AC-7)
+  const [jump, setJump] = useState<{ message: string } | null>(null);
+  const [jumpConfirmed, setJumpConfirmed] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
@@ -121,6 +146,8 @@ export function RepairFormPage() {
     void handleSubmit(
       (values) => {
         setSummaryValues(values);
+        setJump(null);
+        setJumpConfirmed(false);
         setSummaryOpen(true);
       },
       () => {
@@ -134,7 +161,7 @@ export function RepairFormPage() {
     savingRef.current = true;
     setSaving(true);
     try {
-      const ticket = await createRepair(toCreatePayload(summaryValues));
+      const ticket = await createRepair(toCreatePayload(summaryValues, { confirmOdometerJump: jumpConfirmed }));
       submittedRef.current = true;
       savingRef.current = false;
       if (!mountedRef.current) return;
@@ -144,17 +171,53 @@ export function RepairFormPage() {
     } catch (err) {
       savingRef.current = false;
       if (!mountedRef.current) return;
+      const odometer = getOdometerProblem(err);
+      if (odometer) {
+        setSaving(false);
+        if (odometer.code === 'ODOMETER_JUMP_UNCONFIRMED') {
+          // Stay in the summary: the person confirms the reading there and creates again
+          setJump({ message: odometer.message });
+          return;
+        }
+        setSummaryOpen(false);
+        setError('odometerReading', { type: 'server', message: odometer.message });
+        focusErrorRef.current = true;
+        formRef.current?.querySelector<HTMLElement>('[name="odometerReading"]')?.focus();
+        return;
+      }
+      const existingDriver = getDriverExists(err);
+      const openTicket = getOpenTicketExists(err);
       const serverMessage = getApiErrorMessage(err, '');
-      const message = serverMessage ? `Couldn’t create the ticket: ${serverMessage}` : CREATE_FAILED;
+      const message = openTicket
+        ? openTicket.message
+        : serverMessage
+          ? `Couldn’t create the ticket: ${serverMessage}`
+          : CREATE_FAILED;
       setSaving(false);
       setSummaryOpen(false);
-      setFailure({ message, at: Date.now() });
+      setFailure({
+        message: existingDriver ? `A driver with this license exists: ${existingDriver.name}.` : message,
+        at: Date.now(),
+        ticket: openTicket?.ticket,
+        driver: existingDriver ?? undefined,
+      });
       showToast(message, 'error');
       // Lists may have changed under the form; refetch, then show what is no longer available.
       void refetchAll().then(() => {
         if (mountedRef.current) void trigger();
       });
     }
+  };
+
+  // "Use <name>" after DRIVER_EXISTS: switch from the new driver fields to that driver (spec 0016, AC-13)
+  const switchToExistingDriver = (driver: { id: string; name: string }) => {
+    setValue('addingDriver', false, { shouldDirty: true });
+    setValue('driverId', driver.id, { shouldDirty: true });
+    setValue('driverLabel', driver.name);
+    setValue('newDriverName', '');
+    setValue('newDriverLicense', '');
+    clearErrors(['driverId', 'newDriverName', 'newDriverLicense']);
+    setFailure(null);
   };
 
   const chosenVehicle = options.vehicles.data?.find((v) => v.plateNumber === summaryValues?.vehiclePlate);
@@ -181,8 +244,10 @@ export function RepairFormPage() {
           <VehicleSection
             control={control}
             vehicles={options.vehicles}
-            drivers={options.drivers}
             garages={options.garages}
+            summary={vehicleSummary}
+            setValue={setValue}
+            clearErrors={clearErrors}
           />
           <IssueLoggingSection
             control={control}
@@ -198,7 +263,7 @@ export function RepairFormPage() {
             mechanics={options.mechanics}
             clearErrors={clearErrors}
           />
-          <BillingSection control={control} setValue={setValue} clearErrors={clearErrors} />
+          <BillingSection control={control} setValue={setValue} clearErrors={clearErrors} corporations={options.corporations} />
         </div>
 
         {failure && (
@@ -207,12 +272,25 @@ export function RepairFormPage() {
             tabIndex={-1}
             className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring xl:col-span-3"
           >
-            <FormAlert message={failure.message} />
+            <FormAlert
+              message={failure.message}
+              action={
+                failure.ticket ? (
+                  <Link to={`/repairs/${failure.ticket.id}`} className="font-medium underline underline-offset-2">
+                    Open {failure.ticket.repairNumber}
+                  </Link>
+                ) : failure.driver ? (
+                  <Button type="button" variant="outline" size="sm" onClick={() => switchToExistingDriver(failure.driver!)}>
+                    Use {failure.driver.name}
+                  </Button>
+                ) : undefined
+              }
+            />
           </div>
         )}
 
         <div className="xl:col-span-3">
-          <RepairFormActions saving={saving} listsBlocked={listsBlocked} onCancel={() => navigate('/repairs')} />
+          <RepairFormActions saving={saving} listsBlocked={listsBlocked} openTicketBlocked={!!vehicleSummary.summary?.openTicket} onCancel={() => navigate('/repairs')} />
         </div>
       </form>
 
@@ -222,6 +300,9 @@ export function RepairFormPage() {
         vehicle={chosenVehicle}
         categoryNames={categoryNames}
         saving={saving}
+        jump={jump}
+        jumpConfirmed={jumpConfirmed}
+        onJumpConfirmedChange={setJumpConfirmed}
         finalFocusRef={alertRef}
         onCancel={closeSummary}
         onConfirm={() => void create()}

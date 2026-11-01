@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 import type { PermissionKey } from '../../../lib/permissions/keys';
 import { allowedSections, SETTINGS_KEYS, SETTINGS_SECTIONS } from './sections';
 
-// Spec 0012, AC-21: five sections, each at its own path and shown only with its key
+// Spec 0012, AC-21 and spec 0016, AC-21: six sections, each at its own path and shown only with its key
 
 const holding = (...keys: PermissionKey[]) => (key: PermissionKey) => keys.includes(key);
 const paths = (can: (key: PermissionKey) => boolean) => allowedSections(can).map((s) => s.path);
 
 describe('SETTINGS_SECTIONS', () => {
-  it('lists the five sections in the spec order, each at its own path (AC-21)', () => {
-    expect(SETTINGS_SECTIONS.map((s) => s.path)).toEqual(['modules', 'thresholds', 'roles', 'lookups', 'history']);
+  it('lists the six sections in the spec order, each at its own path (AC-21)', () => {
+    expect(SETTINGS_SECTIONS.map((s) => s.path)).toEqual(['modules', 'thresholds', 'roles', 'lookups', 'vehicles', 'history']);
   });
 
   it('gives every section a label and a description, and no path twice', () => {
@@ -28,6 +28,7 @@ describe('SETTINGS_SECTIONS', () => {
       thresholds: 'settings.manage',
       roles: 'permissions.manage',
       lookups: 'lookups.manage',
+      vehicles: 'vehicle.manage',
       history: 'settings.manage',
     });
   });
@@ -35,11 +36,12 @@ describe('SETTINGS_SECTIONS', () => {
 
 describe('allowedSections', () => {
   it('shows an Admin every section', () => {
-    expect(paths(holding('settings.manage', 'permissions.manage', 'lookups.manage'))).toEqual([
+    expect(paths(holding('settings.manage', 'permissions.manage', 'lookups.manage', 'vehicle.manage'))).toEqual([
       'modules',
       'thresholds',
       'roles',
       'lookups',
+      'vehicles',
       'history',
     ]);
   });
@@ -67,7 +69,7 @@ describe('allowedSections', () => {
 });
 
 describe('SETTINGS_KEYS', () => {
-  it('is the three keys that show the Settings nav item, each once (AC-21)', () => {
-    expect([...SETTINGS_KEYS].sort()).toEqual(['lookups.manage', 'permissions.manage', 'settings.manage']);
+  it('is the four keys that show the Settings nav item, each once (AC-21)', () => {
+    expect([...SETTINGS_KEYS].sort()).toEqual(['lookups.manage', 'permissions.manage', 'settings.manage', 'vehicle.manage']);
   });
 });

@@ -6,9 +6,9 @@ import { canEditCosts, canWorkTicket, hasCosts, primaryTarget, ticketActions } f
 // Spec 0014, AC-15: the page's actions come from ticket.moves only, so it never offers a move
 // the server rejects. Spec 0011's flags still drive Unlock, costs and the steps.
 
-const NONE: TicketCan = { work: false, administer: false, verify: false, editCosts: false, unlock: false };
+const NONE: TicketCan = { work: false, administer: false, verify: false, editCosts: false, unlock: false, assign: false };
 const WORKER: TicketCan = { ...NONE, work: true };
-const ADMIN: TicketCan = { work: false, administer: true, verify: true, editCosts: true, unlock: true };
+const ADMIN: TicketCan = { work: false, administer: true, verify: true, editCosts: true, unlock: true, assign: false };
 
 const START: TicketMove = { to: 'IN_PROGRESS', label: 'Start work', kind: 'forward', needs: null };
 const VERIFY: TicketMove = { to: 'CLOSED', label: 'Verify and close', kind: 'forward', needs: null };
@@ -120,5 +120,27 @@ describe('hasCosts', () => {
     expect(hasCosts(ticket())).toBe(false);
     expect(hasCosts(ticket({ totalCost: 0 }))).toBe(true);
     expect(hasCosts(ticket({ partsCost: null, laborCost: null, totalCost: null }))).toBe(false);
+  });
+});
+
+// Spec 0016, AC-18: Assign mechanic comes from the status and the assign flag, not from moves
+describe('ticketActions on an Open ticket', () => {
+  const ASSIGNER: TicketCan = { ...NONE, assign: true };
+
+  it('offers Assign mechanic to someone who may assign', () => {
+    const actions = ticketActions(ticket({ status: 'OPEN', can: ASSIGNER, moves: [CANCEL] }));
+    expect(actions.primary).toEqual({ kind: 'assign', label: 'Assign mechanic' });
+    expect(actions.note).toBeNull();
+    expect(actions.cancel).toBe(CANCEL);
+  });
+
+  it('offers no button without the flag, and says there is no mechanic yet', () => {
+    const actions = ticketActions(ticket({ status: 'OPEN', can: NONE, moves: [] }));
+    expect(actions.primary).toBeNull();
+    expect(actions.note).toBe('No mechanic yet.');
+  });
+
+  it('never offers it once the ticket is Assigned', () => {
+    expect(ticketActions(ticket({ status: 'ASSIGNED', can: ASSIGNER, moves: [] })).primary).toBeNull();
   });
 });

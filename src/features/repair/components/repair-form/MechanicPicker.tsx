@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import type { MechanicOption } from '../../../../lib/api/vrmsConfigApi';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
 import type { RepairFormControl, RepairFormInput } from '../../lib/repairFormSchema';
+import { sortMechanics } from '../../lib/mechanicOrder';
 import { ListError } from './RepairFormParts';
 
 interface MechanicPickerProps {
@@ -17,10 +18,6 @@ interface MechanicPickerProps {
   clearErrors: UseFormClearErrors<RepairFormInput>;
 }
 
-/** Free mechanics first, then busy ones, alphabetical within each. */
-function sortMechanics(list: MechanicOption[]) {
-  return [...list].sort((a, b) => Number(!a.isAvailable) - Number(!b.isAvailable) || a.name.localeCompare(b.name));
-}
 
 /**
  * An adder: picking a mechanic adds a chip and clears the picker (AC-10). In house mechanics only
@@ -45,7 +42,9 @@ export function MechanicPicker({ control, mechanics, clearErrors }: MechanicPick
           .map((m) => ({
             value: m.id,
             label: m.name,
-            badge: m.isAvailable ? undefined : <Badge variant="secondary">Has open work</Badge>,
+            group: 'In house',
+            description: `${m.openCount} open`,
+            badge: m.busy ? <Badge variant="secondary">Busy</Badge> : undefined,
           }));
 
         const add = (chip: { id: string; name: string }) => {
@@ -63,7 +62,7 @@ export function MechanicPicker({ control, mechanics, clearErrors }: MechanicPick
 
         return (
           <Field data-invalid={invalid || undefined}>
-            <FieldLabel htmlFor={id} required>
+            <FieldLabel htmlFor={id}>
               Mechanics
             </FieldLabel>
             <Combobox

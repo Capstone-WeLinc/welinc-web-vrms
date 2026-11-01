@@ -33,6 +33,7 @@ import { ModulesSection } from './features/settings/components/ModulesSection';
 import { ThresholdsSection } from './features/settings/components/ThresholdsSection';
 import { RolesSection } from './features/settings/components/RolesSection';
 import { LookupsSection } from './features/settings/components/LookupsSection';
+import { VehiclesSection } from './features/settings/components/VehiclesSection';
 import { HistorySection } from './features/settings/components/HistorySection';
 import { SETTINGS_KEYS } from './features/settings/lib/sections';
 
@@ -268,6 +269,14 @@ function App() {
               element={
                 <RequireSection permission="lookups.manage">
                   <LookupsSection />
+                </RequireSection>
+              }
+            />
+            <Route
+              path="vehicles"
+              element={
+                <RequireSection permission="vehicle.manage">
+                  <VehiclesSection />
                 </RequireSection>
               }
             />

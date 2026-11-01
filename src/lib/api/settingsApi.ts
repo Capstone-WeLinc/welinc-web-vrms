@@ -53,21 +53,21 @@ export async function updateSettings(body: UpdateSettings): Promise<SettingsView
 /** One row of the merged history of setting and permission changes (spec 0012, AC-26). */
 export interface HistoryChange {
   id: string;
-  kind: 'setting' | 'permission';
+  kind: 'setting' | 'permission' | 'lookup';
   key: string;
   label: string;
   /** Set for a permission row. */
   roleLabel: string | null;
   /** The value on each side; null on a permission row means added or removed. */
-  before: number | boolean | string | null;
-  after: number | boolean | string | null;
-  action: 'SET' | 'RESET' | null;
+  before: number | boolean | string | { name: string; isActive: boolean } | null;
+  after: number | boolean | string | { name: string; isActive: boolean } | null;
+  action: 'SET' | 'RESET' | 'CREATE' | 'RENAME' | 'DEACTIVATE' | 'REACTIVATE' | null;
   actor: { name: string | null; email: string | null } | null;
   note: string | null;
   createdAt: string;
 }
 
-export type HistoryKind = 'all' | 'setting' | 'permission';
+export type HistoryKind = 'all' | 'setting' | 'permission' | 'lookup';
 
 /**
  * Newest first, 20 per page by default. Needs settings.manage. `keys` keeps only those keys'
