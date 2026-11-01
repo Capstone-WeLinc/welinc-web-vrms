@@ -120,3 +120,30 @@ export async function getVehicleSummary(id: string): Promise<VehicleSummary> {
   const response = await api.get<VehicleSummary>(`/vrms/vehicles/${id}/summary`, { quiet: true });
   return response.data;
 }
+
+export interface LookupValue {
+  id: string;
+  name: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+/** Every value of a list, inactive ones too (lookups.manage, spec 0016, AC-19). */
+export async function getLookupAll(list: string): Promise<LookupValue[]> {
+  const response = await api.get<LookupValue[]>(`/vrms/lookups/${list}/all`, { quiet: true });
+  return response.data;
+}
+
+export async function createLookupValue(list: string, name: string): Promise<LookupValue> {
+  const response = await api.post<LookupValue>(`/vrms/lookups/${list}`, { name }, { quiet: true });
+  return response.data;
+}
+
+export async function updateLookupValue(
+  list: string,
+  id: string,
+  change: { name?: string; isActive?: boolean },
+): Promise<LookupValue> {
+  const response = await api.patch<LookupValue>(`/vrms/lookups/${list}/${id}`, change, { quiet: true });
+  return response.data;
+}

@@ -1,4 +1,4 @@
-import { History, ListTree, Power, ShieldCheck, SlidersHorizontal, type LucideIcon } from 'lucide-react';
+import { History, ListTree, Power, ShieldCheck, SlidersHorizontal, Truck, type LucideIcon } from 'lucide-react';
 import type { PermissionKey } from '../../../lib/permissions/keys';
 
 export interface SettingsSection {
@@ -36,9 +36,16 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     path: 'lookups',
     label: 'Lookup lists',
-    description: 'The lists behind dropdowns, starting with issue categories.',
+    description: 'The lists behind dropdowns: issue categories, vehicle types and corporations.',
     icon: ListTree,
     permission: 'lookups.manage',
+  },
+  {
+    path: 'vehicles',
+    label: 'Vehicles',
+    description: 'Set the type of each truck.',
+    icon: Truck,
+    permission: 'vehicle.manage',
   },
   {
     path: 'history',

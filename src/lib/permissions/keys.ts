@@ -20,6 +20,7 @@ export type PermissionKey =
   | 'audit.view'
   | 'analytics.view'
   | 'config.read'
+  | 'vehicle.manage'
   | 'knowledge.view'
   | 'knowledge.suggest'
   | 'knowledge.edit'
