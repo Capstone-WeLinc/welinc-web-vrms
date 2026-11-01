@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Clock, MessageSquarePlus, Unlink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,9 @@ import { useEntryOptions } from '../hooks/useEntryOptions';
 import { hasSavedResolution } from '../lib/resolutionForm';
 import { SuggestDialog } from '../../knowledge-base/components/SuggestDialog';
 import { useModuleOn } from '../../../lib/permissions/usePermissions';
+import { uploadAttachment, type Attachment } from '../../../lib/api/attachmentsApi';
+import { useTicketAttachments } from '../hooks/useTicketAttachments';
+import { PhotoStrip } from './PhotoStrip';
 
 interface IssuesSectionProps {
   ticket: RepairTicket;
@@ -84,11 +87,13 @@ interface IssueBlockProps {
   knowledgeOn: boolean;
   canTick: boolean;
   entries: ReturnType<typeof useEntryOptions>;
+  /** This issue's photo strip (spec 0017, AC-20). */
+  photos: ReactNode;
   onChanged: (ticket: RepairTicket) => void;
   onStale: () => void;
 }
 
-function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entries, onChanged, onStale }: IssueBlockProps) {
+function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entries, photos, onChanged, onStale }: IssueBlockProps) {
   const { showToast } = useToast();
   // Ticks show at once; a failed save puts the row back (AC-28).
   const [overrides, setOverrides] = useState<Record<string, Pick<RepairIssueStep, 'checkedAt' | 'checkedByEmail'>>>({});
@@ -182,6 +187,8 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
           {issue.categoryName && <Badge variant="outline">{issue.categoryName}</Badge>}
         </div>
       </div>
+
+      {photos}
 
       {entry ? (
         <section aria-label={`Known fix for issue ${index + 1}`} className="flex flex-col gap-3 rounded-lg border border-border bg-background p-3 md:p-4">
@@ -317,9 +324,51 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
   const canLink = knowledgeOn && canWork && (ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS');
   const canTick = canWork && ticket.status === 'IN_PROGRESS';
   const entries = useEntryOptions(canLink);
+  const { showToast } = useToast();
+  const attachments = useTicketAttachments(ticket.id);
+  /** Which strip is uploading: an issue id, or '' for the ticket strip. */
+  const [uploadingTo, setUploadingTo] = useState<string | null>(null);
+
+  const list = attachments.list;
+  const canAddPhotos = list != null && list.can.addFiles;
+  const photosFor = (issueId: string | null): Attachment[] =>
+    list?.items.filter((a) => a.kind === 'VEHICLE_PHOTO' && a.issueId === issueId) ?? [];
+
+  /** One file at a time, then fresh links (spec 0017, AC-21). */
+  const addPhotos = async (files: File[], issueId: string | null) => {
+    setUploadingTo(issueId ?? '');
+    try {
+      for (const file of files) {
+        try {
+          await uploadAttachment(ticket.id, file, { kind: 'VEHICLE_PHOTO', issueId });
+        } catch (err) {
+          showToast(getApiErrorMessage(err, `Couldn’t upload ${file.name}. Try again.`), 'error');
+        }
+      }
+      await attachments.reload();
+    } finally {
+      setUploadingTo(null);
+    }
+  };
+
+  const strip = (issueId: string | null, label: string) =>
+    list ? (
+      <PhotoStrip
+        photos={photosFor(issueId)}
+        canAdd={canAddPhotos}
+        label={label}
+        busy={uploadingTo === (issueId ?? '')}
+        onAdd={(files) => void addPhotos(files, issueId)}
+      />
+    ) : null;
 
   return (
     <DetailSection title="Issues">
+      {attachments.state === 'error' ? (
+        <p className="text-sm text-muted-foreground">{attachments.errorMessage}</p>
+      ) : (
+        strip(null, 'Photos')
+      )}
       {issues.length === 0 ? (
         <p className="text-sm text-muted-foreground">No issues logged.</p>
       ) : (
@@ -334,6 +383,7 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
               knowledgeOn={knowledgeOn}
               canTick={canTick}
               entries={entries}
+              photos={strip(issue.id, `Photos for issue ${index + 1}`)}
               onChanged={onChanged}
               onStale={onStale}
             />
