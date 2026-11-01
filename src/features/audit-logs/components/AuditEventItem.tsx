@@ -74,6 +74,10 @@ function Sentence({ event, showTicket }: { event: AuditEvent; showTicket: boolea
       return who ? withActor('assigned a mechanic to') : <>A mechanic was assigned to {rep}</>;
     case 'MECHANIC_UNASSIGNED':
       return who ? withActor('removed a mechanic from') : <>A mechanic was removed from {rep}</>;
+    case 'ATTACHMENT_ADDED':
+      return who ? withActor('added a file to') : <>A file was added to {rep}</>;
+    case 'ATTACHMENT_REMOVED':
+      return who ? withActor('removed a file from') : <>A file was removed from {rep}</>;
     default:
       return who ? (
         <>
@@ -140,6 +144,13 @@ function Change({ event }: { event: AuditEvent }) {
         {mechanic.before} was taken off{reopened ? '. The ticket went back to Open.' : '.'}
       </p>
     );
+  }
+  if (event.type === 'ATTACHMENT_ADDED' || event.type === 'ATTACHMENT_REMOVED') {
+    // "Vehicle photo: IMG_2041.jpg", in after on add and in before on remove (spec 0017, AC-18)
+    const file = changeOf(event, 'attachment');
+    const name = file?.after ?? file?.before;
+    if (!name) return null;
+    return <p className="text-sm break-words text-muted-foreground">{name}</p>;
   }
   if (event.type === 'GARAGE_CHANGE') {
     const garage = changeOf(event, 'garage');

@@ -25,6 +25,8 @@ import { IssuesSection } from '../components/IssuesSection';
 import { NotesSection, VehicleSection } from '../components/TicketMainSections';
 import { TicketNoteDialog } from '../components/TicketNoteDialog';
 import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePanel';
+import { DocumentsCard } from '../components/DocumentsCard';
+import { TicketFilesProvider } from '../components/TicketFilesProvider';
 import { useRepairTicket } from '../hooks/useRepairTicket';
 import {
   canWorkTicket,
@@ -183,29 +185,34 @@ export function RepairDetailPage() {
       <PageHeader title={rep} subtitle={ticket.vehicleModel ? `${ticket.vehiclePlate} · ${ticket.vehicleModel}` : ticket.vehiclePlate} icon={Wrench} />
       {ticket.lastRejection && <SendBackBanner key={`${ticket.lastRejection.at}:${loadedAt}`} rejection={ticket.lastRejection} now={loadedAt} />}
 
-      <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
-        <aside aria-label="Ticket summary" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20 lg:col-start-3 lg:row-start-1">
-          <StatusCard
-            ticket={ticket}
-            readOnly={readOnly}
-            actions={actions}
-            onPrimary={() => setDialog('primary')}
-            onSecondary={() => setDialog('secondary')}
-            onCancel={() => setDialog('cancel')}
-          />
-          <DetailsCard ticket={ticket} now={loadedAt} />
-          <PeopleCard ticket={ticket} />
-        </aside>
+      {/* Spec 0017: one file list and one upload queue for the photos and the Documents card */}
+      <TicketFilesProvider ticketId={ticket.id}>
+        <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
+          <aside aria-label="Ticket summary" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20 lg:col-start-3 lg:row-start-1">
+            <StatusCard
+              ticket={ticket}
+              readOnly={readOnly}
+              actions={actions}
+              onPrimary={() => setDialog('primary')}
+              onSecondary={() => setDialog('secondary')}
+              onCancel={() => setDialog('cancel')}
+            />
+            <DetailsCard ticket={ticket} now={loadedAt} />
+            <PeopleCard ticket={ticket} />
+            {/* Spec 0017, AC-27: receipts and other documents are cost paperwork */}
+            {seesCosts && <DocumentsCard />}
+          </aside>
 
-        <div className="flex min-w-0 flex-col gap-4 lg:col-span-2 lg:col-start-1 lg:row-start-1">
-          <NotesSection ticket={ticket} />
-          <VehicleSection ticket={ticket} />
-          <IssuesSection ticket={ticket} canWork={!readOnly && canWorkTicket(ticket)} onChanged={replace} onStale={handleStale} />
-          {usesAi && <AiDiagnosisSection ticket={ticket} />}
-          {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
-          {seesActivity && <ActivitySection ticketId={ticket.id} />}
+          <div className="flex min-w-0 flex-col gap-4 lg:col-span-2 lg:col-start-1 lg:row-start-1">
+            <NotesSection ticket={ticket} />
+            <VehicleSection ticket={ticket} />
+            <IssuesSection ticket={ticket} canWork={!readOnly && canWorkTicket(ticket)} onChanged={replace} onStale={handleStale} />
+            {usesAi && <AiDiagnosisSection ticket={ticket} />}
+            {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
+            {seesActivity && <ActivitySection ticketId={ticket.id} />}
+          </div>
         </div>
-      </div>
+      </TicketFilesProvider>
 
       {barLabel && (
         <NextActionBar

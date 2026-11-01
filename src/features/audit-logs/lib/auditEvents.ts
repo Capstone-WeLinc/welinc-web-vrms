@@ -3,7 +3,9 @@ import {
   ArrowLeftRight,
   BookOpen,
   FilePlus2,
+  FileX2,
   LockOpen,
+  Paperclip,
   UserMinus,
   UserPlus,
   PhilippinePeso,
@@ -65,6 +67,8 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   KNOWLEDGE_LINK: { icon: BookOpen, tone: 'bg-primary/10 text-primary' },
   MECHANIC_UNASSIGNED: { icon: UserMinus, tone: 'bg-muted text-muted-strong' },
   MECHANIC_ASSIGNED: { icon: UserPlus, tone: 'bg-primary/10 text-primary' },
+  ATTACHMENT_ADDED: { icon: Paperclip, tone: 'bg-primary/10 text-primary' },
+  ATTACHMENT_REMOVED: { icon: FileX2, tone: 'bg-muted text-muted-strong' },
 };
 
 export function eventStyle(type: string): EventStyle {
