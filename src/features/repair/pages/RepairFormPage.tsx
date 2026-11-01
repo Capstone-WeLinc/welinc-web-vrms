@@ -12,6 +12,7 @@ import { createRepair } from '../../../lib/api/repairApi';
 import { useVehicleSummary } from '../hooks/useVehicleSummary';
 import { syncMechanics } from '../../../lib/api/vrmsConfigApi';
 import { formatShortDate } from '../../../lib/utils/format';
+import { getRepairFormOptions } from '../../../lib/repairOptions';
 import { useAuthStore } from '../../../store/authStore';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import { AssignmentSection } from '../components/repair-form/AssignmentSection';
@@ -67,6 +68,7 @@ export function RepairFormPage() {
   const {
     control,
     handleSubmit,
+    reset,
     setValue,
     getValues,
     clearErrors,
@@ -80,6 +82,25 @@ export function RepairFormPage() {
     // Focus goes to the first invalid field in page order instead (below).
     shouldFocusError: false,
   });
+
+  // Development only (break-ui): fill the form with the chosen ?data= dataset once the lists are in
+  const prefilled = useRef(false);
+  const listsReady = [options.vehicles, options.garages, options.categories, options.mechanics, options.corporations].every((l) => l.data);
+  useEffect(() => {
+    if (!import.meta.env.DEV || prefilled.current || !listsReady) return;
+    prefilled.current = true;
+    void import('../../dev-ui/worst-case/formPrefill').then(({ devFormPrefill }) => {
+      const values = devFormPrefill({
+        vehicles: options.vehicles.data ?? [],
+        garages: options.garages.data ?? [],
+        categories: options.categories.data ?? [],
+        mechanics: options.mechanics.data ?? [],
+        corporations: options.corporations.data ?? [],
+        rootCauses: getRepairFormOptions().rootCauses,
+      });
+      if (values) reset(values);
+    });
+  }, [listsReady, options.vehicles.data, options.garages.data, options.categories.data, options.mechanics.data, options.corporations.data, reset]);
 
   // Facts about the picked truck, and its usual driver in the empty driver field (spec 0016, AC-12)
   const plate = useWatch({ control, name: 'vehiclePlate' });

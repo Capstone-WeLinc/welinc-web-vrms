@@ -122,7 +122,7 @@ function Combobox({
                   <span className="flex min-w-0 flex-1 items-baseline gap-2">
                     <span className="truncate">{option.label}</span>
                     {option.description && (
-                      <span className="truncate text-xs text-muted-foreground in-data-[selected=true]:text-accent-foreground">{option.description}</span>
+                      <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground in-data-[selected=true]:text-accent-foreground">{option.description}</span>
                     )}
                   </span>
                   {option.badge}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Truck } from 'lucide-react';
+import { Search, Truck } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DataTable } from '../../../components/shared/data-table/DataTable';
 import type { Column } from '../../../components/shared/data-table/types';
@@ -11,6 +12,7 @@ import { getLookup, type LookupOption } from '../../../lib/api/vrmsConfigApi';
 import { useLoad } from '../../knowledge-base/hooks/useLoad';
 
 const NONE = '__none';
+const PAGE_SIZE = 25;
 const STALE_MESSAGE = 'This truck changed. Check the type and save again.';
 
 const fetchVehicles = () => getManagedVehicles();
@@ -25,8 +27,18 @@ export function VehiclesSection() {
   const vehicles = useLoad('vehicles', fetchVehicles, 'Vehicles didn’t load.');
   const types = useLoad('vehicle_type', fetchTypes, 'Vehicle types didn’t load.');
   const [saving, setSaving] = useState<string | null>(null);
-  const rows = vehicles.data ?? [];
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const rows = useMemo(() => vehicles.data ?? [], [vehicles.data]);
   const options: LookupOption[] = types.data ?? [];
+  const needle = query.trim().toLowerCase();
+  const matching = useMemo(
+    () => (needle ? rows.filter((v) => `${v.plateNumber} ${v.model} ${v.type?.name ?? ''}`.toLowerCase().includes(needle)) : rows),
+    [rows, needle],
+  );
+  const lastPage = Math.max(1, Math.ceil(matching.length / PAGE_SIZE));
+  const currentPage = Math.min(page, lastPage);
+  const shown = matching.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const change = async (vehicle: ManagedVehicle, value: string) => {
     setSaving(vehicle.id);
@@ -86,15 +98,36 @@ export function VehiclesSection() {
   );
 
   return (
-    <DataTable
-      columns={columns}
-      rows={rows}
-      getRowId={(v) => v.id}
-      state={vehicles.state}
-      onRetry={vehicles.retry}
-      errorMessage={vehicles.errorMessage}
-      label="Vehicles"
-      empty={{ title: 'No vehicles yet.', description: 'Vehicles come from the fleet records.', icon: Truck }}
-    />
+    <div className="flex flex-col gap-4">
+      <div className="relative max-w-sm">
+        <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          type="search"
+          aria-label="Search vehicles"
+          placeholder="Search plate, model or type"
+          className="pl-9"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(1);
+          }}
+        />
+      </div>
+      <DataTable
+        columns={columns}
+        rows={shown}
+        getRowId={(v) => v.id}
+        state={vehicles.state}
+        onRetry={vehicles.retry}
+        errorMessage={vehicles.errorMessage}
+        label="Vehicles"
+        pagination={{ page: currentPage, pageSize: PAGE_SIZE, total: matching.length, onPageChange: setPage }}
+        empty={{
+          title: needle ? 'No vehicle matches.' : 'No vehicles yet.',
+          description: needle ? 'Try another plate, model or type.' : 'Vehicles come from the fleet records.',
+          icon: Truck,
+        }}
+      />
+    </div>
   );
 }
