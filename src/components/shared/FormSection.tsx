@@ -20,5 +20,5 @@ export function FormSection({ title, children }: { title: string; children: Reac
 
 /** Two short fields per row from 768px, one column on a phone (spec 0005, AC-2). */
 export function FieldRow({ children }: { children: ReactNode }) {
-  return <div className="grid gap-5 md:grid-cols-2 md:items-start">{children}</div>;
+  return <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:items-start">{children}</div>;
 }
