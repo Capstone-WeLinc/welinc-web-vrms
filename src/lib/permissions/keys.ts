@@ -17,6 +17,8 @@ export type PermissionKey =
   | 'ticket.assign'
   | 'ticket.unlock'
   | 'ticket.files.add'
+  | 'ticket.documents.add'
+  | 'ticket.files.remove_any'
   | 'ai.use'
   | 'audit.view'
   | 'analytics.view'
