@@ -2,7 +2,9 @@ import { useWatch, type UseFormClearErrors, type UseFormSetValue } from 'react-h
 import { FormField } from '@/components/ui/field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ACCOUNT_TYPE_OPTIONS, getRepairFormOptions } from '../../../../lib/repairOptions';
+import { ACCOUNT_TYPE_OPTIONS } from '../../../../lib/repairOptions';
+import type { LookupOption } from '../../../../lib/api/vrmsConfigApi';
+import type { OptionList } from '../../hooks/useRepairFormOptions';
 import type { RepairFormControl, RepairFormInput } from '../../lib/repairFormSchema';
 import { FormSection } from '../../../../components/shared/FormSection';
 
@@ -10,10 +12,10 @@ interface BillingSectionProps {
   control: RepairFormControl;
   setValue: UseFormSetValue<RepairFormInput>;
   clearErrors: UseFormClearErrors<RepairFormInput>;
+  corporations: OptionList<LookupOption>;
 }
 
-export function BillingSection({ control, setValue, clearErrors }: BillingSectionProps) {
-  const { corporations } = getRepairFormOptions();
+export function BillingSection({ control, setValue, clearErrors, corporations }: BillingSectionProps) {
   const accountType = useWatch({ control, name: 'accountType' });
 
   return (
@@ -38,8 +40,8 @@ export function BillingSection({ control, setValue, clearErrors }: BillingSectio
                 if (!value) return;
                 field.onChange(value);
                 if (value === 'ONLINE') {
-                  setValue('corporation', '');
-                  clearErrors('corporation');
+                  setValue('corporationId', '');
+                  clearErrors('corporationId');
                 }
               }}
               className="grid w-full grid-cols-2 sm:flex sm:w-fit"
@@ -60,7 +62,7 @@ export function BillingSection({ control, setValue, clearErrors }: BillingSectio
         {accountType === 'CORPORATE' && (
           <FormField
             control={control}
-            name="corporation"
+            name="corporationId"
             label="Corporation"
             required
             render={({ field, controlProps }) => (
@@ -69,9 +71,9 @@ export function BillingSection({ control, setValue, clearErrors }: BillingSectio
                   <SelectValue placeholder="Choose a corporation" />
                 </SelectTrigger>
                 <SelectContent>
-                  {corporations.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
+                  {(corporations.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

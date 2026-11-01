@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useWatch } from 'react-hook-form';
+import { useWatch, type UseFormClearErrors, type UseFormSetValue } from 'react-hook-form';
 import { AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
@@ -7,20 +7,22 @@ import { FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { DriverOption, GarageOption, VehicleOption } from '../../../../lib/api/vrmsConfigApi';
+import type { GarageOption, VehicleOption } from '../../../../lib/api/vrmsConfigApi';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
-import { sameName, UNDER_REPAIR_WARNING, type RepairFormControl } from '../../lib/repairFormSchema';
+import { UNDER_REPAIR_WARNING, type RepairFormControl, type RepairFormInput } from '../../lib/repairFormSchema';
 import { FieldRow, FormSection } from '../../../../components/shared/FormSection';
+import { DriverField } from './DriverField';
 import { FieldSkeleton, ListError } from './RepairFormParts';
 
 interface VehicleSectionProps {
   control: RepairFormControl;
   vehicles: OptionList<VehicleOption>;
-  drivers: OptionList<DriverOption>;
   garages: OptionList<GarageOption>;
+  setValue: UseFormSetValue<RepairFormInput>;
+  clearErrors: UseFormClearErrors<RepairFormInput>;
 }
 
-export function VehicleSection({ control, vehicles, drivers, garages }: VehicleSectionProps) {
+export function VehicleSection({ control, vehicles, garages, setValue, clearErrors }: VehicleSectionProps) {
   const plate = useWatch({ control, name: 'vehiclePlate' });
 
   const vehicleOptions = useMemo<ComboboxOption[]>(
@@ -41,16 +43,6 @@ export function VehicleSection({ control, vehicles, drivers, garages }: VehicleS
       })),
     [vehicles.data],
   );
-
-  // Drivers are matched by name on the server, so the name is the value; the first of each name wins.
-  const driverOptions = useMemo<ComboboxOption[]>(() => {
-    const unique: ComboboxOption[] = [];
-    for (const driver of drivers.data ?? []) {
-      const name = driver.name.trim();
-      if (name && !unique.some((option) => sameName(option.value, name))) unique.push({ value: name, label: name });
-    }
-    return unique;
-  }, [drivers.data]);
 
   const underRepair = vehicles.data?.some((v) => v.plateNumber === plate && v.status === 'UNDER_REPAIR') ?? false;
   const noVehicles = vehicles.data?.length === 0;
@@ -98,37 +90,7 @@ export function VehicleSection({ control, vehicles, drivers, garages }: VehicleS
           )}
         </div>
 
-        <div className="flex flex-col gap-2">
-          {drivers.loading ? (
-            <FieldSkeleton label="Driver" />
-          ) : (
-            <FormField
-              control={control}
-              name="driverName"
-              label="Driver"
-              required
-              description="New names are saved as unverified drivers."
-              render={({ field, controlProps }) => (
-                <Combobox
-                  {...controlProps}
-                  ref={field.ref}
-                  options={driverOptions}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  onBlur={field.onBlur}
-                  onCreate={field.onChange}
-                  createLabel={(text) => `Add "${text}" as a new driver`}
-                  placeholder="Choose or add a driver"
-                  searchPlaceholder="Search or type a new name"
-                  emptyText="No driver matches."
-                />
-              )}
-            />
-          )}
-          {drivers.failed && (
-            <ListError message="Couldn’t load drivers." retrying={drivers.retrying} onRetry={drivers.retry} />
-          )}
-        </div>
+        <DriverField control={control} setValue={setValue} clearErrors={clearErrors} />
 
         <div className="flex flex-col gap-2">
           {garages.loading ? (

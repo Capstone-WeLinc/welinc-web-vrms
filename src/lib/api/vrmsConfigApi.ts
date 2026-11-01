@@ -55,11 +55,24 @@ export async function syncMechanics(options: { quiet?: boolean } = {}): Promise<
 export interface DriverOption {
   id: string;
   name: string;
-  licenseNumber: string;
+  /** Only sent to a caller who can create tickets (spec 0016, AC-13). */
+  licenseNumber?: string;
 }
 
-export async function getDrivers(): Promise<DriverOption[]> {
-  const response = await api.get<DriverOption[]>('/vrms/config/drivers');
+/** Active drivers matching `q` on name or license, up to 20 (spec 0016, AC-13). */
+export async function getDrivers(q?: string): Promise<DriverOption[]> {
+  const response = await api.get<DriverOption[]>('/vrms/config/drivers', { params: q ? { q } : undefined });
+  return response.data;
+}
+
+export interface LookupOption {
+  id: string;
+  name: string;
+}
+
+/** The active values of a generic lookup list, such as `corporation` (spec 0016, AC-19). */
+export async function getLookup(list: 'corporation' | 'vehicle_type'): Promise<LookupOption[]> {
+  const response = await api.get<LookupOption[]>(`/vrms/lookups/${list}`);
   return response.data;
 }
 

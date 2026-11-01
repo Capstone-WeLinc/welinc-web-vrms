@@ -181,6 +181,10 @@ export function PeopleCard({ ticket }: { ticket: RepairTicket }) {
             </ul>
           )}
         </DetailItem>
+        {ticket.accountType && (
+          <DetailItem label="Account">{ticket.accountType === 'CORPORATE' ? 'Corporate' : 'Online'}</DetailItem>
+        )}
+        {ticket.corporation && <DetailItem label="Corporation">{ticket.corporation}</DetailItem>}
         {ticket.reportedByName && <DetailItem label="Reported by">{ticket.reportedByName}</DetailItem>}
         {ticket.verifiedByName && <DetailItem label="Verified by">{ticket.verifiedByName}</DetailItem>}
       </dl>

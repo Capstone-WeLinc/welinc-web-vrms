@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getAvailableMechanics,
-  getDrivers,
   getGarages,
+  getLookup,
   getVehicles,
-  type DriverOption,
   type GarageOption,
+  type LookupOption,
   type MechanicOption,
   type VehicleOption,
 } from '../../../lib/api/vrmsConfigApi';
@@ -28,6 +28,7 @@ export interface OptionList<T> extends ListSnapshot<T> {
 
 /** One server list with its own load, failure and retry. Refetches keep the old data on screen. */
 const getActiveCategories = () => getCategories();
+const getCorporations = () => getLookup('corporation');
 // Spec 0012, AC-15: no common issues while the knowledge base is off, and no refused call
 const noEntries = () => Promise.resolve<EntryOption[]>([]);
 
@@ -85,7 +86,7 @@ const checkable = <T>(snapshot: ListSnapshot<T>) => (snapshot.failed ? null : sn
  */
 export function useRepairFormOptions() {
   const vehicles = useOptionList<VehicleOption>(getVehicles);
-  const drivers = useOptionList<DriverOption>(getDrivers);
+  const corporations = useOptionList<LookupOption>(getCorporations);
   const garages = useOptionList<GarageOption>(getGarages);
   const mechanics = useOptionList<MechanicOption>(getAvailableMechanics);
   const categories = useOptionList<IssueCategory>(getActiveCategories);
@@ -94,18 +95,20 @@ export function useRepairFormOptions() {
   const vehiclesLatest = vehicles.latest;
   const garagesLatest = garages.latest;
   const mechanicsLatest = mechanics.latest;
+  const corporationsLatest = corporations.latest;
   /** The lists "still in its list" checks against, read at validation time (AC-20). */
   const getCheckLists = useCallback(
     (): RepairFormLists => ({
       vehiclePlates: checkable(vehiclesLatest.current)?.map((v) => v.plateNumber) ?? null,
       garageNames: checkable(garagesLatest.current)?.map((g) => g.name) ?? null,
       mechanicIds: checkable(mechanicsLatest.current)?.map((m) => m.id) ?? null,
+      corporationIds: checkable(corporationsLatest.current)?.map((c) => c.id) ?? null,
     }),
-    [vehiclesLatest, garagesLatest, mechanicsLatest],
+    [vehiclesLatest, garagesLatest, mechanicsLatest, corporationsLatest],
   );
 
   const retryVehicles = vehicles.list.retry;
-  const retryDrivers = drivers.list.retry;
+  const retryCorporations = corporations.list.retry;
   const retryGarages = garages.list.retry;
   const retryMechanics = mechanics.list.retry;
   const retryCategories = categories.list.retry;
@@ -115,18 +118,18 @@ export function useRepairFormOptions() {
     () =>
       Promise.allSettled([
         retryVehicles(),
-        retryDrivers(),
+        retryCorporations(),
         retryGarages(),
         retryMechanics(),
         retryCategories(),
         retryEntries(),
       ]).then(() => undefined),
-    [retryVehicles, retryDrivers, retryGarages, retryMechanics, retryCategories, retryEntries],
+    [retryVehicles, retryCorporations, retryGarages, retryMechanics, retryCategories, retryEntries],
   );
 
   return {
     vehicles: vehicles.list,
-    drivers: drivers.list,
+    corporations: corporations.list,
     garages: garages.list,
     mechanics: mechanics.list,
     categories: categories.list,

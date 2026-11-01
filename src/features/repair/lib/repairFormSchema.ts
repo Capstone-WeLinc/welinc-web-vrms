@@ -2,7 +2,7 @@ import type { Control } from 'react-hook-form';
 import { z } from 'zod';
 import type { CreateRepairPayload } from '../../../types';
 
-// The repair form's one schema (spec 0005). Limits match create-repair.dto.ts.
+// The repair form's one schema (spec 0005, reworked by spec 0016). Limits match create-repair.dto.ts.
 
 /** The common issue picker's "Other (describe it yourself)" (spec 0007, AC-24). */
 export const OTHER_ISSUE = '__other_issue__';
@@ -11,6 +11,10 @@ export const DESCRIPTION_LIMIT = 500;
 /** The description counter turns red above this. */
 export const DESCRIPTION_WARN_AT = 450;
 export const NAME_LIMIT = 100;
+
+/** An LTO driver's license number, such as A01-23-456789 (spec 0016, AC-6). */
+export const LICENSE_PATTERN = /^[A-Z]\d{2}-\d{2}-\d{6}$/;
+export const LICENSE_FORMAT_MESSAGE = 'Use the format A01-23-456789.';
 
 /**
  * The loaded server lists the form checks its picks against. `null` skips the
@@ -21,12 +25,12 @@ export interface RepairFormLists {
   garageNames: string[] | null;
   /** In house mechanic ids (spec 0009, AC-27). */
   mechanicIds: string[] | null;
+  /** Active ids of the corporation list (spec 0016, AC-4). */
+  corporationIds: string[] | null;
 }
 
 export const UNDER_REPAIR_WARNING =
   'This vehicle already has a repair in progress. Check its open tickets before adding another.';
-
-export const sameName =(a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 const ODOMETER_PATTERN = /^\d{1,7}$/;
 
@@ -38,18 +42,22 @@ function pickFromList(requiredMessage: string, list: string[] | null, staleMessa
   });
 }
 
-const issueSchema = z.object({
-  /** The picked common issue (spec 0007, AC-24); '' for none or Other. */
-  knowledgeEntryId: z.string(),
-  /** An active category id, shown as System. */
-  categoryId: z.string().min(1, 'Choose a system.'),
-  rootCause: z.string().min(1, 'Choose a root cause.'),
-  description: z
-    .string()
-    .trim()
-    .min(1, 'Describe the issue.')
-    .max(DESCRIPTION_LIMIT, 'Keep it to 500 characters.'),
-});
+const issueSchema = z
+  .object({
+    /** The picked common issue (spec 0007, AC-24); '' for none or Other. */
+    knowledgeEntryId: z.string(),
+    /** An active category id, shown as System. */
+    categoryId: z.string().min(1, 'Choose a system.'),
+    rootCause: z.string().min(1, 'Choose a root cause.'),
+    description: z.string().trim().max(DESCRIPTION_LIMIT, 'Keep it to 500 characters.'),
+  })
+  .superRefine((issue, ctx) => {
+    // Blank is fine only with a picked common issue: the server then uses its name (spec 0016, AC-5)
+    const linked = !!issue.knowledgeEntryId && issue.knowledgeEntryId !== OTHER_ISSUE;
+    if (!issue.description && !linked) {
+      ctx.addIssue({ code: 'custom', path: ['description'], message: 'Describe the issue.' });
+    }
+  });
 
 /** An in house mechanic chip, by Mechanic id (spec 0009, AC-27). Outsourced shops return with feature 36. */
 const mechanicSchema = z.object({
@@ -66,11 +74,13 @@ export function buildRepairFormSchema(lists: RepairFormLists) {
         lists.vehiclePlates,
         'This vehicle is no longer available. Choose another.',
       ),
-      driverName: z
-        .string()
-        .trim()
-        .min(1, 'Choose or add a driver.')
-        .max(NAME_LIMIT, 'Driver name must be 100 characters or fewer.'),
+      /** True while the Add new driver fields are showing instead of the picker (spec 0016, AC-13). */
+      addingDriver: z.boolean(),
+      /** The picked existing driver, with the name shown in the picker. */
+      driverId: z.string(),
+      driverLabel: z.string(),
+      newDriverName: z.string(),
+      newDriverLicense: z.string(),
       garageLocation: pickFromList(
         'Choose a garage.',
         lists.garageNames,
@@ -99,11 +109,35 @@ export function buildRepairFormSchema(lists: RepairFormLists) {
         });
       }),
       accountType: z.enum(['ONLINE', 'CORPORATE']),
-      corporation: z.string(),
+      corporationId: z.string(),
     })
     .superRefine((values, ctx) => {
-      if (values.accountType === 'CORPORATE' && !values.corporation) {
-        ctx.addIssue({ code: 'custom', path: ['corporation'], message: 'Choose a corporation.' });
+      if (values.accountType === 'CORPORATE') {
+        if (!values.corporationId) {
+          ctx.addIssue({ code: 'custom', path: ['corporationId'], message: 'Choose a corporation.' });
+        } else if (lists.corporationIds && !lists.corporationIds.includes(values.corporationId)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['corporationId'],
+            message: 'This corporation is no longer available. Choose another.',
+          });
+        }
+      }
+      if (values.addingDriver) {
+        const name = values.newDriverName.trim();
+        if (!name) {
+          ctx.addIssue({ code: 'custom', path: ['newDriverName'], message: 'Enter the driver’s name.' });
+        } else if (name.length > NAME_LIMIT) {
+          ctx.addIssue({ code: 'custom', path: ['newDriverName'], message: 'Driver name must be 100 characters or fewer.' });
+        }
+        const license = values.newDriverLicense.trim().toUpperCase();
+        if (!license) {
+          ctx.addIssue({ code: 'custom', path: ['newDriverLicense'], message: 'Enter the license number.' });
+        } else if (!LICENSE_PATTERN.test(license)) {
+          ctx.addIssue({ code: 'custom', path: ['newDriverLicense'], message: LICENSE_FORMAT_MESSAGE });
+        }
+      } else if (!values.driverId) {
+        ctx.addIssue({ code: 'custom', path: ['driverId'], message: 'Choose or add a driver.' });
       }
     }, { when: () => true });
   // `when` runs the conditional rules even while other fields are invalid, so an empty submit shows every error (AC-3).
@@ -122,32 +156,48 @@ export function emptyIssue(): RepairFormInput['issues'][number] {
 
 export const REPAIR_FORM_DEFAULTS: RepairFormInput = {
   vehiclePlate: '',
-  driverName: '',
+  addingDriver: false,
+  driverId: '',
+  driverLabel: '',
+  newDriverName: '',
+  newDriverLicense: '',
   garageLocation: '',
   odometerReading: '',
   issues: [emptyIssue()],
   priority: 'MEDIUM',
   mechanics: [],
   accountType: 'ONLINE',
-  corporation: '',
+  corporationId: '',
 };
 
-/** AC-18: no repairNumber (the server makes it), and the first issue as issueDescription. */
-export function toCreatePayload(values: RepairFormValues): CreateRepairPayload {
+/** Extra flags the summary dialog sets (spec 0016, AC-7). */
+export interface CreateExtras {
+  confirmOdometerJump?: boolean;
+}
+
+/** AC-18: no repairNumber (the server makes it). The driver goes as an id or a new driver, never both. */
+export function toCreatePayload(values: RepairFormValues, extras: CreateExtras = {}): CreateRepairPayload {
   return {
     vehiclePlate: values.vehiclePlate,
-    driverName: values.driverName,
-    issueDescription: values.issues[0].description,
+    ...(values.addingDriver
+      ? {
+          newDriver: {
+            name: values.newDriverName.trim(),
+            licenseNumber: values.newDriverLicense.trim().toUpperCase(),
+          },
+        }
+      : { driverId: values.driverId }),
     accountType: values.accountType,
-    corporation: values.accountType === 'CORPORATE' ? values.corporation : undefined,
+    corporationId: values.accountType === 'CORPORATE' ? values.corporationId : undefined,
     garageLocation: values.garageLocation,
     odometerReading: values.odometerReading,
+    ...(extras.confirmOdometerJump && { confirmOdometerJump: true }),
     mechanics: values.mechanics.map(({ id }) => ({ id })),
     priority: values.priority,
     issues: values.issues.map(({ knowledgeEntryId, categoryId, rootCause, description }) => ({
       categoryId,
       rootCause,
-      description,
+      ...(description ? { description } : {}),
       ...(knowledgeEntryId && knowledgeEntryId !== OTHER_ISSUE ? { knowledgeEntryId } : {}),
     })),
   };
