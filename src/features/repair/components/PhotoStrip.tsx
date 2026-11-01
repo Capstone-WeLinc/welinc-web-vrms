@@ -71,9 +71,9 @@ function Thumb({ photo, onOpen, onRemove, onLinkError }: Pick<PhotoStripProps, '
           type="button"
           variant="outline"
           size="icon"
-          aria-label="Remove photo"
+          aria-label={`Remove photo by ${photo.uploadedBy.name}, ${formatManilaDateTime(photo.createdAt)}`}
           onClick={() => onRemove(photo)}
-          className="absolute -top-2 -right-2 size-7 rounded-full bg-card shadow-sm"
+          className="absolute -top-2 -right-2 size-7 rounded-full bg-card shadow-sm pointer-coarse:size-11"
         >
           <X aria-hidden="true" />
         </Button>
@@ -142,13 +142,16 @@ export function PhotoStrip({ photos, queue, canAdd, limitText, label, onAdd, onR
         )
       )}
 
-      {queue.length > 0 && (
-        <ul aria-live="polite" className="flex flex-col gap-2">
-          {queue.map((item) => (
-            <UploadQueueRow key={item.id} item={item} onRetry={() => onRetry(item.id)} onDismiss={() => onDismiss(item.id)} />
-          ))}
-        </ul>
-      )}
+      {/* The live region stays mounted so the first upload is announced too */}
+      <div aria-live="polite">
+        {queue.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {queue.map((item) => (
+              <UploadQueueRow key={item.id} item={item} onRetry={() => onRetry(item.id)} onDismiss={() => onDismiss(item.id)} />
+            ))}
+          </ul>
+        )}
+      </div>
 
       {canAdd && (
         <div className="flex flex-wrap items-center gap-2">

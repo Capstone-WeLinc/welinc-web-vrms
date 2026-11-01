@@ -10,8 +10,14 @@ export function UploadQueueRow({ item, onRetry, onDismiss }: { item: QueuedPhoto
   return (
     <li className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-2 text-sm">
       <div className="flex min-w-0 items-center justify-between gap-2">
-        <span className="min-w-0 truncate text-foreground">{item.name}</span>
-        <span className={cn('shrink-0 text-xs tabular-nums', item.status === 'failed' ? 'text-destructive' : 'text-muted-foreground')}>{status}</span>
+        <span title={item.name} className="min-w-0 truncate text-foreground">
+          {item.name}
+        </span>
+        <span className={cn('shrink-0 text-xs tabular-nums', item.status === 'failed' ? 'text-destructive' : 'text-muted-foreground')}>
+          {/* Screen readers hear the status once; the progress bar carries the percentage */}
+          <span aria-hidden="true">{status}</span>
+          <span className="sr-only">{item.status === 'uploading' ? 'Uploading' : status}</span>
+        </span>
       </div>
       {(item.status === 'uploading' || item.status === 'done') && (
         <div
@@ -22,7 +28,7 @@ export function UploadQueueRow({ item, onRetry, onDismiss }: { item: QueuedPhoto
           aria-valuenow={item.progress}
           className="h-1.5 overflow-hidden rounded-full bg-muted"
         >
-          <div className="h-full bg-primary transition-all motion-reduce:transition-none" style={{ width: `${item.progress}%` }} />
+          <div className="h-full origin-left bg-primary transition-transform motion-reduce:transition-none" style={{ transform: `scaleX(${item.progress / 100})` }} />
         </div>
       )}
       {item.status === 'failed' && (

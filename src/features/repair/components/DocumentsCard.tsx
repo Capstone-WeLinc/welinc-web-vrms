@@ -19,19 +19,19 @@ function DocumentRow({ doc, kindLabel, onRemove }: { doc: Attachment; kindLabel:
       <FileText aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-xs font-medium text-muted-foreground">{kindLabel}</span>
-        <span className="text-sm break-words text-foreground">{doc.fileName}</span>
+        <span className="text-sm wrap-break-word text-foreground">{doc.fileName}</span>
         <span className="text-xs text-muted-foreground">
           {doc.uploadedBy.name} · <time dateTime={doc.createdAt}>{formatManilaDateTime(doc.createdAt)}</time>
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <Button asChild variant="ghost" size="icon" className="size-8">
+        <Button asChild variant="ghost" size="icon" className="size-8 pointer-coarse:size-11">
           <a href={doc.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${doc.fileName} in a new tab`}>
             <ExternalLink aria-hidden="true" />
           </a>
         </Button>
         {doc.canRemove && (
-          <Button type="button" variant="ghost" size="icon" className="size-8" aria-label={`Remove ${doc.fileName}`} onClick={onRemove}>
+          <Button type="button" variant="ghost" size="icon" className="size-8 pointer-coarse:size-11" aria-label={`Remove ${doc.fileName}`} onClick={onRemove}>
             <X aria-hidden="true" />
           </Button>
         )}
@@ -84,10 +84,18 @@ export function DocumentsCard() {
 
   let body;
   if (attachments.state === 'loading') {
-    body = <p className="text-sm text-muted-foreground">Loading documents…</p>;
+    body = (
+      <p role="status" className="text-sm text-muted-foreground">
+        Loading documents…
+      </p>
+    );
   } else if (attachments.state === 'error' || !list) {
     // AC-3: STORAGE_UNAVAILABLE shows its message in place of the documents
-    body = <p className="text-sm text-muted-foreground">{attachments.errorMessage}</p>;
+    body = (
+      <p role="alert" className="text-sm text-muted-foreground">
+        {attachments.errorMessage}
+      </p>
+    );
   } else {
     body = (
       <div className="flex flex-col gap-3">
@@ -101,34 +109,36 @@ export function DocumentsCard() {
           docQueue.length === 0 && <p className="text-sm text-muted-foreground">No receipts or documents yet.</p>
         )}
 
-        {docQueue.length > 0 && (
-          <ul aria-live="polite" className="flex flex-col gap-2">
-            {docQueue.map((item) => (
-              <UploadQueueRow key={item.id} item={item} onRetry={() => queue.retry(item.id)} onDismiss={() => queue.remove(item.id)} />
-            ))}
-          </ul>
-        )}
+        {/* The live region stays mounted so the first upload is announced too */}
+        <div aria-live="polite">
+          {docQueue.length > 0 && (
+            <ul className="flex flex-col gap-2">
+              {docQueue.map((item) => (
+                <UploadQueueRow key={item.id} item={item} onRetry={() => queue.retry(item.id)} onDismiss={() => queue.remove(item.id)} />
+              ))}
+            </ul>
+          )}
+        </div>
 
-        {canAdd &&
-          (room > 0 ? (
-            <div>
-              <input
-                ref={inputRef}
-                type="file"
-                accept="application/pdf,.pdf"
-                className="sr-only"
-                tabIndex={-1}
-                aria-hidden="true"
-                onChange={(event) => pick(event.target)}
-              />
-              <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-                <FilePlus aria-hidden="true" />
-                Add document
-              </Button>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">Document limit reached</p>
-          ))}
+        {canAdd && (
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={inputRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden="true"
+              onChange={(event) => pick(event.target)}
+            />
+            {/* Disabled, not removed, so keyboard focus stays on the button at the limit */}
+            <Button type="button" variant="outline" size="sm" disabled={room <= 0} onClick={() => inputRef.current?.click()}>
+              <FilePlus aria-hidden="true" />
+              Add document
+            </Button>
+            {room <= 0 && <span className="text-xs text-muted-foreground">Document limit reached</span>}
+          </div>
+        )}
       </div>
     );
   }

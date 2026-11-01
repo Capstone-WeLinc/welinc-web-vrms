@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react';
 import Lightbox from 'yet-another-react-lightbox';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
@@ -32,13 +33,22 @@ const THEME: Record<`--yarl__${string}`, string> = {
   '--yarl__slide_icon_error_color': 'var(--destructive)',
 };
 
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+
+// Follows the setting while the viewer is open, not just at the first render
+function subscribeReducedMotion(onChange: () => void) {
+  const query = window.matchMedia(REDUCED_MOTION);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+
 function prefersReducedMotion() {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return window.matchMedia(REDUCED_MOTION).matches;
 }
 
 /** Every live photo on the ticket, with swipe, arrows, pinch and double tap zoom (spec 0017, AC-24). */
 export function PhotoViewer({ photos, index, issueNames, onIndexChange, onClosed }: PhotoViewerProps) {
-  const still = prefersReducedMotion();
+  const still = useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, () => false);
   return (
     <Lightbox
       open={index >= 0}
