@@ -25,6 +25,13 @@ function photo(over: Partial<Attachment> = {}): Attachment {
   };
 }
 
+describe('formatManilaDateTime on a bad date', () => {
+  it('shows a dash instead of throwing', () => {
+    expect(formatManilaDateTime('not a date')).toBe('—');
+    expect(formatManilaDateTime('')).toBe('—');
+  });
+});
+
 describe('photoCaption (AC-24, spec 0018 group label)', () => {
   it('uses the uploader as the title and the Manila time as the description', () => {
     expect(photoCaption(photo(), new Map())).toEqual({

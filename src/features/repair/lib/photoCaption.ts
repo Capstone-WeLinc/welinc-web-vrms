@@ -13,7 +13,9 @@ const MANILA = new Intl.DateTimeFormat('en-US', {
 
 /** `Nov 1, 2026, 10:42 AM`, in Asia/Manila whatever the device's zone. */
 export function formatManilaDateTime(value: string | Date): string {
-  return MANILA.format(new Date(value));
+  const date = new Date(value);
+  // Intl throws on an invalid date, which would take the whole page down while rendering
+  return Number.isFinite(date.getTime()) ? MANILA.format(date) : '—';
 }
 
 export interface PhotoMark {

@@ -108,7 +108,7 @@ export function PhotoViewer({ photos, index, issueNames, onIndexChange, onLinkEr
       on={{ view: ({ index: next }) => onIndexChange(next), exited: onClosed }}
       animation={still ? { fade: 0, swipe: 0, navigation: 0, zoom: 0 } : undefined}
       zoom={{ doubleTapDelay: 300, scrollToZoom: true }}
-      captions={{ descriptionTextAlign: 'start', descriptionMaxLines: 4 }}
+      captions={{ descriptionTextAlign: 'start', descriptionMaxLines: 6 }}
       render={{ iconError: () => <LinkError onError={onLinkError} /> }}
       controller={{ closeOnBackdropClick: true }}
       toolbar={{ buttons: move ? [move, 'close'] : ['close'] }}
