@@ -19,6 +19,26 @@ interface PhotoViewerProps {
   onLinkError: () => Promise<unknown>;
   /** After the close animation; the caller puts focus back on the thumbnail. */
   onClosed: () => void;
+  /** Spec 0018, AC-9: move the shown photo to the other group. Offered only when the photo's `canMove` is set. */
+  onMove?: (photo: Attachment) => void;
+  /** The photo whose move is in flight, so its button waits. */
+  movingId?: string | null;
+}
+
+/** The text button in the viewer's toolbar: reachable by Tab, named by its text (AC-19). */
+function MoveButton({ photo, moving, onMove }: { photo: Attachment; moving: boolean; onMove: (photo: Attachment) => void }) {
+  const to = photo.kind === 'PROOF' ? 'Before' : 'After';
+  return (
+    <button
+      type="button"
+      className="my-1 mr-2 min-h-11 rounded-md bg-primary-foreground/15 px-3 text-sm font-semibold whitespace-nowrap text-primary-foreground outline-none hover:bg-primary-foreground/25 focus-visible:ring-2 focus-visible:ring-highlight disabled:opacity-60"
+      onClick={() => onMove(photo)}
+      disabled={moving}
+      aria-busy={moving}
+    >
+      {moving ? 'Moving…' : `Move to ${to}`}
+    </button>
+  );
 }
 
 // Themed only through the library's CSS variables, mapped to design.md tokens (AC-24)
@@ -63,8 +83,10 @@ function LinkError({ onError }: { onError: () => Promise<unknown> }) {
 }
 
 /** Every live photo on the ticket, with swipe, arrows, pinch and double tap zoom (spec 0017, AC-24). */
-export function PhotoViewer({ photos, index, issueNames, onIndexChange, onLinkError, onClosed }: PhotoViewerProps) {
+export function PhotoViewer({ photos, index, issueNames, onIndexChange, onLinkError, onClosed, onMove, movingId = null }: PhotoViewerProps) {
   const still = useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, () => false);
+  const shown = index >= 0 ? photos[index] : undefined;
+  const move = onMove && shown?.canMove ? <MoveButton key="move" photo={shown} moving={movingId === shown.id} onMove={onMove} /> : null;
   return (
     <Lightbox
       open={index >= 0}
@@ -88,6 +110,7 @@ export function PhotoViewer({ photos, index, issueNames, onIndexChange, onLinkEr
       captions={{ descriptionTextAlign: 'start', descriptionMaxLines: 3 }}
       render={{ iconError: () => <LinkError onError={onLinkError} /> }}
       controller={{ closeOnBackdropClick: true }}
+      toolbar={{ buttons: move ? [move, 'close'] : ['close'] }}
       styles={{ root: THEME }}
     />
   );

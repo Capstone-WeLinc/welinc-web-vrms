@@ -22,7 +22,7 @@ import { useEntryOptions } from '../hooks/useEntryOptions';
 import { hasSavedResolution } from '../lib/resolutionForm';
 import { SuggestDialog } from '../../knowledge-base/components/SuggestDialog';
 import { useModuleOn } from '../../../lib/permissions/usePermissions';
-import { removeAttachment, type Attachment } from '../../../lib/api/attachmentsApi';
+import { moveAttachment, removeAttachment, type Attachment } from '../../../lib/api/attachmentsApi';
 import { useTicketFiles } from '../hooks/ticketFiles';
 import { groupLimit, isPhoto, PHOTO_GROUP_LABELS, photoGroups, photoRoomLeft, uploadGroup } from '../lib/photoUpload';
 import { PhotoStrip } from './PhotoStrip';
@@ -332,6 +332,8 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
   const [viewerIndex, setViewerIndex] = useState(-1);
   /** The viewer's code loads on first open only. */
   const [viewerLoaded, setViewerLoaded] = useState(false);
+  /** The photo whose move is in flight (spec 0018, AC-9). */
+  const [movingId, setMovingId] = useState<string | null>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
 
   const list = attachments.list;
@@ -388,6 +390,27 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
     }
   };
 
+  /** Spec 0018, AC-9: the viewer's Move. The strip regroups; the viewer stays on the moved photo. */
+  const movePhoto = async (photo: Attachment) => {
+    const to = photo.kind === 'PROOF' ? 'VEHICLE_PHOTO' : 'PROOF';
+    setMovingId(photo.id);
+    try {
+      await moveAttachment(ticket.id, photo.id, to);
+      const fresh = await attachments.reload();
+      if (fresh) {
+        const order = photoGroups(fresh, workStarted).flatMap((group) => group.photos);
+        setViewerIndex(order.findIndex((p) => p.id === photo.id));
+      }
+      showToast(`Photo moved to ${PHOTO_GROUP_LABELS[to]}.`, 'success');
+    } catch (err) {
+      // A 403 already showed the fixed denied toast; a 409 (group full, ticket finished) says why
+      if (getApiErrorStatus(err) !== 403) showToast(getApiErrorMessage(err, 'Couldn’t move the photo. Try again.'), 'error');
+      void attachments.reload();
+    } finally {
+      setMovingId(null);
+    }
+  };
+
   const openViewer = (photo: Attachment, thumb: HTMLButtonElement) => {
     opener.current = thumb;
     setViewerLoaded(true);
@@ -405,6 +428,8 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
             onIndexChange={setViewerIndex}
             onLinkError={attachments.reload}
             onClosed={() => opener.current?.focus()}
+            onMove={(photo) => void movePhoto(photo)}
+            movingId={movingId}
           />
         </Suspense>
       )}

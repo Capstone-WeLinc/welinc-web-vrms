@@ -62,6 +62,7 @@ function photo(i: number, over: Partial<Attachment> & { size?: [number, number] 
     url: panel(width, height, (i * 47) % 360),
     thumbnailUrl: panel(320, 320, (i * 47) % 360),
     canRemove: i % 2 === 0,
+    canMove: i % 2 === 0,
     ...over,
   };
 }
@@ -81,6 +82,7 @@ function doc(i: number, kind: AttachmentKind, fileName: string, uploader: string
     url: 'https://example.com/fixture.pdf',
     thumbnailUrl: null,
     canRemove,
+    canMove: false,
   };
 }
 

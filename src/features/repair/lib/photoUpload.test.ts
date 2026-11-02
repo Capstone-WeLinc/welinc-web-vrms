@@ -116,6 +116,7 @@ function attachment(id: string, kind: AttachmentKind): Attachment {
     url: 'u',
     thumbnailUrl: null,
     canRemove: false,
+    canMove: false,
   };
 }
 

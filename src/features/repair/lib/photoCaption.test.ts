@@ -19,6 +19,7 @@ function photo(over: Partial<Attachment> = {}): Attachment {
     url: 'https://blob/x',
     thumbnailUrl: null,
     canRemove: true,
+    canMove: true,
     ...over,
   };
 }

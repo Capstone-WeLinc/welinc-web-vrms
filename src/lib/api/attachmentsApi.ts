@@ -22,6 +22,8 @@ export interface Attachment {
   url: string;
   thumbnailUrl: string | null;
   canRemove: boolean;
+  /** Spec 0018, AC-11: the caller may move this photo between Before and After. */
+  canMove: boolean;
 }
 
 export interface AttachmentKindInfo {
@@ -86,4 +88,10 @@ export async function uploadAttachment(
 
 export async function removeAttachment(ticketId: string, attachmentId: string): Promise<void> {
   await api.delete(`/vrms/repairs/${ticketId}/attachments/${attachmentId}`);
+}
+
+/** Spec 0018, AC-9: moves a photo to Before (VEHICLE_PHOTO) or After (PROOF). */
+export async function moveAttachment(ticketId: string, attachmentId: string, kind: 'VEHICLE_PHOTO' | 'PROOF'): Promise<Attachment> {
+  const response = await api.patch<Attachment>(`/vrms/repairs/${ticketId}/attachments/${attachmentId}`, { kind });
+  return response.data;
 }
