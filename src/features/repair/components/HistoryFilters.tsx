@@ -87,7 +87,8 @@ export function HistoryFilters({ value, garages, verifiers, rangeError, onChange
           <SelectTrigger id="history-verifier" className="w-full lg:w-44">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          {/* A name can run to 100 characters; wrap it in a popup no wider than a phone, not as wide as the longest name. */}
+          <SelectContent className="max-w-sm">
             <SelectGroup>
               <SelectItem value="all">Anyone</SelectItem>
               {verifiers.map((verifier) => (

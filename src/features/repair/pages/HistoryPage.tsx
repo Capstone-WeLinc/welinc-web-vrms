@@ -48,7 +48,7 @@ function OutcomeCell({ row }: { row: RepairHistoryRow }) {
         <Tooltip>
           <TooltipTrigger asChild>
             {/* Focusable so keyboard users can read the full reason too. */}
-            <span tabIndex={0} className="block max-w-48 truncate rounded-sm text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span tabIndex={0} className="block max-w-20 truncate rounded-sm text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring md:max-w-48">
               {row.cancellationReason}
             </span>
           </TooltipTrigger>
@@ -99,9 +99,18 @@ function historyColumns(showCosts: boolean): Column<RepairHistoryRow>[] {
           </time>
           {/* Feature 23: who verified it, under the date so the table stays within its card. */}
           {row.verifiedByName && (
-            <span className="block max-w-24 truncate text-xs text-muted-foreground" title={`Verified by ${row.verifiedByName}`}>
-              by {row.verifiedByName}
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* A card's field is half its width, so the name wraps (three lines at most); the table caps it to one line to keep its width. Focusable so a keyboard can read it too. */}
+                <span
+                  tabIndex={0}
+                  className="line-clamp-3 max-w-full rounded-sm text-xs wrap-anywhere text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring md:line-clamp-none md:max-w-24 md:truncate"
+                >
+                  by {row.verifiedByName}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">Verified by {row.verifiedByName}</TooltipContent>
+            </Tooltip>
           )}
         </div>
       ) : (
