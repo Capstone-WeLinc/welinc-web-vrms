@@ -171,6 +171,8 @@ export interface RepairTicket {
   vehiclePlate: string;
   vehicleModel?: string;
   driverName: string;
+  /** Spec 0019, AC-4: the details edit compares it to tell a swap from the same driver. */
+  driverId?: string;
   issueDescription: string;
   status: RepairStatus;
   createdAt: string;

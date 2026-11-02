@@ -1,5 +1,6 @@
 import api from './axios';
 import type {
+  AccountType,
   CreateRepairPayload,
   IssueResolution,
   PriorityLevel,
@@ -162,7 +163,16 @@ export interface TicketEditBase {
 
 /** PATCH /details: only the fields that changed (spec 0019, AC-4 to AC-8). */
 export interface EditDetailsPayload extends TicketEditBase {
+  /** At most one of an existing driver and a new one by LTO license (AC-4). */
+  driverId?: string;
+  newDriver?: { name: string; licenseNumber: string };
+  odometerReading?: number;
+  /** The reading is right even though it jumps far above the last one (AC-5). */
+  confirmOdometerJump?: boolean;
   priority?: PriorityLevel;
+  /** Corporate needs corporationId; Online clears the corporation (AC-7). */
+  accountType?: AccountType;
+  corporationId?: string;
 }
 
 export async function editTicketDetails(repairId: string, payload: EditDetailsPayload): Promise<RepairTicket> {

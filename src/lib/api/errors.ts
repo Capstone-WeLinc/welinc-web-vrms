@@ -76,17 +76,21 @@ export function getDriverExists(err: unknown): { id: string; name: string } | nu
 }
 
 export interface OdometerProblem {
-  code: 'ODOMETER_BELOW_LAST' | 'ODOMETER_JUMP_UNCONFIRMED';
+  /** ODOMETER_ABOVE_NEXT comes only from a ticket edit (spec 0019, AC-5). */
+  code: 'ODOMETER_BELOW_LAST' | 'ODOMETER_ABOVE_NEXT' | 'ODOMETER_JUMP_UNCONFIRMED';
   message: string;
   last: number;
 }
 
-/** The 400 body of a create whose odometer reading is below the last one, or jumps unconfirmed (spec 0016, AC-7). */
+const ODOMETER_CODES: OdometerProblem['code'][] = ['ODOMETER_BELOW_LAST', 'ODOMETER_ABOVE_NEXT', 'ODOMETER_JUMP_UNCONFIRMED'];
+
+/** The 400 body of a reading below the last one, above a later ticket's, or a jump nobody confirmed (spec 0016, AC-7). */
 export function getOdometerProblem(err: unknown): OdometerProblem | null {
   if (!isAxiosError<{ code?: string; message?: string; last?: number }>(err) || err.response?.status !== 400) return null;
   const body = err.response.data;
-  if (body?.code !== 'ODOMETER_BELOW_LAST' && body?.code !== 'ODOMETER_JUMP_UNCONFIRMED') return null;
-  return { code: body.code, message: body.message ?? 'Check the odometer reading.', last: body.last ?? 0 };
+  const code = ODOMETER_CODES.find((c) => c === body?.code);
+  if (!code) return null;
+  return { code, message: body?.message ?? 'Check the odometer reading.', last: body?.last ?? 0 };
 }
 
 /** The `code` on a 409 body, such as STALE or DUPLICATE_NAME (spec 0007, AC-20). */
