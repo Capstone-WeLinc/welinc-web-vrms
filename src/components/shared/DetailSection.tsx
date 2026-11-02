@@ -29,9 +29,9 @@ export function DetailSection({ title, id, action, className, children }: Detail
 }
 
 /** A label and value pair inside a section's `<dl>`. */
-export function DetailItem({ label, children }: { label: string; children: ReactNode }) {
+export function DetailItem({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
+    <div className={cn('flex min-w-0 flex-col gap-0.5', className)}>
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
       <dd className="text-sm break-words text-foreground">{children}</dd>
     </div>

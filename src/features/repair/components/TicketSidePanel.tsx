@@ -137,14 +137,12 @@ export function DetailsCard({ ticket, now }: { ticket: RepairTicket; now: number
         </DetailItem>
         {/* Spec 0019, AC-19: the last edit after create */}
         {ticket.editedAt && (
-          <div className="col-span-2">
-            <DetailItem label="Last edit">
+          <DetailItem label="Last edit" className="col-span-2">
               <time dateTime={ticket.editedAt} title={formatDateTime(ticket.editedAt)}>
                 Edited {formatRelativeTime(ticket.editedAt, new Date(now))}
               </time>
               {ticket.editedByName && <> by {ticket.editedByName}</>}
-            </DetailItem>
-          </div>
+          </DetailItem>
         )}
         {isClosed(ticket) && (
           <DetailItem label="Closed">
