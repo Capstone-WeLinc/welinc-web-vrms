@@ -13,8 +13,10 @@ import {
   costDetailLine,
   costTotalLine,
   eventStyle,
+  issueEventLines,
   movedFileName,
   photoMoveLine,
+  ticketEditLines,
 } from '../lib/auditEvents';
 
 const FOCUSABLE_TEXT = 'rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -89,6 +91,15 @@ function Sentence({ event, showTicket }: { event: AuditEvent; showTicket: boolea
       return who ? withActor('removed a file from') : <>A file was removed from {rep}</>;
     case 'ATTACHMENT_MOVED':
       return who ? withActor('moved a photo on') : <>A photo was moved on {rep}</>;
+    // Spec 0019, AC-19b
+    case 'TICKET_EDITED':
+      return who ? withActor('edited') : <>{rep} was edited</>;
+    case 'ISSUE_ADDED':
+      return who ? withActor('added an issue to') : <>An issue was added to {rep}</>;
+    case 'ISSUE_EDITED':
+      return who ? withActor('edited an issue on') : <>An issue on {rep} was edited</>;
+    case 'ISSUE_REMOVED':
+      return who ? withActor('removed an issue from') : <>An issue was removed from {rep}</>;
     default:
       return who ? (
         <>
@@ -171,6 +182,17 @@ function Change({ event }: { event: AuditEvent }) {
         <p className="text-sm text-foreground">{line}</p>
         {file && <p className="text-xs break-words text-muted-foreground">{file}</p>}
       </div>
+    );
+  }
+  if (event.type === 'TICKET_EDITED' || event.type.startsWith('ISSUE_')) {
+    const lines = event.type === 'TICKET_EDITED' ? ticketEditLines(event) : issueEventLines(event);
+    if (lines.length === 0) return null;
+    return (
+      <ul className="flex flex-col gap-0.5 text-sm break-words text-muted-foreground">
+        {lines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
     );
   }
   if (event.type === 'GARAGE_CHANGE') {

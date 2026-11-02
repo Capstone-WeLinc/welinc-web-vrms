@@ -1,60 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useWatch, type UseFormClearErrors, type UseFormSetValue } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { getDrivers, type DriverOption } from '../../../../lib/api/vrmsConfigApi';
 import { NAME_LIMIT, type RepairFormControl, type RepairFormInput } from '../../lib/repairFormSchema';
+import { useDriverSearch } from '../../hooks/useDriverSearch';
 import { ListError } from './RepairFormParts';
 
 interface DriverFieldProps {
   control: RepairFormControl;
   setValue: UseFormSetValue<RepairFormInput>;
   clearErrors: UseFormClearErrors<RepairFormInput>;
-}
-
-const SEARCH_DELAY_MS = 250;
-
-/** Active drivers matching what is typed, searched on the server (spec 0016, AC-13). */
-function useDriverSearch() {
-  const [query, setQuery] = useState('');
-  const [drivers, setDrivers] = useState<DriverOption[]>([]);
-  const [failed, setFailed] = useState(false);
-  const [retrying, setRetrying] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    // The first load (no text) goes out right away; typing waits a beat
-    const timer = setTimeout(
-      () => {
-        getDrivers(query.trim() || undefined)
-          .then((rows) => {
-            if (cancelled) return;
-            setDrivers(rows);
-            setFailed(false);
-          })
-          .catch(() => {
-            if (!cancelled) setFailed(true);
-          })
-          .finally(() => {
-            if (!cancelled) setRetrying(false);
-          });
-      },
-      query ? SEARCH_DELAY_MS : 0,
-    );
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [query, attempt]);
-
-  const retry = () => {
-    setRetrying(true);
-    setAttempt((n) => n + 1);
-  };
-  return { drivers, failed, retrying, retry, setQuery };
 }
 
 /**

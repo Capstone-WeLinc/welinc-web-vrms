@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SearchX, ShieldAlert, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -8,11 +8,20 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
-import { getApiErrorMessage, getApiErrorStatus, getInvalidTransition, getPhotoRequired } from '../../../lib/api/errors';
-import { assignMechanics, unlockRepairTicket, updateRepairStatus } from '../../../lib/api/repairApi';
+import { getApiErrorMessage, getApiErrorStatus, getDriverExists, getInvalidTransition, getPhotoRequired } from '../../../lib/api/errors';
+import {
+  addTicketIssue,
+  editTicketDetails,
+  editTicketIssue,
+  removeTicketIssue,
+  setMechanics,
+  unlockRepairTicket,
+  updateRepairStatus,
+  type EditDetailsPayload,
+} from '../../../lib/api/repairApi';
 import { useHasTabBar } from '../../../components/layout/useNavSections';
 import { useCan } from '../../../lib/permissions/usePermissions';
-import type { IssueResolution, RepairStatus, RepairTicket } from '../../../types';
+import type { IssueResolution, RepairIssue, RepairStatus, RepairTicket } from '../../../types';
 import { ActivitySection } from '../components/ActivitySection';
 import { AiDiagnosisSection } from '../components/AiDiagnosisSection';
 import { Callout } from '../../../components/shared/Callout';
@@ -26,8 +35,13 @@ import { NotesSection, VehicleSection } from '../components/TicketMainSections';
 import { TicketNoteDialog } from '../components/TicketNoteDialog';
 import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePanel';
 import { DocumentsCard } from '../components/DocumentsCard';
+import { EditDetailsDialog } from '../components/edit/EditDetailsDialog';
+import { IssueEditDialog, type IssueSave } from '../components/edit/IssueEditDialog';
+import { confirm } from '../../../components/shared/confirm/confirm';
 import { TicketFilesProvider } from '../components/TicketFilesProvider';
+import { useEditSession } from '../hooks/useEditSession';
 import { useRepairTicket } from '../hooks/useRepairTicket';
+import { editNeedsReason, issueRemovalSummary, ticketEditable } from '../lib/ticketEdits';
 import { photosInFlight } from '../lib/photoUpload';
 import {
   canWorkTicket,
@@ -69,8 +83,22 @@ export function RepairDetailPage() {
   const usesAi = useCan('ai.use');
   const hasTabBar = useHasTabBar();
   const { showToast } = useToast();
-  const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId);
+  const navigate = useNavigate();
   const [dialog, setDialog] = useState<DialogKind>(null);
+  const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId, {
+    // The status dialogs are keyed on the ticket's version, so a refetch would clear a typed note
+    paused: dialog !== null,
+    // Spec 0019, AC-23: removed from the ticket (403) or the ticket is gone (404) while it was open
+    onGone: (code) => {
+      showToast(
+        code === 403 && ticket ? `You’re no longer assigned to ${ticket.repairNumber}.` : 'This ticket is no longer available.',
+        'warning',
+      );
+      navigate('/repairs', { replace: true });
+    },
+  });
+  // Spec 0019: the edit dialogs, one at a time, each with the ticket it opened with (AC-22)
+  const edits = useEditSession();
 
   const back = backLink(ticket, (location.state as { from?: unknown } | null)?.from);
 
@@ -113,6 +141,7 @@ export function RepairDetailPage() {
   // A 409 closes the dialog, says so, and shows the latest ticket with its own next action.
   const handleStale = () => {
     setDialog(null);
+    edits.close();
     showToast(STALE_TICKET_MESSAGE, 'error');
     void reload();
   };
@@ -165,7 +194,7 @@ export function RepairDetailPage() {
 
   const assign = async (mechanicIds: string[]) => {
     try {
-      const updated = await assignMechanics(ticket.id, mechanicIds, ticket.updatedAt);
+      const updated = await setMechanics(ticket.id, mechanicIds, { lastUpdatedAt: ticket.updatedAt });
       setDialog(null);
       replace(updated);
       showToast(`${rep} is assigned.`, 'success');
@@ -176,6 +205,88 @@ export function RepairDetailPage() {
     }
   };
 
+  // Spec 0019, AC-18: a save replaces the ticket; a 409 closes the dialog and reloads, other errors stay in it
+  const saveDetails = async (payload: EditDetailsPayload) => {
+    try {
+      const updated = await editTicketDetails(ticket.id, payload);
+      edits.close();
+      replace(updated);
+      showToast(`${rep} is updated.`, 'success');
+    } catch (err) {
+      // DRIVER_EXISTS is also a 409, but the dialog shows it with "Use <name>" (AC-4); only a stale ticket reloads
+      if (getApiErrorStatus(err) === 409 && !getDriverExists(err)) return handleStale();
+      throw err;
+    }
+  };
+
+  // Spec 0019, AC-9: the full list, from the ticket as the dialog opened
+  const saveMechanics = async (opened: RepairTicket, mechanicIds: string[], reason?: string) => {
+    try {
+      const updated = await setMechanics(ticket.id, mechanicIds, { lastUpdatedAt: opened.updatedAt, reason });
+      edits.close();
+      replace(updated);
+      showToast(`Mechanics on ${rep} are updated.`, 'success');
+    } catch (err) {
+      if (getApiErrorStatus(err) === 409) return handleStale();
+      throw err;
+    }
+  };
+
+  // Spec 0019, AC-14 and AC-15: add or reword an issue, from the ticket as the dialog opened
+  const saveIssue = async (opened: RepairTicket, issueId: string | undefined, save: IssueSave) => {
+    try {
+      const base = { lastUpdatedAt: opened.updatedAt, reason: save.reason };
+      const updated =
+        save.mode === 'add'
+          ? await addTicketIssue(ticket.id, {
+              ...base,
+              categoryId: save.categoryId,
+              rootCause: save.rootCause,
+              description: save.description,
+              knowledgeEntryId: save.knowledgeEntryId,
+            })
+          : await editTicketIssue(ticket.id, issueId!, { ...base, categoryId: save.categoryId, text: save.text });
+      edits.close();
+      replace(updated);
+      showToast(save.mode === 'add' ? `Issue added to ${rep}.` : `Issue on ${rep} is updated.`, 'success');
+    } catch (err) {
+      if (getApiErrorStatus(err) === 409) return handleStale();
+      throw err;
+    }
+  };
+
+  /** AC-16: remove after a confirm naming what goes with it; a closed ticket asks for the reason too. */
+  const removeIssue = async (issue: RepairIssue, taggedPhotos: number) => {
+    const detail = issueRemovalSummary(issue, taggedPhotos);
+    if (editNeedsReason(ticket)) {
+      edits.open('removeIssue', ticket, { issueId: issue.id, detail });
+      return;
+    }
+    const ok = await confirm({ title: 'Remove this issue?', description: detail, confirmText: 'Remove issue', tone: 'destructive' });
+    if (!ok) return;
+    try {
+      await sendRemoval(ticket, issue.id);
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Couldn’t remove the issue. Try again.'), 'error');
+    }
+  };
+
+  const sendRemoval = async (opened: RepairTicket, issueId: string, reason?: string) => {
+    try {
+      const updated = await removeTicketIssue(ticket.id, issueId, { lastUpdatedAt: opened.updatedAt, reason });
+      edits.close();
+      replace(updated);
+      showToast(`Issue removed from ${rep}.`, 'success');
+    } catch (err) {
+      if (getApiErrorStatus(err) === 409) return handleStale();
+      throw err;
+    }
+  };
+
+  // Spec 0019, AC-1 and AC-2: the Edit buttons follow the ticket's flags and lock state
+  const canEditDetails = !readOnly && ticket.can.edit && ticketEditable(ticket);
+  const canEditMechanics = !readOnly && ticket.can.assign && ticketEditable(ticket);
+
   const noMechanic =
     ticket.can.administer && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
   const noCosts = seesCosts && moveTo === 'CLOSED' && !hasCosts(ticket);
@@ -185,7 +296,7 @@ export function RepairDetailPage() {
     <div key={ticket.id} className={barLabel ? (barSecondary ? 'pb-36 md:pb-20 lg:pb-0' : 'pb-20 lg:pb-0') : undefined}>
       <BackLink to={back.to} label={back.label} />
       <PageHeader title={rep} subtitle={ticket.vehicleModel ? `${ticket.vehiclePlate} · ${ticket.vehicleModel}` : ticket.vehiclePlate} icon={Wrench} />
-      {ticket.lastRejection && <SendBackBanner key={`${ticket.lastRejection.at}:${loadedAt}`} rejection={ticket.lastRejection} now={loadedAt} />}
+      {ticket.lastRejection && <SendBackBanner key={ticket.lastRejection.at} rejection={ticket.lastRejection} now={loadedAt} />}
 
       {/* Spec 0017: one file list and one upload queue for the photos and the Documents card. Spec 0018: a
           file change reloads the ticket (its photo rules), and photos still in the queue hold Start work. */}
@@ -205,15 +316,47 @@ export function RepairDetailPage() {
                     onCancel={() => setDialog('cancel')}
                   />
                   <DetailsCard ticket={ticket} now={loadedAt} />
-                  <PeopleCard ticket={ticket} />
+                  <PeopleCard
+                    ticket={ticket}
+                    action={
+                      canEditMechanics ? (
+                        <Button variant="outline" size="sm" aria-label="Edit mechanics" onClick={() => edits.open('mechanics', ticket)}>
+                          Edit
+                        </Button>
+                      ) : null
+                    }
+                  />
                   {/* Spec 0017, AC-27: receipts and other documents are cost paperwork */}
                   {seesCosts && <DocumentsCard />}
                 </aside>
 
                 <div className="flex min-w-0 flex-col gap-4 lg:col-span-2 lg:col-start-1 lg:row-start-1">
                   <NotesSection ticket={ticket} />
-                  <VehicleSection ticket={ticket} />
-                  <IssuesSection ticket={ticket} canWork={!readOnly && canWorkTicket(ticket)} onChanged={replace} onStale={handleStale} />
+                  <VehicleSection
+                    ticket={ticket}
+                    action={
+                      canEditDetails ? (
+                        <Button variant="outline" size="sm" aria-label="Edit vehicle and driver" onClick={() => edits.open('details', ticket)}>
+                          Edit
+                        </Button>
+                      ) : null
+                    }
+                  />
+                  <IssuesSection
+                    ticket={ticket}
+                    canWork={!readOnly && canWorkTicket(ticket)}
+                    onChanged={replace}
+                    onStale={handleStale}
+                    edit={
+                      canEditDetails
+                        ? {
+                            onAdd: () => edits.open('addIssue', ticket),
+                            onEdit: (issue) => edits.open('editIssue', ticket, { issueId: issue.id }),
+                            onRemove: (issue, photos) => void removeIssue(issue, photos),
+                          }
+                        : null
+                    }
+                  />
                   {usesAi && <AiDiagnosisSection ticket={ticket} />}
                   {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
                   {seesActivity && <ActivitySection ticketId={ticket.id} />}
@@ -308,7 +451,58 @@ export function RepairDetailPage() {
           open={dialog === 'primary'}
           onOpenChange={(open) => setDialog(open ? 'primary' : null)}
           repairNumber={rep}
+          status={ticket.status}
           onSubmit={assign}
+        />
+      )}
+
+      {edits.session?.kind === 'mechanics' && (
+        <AssignMechanicDialog
+          key={edits.session.n}
+          open={edits.session.open}
+          onOpenChange={(open) => !open && edits.close()}
+          repairNumber={rep}
+          status={edits.session.ticket.status}
+          current={edits.session.ticket.mechanics ?? []}
+          needsReason={editNeedsReason(edits.session.ticket)}
+          onSubmit={(ids, reason) => saveMechanics(edits.session!.ticket, ids, reason)}
+        />
+      )}
+
+      {edits.session?.kind === 'details' && (
+        <EditDetailsDialog
+          key={edits.session.n}
+          open={edits.session.open}
+          onOpenChange={(open) => !open && edits.close()}
+          ticket={edits.session.ticket}
+          onSave={saveDetails}
+        />
+      )}
+
+      {(edits.session?.kind === 'addIssue' || edits.session?.kind === 'editIssue') && (
+        <IssueEditDialog
+          key={edits.session.n}
+          open={edits.session.open}
+          onOpenChange={(open) => !open && edits.close()}
+          ticket={edits.session.ticket}
+          issue={edits.session.ticket.issues?.find((i) => i.id === edits.session?.issueId)}
+          onSave={(save) => saveIssue(edits.session!.ticket, edits.session!.issueId, save)}
+        />
+      )}
+
+      {edits.session?.kind === 'removeIssue' && (
+        <TicketNoteDialog
+          key={edits.session.n}
+          open={edits.session.open}
+          onOpenChange={(open) => !open && edits.close()}
+          title="Remove this issue?"
+          description={edits.session.detail}
+          fieldLabel="Reason for the change"
+          requiredMessage="Say why this closed ticket is being changed."
+          minLength={5}
+          confirmLabel="Remove issue"
+          destructive
+          onSubmit={(reason) => sendRemoval(edits.session!.ticket, edits.session!.issueId!, reason.trim())}
         />
       )}
 

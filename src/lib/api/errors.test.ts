@@ -6,7 +6,7 @@ vi.mock('sonner', () => sonner);
 
 import { showToast } from '../../context/toast';
 import { DENIED_MESSAGE, DENIED_TOAST_MS } from '../permissions/keys';
-import { getApiErrorMessage, getDisabledModule, getInvalidTransition } from './errors';
+import { getApiErrorMessage, getDisabledModule, getDriverExists, getInvalidTransition } from './errors';
 
 function httpError(status: number, message: string | string[], code?: string) {
   const response = { status, data: { message, code } } as AxiosResponse;
@@ -111,5 +111,19 @@ describe('getInvalidTransition', () => {
     expect(getInvalidTransition(httpError(400, 'Say what needs fixing.'))).toBeNull();
     expect(getInvalidTransition(httpError(409, 'stale', 'INVALID_TRANSITION'))).toBeNull();
     expect(getInvalidTransition(new Error('boom'))).toBeNull();
+  });
+});
+
+// Spec 0019, AC-4: the detail page reloads on a stale 409 but must let DRIVER_EXISTS reach the edit dialog
+describe('telling a driver conflict from a stale ticket', () => {
+  it('reads the owner of the license from a DRIVER_EXISTS 409', () => {
+    const response = { status: 409, data: { code: 'DRIVER_EXISTS', driver: { id: 'd-1', name: 'Alvin Sarmiento' } } } as AxiosResponse;
+    const err = new AxiosError('failed', 'ERR', undefined, undefined, response);
+    expect(getDriverExists(err)).toEqual({ id: 'd-1', name: 'Alvin Sarmiento' });
+  });
+
+  it('does not take a stale ticket 409 for a driver conflict', () => {
+    expect(getDriverExists(httpError(409, 'This ticket has been updated by another user.'))).toBeNull();
+    expect(getDriverExists(httpError(409, 'stale', 'STALE_TICKET'))).toBeNull();
   });
 });

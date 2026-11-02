@@ -48,6 +48,13 @@ describe('attentionList', () => {
     expect(ids).toEqual(['late', 'gone', 'orphan', 'wait']);
   });
 
+  it('lists a ticket past Assigned with no mechanic as unstaffed (spec 0019, AC-13)', () => {
+    const empty = ticket({ id: 'empty', status: 'FOR_VERIFICATION', mechanicCount: 0, updatedAt: at(-DAY) });
+    const open = ticket({ id: 'open', status: 'OPEN', mechanicCount: 0, updatedAt: at(-DAY) });
+    const staffed = ticket({ id: 'staffed', status: 'OUTSOURCED', mechanicCount: 1, updatedAt: at(-DAY) });
+    expect(attentionList([open, staffed, empty], now, 10).map((t) => t.id)).toEqual(['empty']);
+  });
+
   it('counts an ON_HOLD ticket past due as overdue (AC-4a)', () => {
     const held = ticket({ id: 'held', status: 'ON_HOLD', dueAt: at(-DAY) });
     expect(attentionList([held], now, 5).map((t) => t.id)).toEqual(['held']);
@@ -145,7 +152,7 @@ describe('verificationQueue', () => {
       id,
       status: 'FOR_VERIFICATION',
       statusChangedAt,
-      can: { work: false, administer: false, verify: true, editCosts: false, unlock: false, assign: false },
+      can: { work: false, administer: false, verify: true, editCosts: false, unlock: false, assign: false, edit: false },
       ...over,
     });
 

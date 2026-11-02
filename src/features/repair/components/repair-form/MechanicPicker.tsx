@@ -62,11 +62,12 @@ export function MechanicPicker({ control, mechanics, clearErrors }: MechanicPick
 
         return (
           <Field data-invalid={invalid || undefined}>
-            <FieldLabel htmlFor={id}>
+            <FieldLabel id={`${id}-label`} htmlFor={id}>
               Mechanics
             </FieldLabel>
             <Combobox
               id={id}
+              aria-labelledby={`${id}-label`}
               ref={field.ref}
               aria-invalid={invalid}
               aria-describedby={describedBy}

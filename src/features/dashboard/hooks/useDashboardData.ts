@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useVisiblePoll } from '../../../hooks/useVisiblePoll';
 import type { RepairHistoryRow, RepairTicket } from '../../../types';
 import { getRepairHistory, getRepairs } from '../../../lib/api/repairApi';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 
-const POLL_MS = 15000;
 const ADMIN_LIMIT = 10000;
 
 type Snapshot = {
@@ -14,13 +14,14 @@ type Snapshot = {
   fetchedAt: number;
 };
 
-async function fetchSnapshot(includeHistory: boolean): Promise<Snapshot> {
+/** `quiet` for the background refetch, which reports a failure in the status line instead of a toast. */
+async function fetchSnapshot(includeHistory: boolean, quiet = false): Promise<Snapshot> {
   // Admins fetch both lists together, so a half drawn dashboard never looks complete.
   // Mechanics send no page or limit; the backend then returns every assigned active ticket.
   const [active, history] = await Promise.all([
-    includeHistory ? getRepairs({ page: 1, limit: ADMIN_LIMIT }) : getRepairs(),
+    includeHistory ? getRepairs({ page: 1, limit: ADMIN_LIMIT }, { quiet }) : getRepairs({}, { quiet }),
     includeHistory
-      ? getRepairHistory({ page: 1, limit: ADMIN_LIMIT })
+      ? getRepairHistory({ page: 1, limit: ADMIN_LIMIT }, { quiet })
       : Promise.resolve({ data: [] as RepairHistoryRow[], total: 0 }),
   ]);
   return {
@@ -35,61 +36,41 @@ export function useDashboardData({ includeHistory }: { includeHistory: boolean }
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshFailed, setRefreshFailed] = useState(false);
-  const loaded = useRef(false);
 
+  // The first load; retry clears the error and this runs again
   useEffect(() => {
-    // No polling while the first load error is showing; retry clears it and this runs again.
     if (loadError) return;
     let cancelled = false;
-    let inFlight = false;
-    let timer: number | undefined;
-
-    const run = () => {
-      if (inFlight) return;
-      inFlight = true;
-      fetchSnapshot(includeHistory)
-        .then((next) => {
-          if (cancelled) return;
-          loaded.current = true;
-          setSnapshot(next);
-          setRefreshFailed(false);
-        })
-        .catch((err) => {
-          if (cancelled) return;
-          // After one success the data stays on screen; only the status line changes.
-          if (loaded.current) setRefreshFailed(true);
-          else setLoadError(getApiErrorMessage(err, 'The dashboard didn’t load.'));
-        })
-        .finally(() => {
-          inFlight = false;
-        });
-    };
-    const stop = () => {
-      window.clearInterval(timer);
-      timer = undefined;
-    };
-    const start = () => {
-      stop();
-      timer = window.setInterval(run, POLL_MS);
-    };
-    const onVisibility = () => {
-      if (document.hidden) {
-        stop();
-      } else {
-        run();
-        start();
-      }
-    };
-
-    run();
-    if (!document.hidden) start();
-    document.addEventListener('visibilitychange', onVisibility);
+    fetchSnapshot(includeHistory)
+      .then((next) => {
+        if (cancelled) return;
+        setSnapshot(next);
+        setRefreshFailed(false);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(getApiErrorMessage(err, 'The dashboard didn’t load.'));
+      });
     return () => {
       cancelled = true;
-      stop();
-      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [includeHistory, loadError]);
+
+  // Spec 0019, AC-21: every 3 seconds while visible (was 15). After one success the data stays on
+  // screen; a failed refetch only changes the status line.
+  useVisiblePoll(
+    () =>
+      fetchSnapshot(includeHistory, true).then(
+        (next) => {
+          setSnapshot(next);
+          setRefreshFailed(false);
+        },
+        (err: unknown) => {
+          setRefreshFailed(true);
+          throw err;
+        },
+      ),
+    snapshot !== null && !loadError,
+  );
 
   const retry = () => setLoadError(null);
 

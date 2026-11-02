@@ -1,4 +1,5 @@
 import type { RepairStatus, RepairTicket } from '../../../types';
+import { hasNoMechanic } from '../../../lib/mechanicProblem';
 import { dayCount, type DueLabel, isOpen, isOverdue, overdueText, toTime, wholeDays } from '../../../lib/utils/due';
 
 // Spec 0002. Every helper takes `now` (the hook's fetchedAt) and never reads the clock,
@@ -29,9 +30,12 @@ export function updatedText(ticket: RepairTicket, now: number) {
   return `Updated ${dayCount(days)} ago`;
 }
 
-/** Spec 0011, AC-34: an open ticket whose mechanic left, or that is being worked with no mechanic. */
+/**
+ * Spec 0011, AC-34: an open ticket whose mechanic left, or that is being worked with no mechanic.
+ * Spec 0019, AC-13: also any ticket past Assigned with no mechanic at all ("No mechanic").
+ */
 export function needsStaffing(ticket: RepairTicket) {
-  return !!ticket.hasInactiveMechanic || !!ticket.needsMechanic;
+  return !!ticket.hasInactiveMechanic || !!ticket.needsMechanic || hasNoMechanic(ticket);
 }
 
 /** Admin Needs attention rows: overdue text, else the updated text (waiting rows). */

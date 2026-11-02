@@ -1,7 +1,9 @@
 import api from './axios';
 import type {
+  AccountType,
   CreateRepairPayload,
   IssueResolution,
+  PriorityLevel,
   RepairHistoryRow,
   RepairHistorySummary,
   RepairIssueStep,
@@ -23,9 +25,13 @@ export interface RepairListParams {
   limit?: number;
 }
 
-export async function getRepairs(params: RepairListParams = {}): Promise<{ data: RepairTicket[], total: number }> {
+export async function getRepairs(
+  params: RepairListParams = {},
+  options: { quiet?: boolean } = {},
+): Promise<{ data: RepairTicket[], total: number }> {
   const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs', {
     params: { ...params, search: params.search || undefined, overdue: params.overdue || undefined },
+    quiet: options.quiet,
   });
   if (Array.isArray(response.data)) {
     return { data: response.data, total: response.data.length };
@@ -60,15 +66,20 @@ export interface VerifierOption {
   name: string;
 }
 
-export async function getRepairHistory(params: RepairHistoryParams = {}): Promise<RepairHistoryResponse> {
+export async function getRepairHistory(
+  params: RepairHistoryParams = {},
+  options: { quiet?: boolean } = {},
+): Promise<RepairHistoryResponse> {
   const response = await api.get<RepairHistoryResponse>('/vrms/repairs/history', {
     params: { ...params, search: params.search || undefined },
+    quiet: options.quiet,
   });
   return response.data;
 }
 
-export async function getRepair(repairId: string): Promise<RepairTicket> {
-  const response = await api.get<RepairTicket>(`/vrms/repairs/${repairId}`);
+/** `quiet` skips the global error toasts, for the background refetch that handles its own (spec 0019, AC-23). */
+export async function getRepair(repairId: string, options: { quiet?: boolean } = {}): Promise<RepairTicket> {
+  const response = await api.get<RepairTicket>(`/vrms/repairs/${repairId}`, { quiet: options.quiet });
   return response.data;
 }
 
@@ -144,15 +155,70 @@ export async function unlockRepairTicket(
   return response.data;
 }
 
-/** Assigns in house mechanics to an Open ticket, which then goes Assigned (ticket.assign, spec 0016, AC-17). */
-export async function assignMechanics(
-  repairId: string,
-  mechanicIds: string[],
-  lastUpdatedAt: string,
-): Promise<RepairTicket> {
-  const response = await api.post<RepairTicket>(`/vrms/repairs/${repairId}/assignments`, {
+/** Spec 0019: what every edit sends. `reason` is required on an unlocked Closed or Cancelled ticket (AC-3). */
+export interface TicketEditBase {
+  lastUpdatedAt: string;
+  reason?: string;
+}
+
+/** PATCH /details: only the fields that changed (spec 0019, AC-4 to AC-8). */
+export interface EditDetailsPayload extends TicketEditBase {
+  /** At most one of an existing driver and a new one by LTO license (AC-4). */
+  driverId?: string;
+  newDriver?: { name: string; licenseNumber: string };
+  odometerReading?: number;
+  /** The reading is right even though it jumps far above the last one (AC-5). */
+  confirmOdometerJump?: boolean;
+  priority?: PriorityLevel;
+  /** Corporate needs corporationId; Online clears the corporation (AC-7). */
+  accountType?: AccountType;
+  corporationId?: string;
+}
+
+export async function editTicketDetails(repairId: string, payload: EditDetailsPayload): Promise<RepairTicket> {
+  const response = await api.patch<RepairTicket>(`/vrms/repairs/${repairId}/details`, payload);
+  return response.data;
+}
+
+/**
+ * Sets the full mechanic list on any open ticket (ticket.assign, spec 0019, AC-9). The first
+ * mechanic on an Open ticket makes it Assigned; removing the last from an Assigned one makes it
+ * Open again (AC-10). Also behind the Assign action of an Open ticket (spec 0016, AC-17).
+ */
+export async function setMechanics(repairId: string, mechanicIds: string[], base: TicketEditBase): Promise<RepairTicket> {
+  const response = await api.put<RepairTicket>(`/vrms/repairs/${repairId}/assignments`, {
+    ...base,
     mechanics: mechanicIds.map((id) => ({ id })),
-    lastUpdatedAt,
   });
+  return response.data;
+}
+
+/** POST /issues: create's issue fields and rules (spec 0019, AC-14). */
+export interface AddIssuePayload extends TicketEditBase {
+  categoryId: string;
+  rootCause: string;
+  /** Left out when blank and a known fix is picked: the server uses its name. */
+  description?: string;
+  knowledgeEntryId?: string;
+}
+
+export async function addTicketIssue(repairId: string, payload: AddIssuePayload): Promise<RepairTicket> {
+  const response = await api.post<RepairTicket>(`/vrms/repairs/${repairId}/issues`, payload);
+  return response.data;
+}
+
+/** PATCH /issues/:issueId: the system and the text after "[System] " (spec 0019, AC-15). */
+export async function editTicketIssue(
+  repairId: string,
+  issueId: string,
+  payload: TicketEditBase & { categoryId: string; text: string },
+): Promise<RepairTicket> {
+  const response = await api.patch<RepairTicket>(`/vrms/repairs/${repairId}/issues/${issueId}`, payload);
+  return response.data;
+}
+
+/** A POST, since proxies may drop a DELETE body; the last issue answers 400 LAST_ISSUE (spec 0019, AC-16, AC-17). */
+export async function removeTicketIssue(repairId: string, issueId: string, base: TicketEditBase): Promise<RepairTicket> {
+  const response = await api.post<RepairTicket>(`/vrms/repairs/${repairId}/issues/${issueId}/remove`, base);
   return response.data;
 }

@@ -90,6 +90,8 @@ export interface RepairIssue {
   knowledgeEntry: {
     id: string;
     name: string;
+    /** Spec 0019, AC-15: a system change clears a known fix from another category. */
+    categoryId?: string;
     status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
     safetyNotes: string | null;
     parts: string[];
@@ -140,8 +142,10 @@ export interface TicketCan {
   verify: boolean;
   editCosts: boolean;
   unlock: boolean;
-  /** Assign mechanics to an Open ticket (spec 0016, AC-16). */
+  /** Add, remove or swap mechanics on any open ticket (spec 0016, AC-16; spec 0019, AC-9). */
   assign: boolean;
+  /** Edit the details and issues after create (ticket.edit, spec 0019, AC-1). */
+  edit: boolean;
 }
 
 /** One status move the server lets this caller make now (spec 0014, AC-13). */
@@ -169,6 +173,8 @@ export interface RepairTicket {
   vehiclePlate: string;
   vehicleModel?: string;
   driverName: string;
+  /** Spec 0019, AC-4: the details edit compares it to tell a swap from the same driver. */
+  driverId?: string;
   issueDescription: string;
   status: RepairStatus;
   createdAt: string;
@@ -195,6 +201,9 @@ export interface RepairTicket {
   /** Who closed (verified) the ticket, and when. */
   verifiedByName?: string | null;
   verifiedAt?: string | null;
+  /** Spec 0019, AC-19: the last edit after create, and who made it. Null until someone edits. */
+  editedAt?: string | null;
+  editedByName?: string | null;
   remarks?: string;
   cancellationReason?: string;
   laborCost?: number | null;
@@ -206,6 +215,8 @@ export interface RepairTicket {
   repairParts?: RepairPart[];
   /** An open ticket assigned to a mechanic who is no longer active (spec 0011, AC-34). */
   hasInactiveMechanic?: boolean;
+  /** Spec 0019, AC-13: how many mechanics are on the ticket. */
+  mechanicCount?: number;
   /** In progress or on hold with no active mechanic assigned (spec 0011, AC-34). */
   needsMechanic?: boolean;
   can: TicketCan;

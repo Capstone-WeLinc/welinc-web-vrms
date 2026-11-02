@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useVisiblePoll } from '../../../hooks/useVisiblePoll';
 import { getRepairs, type RepairListParams } from '../../../lib/api/repairApi';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 import type { RepairTicket } from '../../../types';
@@ -8,8 +9,9 @@ type Loaded =
   | { key: string; status: 'error'; message: string };
 
 /**
- * One page of open tickets. When the tab becomes visible again it refetches the same page
- * in the background: the rows stay on screen, and a failed refetch changes nothing (AC-10).
+ * One page of open tickets. While the tab is visible it refetches the same page every 3 seconds
+ * in the background (spec 0019, AC-21): the rows stay on screen, and a failed refetch changes
+ * nothing (AC-10).
  */
 export function useRepairList(params: RepairListParams) {
   const [attempt, setAttempt] = useState(0);
@@ -21,30 +23,35 @@ export function useRepairList(params: RepairListParams) {
   useEffect(() => {
     const key = `${attempt}:${paramsJson}`;
     let cancelled = false;
-    const load = (background: boolean) =>
-      getRepairs(JSON.parse(paramsJson) as RepairListParams)
-        .then(({ data, total }) => {
-          if (!cancelled) setLoaded({ key, status: 'ready', rows: data, total, fetchedAt: Date.now() });
-        })
-        .catch((err) => {
-          if (cancelled || background) return;
-          setLoaded({ key, status: 'error', message: getApiErrorMessage(err, 'Repair tickets didn’t load.') });
-        });
-    const onVisibility = () => {
-      if (!document.hidden) void load(true);
-    };
-
-    void load(false);
-    document.addEventListener('visibilitychange', onVisibility);
+    getRepairs(JSON.parse(paramsJson) as RepairListParams)
+      .then(({ data, total }) => {
+        if (!cancelled) setLoaded({ key, status: 'ready', rows: data, total, fetchedAt: Date.now() });
+      })
+      .catch((err) => {
+        if (!cancelled) setLoaded({ key, status: 'error', message: getApiErrorMessage(err, 'Repair tickets didn’t load.') });
+      });
     return () => {
       cancelled = true;
-      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [paramsJson, attempt]);
 
   // Loading until the latest params have answered; derived, so the effect sets no state synchronously.
   const current = loaded?.key === key ? loaded : null;
   const state: 'loading' | 'error' | 'ready' = current ? current.status : 'loading';
+
+  // A refetch for params the user has since changed is dropped, never shown over the new page
+  useVisiblePoll(
+    () =>
+      getRepairs(JSON.parse(paramsJson) as RepairListParams, { quiet: true }).then(({ data, total }) =>
+        setLoaded((prev) => {
+          if (prev?.key !== key) return prev;
+          // Unchanged rows keep the same state, so the table does not redraw every few seconds
+          if (prev.status === 'ready' && prev.total === total && JSON.stringify(prev.rows) === JSON.stringify(data)) return prev;
+          return { key, status: 'ready', rows: data, total, fetchedAt: Date.now() };
+        }),
+      ),
+    state === 'ready',
+  );
 
   return {
     state,

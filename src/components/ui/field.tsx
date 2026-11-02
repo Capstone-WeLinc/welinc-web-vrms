@@ -320,6 +320,8 @@ function FormField<
             .join(" ") || undefined
         const controlProps = {
           id,
+          // A combobox button takes its name from here: axe does not follow label[for] to it
+          "aria-labelledby": labelId,
           "aria-invalid": invalid,
           "aria-describedby": describedBy,
         }

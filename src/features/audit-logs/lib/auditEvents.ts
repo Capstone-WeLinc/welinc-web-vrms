@@ -5,6 +5,9 @@ import {
   FilePlus2,
   FileX2,
   Images,
+  ListPlus,
+  ListX,
+  PencilLine,
   LockOpen,
   Paperclip,
   UserMinus,
@@ -14,12 +17,23 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { ALL_TIME, type DateRangeValue } from '../../../components/shared/date-range/dateRange';
+import { PRIORITY_MAP } from '../../../components/shared/priorityStyles';
 import { formatPeso } from '../../../lib/utils/format';
 import type { AuditChange, AuditEvent } from '../../../types';
 
 // Spec 0003, AC-10 to AC-12, on the spec 0010 shape: one event with its list of changes.
 
-export type EventTypeFilter = 'all' | 'CREATED' | 'STATUS_CHANGE' | 'COST_UPDATE' | 'UNLOCK' | 'GARAGE_CHANGE';
+export type EventTypeFilter =
+  | 'all'
+  | 'CREATED'
+  | 'STATUS_CHANGE'
+  | 'COST_UPDATE'
+  | 'UNLOCK'
+  | 'GARAGE_CHANGE'
+  | 'TICKET_EDITED'
+  | 'ISSUE_ADDED'
+  | 'ISSUE_EDITED'
+  | 'ISSUE_REMOVED';
 
 export const TYPE_CHIPS: { value: EventTypeFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -28,6 +42,11 @@ export const TYPE_CHIPS: { value: EventTypeFilter; label: string }[] = [
   { value: 'COST_UPDATE', label: 'Costs' },
   { value: 'UNLOCK', label: 'Unlocks' },
   { value: 'GARAGE_CHANGE', label: 'Garage' },
+  // Spec 0019, AC-19b
+  { value: 'TICKET_EDITED', label: 'Edits' },
+  { value: 'ISSUE_ADDED', label: 'Issue added' },
+  { value: 'ISSUE_EDITED', label: 'Issue edited' },
+  { value: 'ISSUE_REMOVED', label: 'Issue removed' },
 ];
 
 export type AuditFilterValues = {
@@ -71,6 +90,10 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   ATTACHMENT_ADDED: { icon: Paperclip, tone: 'bg-primary/10 text-primary' },
   ATTACHMENT_REMOVED: { icon: FileX2, tone: 'bg-muted text-muted-strong' },
   ATTACHMENT_MOVED: { icon: Images, tone: 'bg-primary/10 text-primary' },
+  TICKET_EDITED: { icon: PencilLine, tone: 'bg-primary/10 text-primary' },
+  ISSUE_ADDED: { icon: ListPlus, tone: 'bg-primary/10 text-primary' },
+  ISSUE_EDITED: { icon: PencilLine, tone: 'bg-primary/10 text-primary' },
+  ISSUE_REMOVED: { icon: ListX, tone: 'bg-muted text-muted-strong' },
 };
 
 export function eventStyle(type: string): EventStyle {
@@ -147,4 +170,67 @@ export function movedFileName(event: Pick<AuditEvent, 'changes'>): string | null
   const file = changeOf(event, 'attachment');
   const stored = file?.after ?? file?.before;
   return stored ? fileNameOf(stored) : null;
+}
+
+// ── Spec 0019, AC-19b: edits after create ───────────────────────────────────────
+
+const ACCOUNT_LABELS: Record<string, string> = { ONLINE: 'Online', CORPORATE: 'Corporate' };
+
+function account(type: string | null | undefined, corporation: string | null | undefined) {
+  if (!type) return 'Not set';
+  const label = ACCOUNT_LABELS[type] ?? type;
+  return type === 'CORPORATE' && corporation ? `${label} (${corporation})` : label;
+}
+
+/** One plain line per change on a TICKET_EDITED row: "Priority: Medium → High". */
+export function ticketEditLines(event: Pick<AuditEvent, 'changes'>): string[] {
+  const lines: string[] = [];
+  const driver = changeOf(event, 'driver');
+  if (driver) lines.push(`Driver: ${driver.before ?? 'None'} → ${driver.after ?? 'None'}`);
+  const odometer = changeOf(event, 'odometer');
+  if (odometer) {
+    const km = (v: string | null) => (v == null ? 'None' : Number(v).toLocaleString('en-US'));
+    lines.push(`Odometer: ${km(odometer.before)} → ${km(odometer.after)} km`);
+  }
+  const priority = changeOf(event, 'priority');
+  if (priority) {
+    const label = (v: string | null) => (v ? (PRIORITY_MAP[v]?.label ?? v) : 'None');
+    lines.push(`Priority: ${label(priority.before)} → ${label(priority.after)}`);
+  }
+  const type = changeOf(event, 'accountType');
+  const corporation = changeOf(event, 'corporation');
+  if (type) {
+    lines.push(`Account: ${account(type.before, corporation?.before)} → ${account(type.after, corporation?.after)}`);
+  } else if (corporation) {
+    lines.push(`Corporation: ${corporation.before ?? 'None'} → ${corporation.after ?? 'None'}`);
+  }
+  return lines;
+}
+
+/** The lines under an issue event: its text, and what else changed or went with it. */
+export function issueEventLines(event: Pick<AuditEvent, 'type' | 'changes'>): string[] {
+  if (event.type === 'ISSUE_ADDED') {
+    const issue = changeOf(event, 'issue');
+    return issue?.after ? [issue.after] : [];
+  }
+  if (event.type === 'ISSUE_EDITED') {
+    const lines: string[] = [];
+    const description = changeOf(event, 'description');
+    if (description?.after) lines.push(`Now: ${description.after}`);
+    if (description?.before) lines.push(`Was: ${description.before}`);
+    const system = changeOf(event, 'system');
+    if (system) lines.push(`System: ${system.before ?? 'None'} → ${system.after ?? 'None'}`);
+    const fix = changeOf(event, 'knowledgeEntry');
+    if (fix?.before && !fix.after) lines.push(`Known fix removed: ${fix.before}`);
+    return lines;
+  }
+  if (event.type === 'ISSUE_REMOVED') {
+    const lines: string[] = [];
+    const issue = changeOf(event, 'issue');
+    if (issue?.before) lines.push(issue.before);
+    const note = changeOf(event, 'resolutionNote');
+    if (note?.before) lines.push(`What fixed it: ${note.before}`);
+    return lines;
+  }
+  return [];
 }
