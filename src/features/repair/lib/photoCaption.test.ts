@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Attachment } from '../../../lib/api/attachmentsApi';
-import { formatManilaDateTime, photoCaption, photoMarks } from './photoCaption';
+import { formatManilaDateTime, photoAlt, photoCaption, photoMarks, photoName } from './photoCaption';
 
 // Spec 0017, AC-24: the viewer caption is uploader, then Manila date and time, then the issue name.
 
@@ -99,5 +99,14 @@ describe('photoMarks and the viewer lines (spec 0018, AC-13, AC-14)', () => {
     expect(photoCaption(photo({ kind: 'PROOF', returnedAfter: true }), new Map()).description).toBe(
       'After · Nov 1, 2026, 10:42 AM\nAdded after the ticket was returned to the mechanic',
     );
+  });
+});
+
+describe('photoName and photoAlt', () => {
+  it('names the group, uploader and Manila time, and adds the evidence marks to the alt', () => {
+    const p = photo({ kind: 'PROOF', returnedAfter: true, takenBeforeWork: true });
+    expect(photoName(p, 'After')).toBe('After photo by Mia Mechanic, Nov 1, 2026, 10:42 AM');
+    expect(photoAlt(p, 'After')).toBe('After photo by Mia Mechanic, Nov 1, 2026, 10:42 AM. Taken before work started. Added after return');
+    expect(photoAlt(photo(), 'Before')).toBe(photoName(photo(), 'Before'));
   });
 });

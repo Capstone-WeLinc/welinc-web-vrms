@@ -41,6 +41,18 @@ export function photoMarks(photo: Pick<Attachment, 'takenBeforeWork' | 'returned
   return marks;
 }
 
+/** `Before photo by Jo, Nov 1, 2026, 10:42 AM`: how a photo is named to a screen reader (thumbnail and viewer). */
+export function photoName(photo: Pick<Attachment, 'uploadedBy' | 'createdAt'>, groupLabel: string): string {
+  return `${groupLabel} photo by ${photo.uploadedBy.name}, ${formatManilaDateTime(photo.createdAt)}`;
+}
+
+/** The name plus its evidence marks, as the image's alt text. */
+export function photoAlt(photo: Pick<Attachment, 'uploadedBy' | 'createdAt' | 'takenBeforeWork' | 'returnedAfter'>, groupLabel: string): string {
+  const name = photoName(photo, groupLabel);
+  const marks = photoMarks(photo);
+  return marks.length ? `${name}. ${marks.map((mark) => mark.short).join('. ')}` : name;
+}
+
 /**
  * The viewer caption: uploader as the title, then the group (Before or After, spec 0018), when, and
  * the issue's name when an older photo was tagged (AC-24). Each evidence mark adds a line under it.

@@ -6,7 +6,7 @@ import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/captions.css';
 import type { Attachment } from '../../../lib/api/attachmentsApi';
-import { photoCaption } from '../lib/photoCaption';
+import { photoAlt, photoCaption } from '../lib/photoCaption';
 
 interface PhotoViewerProps {
   photos: Attachment[];
@@ -59,6 +59,10 @@ const THEME: Record<`--yarl__${string}`, string> = {
   '--yarl__slide_icon_error_color': 'var(--destructive)',
 };
 
+// Arrow keys and Next: short, with a soft ease-out. Tune these two if it feels off.
+const NAV_MS = 250;
+const NAV_EASING = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 
 // Follows the setting while the viewer is open, not just at the first render
@@ -74,7 +78,13 @@ function prefersReducedMotion() {
 
 /** Shown by the viewer when a photo will not load; asks for fresh links once, so the next open works (AC-26). */
 function LinkError({ onError }: { onError: () => Promise<unknown> }) {
+  // Once per time the slide shows. `onError` changes on every render of the page, so keying on it
+  // made a link that stays dead refetch the list and the ticket again and again, and the viewer's
+  // arrow keys stopped working under the churn.
+  const asked = useRef(false);
   useEffect(() => {
+    if (asked.current) return;
+    asked.current = true;
     void onError();
   }, [onError]);
   return (
@@ -83,8 +93,6 @@ function LinkError({ onError }: { onError: () => Promise<unknown> }) {
       Could not load this photo. Close the viewer and open it again.
     </div>
   );
-    if (asked.current) return;
-    asked.current = true;
 }
 
 /** Every live photo on the ticket, with swipe, arrows, pinch and double tap zoom (spec 0017, AC-24). */
@@ -111,7 +119,8 @@ export function PhotoViewer({ photos, index, issueNames, onIndexChange, onLinkEr
         };
       })}
       on={{ view: ({ index: next }) => onIndexChange(next), exited: onClosed }}
-      animation={still ? { fade: 0, swipe: 0, navigation: 0, zoom: 0 } : undefined}
+      // Arrow keys and Next flip photos again and again, so they run short; reduced motion runs none
+      animation={still ? { fade: 0, swipe: 0, navigation: 0, zoom: 0 } : { swipe: 250, navigation: NAV_MS, easing: { navigation: NAV_EASING } }}
       zoom={{ doubleTapDelay: 300, scrollToZoom: true }}
       captions={{ descriptionTextAlign: 'start', descriptionMaxLines: 6 }}
       render={{ iconError: () => <LinkError onError={onLinkError} /> }}

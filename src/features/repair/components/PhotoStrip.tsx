@@ -5,9 +5,12 @@ import { cn } from '@/lib/utils';
 import { useIsTouchDevice } from '../../../hooks/useIsTouchDevice';
 import type { Attachment } from '../../../lib/api/attachmentsApi';
 import type { QueuedPhoto } from '../hooks/usePhotoUploadQueue';
-import { formatManilaDateTime, photoMarks } from '../lib/photoCaption';
+import { photoAlt, photoMarks, photoName } from '../lib/photoCaption';
 import type { PhotoGroup } from '../lib/photoUpload';
 import { UploadQueueRow } from './UploadQueueRow';
+
+/** The first thumbnails in each group are above the fold, so they load at once; the rest wait. */
+const EAGER_THUMBS = 4;
 
 interface PhotoStripProps {
   /** Before and After, in the order to show them (spec 0018, AC-16). */
@@ -31,14 +34,15 @@ interface PhotoStripProps {
 function Thumb({
   photo,
   groupLabel,
+  eager,
   onOpen,
   onRemove,
   onLinkError,
-}: Pick<PhotoStripProps, 'onOpen' | 'onRemove' | 'onLinkError'> & { photo: Attachment; groupLabel: string }) {
-  const name = `${groupLabel} photo by ${photo.uploadedBy.name}, ${formatManilaDateTime(photo.createdAt)}`;
+}: Pick<PhotoStripProps, 'onOpen' | 'onRemove' | 'onLinkError'> & { photo: Attachment; groupLabel: string; eager: boolean }) {
+  const name = photoName(photo, groupLabel);
   // Spec 0018, AC-13 and AC-14: shown as text under the thumbnail, and read with its name (AC-19)
   const marks = photoMarks(photo);
-  const fullName = marks.length ? `${name}. ${marks.map((mark) => mark.short).join('. ')}` : name;
+  const fullName = photoAlt(photo, groupLabel);
   // 0: fine, 1: refetched once, 2: still failing (AC-26)
   const [errors, setErrors] = useState(0);
 
@@ -56,7 +60,7 @@ function Thumb({
       <button
         type="button"
         onClick={(event) => onOpen(photo, event.currentTarget)}
-        className="block overflow-hidden rounded-lg border border-border bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="block overflow-hidden rounded-lg border border-border bg-muted outline-none transition-colors duration-150 hover:border-primary focus-visible:ring-2 focus-visible:ring-ring"
       >
         {errors === 2 ? (
           <span className="flex size-20 flex-col items-center justify-center gap-1 p-1 text-center text-xs text-muted-foreground md:size-24">
@@ -71,7 +75,7 @@ function Thumb({
             alt={fullName}
             width={photo.width ?? undefined}
             height={photo.height ?? undefined}
-            loading="lazy"
+            loading={eager ? 'eager' : 'lazy'}
             onError={onError}
             className="size-20 object-cover md:size-24"
           />
@@ -120,11 +124,11 @@ export function PhotoStrip({ groups, queue, canAdd, limitText, label, onAdd, onR
   const isTouch = useIsTouchDevice();
   const [dragging, setDragging] = useState(false);
   const headingId = useId();
+  const limitId = useId();
   const atLimit = limitText != null;
   const empty = groups.every((group) => group.photos.length === 0);
 
   // AC-20: with no photos, people who can't add see nothing
-  const limitId = useId();
   if (empty && queue.length === 0 && !canAdd) return null;
 
   const dropEnabled = canAdd && !isTouch && !atLimit;
@@ -171,8 +175,8 @@ export function PhotoStrip({ groups, queue, canAdd, limitText, label, onAdd, onR
           </h3>
           {group.photos.length > 0 ? (
             <ul className="flex flex-wrap gap-3 pt-2 pr-2">
-              {group.photos.map((photo) => (
-                <Thumb key={photo.id} photo={photo} groupLabel={group.label} onOpen={onOpen} onRemove={onRemove} onLinkError={onLinkError} />
+              {group.photos.map((photo, index) => (
+                <Thumb key={photo.id} photo={photo} groupLabel={group.label} eager={index < EAGER_THUMBS} onOpen={onOpen} onRemove={onRemove} onLinkError={onLinkError} />
               ))}
             </ul>
           ) : (
