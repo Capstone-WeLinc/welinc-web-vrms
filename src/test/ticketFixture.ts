@@ -12,7 +12,7 @@ export function ticket(overrides: Partial<RepairTicket> = {}): RepairTicket {
     createdAt: '2026-10-01T00:00:00.000Z',
     updatedAt: '2026-10-01T00:00:00.000Z',
     statusChangedAt: '2026-10-01T00:00:00.000Z',
-    can: { work: false, administer: false, verify: false, editCosts: false, unlock: false, assign: false },
+    can: { work: false, administer: false, verify: false, editCosts: false, unlock: false, assign: false, edit: false },
     ...overrides,
   };
 }

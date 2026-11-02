@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle, BadgeCheck, CircleAlert } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { BadgePill } from '../../../components/shared/BadgePill';
 import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { dueLabel, isOpen } from '../../../lib/utils/due';
-import { formatDateTime, formatShortDate } from '../../../lib/utils/format';
+import { formatDateTime, formatRelativeTime, formatShortDate } from '../../../lib/utils/format';
 import type { RepairTicket } from '../../../types';
 import { isClosed, type TicketActions } from '../lib/nextAction';
 import { DetailItem, DetailSection } from '../../../components/shared/DetailSection';
@@ -134,6 +134,17 @@ export function DetailsCard({ ticket, now }: { ticket: RepairTicket; now: number
         <DetailItem label="Updated">
           <DateValue value={ticket.updatedAt} />
         </DetailItem>
+        {/* Spec 0019, AC-19: the last edit after create */}
+        {ticket.editedAt && (
+          <div className="col-span-2">
+            <DetailItem label="Last edit">
+              <time dateTime={ticket.editedAt} title={formatDateTime(ticket.editedAt)}>
+                Edited {formatRelativeTime(ticket.editedAt, new Date(now))}
+              </time>
+              {ticket.editedByName && <> by {ticket.editedByName}</>}
+            </DetailItem>
+          </div>
+        )}
         {isClosed(ticket) && (
           <DetailItem label="Closed">
             <DateValue value={ticket.closedAt} />
@@ -149,27 +160,6 @@ export function PeopleCard({ ticket }: { ticket: RepairTicket }) {
   return (
     <DetailSection title="People">
       <dl className="flex flex-col gap-3">
-        <DetailItem label="Driver">
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            {ticket.driverName}
-            {/* Sent with the cost record only (ticket.costs.view) */}
-            {ticket.driverIsVerified != null && (
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 text-xs font-medium',
-                  ticket.driverIsVerified ? 'text-success' : 'text-muted-foreground',
-                )}
-              >
-                {ticket.driverIsVerified ? (
-                  <BadgeCheck aria-hidden="true" className="size-3.5" />
-                ) : (
-                  <CircleAlert aria-hidden="true" className="size-3.5" />
-                )}
-                {ticket.driverIsVerified ? 'Verified' : 'Not verified'}
-              </span>
-            )}
-          </span>
-        </DetailItem>
         <DetailItem label={mechanics.length === 1 ? 'Mechanic' : 'Mechanics'}>
           {mechanics.length === 0 ? (
             'No mechanic yet.'
@@ -181,10 +171,6 @@ export function PeopleCard({ ticket }: { ticket: RepairTicket }) {
             </ul>
           )}
         </DetailItem>
-        {ticket.accountType && (
-          <DetailItem label="Account">{ticket.accountType === 'CORPORATE' ? 'Corporate' : 'Online'}</DetailItem>
-        )}
-        {ticket.corporation && <DetailItem label="Corporation">{ticket.corporation}</DetailItem>}
         {ticket.reportedByName && <DetailItem label="Reported by">{ticket.reportedByName}</DetailItem>}
         {ticket.verifiedByName && (
           <DetailItem label="Verified by">

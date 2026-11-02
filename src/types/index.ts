@@ -140,8 +140,10 @@ export interface TicketCan {
   verify: boolean;
   editCosts: boolean;
   unlock: boolean;
-  /** Assign mechanics to an Open ticket (spec 0016, AC-16). */
+  /** Add, remove or swap mechanics on any open ticket (spec 0016, AC-16; spec 0019, AC-9). */
   assign: boolean;
+  /** Edit the details and issues after create (ticket.edit, spec 0019, AC-1). */
+  edit: boolean;
 }
 
 /** One status move the server lets this caller make now (spec 0014, AC-13). */
@@ -195,6 +197,9 @@ export interface RepairTicket {
   /** Who closed (verified) the ticket, and when. */
   verifiedByName?: string | null;
   verifiedAt?: string | null;
+  /** Spec 0019, AC-19: the last edit after create, and who made it. Null until someone edits. */
+  editedAt?: string | null;
+  editedByName?: string | null;
   remarks?: string;
   cancellationReason?: string;
   laborCost?: number | null;

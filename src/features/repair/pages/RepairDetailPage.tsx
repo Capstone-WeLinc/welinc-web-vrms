@@ -9,7 +9,13 @@ import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getApiErrorStatus, getInvalidTransition, getPhotoRequired } from '../../../lib/api/errors';
-import { assignMechanics, unlockRepairTicket, updateRepairStatus } from '../../../lib/api/repairApi';
+import {
+  assignMechanics,
+  editTicketDetails,
+  unlockRepairTicket,
+  updateRepairStatus,
+  type EditDetailsPayload,
+} from '../../../lib/api/repairApi';
 import { useHasTabBar } from '../../../components/layout/useNavSections';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import type { IssueResolution, RepairStatus, RepairTicket } from '../../../types';
@@ -26,8 +32,11 @@ import { NotesSection, VehicleSection } from '../components/TicketMainSections';
 import { TicketNoteDialog } from '../components/TicketNoteDialog';
 import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePanel';
 import { DocumentsCard } from '../components/DocumentsCard';
+import { EditDetailsDialog } from '../components/edit/EditDetailsDialog';
 import { TicketFilesProvider } from '../components/TicketFilesProvider';
+import { useEditSession } from '../hooks/useEditSession';
 import { useRepairTicket } from '../hooks/useRepairTicket';
+import { ticketEditable } from '../lib/ticketEdits';
 import { photosInFlight } from '../lib/photoUpload';
 import {
   canWorkTicket,
@@ -71,6 +80,8 @@ export function RepairDetailPage() {
   const { showToast } = useToast();
   const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId);
   const [dialog, setDialog] = useState<DialogKind>(null);
+  // Spec 0019: the edit dialogs, one at a time, each with the ticket it opened with (AC-22)
+  const edits = useEditSession();
 
   const back = backLink(ticket, (location.state as { from?: unknown } | null)?.from);
 
@@ -113,6 +124,7 @@ export function RepairDetailPage() {
   // A 409 closes the dialog, says so, and shows the latest ticket with its own next action.
   const handleStale = () => {
     setDialog(null);
+    edits.close();
     showToast(STALE_TICKET_MESSAGE, 'error');
     void reload();
   };
@@ -176,6 +188,22 @@ export function RepairDetailPage() {
     }
   };
 
+  // Spec 0019, AC-18: a save replaces the ticket; a 409 closes the dialog and reloads, other errors stay in it
+  const saveDetails = async (payload: EditDetailsPayload) => {
+    try {
+      const updated = await editTicketDetails(ticket.id, payload);
+      edits.close();
+      replace(updated);
+      showToast(`${rep} is updated.`, 'success');
+    } catch (err) {
+      if (getApiErrorStatus(err) === 409) return handleStale();
+      throw err;
+    }
+  };
+
+  // Spec 0019, AC-1 and AC-2: the Edit buttons follow the ticket's flags and lock state
+  const canEditDetails = !readOnly && ticket.can.edit && ticketEditable(ticket);
+
   const noMechanic =
     ticket.can.administer && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
   const noCosts = seesCosts && moveTo === 'CLOSED' && !hasCosts(ticket);
@@ -212,7 +240,16 @@ export function RepairDetailPage() {
 
                 <div className="flex min-w-0 flex-col gap-4 lg:col-span-2 lg:col-start-1 lg:row-start-1">
                   <NotesSection ticket={ticket} />
-                  <VehicleSection ticket={ticket} />
+                  <VehicleSection
+                    ticket={ticket}
+                    action={
+                      canEditDetails ? (
+                        <Button variant="outline" size="sm" aria-label="Edit vehicle and driver" onClick={() => edits.open('details', ticket)}>
+                          Edit
+                        </Button>
+                      ) : null
+                    }
+                  />
                   <IssuesSection ticket={ticket} canWork={!readOnly && canWorkTicket(ticket)} onChanged={replace} onStale={handleStale} />
                   {usesAi && <AiDiagnosisSection ticket={ticket} />}
                   {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
@@ -309,6 +346,16 @@ export function RepairDetailPage() {
           onOpenChange={(open) => setDialog(open ? 'primary' : null)}
           repairNumber={rep}
           onSubmit={assign}
+        />
+      )}
+
+      {edits.session?.kind === 'details' && (
+        <EditDetailsDialog
+          key={edits.session.n}
+          open={edits.session.open}
+          onOpenChange={(open) => !open && edits.close()}
+          ticket={edits.session.ticket}
+          onSave={saveDetails}
         />
       )}
 

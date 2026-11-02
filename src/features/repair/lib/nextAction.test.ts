@@ -6,9 +6,9 @@ import { canEditCosts, canWorkTicket, hasCosts, PHOTOS_UPLOADING_REASON, primary
 // Spec 0014, AC-15: the page's actions come from ticket.moves only, so it never offers a move
 // the server rejects. Spec 0011's flags still drive Unlock, costs and the steps.
 
-const NONE: TicketCan = { work: false, administer: false, verify: false, editCosts: false, unlock: false, assign: false };
+const NONE: TicketCan = { work: false, administer: false, verify: false, editCosts: false, unlock: false, assign: false, edit: false };
 const WORKER: TicketCan = { ...NONE, work: true };
-const ADMIN: TicketCan = { work: false, administer: true, verify: true, editCosts: true, unlock: true, assign: false };
+const ADMIN: TicketCan = { work: false, administer: true, verify: true, editCosts: true, unlock: true, assign: false, edit: true };
 
 const START: TicketMove = { to: 'IN_PROGRESS', label: 'Start work', kind: 'forward', needs: null };
 const VERIFY: TicketMove = { to: 'CLOSED', label: 'Verify and close', kind: 'forward', needs: null };

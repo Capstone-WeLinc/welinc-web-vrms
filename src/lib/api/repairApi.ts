@@ -2,6 +2,7 @@ import api from './axios';
 import type {
   CreateRepairPayload,
   IssueResolution,
+  PriorityLevel,
   RepairHistoryRow,
   RepairHistorySummary,
   RepairIssueStep,
@@ -141,6 +142,22 @@ export async function unlockRepairTicket(
     unlockReason,
     lastUpdatedAt,
   });
+  return response.data;
+}
+
+/** Spec 0019: what every edit sends. `reason` is required on an unlocked Closed or Cancelled ticket (AC-3). */
+export interface TicketEditBase {
+  lastUpdatedAt: string;
+  reason?: string;
+}
+
+/** PATCH /details: only the fields that changed (spec 0019, AC-4 to AC-8). */
+export interface EditDetailsPayload extends TicketEditBase {
+  priority?: PriorityLevel;
+}
+
+export async function editTicketDetails(repairId: string, payload: EditDetailsPayload): Promise<RepairTicket> {
+  const response = await api.patch<RepairTicket>(`/vrms/repairs/${repairId}/details`, payload);
   return response.data;
 }
 

@@ -145,7 +145,7 @@ describe('verificationQueue', () => {
       id,
       status: 'FOR_VERIFICATION',
       statusChangedAt,
-      can: { work: false, administer: false, verify: true, editCosts: false, unlock: false, assign: false },
+      can: { work: false, administer: false, verify: true, editCosts: false, unlock: false, assign: false, edit: false },
       ...over,
     });
 

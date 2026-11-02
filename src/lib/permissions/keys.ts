@@ -15,6 +15,7 @@ export type PermissionKey =
   | 'ticket.costs.view'
   | 'ticket.costs.edit'
   | 'ticket.assign'
+  | 'ticket.edit'
   | 'ticket.unlock'
   | 'ticket.files.add'
   | 'ticket.documents.add'
