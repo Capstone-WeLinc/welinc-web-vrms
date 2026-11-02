@@ -24,6 +24,12 @@ export interface Attachment {
   canRemove: boolean;
   /** Spec 0018, AC-11: the caller may move this photo between Before and After. */
   canMove: boolean;
+  /** Spec 0018, AC-14: an After photo added after the ticket's latest Return to mechanic. */
+  returnedAfter: boolean;
+  /** Spec 0018, AC-13: sent to verifiers only; absent for everyone else. */
+  takenAt?: string | null;
+  /** Spec 0018, AC-13: an After photo the phone took well before work started. Verifiers only. */
+  takenBeforeWork?: boolean;
 }
 
 export interface AttachmentKindInfo {
@@ -59,6 +65,8 @@ export async function getAttachments(ticketId: string): Promise<AttachmentList> 
 
 export interface UploadOptions {
   kind: UploadKind;
+  /** Spec 0018, AC-12: when the phone took the photo, as ISO UTC, read before the shrink. */
+  takenAt?: string;
   /** 0 to 100, from the browser's upload progress. */
   onProgress?: (percent: number) => void;
   signal?: AbortSignal;
@@ -67,10 +75,11 @@ export interface UploadOptions {
 export async function uploadAttachment(
   ticketId: string,
   file: File,
-  { kind, onProgress, signal }: UploadOptions,
+  { kind, takenAt, onProgress, signal }: UploadOptions,
 ): Promise<Attachment & { duplicate?: boolean }> {
   const body = new FormData();
   body.append('kind', kind);
+  if (takenAt) body.append('takenAt', takenAt);
   body.append('file', file);
   const response = await api.post<Attachment & { duplicate?: boolean }>(`/vrms/repairs/${ticketId}/attachments`, body, {
     // The instance default is JSON, which would make axios turn the FormData into JSON;

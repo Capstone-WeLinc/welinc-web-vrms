@@ -12,7 +12,7 @@ const ADMIN: TicketCan = { work: false, administer: true, verify: true, editCost
 
 const START: TicketMove = { to: 'IN_PROGRESS', label: 'Start work', kind: 'forward', needs: null };
 const VERIFY: TicketMove = { to: 'CLOSED', label: 'Verify and close', kind: 'forward', needs: null };
-const SEND_BACK: TicketMove = { to: 'IN_PROGRESS', label: 'Send back', kind: 'back', needs: 'remarks' };
+const RETURN: TicketMove = { to: 'IN_PROGRESS', label: 'Return to mechanic', kind: 'back', needs: 'remarks' };
 const CANCEL: TicketMove = { to: 'CANCELLED', label: 'Cancel ticket', kind: 'cancel', needs: 'cancellationReason' };
 
 describe('ticketActions', () => {
@@ -22,10 +22,10 @@ describe('ticketActions', () => {
     expect(primaryTarget(actions)).toBe('IN_PROGRESS');
   });
 
-  it('puts Send back beside Verify at For verification', () => {
-    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [VERIFY, SEND_BACK, CANCEL] }));
+  it('puts Return to mechanic beside Verify at For verification', () => {
+    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [VERIFY, RETURN, CANCEL] }));
     expect(actions.primary).toEqual({ kind: 'move', move: VERIFY });
-    expect(actions.secondary).toBe(SEND_BACK);
+    expect(actions.secondary).toBe(RETURN);
   });
 
   it('reads "Waiting for verification." at For verification with no move', () => {
@@ -83,7 +83,7 @@ describe('ticketActions, costs before closing (spec 0015, AC-5)', () => {
   const NEEDS_COSTS: TicketMove = { ...VERIFY, needs: 'costs' };
 
   it('blocks Verify and close with the reason while the ticket has no costs', () => {
-    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [NEEDS_COSTS, SEND_BACK] }));
+    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [NEEDS_COSTS, RETURN] }));
     expect(actions.primary).toEqual({ kind: 'move', move: NEEDS_COSTS });
     expect(actions.blocked).toBe('Add the costs before closing this ticket.');
   });

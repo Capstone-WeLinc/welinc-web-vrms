@@ -13,7 +13,7 @@ export type PrimaryAction =
 
 export interface TicketActions {
   primary: PrimaryAction | null;
-  /** Send back, beside or under the primary button. */
+  /** Return to mechanic, beside or under the primary button. */
   secondary: TicketMove | null;
   cancel: TicketMove | null;
   /** What the status card says when there is no primary button. */

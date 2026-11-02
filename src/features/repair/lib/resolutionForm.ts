@@ -37,7 +37,7 @@ const resolutionRow = z
     }
   });
 
-/** `minLength` counts trimmed characters, as the server does (Send back: 5, spec 0014, AC-16). */
+/** `minLength` counts trimmed characters, as the server does (Return to mechanic: 5, spec 0014, AC-16). */
 export function noteFormSchema(requiredMessage: string | undefined, minLength = 1) {
   return z.object({
     note: z
@@ -55,7 +55,7 @@ export function noteLongEnough(note: string | undefined, minLength: number) {
 }
 
 /**
- * Spec 0014, AC-18: after a Send back the dialog opens with each issue's saved note, hours and
+ * Spec 0014, AC-18: after a Return to mechanic the dialog opens with each issue's saved note, hours and
  * "Followed the known fix". A linked issue with no saved choice still defaults to ticked.
  */
 export function resolutionDefaults(issues: RepairIssue[] | undefined): ResolutionRow[] {
@@ -69,7 +69,7 @@ export function resolutionDefaults(issues: RepairIssue[] | undefined): Resolutio
 }
 
 /**
- * Whether an issue has a "What fixed it" to show: resolved, or saved and then sent back
+ * Whether an issue has a "What fixed it" to show: resolved, or saved and then returned
  * (resolvedAt cleared, the notes kept; spec 0014, AC-21).
  */
 export function hasSavedResolution(issue: RepairIssue) {

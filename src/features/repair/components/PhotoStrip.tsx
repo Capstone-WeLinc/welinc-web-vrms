@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useIsTouchDevice } from '../../../hooks/useIsTouchDevice';
 import type { Attachment } from '../../../lib/api/attachmentsApi';
 import type { QueuedPhoto } from '../hooks/usePhotoUploadQueue';
-import { formatManilaDateTime } from '../lib/photoCaption';
+import { formatManilaDateTime, photoMarks } from '../lib/photoCaption';
 import type { PhotoGroup } from '../lib/photoUpload';
 import { UploadQueueRow } from './UploadQueueRow';
 
@@ -36,6 +36,9 @@ function Thumb({
   onLinkError,
 }: Pick<PhotoStripProps, 'onOpen' | 'onRemove' | 'onLinkError'> & { photo: Attachment; groupLabel: string }) {
   const name = `${groupLabel} photo by ${photo.uploadedBy.name}, ${formatManilaDateTime(photo.createdAt)}`;
+  // Spec 0018, AC-13 and AC-14: shown as text under the thumbnail, and read with its name (AC-19)
+  const marks = photoMarks(photo);
+  const fullName = marks.length ? `${name}. ${marks.map((mark) => mark.short).join('. ')}` : name;
   // 0: fine, 1: refetched once, 2: still failing (AC-26)
   const [errors, setErrors] = useState(0);
 
@@ -65,7 +68,7 @@ function Thumb({
             // A new key after the refetch makes the browser try the fresh link
             key={`${errors}:${photo.thumbnailUrl ?? photo.url}`}
             src={photo.thumbnailUrl ?? photo.url}
-            alt={name}
+            alt={fullName}
             width={photo.width ?? undefined}
             height={photo.height ?? undefined}
             loading="lazy"
@@ -74,6 +77,22 @@ function Thumb({
           />
         )}
       </button>
+      {marks.length > 0 && (
+        // aria-hidden: the image's name already carries the same words
+        <ul aria-hidden="true" className="mt-1 flex w-20 flex-col gap-1 md:w-24">
+          {marks.map((mark) => (
+            <li
+              key={mark.id}
+              className={cn(
+                'rounded px-1 py-0.5 text-xs leading-tight font-medium',
+                mark.id === 'takenBeforeWork' ? 'bg-status-pending-bg text-status-pending-fg' : 'bg-muted text-muted-strong',
+              )}
+            >
+              {mark.short}
+            </li>
+          ))}
+        </ul>
+      )}
       {photo.canRemove && (
         <Button
           type="button"

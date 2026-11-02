@@ -1,7 +1,7 @@
 import type { RepairIssue, RepairTicket, TicketRejection } from '../../../types';
 import type { DataMode } from './dataMode';
 
-// Development only (break-ui): the ticket detail page's datasets (spec 0014 UI: the Send back
+// Development only (break-ui): the ticket detail page's datasets (spec 0014 UI: the Return to mechanic
 // banner, the saved "What fixed it" blocks, the people card). Each takes the real ticket and
 // changes only what a real ticket could carry. Limits: remarks and resolution notes 500
 // (NOTE_MAX), hours 200 (IssueResolutionDto), issues 10 (the form), actor name 100 and email 255
@@ -13,7 +13,7 @@ const EMAIL_ONLY = 'bartholomew.fitzgerald@northwind-industries-holdings.example
 const LONG_NAME = 'Aleksandra Wiśniewska-Kowalczyk';
 const DIACRITICS = 'Đặng Thị Ngọc Hân';
 
-// 500 characters, the most a Send back comment or a resolution note can hold
+// 500 characters, the most a Return to mechanic comment or a resolution note can hold
 const LONG_REMARKS =
   'Rear pads are still squealing after the road test, and the rotor on the left side has a visible groove, so please skim or ' +
   'replace it. The brake fluid reservoir was also topped up past the MAX line. See the photos in the shared folder at ' +
@@ -61,7 +61,7 @@ function worst(t: RepairTicket): RepairTicket {
     ],
     lastRejection: rejection,
     issues: [
-      // Sent back: note kept, resolvedAt cleared, the longest hours
+      // Returned: note kept, resolvedAt cleared, the longest hours
       issue(first, 1, {
         description: '[Brakes] Rear pads and rotor: squealing when braking at low speed, worse when cold and after rain, on every stop',
         resolutionNote: LONG_FIX,

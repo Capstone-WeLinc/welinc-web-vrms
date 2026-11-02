@@ -39,7 +39,7 @@ import {
   ticketActions,
 } from '../lib/nextAction';
 
-/** Primary is the forward move or Unlock; secondary is Send back (spec 0014, AC-15). */
+/** Primary is the forward move or Unlock; secondary is Return to mechanic (spec 0014, AC-15). */
 type DialogKind = 'primary' | 'secondary' | 'cancel' | null;
 
 /** The list passes its own URL as `state.from`, so Back returns to the same filters and page. */

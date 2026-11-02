@@ -63,6 +63,7 @@ function photo(i: number, over: Partial<Attachment> & { size?: [number, number] 
     thumbnailUrl: panel(320, 320, (i * 47) % 360),
     canRemove: i % 2 === 0,
     canMove: i % 2 === 0,
+    returnedAfter: false,
     ...over,
   };
 }
@@ -83,13 +84,15 @@ function doc(i: number, kind: AttachmentKind, fileName: string, uploader: string
     thumbnailUrl: null,
     canRemove,
     canMove: false,
+    returnedAfter: false,
   };
 }
 
 function worstPhotos(): Attachment[] {
   return [
     photo(0, { issueId: 'fixture-issue-2', uploadedBy: { id: 'u0', name: LONG_NAME }, fileName: 'IMG_20250914_183022_HDR_portrait_edited_edited.jpg' }),
-    photo(1, { kind: 'PROOF', uploadedBy: { id: 'u1', name: 'Jo' }, size: [1536, 2048] }),
+    // Spec 0018: both evidence marks on one After photo, as a verifier sees it
+    photo(1, { kind: 'PROOF', uploadedBy: { id: 'u1', name: 'Jo' }, size: [1536, 2048], returnedAfter: true, takenBeforeWork: true }),
     photo(2, { issueId: 'fixture-issue-1', uploadedBy: { id: 'u2', name: DIACRITICS }, size: [2048, 420] }),
     // The link has expired and refetching gives the same one: the tile shows "Could not load photo"
     photo(3, { kind: 'PROOF', uploadedBy: { id: 'u3', name: FOX }, thumbnailUrl: BROKEN_LINK, url: BROKEN_LINK }),

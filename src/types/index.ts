@@ -136,7 +136,7 @@ export interface RepairPart {
 export interface TicketCan {
   work: boolean;
   administer: boolean;
-  /** Verify or send back; false on a ticket the caller is assigned to (spec 0014, AC-13). */
+  /** Verify or return to mechanic; false on a ticket the caller is assigned to (spec 0014, AC-13). */
   verify: boolean;
   editCosts: boolean;
   unlock: boolean;
@@ -155,7 +155,7 @@ export interface TicketMove {
   blockedBy?: 'beforePhoto' | 'afterPhoto' | null;
 }
 
-/** The newest Send back still in force (spec 0014, AC-14). */
+/** The newest Return to mechanic still in force (spec 0014, AC-14). */
 export interface TicketRejection {
   remarks: string;
   byName: string;

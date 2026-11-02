@@ -294,10 +294,10 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
 
       {hasSavedResolution(issue) && (
         <dl className="grid gap-2 rounded-lg bg-muted p-3 text-sm sm:grid-cols-3">
-          {/* Spec 0014, AC-21: Send back keeps the notes but clears resolvedAt */}
+          {/* Spec 0014, AC-21: Return to mechanic keeps the notes but clears resolvedAt */}
           {!issue.resolvedAt && (
             <div className="sm:col-span-3">
-              <BadgePill className="h-auto max-w-full bg-highlight py-0.5 text-highlight-foreground whitespace-normal">Sent back, not resent yet</BadgePill>
+              <BadgePill className="h-auto max-w-full bg-highlight py-0.5 text-highlight-foreground whitespace-normal">Returned, not resent yet</BadgePill>
             </div>
           )}
           <div className="min-w-0 sm:col-span-2">

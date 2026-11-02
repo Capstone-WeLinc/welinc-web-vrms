@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 interface NextActionBarProps {
   label: string;
-  /** Send back, as a second button beneath the primary one (spec 0014, AC-15). */
+  /** Return to mechanic, as a second button beneath the primary one (spec 0014, AC-15; spec 0018, AC-15). */
   secondaryLabel?: string | null;
   /** Mechanics have the bottom tab bar below 768px; the bar sits on top of it. */
   aboveTabBar: boolean;
@@ -21,7 +21,7 @@ interface NextActionBarProps {
 export function NextActionBar({ label, secondaryLabel, aboveTabBar, blockedReason, onAction, onSecondary }: NextActionBarProps) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card pb-safe lg:hidden">
-      {/* DOM order is reading order (primary, then Send back); from 768px they sit side by side on the right */}
+      {/* DOM order is reading order (primary, then Return to mechanic); from 768px they sit side by side on the right */}
       <div className={cn('flex flex-col gap-2 p-3 md:flex-row md:justify-end md:px-8', aboveTabBar && 'mb-16 md:mb-0')}>
         {blockedReason && (
           <p id="bar-blocked" className="text-sm text-muted-foreground md:order-first md:self-center">

@@ -3,6 +3,7 @@ import { uploadAttachment, type AttachmentKindInfo, type UploadKind } from '../.
 import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
 import { isRetryable, normalizeType, RETRY_DELAYS_MS, sizeProblem, typeProblem } from '../lib/photoUpload';
 import { shrinkPhoto } from '../lib/shrinkPhoto';
+import { readTakenAt } from '../lib/takenAt';
 
 export type QueueStatus = 'waiting' | 'uploading' | 'done' | 'failed';
 
@@ -63,6 +64,8 @@ export function usePhotoUploadQueue(ticketId: string, onUploaded: () => Promise<
     async (job: Job, signal: AbortSignal): Promise<string | null> => {
       const typeError = typeProblem(job.file, job.kind);
       if (typeError) return typeError;
+      // Spec 0018, AC-12: the taken time comes from the original, since the shrink drops it
+      const takenAt = job.kind.kind === 'PHOTO' ? await readTakenAt(job.file) : undefined;
       // Only photos shrink; a PDF goes up as chosen (the server rebuilds it, AC-7)
       const file = normalizeType(job.file.type) === 'application/pdf' ? job.file : await shrinkPhoto(job.file);
       const sizeError = sizeProblem(file, job.maxFileMb);
@@ -74,6 +77,7 @@ export function usePhotoUploadQueue(ticketId: string, onUploaded: () => Promise<
           // A 200 duplicate counts as done (AC-8)
           await uploadAttachment(ticketId, file, {
             kind: job.kind.kind,
+            takenAt,
             signal,
             onProgress: (progress) => patch(job.id, { progress }),
           });

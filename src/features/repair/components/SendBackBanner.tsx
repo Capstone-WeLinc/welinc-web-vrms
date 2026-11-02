@@ -17,7 +17,7 @@ const TICK_MS = 60_000;
  * Spec 0014, AC-17: why the work came back, near the top of the ticket. The comment folds to
  * four lines. "Show more" appears only when the text is really cut off at the current width, so a
  * wide screen that already shows it all has no button (the page keys this by the rejection, so a
- * new Send back starts folded).
+ * new Return to mechanic starts folded). Spec 0018, AC-15: "Returned by", not "Sent back by".
  */
 export function SendBackBanner({ rejection, now }: SendBackBannerProps) {
   const [open, setOpen] = useState(false);
@@ -45,7 +45,7 @@ export function SendBackBanner({ rejection, now }: SendBackBannerProps) {
     <Callout
       tone="warning"
       className="mb-4"
-      title={`Sent back by ${rejection.byName}, ${formatRelativeTime(rejection.at, new Date(clock))}`}
+      title={`Returned by ${rejection.byName}, ${formatRelativeTime(rejection.at, new Date(clock))}`}
     >
       <p ref={remarksRef} className={cn('whitespace-pre-line', !open && 'line-clamp-4')}>
         {rejection.remarks}

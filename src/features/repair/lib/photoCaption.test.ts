@@ -20,6 +20,7 @@ function photo(over: Partial<Attachment> = {}): Attachment {
     thumbnailUrl: null,
     canRemove: true,
     canMove: true,
+    returnedAfter: false,
     ...over,
   };
 }

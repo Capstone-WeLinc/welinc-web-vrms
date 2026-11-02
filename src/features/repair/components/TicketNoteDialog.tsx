@@ -28,7 +28,7 @@ interface TicketNoteDialogProps {
   /** The inline error for an empty note; leave it out for an optional note. */
   requiredMessage?: string;
   /**
-   * A required note shorter than this (trimmed) keeps the submit disabled (Send back: 5,
+   * A required note shorter than this (trimmed) keeps the submit disabled (Return to mechanic: 5,
    * spec 0014, AC-16). Only read with `requiredMessage`.
    */
   minLength?: number;

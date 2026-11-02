@@ -101,13 +101,14 @@ export function PhotoViewer({ photos, index, issueNames, onIndexChange, onLinkEr
           height: photo.height ?? undefined,
           alt: `Photo by ${photo.uploadedBy.name}`,
           title: caption.title,
-          description: caption.description,
+          // Spec 0018: each evidence mark is its own line (AC-13, AC-14)
+          description: <span className="whitespace-pre-line">{caption.description}</span>,
         };
       })}
       on={{ view: ({ index: next }) => onIndexChange(next), exited: onClosed }}
       animation={still ? { fade: 0, swipe: 0, navigation: 0, zoom: 0 } : undefined}
       zoom={{ doubleTapDelay: 300, scrollToZoom: true }}
-      captions={{ descriptionTextAlign: 'start', descriptionMaxLines: 3 }}
+      captions={{ descriptionTextAlign: 'start', descriptionMaxLines: 4 }}
       render={{ iconError: () => <LinkError onError={onLinkError} /> }}
       controller={{ closeOnBackdropClick: true }}
       toolbar={{ buttons: move ? [move, 'close'] : ['close'] }}
