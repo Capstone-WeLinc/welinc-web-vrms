@@ -8,7 +8,7 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
-import { getApiErrorMessage, getApiErrorStatus, getInvalidTransition, getPhotoRequired } from '../../../lib/api/errors';
+import { getApiErrorMessage, getApiErrorStatus, getDriverExists, getInvalidTransition, getPhotoRequired } from '../../../lib/api/errors';
 import {
   addTicketIssue,
   editTicketDetails,
@@ -213,7 +213,8 @@ export function RepairDetailPage() {
       replace(updated);
       showToast(`${rep} is updated.`, 'success');
     } catch (err) {
-      if (getApiErrorStatus(err) === 409) return handleStale();
+      // DRIVER_EXISTS is also a 409, but the dialog shows it with "Use <name>" (AC-4); only a stale ticket reloads
+      if (getApiErrorStatus(err) === 409 && !getDriverExists(err)) return handleStale();
       throw err;
     }
   };

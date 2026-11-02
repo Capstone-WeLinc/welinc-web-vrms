@@ -68,7 +68,7 @@ function StepRow({ step, enabled, onToggle }: { step: RepairIssueStep; enabled: 
         checked ? 'text-muted-foreground line-through' : 'text-foreground',
       )}
     >
-      <Checkbox id={id} checked={checked} disabled={!enabled} onCheckedChange={(value) => onToggle(value === true)} className="size-5" />
+      <Checkbox id={id} aria-label={`${step.position}. ${step.text}`} checked={checked} disabled={!enabled} onCheckedChange={(value) => onToggle(value === true)} className="size-5" />
       <span className="min-w-0 break-words">
         <span className="text-muted-foreground tabular-nums">{step.position}.</span> {step.text}
       </span>

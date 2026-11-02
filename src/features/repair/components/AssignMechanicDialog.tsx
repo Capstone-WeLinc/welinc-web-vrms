@@ -141,11 +141,12 @@ export function AssignMechanicDialog({
       <div className="flex flex-col gap-4">
         {error && <FormAlert message={error} />}
         <div className="flex flex-col gap-2">
-          <label htmlFor={pickerId} className="text-sm font-medium">
+          <label id={`${pickerId}-label`} htmlFor={pickerId} className="text-sm font-medium">
             Mechanics
           </label>
           <Combobox
             id={pickerId}
+            aria-labelledby={`${pickerId}-label`}
             options={options}
             value=""
             onValueChange={(id) => {
