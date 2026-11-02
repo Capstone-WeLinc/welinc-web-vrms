@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Callout } from '../../../components/shared/Callout';
@@ -17,13 +17,14 @@ const TICK_MS = 60_000;
  * Spec 0014, AC-17: why the work came back, near the top of the ticket. The comment folds to
  * four lines. "Show more" appears only when the text is really cut off at the current width, so a
  * wide screen that already shows it all has no button (the page keys this by the rejection, so a
- * new Send back starts folded).
+ * new Return to mechanic starts folded). Spec 0018, AC-15: "Returned by", not "Sent back by".
  */
 export function SendBackBanner({ rejection, now }: SendBackBannerProps) {
   const [open, setOpen] = useState(false);
   const [cutOff, setCutOff] = useState(false);
   const [clock, setClock] = useState(now);
   const remarksRef = useRef<HTMLParagraphElement>(null);
+  const remarksId = useId();
 
   // The relative time counts on while the page stays open, once a minute
   useEffect(() => {
@@ -45,13 +46,13 @@ export function SendBackBanner({ rejection, now }: SendBackBannerProps) {
     <Callout
       tone="warning"
       className="mb-4"
-      title={`Sent back by ${rejection.byName}, ${formatRelativeTime(rejection.at, new Date(clock))}`}
+      title={`Returned by ${rejection.byName}, ${formatRelativeTime(rejection.at, new Date(clock))}`}
     >
-      <p ref={remarksRef} className={cn('whitespace-pre-line', !open && 'line-clamp-4')}>
+      <p ref={remarksRef} id={remarksId} className={cn('whitespace-pre-line', !open && 'line-clamp-4')}>
         {rejection.remarks}
       </p>
       {cutOff && (
-        <Button type="button" variant="link" aria-expanded={open} className="h-auto self-start px-0 py-1 text-xs" onClick={() => setOpen((v) => !v)}>
+        <Button type="button" variant="link" aria-expanded={open} aria-controls={remarksId} className="h-auto self-start px-0 py-1 text-xs pointer-coarse:py-3" onClick={() => setOpen((v) => !v)}>
           {open ? 'Show less' : 'Show more'}
         </Button>
       )}

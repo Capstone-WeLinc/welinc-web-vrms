@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { RepairIssue } from '../../../types';
 import { hasSavedResolution, noteFormSchema, noteLongEnough, resolutionDefaults } from './resolutionForm';
 
-// Spec 0014: the prefilled resend (AC-18), the kept notes after a Send back (AC-21) and the
-// Send back comment's limits (AC-16).
+// Spec 0014: the prefilled resend (AC-18), the kept notes after a Return to mechanic (AC-21) and the
+// Return to mechanic comment's limits (AC-16).
 
 function issue(overrides: Partial<RepairIssue> = {}): RepairIssue {
   return {
@@ -49,7 +49,7 @@ describe('resolutionDefaults (AC-18)', () => {
 });
 
 describe('hasSavedResolution (AC-21)', () => {
-  it('shows a resolved issue, and a sent back one whose notes were kept', () => {
+  it('shows a resolved issue, and a returned one whose notes were kept', () => {
     expect(hasSavedResolution(issue({ resolvedAt: '2026-10-31T00:00:00.000Z' }))).toBe(true);
     expect(hasSavedResolution(issue({ resolutionNote: 'Replaced pads' }))).toBe(true);
     expect(hasSavedResolution(issue({ hoursSpent: 2 }))).toBe(true);
@@ -57,7 +57,7 @@ describe('hasSavedResolution (AC-21)', () => {
   });
 });
 
-describe('the Send back comment (AC-16)', () => {
+describe('the Return to mechanic comment (AC-16)', () => {
   it('needs 5 to 500 characters after trimming', () => {
     expect(noteLongEnough(' ok  ', 5)).toBe(false);
     expect(noteLongEnough('Rear pads still squeal', 5)).toBe(true);

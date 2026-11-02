@@ -4,6 +4,7 @@ import {
   BookOpen,
   FilePlus2,
   FileX2,
+  Images,
   LockOpen,
   Paperclip,
   UserMinus,
@@ -69,6 +70,7 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   MECHANIC_ASSIGNED: { icon: UserPlus, tone: 'bg-primary/10 text-primary' },
   ATTACHMENT_ADDED: { icon: Paperclip, tone: 'bg-primary/10 text-primary' },
   ATTACHMENT_REMOVED: { icon: FileX2, tone: 'bg-muted text-muted-strong' },
+  ATTACHMENT_MOVED: { icon: Images, tone: 'bg-primary/10 text-primary' },
 };
 
 export function eventStyle(type: string): EventStyle {
@@ -109,4 +111,40 @@ export function costDetailLine(event: AuditEvent) {
     lumpSum && (lumpSum.after === 'true' ? 'Lump sum' : 'Itemized'),
   ].filter(Boolean);
   return bits.length ? bits.join(' · ') : null;
+}
+
+/** Spec 0018, AC-18: the photo kinds read as their group, whatever label the row was written with. */
+const PHOTO_GROUPS: Record<string, string> = { VEHICLE_PHOTO: 'Before', PROOF: 'After' };
+
+/** The file name from a stored "<label>: <name>" (the label never holds ": "). */
+function fileNameOf(stored: string) {
+  const at = stored.indexOf(': ');
+  return at >= 0 ? stored.slice(at + 2) : stored;
+}
+
+/**
+ * The line under an attachment added or removed event. A photo names its group ("Before photo:
+ * front.jpg"), so rows written as "Vehicle photo" or "Proof of completion" read the new way too.
+ */
+export function attachmentLine(event: Pick<AuditEvent, 'changes'>): string | null {
+  const file = changeOf(event, 'attachment');
+  const stored = file?.after ?? file?.before;
+  if (!stored) return null;
+  const group = PHOTO_GROUPS[changeOf(event, 'kind')?.after ?? ''];
+  return group ? `${group} photo: ${fileNameOf(stored)}` : stored;
+}
+
+/** Spec 0018, AC-18: "Moved a photo from Before to After", or null when the change is missing. */
+export function photoMoveLine(event: Pick<AuditEvent, 'changes'>): string | null {
+  const kind = changeOf(event, 'kind');
+  const from = PHOTO_GROUPS[kind?.before ?? ''];
+  const to = PHOTO_GROUPS[kind?.after ?? ''];
+  return from && to ? `Moved a photo from ${from} to ${to}` : null;
+}
+
+/** The moved file's name, for the line under the move. */
+export function movedFileName(event: Pick<AuditEvent, 'changes'>): string | null {
+  const file = changeOf(event, 'attachment');
+  const stored = file?.after ?? file?.before;
+  return stored ? fileNameOf(stored) : null;
 }

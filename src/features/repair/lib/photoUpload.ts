@@ -1,4 +1,4 @@
-import type { AttachmentKindInfo, AttachmentList } from '../../../lib/api/attachmentsApi';
+import type { Attachment, AttachmentKindInfo, AttachmentList } from '../../../lib/api/attachmentsApi';
 
 // Spec 0017, AC-22 and AC-23: the browser side upload rules. The server stays the authority;
 // these only save a phone from sending a file the server would refuse anyway.
@@ -72,7 +72,59 @@ export function documentRoomLeft(limits: AttachmentList['limits'], queued: numbe
   return Math.max(0, limits.maxDocuments - limits.documentCount - queued);
 }
 
-/** Photos the ticket can still take, after the ones already queued (AC-21). */
-export function photoRoomLeft(limits: AttachmentList['limits'], queued: number): number {
-  return Math.max(0, limits.maxVehiclePhotos - limits.vehiclePhotoCount - queued);
+/** Spec 0018: the two photo groups of the one strip. Before is how the truck arrived, After the proof. */
+export type PhotoGroupKind = 'VEHICLE_PHOTO' | 'PROOF';
+
+export const PHOTO_GROUP_LABELS: Record<PhotoGroupKind, string> = {
+  VEHICLE_PHOTO: 'Before',
+  PROOF: 'After',
+};
+
+export function isPhoto(attachment: Pick<Attachment, 'kind'>): boolean {
+  return attachment.kind === 'VEHICLE_PHOTO' || attachment.kind === 'PROOF';
+}
+
+/** The group a new photo lands in: the server decides the same way, from when work started (AC-1). */
+export function uploadGroup(workStarted: boolean): PhotoGroupKind {
+  return workStarted ? 'PROOF' : 'VEHICLE_PHOTO';
+}
+
+/** One group's live count and limit, from the list's `limits` (AC-3). */
+export function groupLimit(limits: AttachmentList['limits'], kind: PhotoGroupKind): { count: number; max: number } {
+  return kind === 'PROOF'
+    ? { count: limits.afterPhotoCount, max: limits.maxAfterPhotos }
+    : { count: limits.vehiclePhotoCount, max: limits.maxVehiclePhotos };
+}
+
+export interface PhotoGroup {
+  kind: PhotoGroupKind;
+  label: string;
+  photos: Attachment[];
+  count: number;
+  max: number;
+}
+
+/** Spec 0018, AC-16: Before then After until work starts, After first once it has. */
+export function photoGroups(list: Pick<AttachmentList, 'items' | 'limits'>, workStarted: boolean): PhotoGroup[] {
+  const order: PhotoGroupKind[] = workStarted ? ['PROOF', 'VEHICLE_PHOTO'] : ['VEHICLE_PHOTO', 'PROOF'];
+  return order.map((kind) => ({
+    kind,
+    label: PHOTO_GROUP_LABELS[kind],
+    photos: list.items.filter((item) => item.kind === kind),
+    ...groupLimit(list.limits, kind),
+  }));
+}
+
+/** Photos the group new uploads land in can still take, after the ones already queued (AC-21, spec 0018 AC-3). */
+export function photoRoomLeft(limits: AttachmentList['limits'], queued: number, workStarted: boolean): number {
+  const { count, max } = groupLimit(limits, uploadGroup(workStarted));
+  return Math.max(0, max - count - queued);
+}
+
+/**
+ * Spec 0018, AC-20: whether photos for this ticket are still waiting or uploading. A failed one
+ * does not count; its retry after Start work lands in After, and the Move action fixes that.
+ */
+export function photosInFlight(items: readonly { kind: string; status: string }[]): boolean {
+  return items.some((item) => item.kind === 'PHOTO' && (item.status === 'waiting' || item.status === 'uploading'));
 }

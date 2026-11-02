@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ticket } from '../../../test/ticketFixture';
 import type { TicketCan, TicketMove } from '../../../types';
-import { canEditCosts, canWorkTicket, hasCosts, primaryTarget, ticketActions } from './nextAction';
+import { canEditCosts, canWorkTicket, hasCosts, PHOTOS_UPLOADING_REASON, primaryTarget, ticketActions } from './nextAction';
 
 // Spec 0014, AC-15: the page's actions come from ticket.moves only, so it never offers a move
 // the server rejects. Spec 0011's flags still drive Unlock, costs and the steps.
@@ -12,7 +12,7 @@ const ADMIN: TicketCan = { work: false, administer: true, verify: true, editCost
 
 const START: TicketMove = { to: 'IN_PROGRESS', label: 'Start work', kind: 'forward', needs: null };
 const VERIFY: TicketMove = { to: 'CLOSED', label: 'Verify and close', kind: 'forward', needs: null };
-const SEND_BACK: TicketMove = { to: 'IN_PROGRESS', label: 'Send back', kind: 'back', needs: 'remarks' };
+const RETURN: TicketMove = { to: 'IN_PROGRESS', label: 'Return to mechanic', kind: 'back', needs: 'remarks' };
 const CANCEL: TicketMove = { to: 'CANCELLED', label: 'Cancel ticket', kind: 'cancel', needs: 'cancellationReason' };
 
 describe('ticketActions', () => {
@@ -22,10 +22,10 @@ describe('ticketActions', () => {
     expect(primaryTarget(actions)).toBe('IN_PROGRESS');
   });
 
-  it('puts Send back beside Verify at For verification', () => {
-    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [VERIFY, SEND_BACK, CANCEL] }));
+  it('puts Return to mechanic beside Verify at For verification', () => {
+    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [VERIFY, RETURN, CANCEL] }));
     expect(actions.primary).toEqual({ kind: 'move', move: VERIFY });
-    expect(actions.secondary).toBe(SEND_BACK);
+    expect(actions.secondary).toBe(RETURN);
   });
 
   it('reads "Waiting for verification." at For verification with no move', () => {
@@ -83,7 +83,7 @@ describe('ticketActions, costs before closing (spec 0015, AC-5)', () => {
   const NEEDS_COSTS: TicketMove = { ...VERIFY, needs: 'costs' };
 
   it('blocks Verify and close with the reason while the ticket has no costs', () => {
-    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [NEEDS_COSTS, SEND_BACK] }));
+    const actions = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [NEEDS_COSTS, RETURN] }));
     expect(actions.primary).toEqual({ kind: 'move', move: NEEDS_COSTS });
     expect(actions.blocked).toBe('Add the costs before closing this ticket.');
   });
@@ -142,5 +142,28 @@ describe('ticketActions on an Open ticket', () => {
 
   it('never offers it once the ticket is Assigned', () => {
     expect(ticketActions(ticket({ status: 'ASSIGNED', can: ASSIGNER, moves: [] })).primary).toBeNull();
+  });
+});
+
+describe('photo rules on the primary move (spec 0018, AC-4 to AC-6, AC-20)', () => {
+  const SEND: TicketMove = { to: 'FOR_VERIFICATION', label: 'Send for verification', kind: 'forward', needs: null };
+
+  it('gives each blocked move its reason text', () => {
+    const start = ticketActions(ticket({ status: 'ASSIGNED', can: WORKER, moves: [{ ...START, blockedBy: 'beforePhoto' }] }));
+    expect(start.blocked).toBe('Add a before photo first.');
+    const send = ticketActions(ticket({ status: 'IN_PROGRESS', can: WORKER, moves: [{ ...SEND, blockedBy: 'afterPhoto' }] }));
+    expect(send.blocked).toBe('Add an after photo first.');
+    const close = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [{ ...VERIFY, blockedBy: 'afterPhoto' }] }));
+    expect(close.blocked).toBe('Add an after photo before closing.');
+  });
+
+  it('shows the photo reason before the costs reason, as it is fixed outside the dialog', () => {
+    const close = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [{ ...VERIFY, needs: 'costs', blockedBy: 'afterPhoto' }] }));
+    expect(close.blocked).toBe('Add an after photo before closing.');
+  });
+
+  it('holds Start work while photos are still uploading, and nothing else', () => {
+    expect(ticketActions(ticket({ status: 'ASSIGNED', can: WORKER, moves: [START] }), false, true).blocked).toBe(PHOTOS_UPLOADING_REASON);
+    expect(ticketActions(ticket({ status: 'IN_PROGRESS', can: WORKER, moves: [SEND] }), false, true).blocked).toBeNull();
   });
 });

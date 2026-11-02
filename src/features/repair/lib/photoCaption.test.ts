@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Attachment } from '../../../lib/api/attachmentsApi';
-import { formatManilaDateTime, photoCaption } from './photoCaption';
+import { formatManilaDateTime, photoAlt, photoCaption, photoMarks, photoName } from './photoCaption';
 
 // Spec 0017, AC-24: the viewer caption is uploader, then Manila date and time, then the issue name.
 
@@ -19,35 +19,44 @@ function photo(over: Partial<Attachment> = {}): Attachment {
     url: 'https://blob/x',
     thumbnailUrl: null,
     canRemove: true,
+    canMove: true,
+    returnedAfter: false,
     ...over,
   };
 }
 
-describe('photoCaption (AC-24)', () => {
+describe('formatManilaDateTime on a bad date', () => {
+  it('shows a dash instead of throwing', () => {
+    expect(formatManilaDateTime('not a date')).toBe('—');
+    expect(formatManilaDateTime('')).toBe('—');
+  });
+});
+
+describe('photoCaption (AC-24, spec 0018 group label)', () => {
   it('uses the uploader as the title and the Manila time as the description', () => {
     expect(photoCaption(photo(), new Map())).toEqual({
       title: 'Mia Mechanic',
-      description: 'Nov 1, 2026, 10:42 AM',
+      description: 'Before · Nov 1, 2026, 10:42 AM',
     });
   });
 
   it('adds the issue name after the time when the photo is tagged', () => {
     const names = new Map([['i1', 'Brake pads worn']]);
     expect(photoCaption(photo({ issueId: 'i1' }), names).description).toBe(
-      'Nov 1, 2026, 10:42 AM · Brake pads worn',
+      'Before · Nov 1, 2026, 10:42 AM · Brake pads worn',
     );
   });
 
   it('leaves the issue out when the tagged issue is not in the map', () => {
     expect(
       photoCaption(photo({ issueId: 'gone' }), new Map()).description,
-    ).toBe('Nov 1, 2026, 10:42 AM');
+    ).toBe('Before · Nov 1, 2026, 10:42 AM');
   });
 
   it('leaves the issue out when the photo has no tag, even if the map has names', () => {
     expect(
       photoCaption(photo(), new Map([['i1', 'Brake pads worn']])).description,
-    ).toBe('Nov 1, 2026, 10:42 AM');
+    ).toBe('Before · Nov 1, 2026, 10:42 AM');
   });
 });
 
@@ -71,5 +80,33 @@ describe('formatManilaDateTime (AC-24)', () => {
     expect(formatManilaDateTime(new Date('2026-11-01T02:42:00Z'))).toBe(
       'Nov 1, 2026, 10:42 AM',
     );
+  });
+});
+
+describe('photoMarks and the viewer lines (spec 0018, AC-13, AC-14)', () => {
+  it('has no marks on a plain photo', () => {
+    expect(photoMarks(photo())).toEqual([]);
+  });
+
+  it('gives the flag first, then the return mark, each with its chip and viewer text', () => {
+    expect(photoMarks(photo({ kind: 'PROOF', takenBeforeWork: true, returnedAfter: true }))).toEqual([
+      { id: 'takenBeforeWork', short: 'Taken before work started', long: 'Taken before work started' },
+      { id: 'returnedAfter', short: 'Added after return', long: 'Added after the ticket was returned to the mechanic' },
+    ]);
+  });
+
+  it('adds each mark as its own line under the caption', () => {
+    expect(photoCaption(photo({ kind: 'PROOF', returnedAfter: true }), new Map()).description).toBe(
+      'After · Nov 1, 2026, 10:42 AM\nAdded after the ticket was returned to the mechanic',
+    );
+  });
+});
+
+describe('photoName and photoAlt', () => {
+  it('names the group, uploader and Manila time, and adds the evidence marks to the alt', () => {
+    const p = photo({ kind: 'PROOF', returnedAfter: true, takenBeforeWork: true });
+    expect(photoName(p, 'After')).toBe('After photo by Mia Mechanic, Nov 1, 2026, 10:42 AM');
+    expect(photoAlt(p, 'After')).toBe('After photo by Mia Mechanic, Nov 1, 2026, 10:42 AM. Taken before work started. Added after return');
+    expect(photoAlt(photo(), 'Before')).toBe(photoName(photo(), 'Before'));
   });
 });

@@ -20,7 +20,7 @@ interface StatusCardProps {
   onCancel: () => void;
 }
 
-/** Spec 0014, AC-15: the primary move and Send back side by side, Cancel under them. */
+/** Spec 0014, AC-15: the primary move and Return to mechanic side by side, Cancel under them. */
 export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, onCancel }: StatusCardProps) {
   const { primary, secondary, cancel } = actions;
   const hasButton = !!(primary || secondary || cancel);
@@ -59,7 +59,7 @@ export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, 
             </p>
           )}
           {(primary || secondary) && (
-            // Below lg the fixed bar carries the primary and Send back, so the card hides its copy (one
+            // Below lg the fixed bar carries the primary and Return to mechanic, so the card hides its copy (one
             // button per action for a screen reader). Without a primary the bar has nothing, so it stays.
             // One column under 300px, where two side by side overflow the card (about 400% zoom).
             <div className={cn(primary ? 'hidden lg:grid' : 'grid', 'gap-2', primary && secondary && 'min-[300px]:grid-cols-2')}>

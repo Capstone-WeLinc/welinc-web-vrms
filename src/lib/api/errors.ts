@@ -48,6 +48,16 @@ export function getInvalidTransition(err: unknown): string | null {
   return body?.code === 'INVALID_TRANSITION' ? (body.message ?? 'That move isn’t possible any more.') : null;
 }
 
+/**
+ * The server's message on a 400 BEFORE_PHOTO_REQUIRED or AFTER_PHOTO_REQUIRED (spec 0018, AC-4 to
+ * AC-6): a photo went missing since the ticket loaded. Null for any other error.
+ */
+export function getPhotoRequired(err: unknown): string | null {
+  if (!isAxiosError<{ code?: string; message?: string }>(err) || err.response?.status !== 400) return null;
+  const body = err.response.data;
+  return body?.code === 'BEFORE_PHOTO_REQUIRED' || body?.code === 'AFTER_PHOTO_REQUIRED' ? (body.message ?? 'Add a photo first.') : null;
+}
+
 /** The 409 body of a create on a truck that already has an open repair (spec 0016, AC-3). */
 export function getOpenTicketExists(err: unknown): { message: string; ticket: { id: string; repairNumber: string } } | null {
   if (!isAxiosError<{ code?: string; message?: string; ticket?: { id: string; repairNumber: string } }>(err) || err.response?.status !== 409) {

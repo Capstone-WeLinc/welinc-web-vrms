@@ -2,7 +2,11 @@ import api from './axios';
 
 // Spec 0017: ticket attachments. Files open only through the signed links the list returns.
 
+/** VEHICLE_PHOTO shows as Before and PROOF as After (spec 0018). */
 export type AttachmentKind = 'VEHICLE_PHOTO' | 'PROOF' | 'RECEIPT' | 'OTHER_DOCUMENT';
+
+/** What an upload sends: PHOTO lets the server pick Before or After from when work started (spec 0018, AC-1). */
+export type UploadKind = 'PHOTO' | 'RECEIPT' | 'OTHER_DOCUMENT';
 
 export interface Attachment {
   id: string;
@@ -18,10 +22,18 @@ export interface Attachment {
   url: string;
   thumbnailUrl: string | null;
   canRemove: boolean;
+  /** Spec 0018, AC-11: the caller may move this photo between Before and After. */
+  canMove: boolean;
+  /** Spec 0018, AC-14: an After photo added after the ticket's latest Return to mechanic. */
+  returnedAfter: boolean;
+  /** Spec 0018, AC-13: sent to verifiers only; absent for everyone else. */
+  takenAt?: string | null;
+  /** Spec 0018, AC-13: an After photo the phone took well before work started. Verifiers only. */
+  takenBeforeWork?: boolean;
 }
 
 export interface AttachmentKindInfo {
-  kind: AttachmentKind;
+  kind: UploadKind;
   label: string;
   /** The real types the server accepts, judged by the file's first bytes. */
   accepts: string[];
@@ -33,9 +45,12 @@ export interface AttachmentList {
   urlsExpireAt: string;
   limits: {
     maxFileMb: number;
+    /** Before photos (spec 0018). */
     maxVehiclePhotos: number;
+    maxAfterPhotos: number;
     maxDocuments: number;
     vehiclePhotoCount: number;
+    afterPhotoCount: number;
     documentCount: number;
   };
   kinds: AttachmentKindInfo[];
@@ -49,8 +64,9 @@ export async function getAttachments(ticketId: string): Promise<AttachmentList> 
 }
 
 export interface UploadOptions {
-  kind: AttachmentKind;
-  issueId?: string | null;
+  kind: UploadKind;
+  /** Spec 0018, AC-12: when the phone took the photo, as ISO UTC, read before the shrink. */
+  takenAt?: string;
   /** 0 to 100, from the browser's upload progress. */
   onProgress?: (percent: number) => void;
   signal?: AbortSignal;
@@ -59,11 +75,11 @@ export interface UploadOptions {
 export async function uploadAttachment(
   ticketId: string,
   file: File,
-  { kind, issueId, onProgress, signal }: UploadOptions,
+  { kind, takenAt, onProgress, signal }: UploadOptions,
 ): Promise<Attachment & { duplicate?: boolean }> {
   const body = new FormData();
   body.append('kind', kind);
-  if (issueId) body.append('issueId', issueId);
+  if (takenAt) body.append('takenAt', takenAt);
   body.append('file', file);
   const response = await api.post<Attachment & { duplicate?: boolean }>(`/vrms/repairs/${ticketId}/attachments`, body, {
     // The instance default is JSON, which would make axios turn the FormData into JSON;
@@ -81,4 +97,10 @@ export async function uploadAttachment(
 
 export async function removeAttachment(ticketId: string, attachmentId: string): Promise<void> {
   await api.delete(`/vrms/repairs/${ticketId}/attachments/${attachmentId}`);
+}
+
+/** Spec 0018, AC-9: moves a photo to Before (VEHICLE_PHOTO) or After (PROOF). */
+export async function moveAttachment(ticketId: string, attachmentId: string, kind: 'VEHICLE_PHOTO' | 'PROOF'): Promise<Attachment> {
+  const response = await api.patch<Attachment>(`/vrms/repairs/${ticketId}/attachments/${attachmentId}`, { kind });
+  return response.data;
 }

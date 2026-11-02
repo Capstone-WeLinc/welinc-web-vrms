@@ -6,7 +6,16 @@ import { cn } from '@/lib/utils';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { formatClockTime, formatDateTime, getInitials } from '../../../lib/utils/format';
 import type { AuditEvent } from '../../../types';
-import { actorLabel, changeOf, costDetailLine, costTotalLine, eventStyle } from '../lib/auditEvents';
+import {
+  actorLabel,
+  attachmentLine,
+  changeOf,
+  costDetailLine,
+  costTotalLine,
+  eventStyle,
+  movedFileName,
+  photoMoveLine,
+} from '../lib/auditEvents';
 
 const FOCUSABLE_TEXT = 'rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
@@ -78,6 +87,8 @@ function Sentence({ event, showTicket }: { event: AuditEvent; showTicket: boolea
       return who ? withActor('added a file to') : <>A file was added to {rep}</>;
     case 'ATTACHMENT_REMOVED':
       return who ? withActor('removed a file from') : <>A file was removed from {rep}</>;
+    case 'ATTACHMENT_MOVED':
+      return who ? withActor('moved a photo on') : <>A photo was moved on {rep}</>;
     default:
       return who ? (
         <>
@@ -146,11 +157,21 @@ function Change({ event }: { event: AuditEvent }) {
     );
   }
   if (event.type === 'ATTACHMENT_ADDED' || event.type === 'ATTACHMENT_REMOVED') {
-    // "Vehicle photo: IMG_2041.jpg", in after on add and in before on remove (spec 0017, AC-18)
-    const file = changeOf(event, 'attachment');
-    const name = file?.after ?? file?.before;
+    // "Before photo: IMG_2041.jpg", in after on add and in before on remove (spec 0017, AC-18; spec 0018, AC-18)
+    const name = attachmentLine(event);
     if (!name) return null;
     return <p className="text-sm break-words text-muted-foreground">{name}</p>;
+  }
+  if (event.type === 'ATTACHMENT_MOVED') {
+    const line = photoMoveLine(event);
+    if (!line) return null;
+    const file = movedFileName(event);
+    return (
+      <div className="flex flex-col gap-0.5">
+        <p className="text-sm text-foreground">{line}</p>
+        {file && <p className="text-xs break-words text-muted-foreground">{file}</p>}
+      </div>
+    );
   }
   if (event.type === 'GARAGE_CHANGE') {
     const garage = changeOf(event, 'garage');

@@ -8,7 +8,7 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
-import { getApiErrorMessage, getApiErrorStatus, getInvalidTransition } from '../../../lib/api/errors';
+import { getApiErrorMessage, getApiErrorStatus, getInvalidTransition, getPhotoRequired } from '../../../lib/api/errors';
 import { assignMechanics, unlockRepairTicket, updateRepairStatus } from '../../../lib/api/repairApi';
 import { useHasTabBar } from '../../../components/layout/useNavSections';
 import { useCan } from '../../../lib/permissions/usePermissions';
@@ -28,6 +28,7 @@ import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePan
 import { DocumentsCard } from '../components/DocumentsCard';
 import { TicketFilesProvider } from '../components/TicketFilesProvider';
 import { useRepairTicket } from '../hooks/useRepairTicket';
+import { photosInFlight } from '../lib/photoUpload';
 import {
   canWorkTicket,
   COSTS_SECTION_ID,
@@ -38,7 +39,7 @@ import {
   ticketActions,
 } from '../lib/nextAction';
 
-/** Primary is the forward move or Unlock; secondary is Send back (spec 0014, AC-15). */
+/** Primary is the forward move or Unlock; secondary is Return to mechanic (spec 0014, AC-15). */
 type DialogKind = 'primary' | 'secondary' | 'cancel' | null;
 
 /** The list passes its own URL as `state.from`, so Back returns to the same filters and page. */
@@ -122,7 +123,8 @@ export function RepairDetailPage() {
       handleStale();
       return true;
     }
-    const invalid = getInvalidTransition(err);
+    // Spec 0018: a photo rule the ticket no longer meets is handled the same way
+    const invalid = getInvalidTransition(err) ?? getPhotoRequired(err);
     if (!invalid) return false;
     setDialog(null);
     showToast(invalid, 'error');
@@ -185,45 +187,53 @@ export function RepairDetailPage() {
       <PageHeader title={rep} subtitle={ticket.vehicleModel ? `${ticket.vehiclePlate} · ${ticket.vehicleModel}` : ticket.vehiclePlate} icon={Wrench} />
       {ticket.lastRejection && <SendBackBanner key={`${ticket.lastRejection.at}:${loadedAt}`} rejection={ticket.lastRejection} now={loadedAt} />}
 
-      {/* Spec 0017: one file list and one upload queue for the photos and the Documents card */}
-      <TicketFilesProvider ticketId={ticket.id}>
-        <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
-          <aside aria-label="Ticket summary" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20 lg:col-start-3 lg:row-start-1">
-            <StatusCard
-              ticket={ticket}
-              readOnly={readOnly}
-              actions={actions}
-              onPrimary={() => setDialog('primary')}
-              onSecondary={() => setDialog('secondary')}
-              onCancel={() => setDialog('cancel')}
-            />
-            <DetailsCard ticket={ticket} now={loadedAt} />
-            <PeopleCard ticket={ticket} />
-            {/* Spec 0017, AC-27: receipts and other documents are cost paperwork */}
-            {seesCosts && <DocumentsCard />}
-          </aside>
+      {/* Spec 0017: one file list and one upload queue for the photos and the Documents card. Spec 0018: a
+          file change reloads the ticket (its photo rules), and photos still in the queue hold Start work. */}
+      <TicketFilesProvider ticketId={ticket.id} onFilesChanged={reload}>
+        {({ queue }) => {
+          const shown = photosInFlight(queue.items) ? ticketActions(ticket, holdsVerify, true) : actions;
+          return (
+            <>
+              <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
+                <aside aria-label="Ticket summary" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20 lg:col-start-3 lg:row-start-1">
+                  <StatusCard
+                    ticket={ticket}
+                    readOnly={readOnly}
+                    actions={shown}
+                    onPrimary={() => setDialog('primary')}
+                    onSecondary={() => setDialog('secondary')}
+                    onCancel={() => setDialog('cancel')}
+                  />
+                  <DetailsCard ticket={ticket} now={loadedAt} />
+                  <PeopleCard ticket={ticket} />
+                  {/* Spec 0017, AC-27: receipts and other documents are cost paperwork */}
+                  {seesCosts && <DocumentsCard />}
+                </aside>
 
-          <div className="flex min-w-0 flex-col gap-4 lg:col-span-2 lg:col-start-1 lg:row-start-1">
-            <NotesSection ticket={ticket} />
-            <VehicleSection ticket={ticket} />
-            <IssuesSection ticket={ticket} canWork={!readOnly && canWorkTicket(ticket)} onChanged={replace} onStale={handleStale} />
-            {usesAi && <AiDiagnosisSection ticket={ticket} />}
-            {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
-            {seesActivity && <ActivitySection ticketId={ticket.id} />}
-          </div>
-        </div>
+                <div className="flex min-w-0 flex-col gap-4 lg:col-span-2 lg:col-start-1 lg:row-start-1">
+                  <NotesSection ticket={ticket} />
+                  <VehicleSection ticket={ticket} />
+                  <IssuesSection ticket={ticket} canWork={!readOnly && canWorkTicket(ticket)} onChanged={replace} onStale={handleStale} />
+                  {usesAi && <AiDiagnosisSection ticket={ticket} />}
+                  {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
+                  {seesActivity && <ActivitySection ticketId={ticket.id} />}
+                </div>
+              </div>
+
+              {barLabel && (
+                <NextActionBar
+                  label={barLabel}
+                  secondaryLabel={barSecondary}
+                  aboveTabBar={hasTabBar}
+                  blockedReason={shown.blocked}
+                  onAction={() => setDialog('primary')}
+                  onSecondary={() => setDialog('secondary')}
+                />
+              )}
+            </>
+          );
+        }}
       </TicketFilesProvider>
-
-      {barLabel && (
-        <NextActionBar
-          label={barLabel}
-          secondaryLabel={barSecondary}
-          aboveTabBar={hasTabBar}
-          blockedReason={actions.blocked}
-          onAction={() => setDialog('primary')}
-          onSecondary={() => setDialog('secondary')}
-        />
-      )}
 
       {move && (
         <TicketNoteDialog

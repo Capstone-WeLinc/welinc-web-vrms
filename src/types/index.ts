@@ -136,7 +136,7 @@ export interface RepairPart {
 export interface TicketCan {
   work: boolean;
   administer: boolean;
-  /** Verify or send back; false on a ticket the caller is assigned to (spec 0014, AC-13). */
+  /** Verify or return to mechanic; false on a ticket the caller is assigned to (spec 0014, AC-13). */
   verify: boolean;
   editCosts: boolean;
   unlock: boolean;
@@ -151,9 +151,11 @@ export interface TicketMove {
   kind: 'forward' | 'back' | 'cancel';
   /** What the move's dialog must collect; resolutions only while the knowledge base is on. */
   needs: 'resolutions' | 'remarks' | 'cancellationReason' | 'costs' | null;
+  /** Spec 0018: a photo the move needs that can't be added inside its dialog; fix it first. */
+  blockedBy?: 'beforePhoto' | 'afterPhoto' | null;
 }
 
-/** The newest Send back still in force (spec 0014, AC-14). */
+/** The newest Return to mechanic still in force (spec 0014, AC-14). */
 export interface TicketRejection {
   remarks: string;
   byName: string;
@@ -174,6 +176,8 @@ export interface RepairTicket {
   lastActivityAt?: string;
   /** When the status last changed (spec 0015). */
   statusChangedAt: string;
+  /** Spec 0018: when work first started; set on single ticket responses only. Decides Before or After. */
+  workStartedAt?: string | null;
   /** Set on the move to Closed or Cancelled. */
   closedAt?: string | null;
   totalCost?: number | null;

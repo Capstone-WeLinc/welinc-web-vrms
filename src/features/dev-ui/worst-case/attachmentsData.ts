@@ -2,8 +2,9 @@ import type { Attachment, AttachmentKind, AttachmentList } from '../../../lib/ap
 import type { DataMode } from './dataMode';
 
 // Development only (break-ui, spec 0017): a ticket's photos and documents. Limits used: file name
-// 255 (data model), uploader name 100 (whoName), 20 photos (uploads.max_vehicle_photos max), 100
-// documents (uploads.max_documents max), display photos at most 2048 px on the long edge (AC-6).
+// 255 (data model), uploader name 100 (whoName), 20 Before photos (uploads.max_vehicle_photos max),
+// 30 After photos (uploads.max_after_photos max, spec 0018), 100 documents (uploads.max_documents
+// max), display photos at most 2048 px on the long edge (AC-6).
 // Fixtures are built on call, never at module level, so production drops this file.
 
 const ATTACHMENTS_URL = /^\/vrms\/repairs\/[^/]+\/attachments$/;
@@ -22,8 +23,7 @@ const LONG_FILE =
   ) + '.pdf';
 
 const KINDS: AttachmentList['kinds'] = [
-  { kind: 'VEHICLE_PHOTO', label: 'Vehicle photo', accepts: ['image/jpeg', 'image/png', 'image/heic'], acceptsLabel: 'JPEG, PNG or HEIC photos' },
-  { kind: 'PROOF', label: 'Proof of completion', accepts: ['image/jpeg', 'image/png', 'image/heic', 'application/pdf'], acceptsLabel: 'JPEG, PNG or HEIC photos and PDF files' },
+  { kind: 'PHOTO', label: 'Photo', accepts: ['image/jpeg', 'image/png', 'image/heic'], acceptsLabel: 'JPEG, PNG or HEIC photos' },
   { kind: 'RECEIPT', label: 'Receipt', accepts: ['image/jpeg', 'image/png', 'image/heic', 'application/pdf'], acceptsLabel: 'JPEG, PNG or HEIC photos and PDF files' },
   { kind: 'OTHER_DOCUMENT', label: 'Other document', accepts: ['application/pdf'], acceptsLabel: 'PDF files' },
 ];
@@ -62,6 +62,8 @@ function photo(i: number, over: Partial<Attachment> & { size?: [number, number] 
     url: panel(width, height, (i * 47) % 360),
     thumbnailUrl: panel(320, 320, (i * 47) % 360),
     canRemove: i % 2 === 0,
+    canMove: i % 2 === 0,
+    returnedAfter: false,
     ...over,
   };
 }
@@ -81,16 +83,19 @@ function doc(i: number, kind: AttachmentKind, fileName: string, uploader: string
     url: 'https://example.com/fixture.pdf',
     thumbnailUrl: null,
     canRemove,
+    canMove: false,
+    returnedAfter: false,
   };
 }
 
 function worstPhotos(): Attachment[] {
   return [
     photo(0, { issueId: 'fixture-issue-2', uploadedBy: { id: 'u0', name: LONG_NAME }, fileName: 'IMG_20250914_183022_HDR_portrait_edited_edited.jpg' }),
-    photo(1, { uploadedBy: { id: 'u1', name: 'Jo' }, size: [1536, 2048] }),
+    // Spec 0018: both evidence marks on one After photo, as a verifier sees it
+    photo(1, { kind: 'PROOF', uploadedBy: { id: 'u1', name: 'Jo' }, size: [1536, 2048], returnedAfter: true, takenBeforeWork: true }),
     photo(2, { issueId: 'fixture-issue-1', uploadedBy: { id: 'u2', name: DIACRITICS }, size: [2048, 420] }),
     // The link has expired and refetching gives the same one: the tile shows "Could not load photo"
-    photo(3, { uploadedBy: { id: 'u3', name: FOX }, thumbnailUrl: BROKEN_LINK, url: BROKEN_LINK }),
+    photo(3, { kind: 'PROOF', uploadedBy: { id: 'u3', name: FOX }, thumbnailUrl: BROKEN_LINK, url: BROKEN_LINK }),
     // Uploaded by a person known only by email, and one you may not remove
     photo(4, { uploadedBy: { id: 'u4', name: EMAIL_ONLY }, canRemove: false }),
   ];
@@ -110,6 +115,7 @@ function list(mode: Exclude<DataMode, 'demo'>): AttachmentList {
   let photos: Attachment[];
   let docs: Attachment[];
   let maxPhotos = 5;
+  let maxAfter = 10;
   let maxDocs = 20;
   if (mode === 'empty') {
     photos = [];
@@ -118,11 +124,16 @@ function list(mode: Exclude<DataMode, 'demo'>): AttachmentList {
     photos = [photo(0, { uploadedBy: { id: 'u1', name: 'Jo' } })];
     docs = [doc(0, 'RECEIPT', 'resibo.pdf', 'Jo', true)];
   } else if (mode === 'huge') {
-    // The settings' own maximums: 20 photos and 100 documents, every one a different shape
+    // The settings' own maximums: 20 Before, 30 After and 100 documents, every one a different shape
     maxPhotos = 20;
+    maxAfter = 30;
     maxDocs = 100;
-    photos = Array.from({ length: 20 }, (_, i) =>
-      photo(i, { issueId: `fixture-issue-${(i % 3) + 1}`, size: i % 3 === 0 ? [2048, 1536] : i % 3 === 1 ? [1536, 2048] : [2048, 420] }),
+    photos = Array.from({ length: 50 }, (_, i) =>
+      photo(i, {
+        kind: i < 20 ? 'VEHICLE_PHOTO' : 'PROOF',
+        issueId: i < 20 ? `fixture-issue-${(i % 3) + 1}` : null,
+        size: i % 3 === 0 ? [2048, 1536] : i % 3 === 1 ? [1536, 2048] : [2048, 420],
+      }),
     );
     docs = Array.from({ length: 100 }, (_, i) =>
       doc(i, i % 2 === 0 ? 'RECEIPT' : 'OTHER_DOCUMENT', i % 7 === 0 ? LONG_FILE : `Invoice ${i + 1}.pdf`, i % 5 === 0 ? LONG_NAME : 'Pedro Santos', i % 3 === 0),
@@ -137,8 +148,10 @@ function list(mode: Exclude<DataMode, 'demo'>): AttachmentList {
     limits: {
       maxFileMb: 10,
       maxVehiclePhotos: maxPhotos,
+      maxAfterPhotos: maxAfter,
       maxDocuments: maxDocs,
-      vehiclePhotoCount: photos.length,
+      vehiclePhotoCount: photos.filter((p) => p.kind === 'VEHICLE_PHOTO').length,
+      afterPhotoCount: photos.filter((p) => p.kind === 'PROOF').length,
       documentCount: docs.length,
     },
     kinds: KINDS,
