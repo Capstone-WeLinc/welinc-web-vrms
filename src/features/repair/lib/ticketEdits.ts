@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import type { EditDetailsPayload } from '../../../lib/api/repairApi';
 import type { LookupOption } from '../../../lib/api/vrmsConfigApi';
-import type { AccountType, PriorityLevel, RepairTicket } from '../../../types';
+import { statusLabel } from '../../../components/shared/statusLabels';
+import { NO_MECHANIC_STATUSES } from '../../../lib/mechanicProblem';
+import type { AccountType, PriorityLevel, RepairStatus, RepairTicket } from '../../../types';
 import { isClosed } from './nextAction';
 import { LICENSE_FORMAT_MESSAGE, LICENSE_PATTERN, NAME_LIMIT } from './repairFormSchema';
 
@@ -33,6 +35,18 @@ export function reasonField(needed: boolean) {
     const length = value.trim().length;
     return length >= EDIT_REASON_MIN && length <= EDIT_REASON_MAX;
   }, `Say why, in ${EDIT_REASON_MIN} to ${EDIT_REASON_MAX} characters.`);
+}
+
+// ── Mechanics (AC-9 to AC-13) ─────────────────────────────────────────────────
+
+/** What a mechanics save does to the ticket's status, as the dialog warns before saving (AC-10). */
+export function mechanicsEffect(status: RepairStatus, before: number, after: number): string | null {
+  if (status === 'OPEN' && before === 0 && after > 0) return 'The ticket becomes Assigned.';
+  if (status === 'ASSIGNED' && after === 0) return 'With no mechanic, the ticket goes back to Open.';
+  if (after === 0 && before > 0 && NO_MECHANIC_STATUSES.includes(status)) {
+    return `With no mechanic, the ticket stays ${statusLabel(status)} and shows as “No mechanic” on the dashboard.`;
+  }
+  return null;
 }
 
 // ── Details (AC-4 to AC-8) ────────────────────────────────────────────────────

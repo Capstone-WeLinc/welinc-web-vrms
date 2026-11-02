@@ -10,8 +10,8 @@ import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getApiErrorStatus, getInvalidTransition, getPhotoRequired } from '../../../lib/api/errors';
 import {
-  assignMechanics,
   editTicketDetails,
+  setMechanics,
   unlockRepairTicket,
   updateRepairStatus,
   type EditDetailsPayload,
@@ -36,7 +36,7 @@ import { EditDetailsDialog } from '../components/edit/EditDetailsDialog';
 import { TicketFilesProvider } from '../components/TicketFilesProvider';
 import { useEditSession } from '../hooks/useEditSession';
 import { useRepairTicket } from '../hooks/useRepairTicket';
-import { ticketEditable } from '../lib/ticketEdits';
+import { editNeedsReason, ticketEditable } from '../lib/ticketEdits';
 import { photosInFlight } from '../lib/photoUpload';
 import {
   canWorkTicket,
@@ -189,7 +189,7 @@ export function RepairDetailPage() {
 
   const assign = async (mechanicIds: string[]) => {
     try {
-      const updated = await assignMechanics(ticket.id, mechanicIds, ticket.updatedAt);
+      const updated = await setMechanics(ticket.id, mechanicIds, { lastUpdatedAt: ticket.updatedAt });
       setDialog(null);
       replace(updated);
       showToast(`${rep} is assigned.`, 'success');
@@ -213,8 +213,22 @@ export function RepairDetailPage() {
     }
   };
 
+  // Spec 0019, AC-9: the full list, from the ticket as the dialog opened
+  const saveMechanics = async (opened: RepairTicket, mechanicIds: string[], reason?: string) => {
+    try {
+      const updated = await setMechanics(ticket.id, mechanicIds, { lastUpdatedAt: opened.updatedAt, reason });
+      edits.close();
+      replace(updated);
+      showToast(`Mechanics on ${rep} are updated.`, 'success');
+    } catch (err) {
+      if (getApiErrorStatus(err) === 409) return handleStale();
+      throw err;
+    }
+  };
+
   // Spec 0019, AC-1 and AC-2: the Edit buttons follow the ticket's flags and lock state
   const canEditDetails = !readOnly && ticket.can.edit && ticketEditable(ticket);
+  const canEditMechanics = !readOnly && ticket.can.assign && ticketEditable(ticket);
 
   const noMechanic =
     ticket.can.administer && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
@@ -245,7 +259,16 @@ export function RepairDetailPage() {
                     onCancel={() => setDialog('cancel')}
                   />
                   <DetailsCard ticket={ticket} now={loadedAt} />
-                  <PeopleCard ticket={ticket} />
+                  <PeopleCard
+                    ticket={ticket}
+                    action={
+                      canEditMechanics ? (
+                        <Button variant="outline" size="sm" aria-label="Edit mechanics" onClick={() => edits.open('mechanics', ticket)}>
+                          Edit
+                        </Button>
+                      ) : null
+                    }
+                  />
                   {/* Spec 0017, AC-27: receipts and other documents are cost paperwork */}
                   {seesCosts && <DocumentsCard />}
                 </aside>
@@ -357,7 +380,21 @@ export function RepairDetailPage() {
           open={dialog === 'primary'}
           onOpenChange={(open) => setDialog(open ? 'primary' : null)}
           repairNumber={rep}
+          status={ticket.status}
           onSubmit={assign}
+        />
+      )}
+
+      {edits.session?.kind === 'mechanics' && (
+        <AssignMechanicDialog
+          key={edits.session.n}
+          open={edits.session.open}
+          onOpenChange={(open) => !open && edits.close()}
+          repairNumber={rep}
+          status={edits.session.ticket.status}
+          current={edits.session.ticket.mechanics ?? []}
+          needsReason={editNeedsReason(edits.session.ticket)}
+          onSubmit={(ids, reason) => saveMechanics(edits.session!.ticket, ids, reason)}
         />
       )}
 

@@ -213,6 +213,8 @@ export interface RepairTicket {
   repairParts?: RepairPart[];
   /** An open ticket assigned to a mechanic who is no longer active (spec 0011, AC-34). */
   hasInactiveMechanic?: boolean;
+  /** Spec 0019, AC-13: how many mechanics are on the ticket. */
+  mechanicCount?: number;
   /** In progress or on hold with no active mechanic assigned (spec 0011, AC-34). */
   needsMechanic?: boolean;
   can: TicketCan;

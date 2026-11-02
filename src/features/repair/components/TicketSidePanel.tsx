@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -155,10 +156,11 @@ export function DetailsCard({ ticket, now }: { ticket: RepairTicket; now: number
   );
 }
 
-export function PeopleCard({ ticket }: { ticket: RepairTicket }) {
+/** Spec 0019, AC-20: the mechanics Edit button comes in as `action`. */
+export function PeopleCard({ ticket, action }: { ticket: RepairTicket; action?: ReactNode }) {
   const mechanics = ticket.mechanics ?? [];
   return (
-    <DetailSection title="People">
+    <DetailSection title="People" action={action}>
       <dl className="flex flex-col gap-3">
         <DetailItem label={mechanics.length === 1 ? 'Mechanic' : 'Mechanics'}>
           {mechanics.length === 0 ? (

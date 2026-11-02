@@ -180,15 +180,15 @@ export async function editTicketDetails(repairId: string, payload: EditDetailsPa
   return response.data;
 }
 
-/** Assigns in house mechanics to an Open ticket, which then goes Assigned (ticket.assign, spec 0016, AC-17). */
-export async function assignMechanics(
-  repairId: string,
-  mechanicIds: string[],
-  lastUpdatedAt: string,
-): Promise<RepairTicket> {
-  const response = await api.post<RepairTicket>(`/vrms/repairs/${repairId}/assignments`, {
+/**
+ * Sets the full mechanic list on any open ticket (ticket.assign, spec 0019, AC-9). The first
+ * mechanic on an Open ticket makes it Assigned; removing the last from an Assigned one makes it
+ * Open again (AC-10). Also behind the Assign action of an Open ticket (spec 0016, AC-17).
+ */
+export async function setMechanics(repairId: string, mechanicIds: string[], base: TicketEditBase): Promise<RepairTicket> {
+  const response = await api.put<RepairTicket>(`/vrms/repairs/${repairId}/assignments`, {
+    ...base,
     mechanics: mechanicIds.map((id) => ({ id })),
-    lastUpdatedAt,
   });
   return response.data;
 }

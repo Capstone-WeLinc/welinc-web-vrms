@@ -5,6 +5,7 @@ import {
   detailsPayload,
   detailsSchema,
   editNeedsReason,
+  mechanicsEffect,
   openedCorporationId,
   ticketEditable,
   type DetailsFormValues,
@@ -143,5 +144,24 @@ describe('openedCorporationId', () => {
     expect(openedCorporationId({ corporation: 'Beta' }, list)).toBe('c2');
     expect(openedCorporationId({ corporation: 'Gone Inc' }, list)).toBe('');
     expect(openedCorporationId({ corporation: null }, list)).toBe('');
+  });
+});
+
+describe('mechanicsEffect (AC-10)', () => {
+  it('says an Open ticket becomes Assigned on its first mechanic', () => {
+    expect(mechanicsEffect('OPEN', 0, 1)).toBe('The ticket becomes Assigned.');
+  });
+
+  it('says an Assigned ticket goes back to Open with nobody left', () => {
+    expect(mechanicsEffect('ASSIGNED', 2, 0)).toBe('With no mechanic, the ticket goes back to Open.');
+  });
+
+  it('says a later status stays and shows No mechanic', () => {
+    expect(mechanicsEffect('IN_PROGRESS', 1, 0)).toContain('stays In progress');
+  });
+
+  it('says nothing for a swap', () => {
+    expect(mechanicsEffect('ASSIGNED', 1, 1)).toBeNull();
+    expect(mechanicsEffect('IN_PROGRESS', 1, 2)).toBeNull();
   });
 });
