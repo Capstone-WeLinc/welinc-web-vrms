@@ -79,18 +79,6 @@ function historyColumns(showCosts: boolean): Column<RepairHistoryRow>[] {
       ),
     },
     { id: 'garage', header: 'Garage', cell: (row) => row.garageLocation ?? '—' },
-    {
-      id: 'verifier',
-      header: 'Verified by',
-      cell: (row) =>
-        row.verifiedByName ? (
-          <span className="block max-w-48 truncate" title={row.verifiedByName}>
-            {row.verifiedByName}
-          </span>
-        ) : (
-          '—'
-        ),
-    },
   ];
   if (showCosts) {
     columns.push({
@@ -105,9 +93,17 @@ function historyColumns(showCosts: boolean): Column<RepairHistoryRow>[] {
     header: 'Closed',
     cell: (row) =>
       row.closedAt ? (
-        <time dateTime={row.closedAt} className="whitespace-nowrap">
-          {formatShortDate(row.closedAt)}
-        </time>
+        <div className="flex min-w-0 flex-col items-start gap-0.5">
+          <time dateTime={row.closedAt} className="whitespace-nowrap">
+            {formatShortDate(row.closedAt)}
+          </time>
+          {/* Feature 23: who verified it, under the date so the table stays within its card. */}
+          {row.verifiedByName && (
+            <span className="block max-w-24 truncate text-xs text-muted-foreground" title={`Verified by ${row.verifiedByName}`}>
+              by {row.verifiedByName}
+            </span>
+          )}
+        </div>
       ) : (
         '—'
       ),
