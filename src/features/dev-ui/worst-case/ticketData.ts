@@ -54,6 +54,7 @@ function worst(t: RepairTicket): RepairTicket {
     garageLocation: 'Sta. Rosa Industrial Estate Service Annex',
     reportedByName: EMAIL_ONLY,
     verifiedByName: 'Aleksandra Wiśniewska-Kowalczyk de la Cruz-Montgomery',
+    verifiedAt: ago(2 * 3_600_000),
     mechanics: [
       { id: 'fixture-m1', name: LONG_NAME },
       { id: 'fixture-m2', name: 'Jo' },
@@ -82,6 +83,7 @@ function empty(t: RepairTicket): RepairTicket {
     driverName: 'Jo',
     reportedByName: null,
     verifiedByName: null,
+    verifiedAt: null,
     mechanics: [],
     lastRejection: null,
     issues: [issue(t.issues?.[0], 1, {})],
@@ -91,6 +93,8 @@ function empty(t: RepairTicket): RepairTicket {
 function one(t: RepairTicket): RepairTicket {
   return {
     ...t,
+    verifiedByName: 'Jo',
+    verifiedAt: ago(30_000),
     mechanics: [{ id: 'fixture-m1', name: 'Jo' }],
     lastRejection: { remarks: 'Re-do', byName: 'Jo', at: ago(30_000) },
     issues: [issue(t.issues?.[0], 1, { resolutionNote: 'Fixed', hoursSpent: 0.25 })],

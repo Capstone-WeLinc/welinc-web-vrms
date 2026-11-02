@@ -8,6 +8,8 @@ export type HistoryFilterValues = {
   outcome: Outcome;
   /** A garage id, or 'all'. */
   garageId: string;
+  /** A verifier's user id, or 'all'. */
+  verifierId: string;
   range: DateRangeValue;
 };
 
@@ -15,6 +17,7 @@ export const DEFAULT_HISTORY_FILTERS: HistoryFilterValues = {
   search: '',
   outcome: 'all',
   garageId: 'all',
+  verifierId: 'all',
   range: ALL_TIME,
 };
 
@@ -25,6 +28,7 @@ export function hasActiveFilters(filters: HistoryFilterValues) {
     filters.search.trim() !== '' ||
     filters.outcome !== 'all' ||
     filters.garageId !== 'all' ||
+    filters.verifierId !== 'all' ||
     filters.range.preset !== 'all'
   );
 }
@@ -41,6 +45,7 @@ export function historyParams(
     search: search.trim() || undefined,
     status: filters.outcome === 'all' ? undefined : filters.outcome,
     garageId: filters.garageId === 'all' ? undefined : filters.garageId,
+    verifiedBy: filters.verifierId === 'all' ? undefined : filters.verifierId,
     from: range.from,
     to: range.to,
     page,

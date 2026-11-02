@@ -70,5 +70,6 @@ npm run build        # typecheck then vite build
 
 - [vercel-react-best-practices](../.claude/skills/vercel-react-best-practices/), [vercel-composition-patterns](../.claude/skills/vercel-composition-patterns/): `vercel-labs/agent-skills`, React patterns. This app is on React 19, so the React 19 APIs apply.
 - [shadcn](../.claude/skills/shadcn/): `shadcn-ui/ui`, adding shadcn components (config in `components.json`)
+- Declined (2026-11-02): an Agent Skill search for `exifr`, the library that reads a photo's taken time (spec 0018).
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

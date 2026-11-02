@@ -3,6 +3,7 @@ import { readDataMode } from './dataMode';
 import { decoratedData, isSettingsHubWrite, madeUpData } from './settingsData';
 import { isFormWrite, madeUpFormData } from './formData';
 import { isAttachmentWrite, madeUpAttachments } from './attachmentsData';
+import { madeUpHistory } from './historyData';
 
 const READ_ONLY = 'Fixture data is showing, so saves are off. Switch to Demo data to save.';
 
@@ -22,7 +23,10 @@ export function installDataModes(api: AxiosInstance) {
     }
     if (config.method?.toLowerCase() === 'get') {
       const data =
-        madeUpAttachments(mode, config.url) ?? madeUpFormData(mode, config.url, config.params ?? {}) ?? madeUpData(mode, config.url, config.params ?? {});
+        madeUpAttachments(mode, config.url) ??
+        madeUpHistory(mode, config.url, config.params ?? {}) ??
+        madeUpFormData(mode, config.url, config.params ?? {}) ??
+        madeUpData(mode, config.url, config.params ?? {});
       if (data !== undefined) config.adapter = () => Promise.resolve(answer(config, 200, data));
     }
     return config;

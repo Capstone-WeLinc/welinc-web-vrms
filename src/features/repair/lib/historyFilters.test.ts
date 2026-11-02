@@ -15,6 +15,7 @@ describe('hasActiveFilters', () => {
     expect(hasActiveFilters({ ...DEFAULT_HISTORY_FILTERS, search: 'abc' })).toBe(true);
     expect(hasActiveFilters({ ...DEFAULT_HISTORY_FILTERS, outcome: 'CANCELLED' })).toBe(true);
     expect(hasActiveFilters({ ...DEFAULT_HISTORY_FILTERS, garageId: 'g1' })).toBe(true);
+    expect(hasActiveFilters({ ...DEFAULT_HISTORY_FILTERS, verifierId: 'u1' })).toBe(true);
     expect(hasActiveFilters({ ...DEFAULT_HISTORY_FILTERS, range: { preset: 'custom', from: '', to: '' } })).toBe(true);
   });
 });
@@ -25,6 +26,7 @@ describe('historyParams', () => {
       search: undefined,
       status: undefined,
       garageId: undefined,
+      verifiedBy: undefined,
       from: undefined,
       to: undefined,
       page: 1,
@@ -47,6 +49,27 @@ describe('historyParams', () => {
       to: '2026-11-01T00:00:00.000Z',
       page: 3,
     });
+  });
+
+  it('sends the chosen verifier as verifiedBy, and nothing for Anyone (feature 23)', () => {
+    expect(historyParams({ ...DEFAULT_HISTORY_FILTERS, verifierId: 'u1' }, '', ready, 1)).toMatchObject({
+      verifiedBy: 'u1',
+    });
+    expect(historyParams(DEFAULT_HISTORY_FILTERS, '', ready, 1)?.verifiedBy).toBeUndefined();
+  });
+
+  it('keeps the verifier when the other filters change', () => {
+    const params = historyParams(
+      { ...DEFAULT_HISTORY_FILTERS, verifierId: 'u1', outcome: 'CLOSED', garageId: 'g1' },
+      '',
+      ready,
+      2,
+    );
+    expect(params).toMatchObject({ verifiedBy: 'u1', status: 'CLOSED', garageId: 'g1', page: 2 });
+  });
+
+  it('starts with Anyone selected', () => {
+    expect(DEFAULT_HISTORY_FILTERS.verifierId).toBe('all');
   });
 
   it('sends nothing while the range is incomplete or invalid', () => {

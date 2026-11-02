@@ -6,7 +6,7 @@ import { BadgePill } from '../../../components/shared/BadgePill';
 import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { dueLabel, isOpen } from '../../../lib/utils/due';
-import { formatShortDate } from '../../../lib/utils/format';
+import { formatDateTime, formatShortDate } from '../../../lib/utils/format';
 import type { RepairTicket } from '../../../types';
 import { isClosed, type TicketActions } from '../lib/nextAction';
 import { DetailItem, DetailSection } from '../../../components/shared/DetailSection';
@@ -186,7 +186,16 @@ export function PeopleCard({ ticket }: { ticket: RepairTicket }) {
         )}
         {ticket.corporation && <DetailItem label="Corporation">{ticket.corporation}</DetailItem>}
         {ticket.reportedByName && <DetailItem label="Reported by">{ticket.reportedByName}</DetailItem>}
-        {ticket.verifiedByName && <DetailItem label="Verified by">{ticket.verifiedByName}</DetailItem>}
+        {ticket.verifiedByName && (
+          <DetailItem label="Verified by">
+            <span className="block">{ticket.verifiedByName}</span>
+            {ticket.verifiedAt && (
+              <time dateTime={ticket.verifiedAt} className="block text-xs text-muted-foreground">
+                {formatDateTime(ticket.verifiedAt)}
+              </time>
+            )}
+          </DetailItem>
+        )}
       </dl>
     </DetailSection>
   );
