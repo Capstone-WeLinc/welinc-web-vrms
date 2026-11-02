@@ -59,7 +59,7 @@ export function DocumentsCard() {
   const shownDocs = collapsed ? docs.slice(-RECENT_DOCUMENTS) : docs;
   const docQueue = queue.items.filter((item) => DOCUMENT_KINDS.has(item.kind));
   const otherKind = list?.kinds.find((k) => k.kind === 'OTHER_DOCUMENT');
-  const labels = new Map(list?.kinds.map((k) => [k.kind, k.label]));
+  const labels = new Map<string, string>(list?.kinds.map((k) => [k.kind, k.label]));
   const inFlight = docQueue.filter((item) => item.status === 'waiting' || item.status === 'uploading').length;
   const room = list ? documentRoomLeft(list.limits, inFlight) : 0;
   const canAdd = list != null && list.can.addDocuments && otherKind != null;
@@ -67,7 +67,7 @@ export function DocumentsCard() {
   const pick = (input: HTMLInputElement) => {
     const file = input.files?.[0];
     input.value = '';
-    if (file && list && otherKind && room > 0) queue.add([file], null, otherKind, list.limits.maxFileMb);
+    if (file && list && otherKind && room > 0) queue.add([file], otherKind, list.limits.maxFileMb);
   };
 
   const remove = async (doc: Attachment) => {

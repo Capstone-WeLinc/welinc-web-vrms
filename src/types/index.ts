@@ -174,6 +174,8 @@ export interface RepairTicket {
   lastActivityAt?: string;
   /** When the status last changed (spec 0015). */
   statusChangedAt: string;
+  /** Spec 0018: when work first started; set on single ticket responses only. Decides Before or After. */
+  workStartedAt?: string | null;
   /** Set on the move to Closed or Cancelled. */
   closedAt?: string | null;
   totalCost?: number | null;

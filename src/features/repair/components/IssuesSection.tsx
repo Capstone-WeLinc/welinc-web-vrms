@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Clock, MessageSquarePlus, Unlink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +24,7 @@ import { SuggestDialog } from '../../knowledge-base/components/SuggestDialog';
 import { useModuleOn } from '../../../lib/permissions/usePermissions';
 import { removeAttachment, type Attachment } from '../../../lib/api/attachmentsApi';
 import { useTicketFiles } from '../hooks/ticketFiles';
-import { photoRoomLeft } from '../lib/photoUpload';
+import { groupLimit, isPhoto, PHOTO_GROUP_LABELS, photoGroups, photoRoomLeft, uploadGroup } from '../lib/photoUpload';
 import { PhotoStrip } from './PhotoStrip';
 
 // Spec 0017, AC-24: the viewer and its library load on first open only
@@ -91,13 +91,11 @@ interface IssueBlockProps {
   knowledgeOn: boolean;
   canTick: boolean;
   entries: ReturnType<typeof useEntryOptions>;
-  /** This issue's photo strip (spec 0017, AC-20). */
-  photos: ReactNode;
   onChanged: (ticket: RepairTicket) => void;
   onStale: () => void;
 }
 
-function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entries, photos, onChanged, onStale }: IssueBlockProps) {
+function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entries, onChanged, onStale }: IssueBlockProps) {
   const { showToast } = useToast();
   // Ticks show at once; a failed save puts the row back (AC-28).
   const [overrides, setOverrides] = useState<Record<string, Pick<RepairIssueStep, 'checkedAt' | 'checkedByEmail'>>>({});
@@ -191,8 +189,6 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
           {issue.categoryName && <Badge variant="outline">{issue.categoryName}</Badge>}
         </div>
       </div>
-
-      {photos}
 
       {entry ? (
         <section aria-label={`Known fix for issue ${index + 1}`} className="flex flex-col gap-3 rounded-lg border border-border bg-background p-3 md:p-4">
@@ -331,7 +327,7 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
   const { showToast } = useToast();
   const { attachments, queue } = useTicketFiles();
   /** Photo uploads only; documents queue in the Documents card. */
-  const photoQueue = queue.items.filter((item) => item.kind === 'VEHICLE_PHOTO');
+  const photoQueue = queue.items.filter((item) => item.kind === 'PHOTO');
   /** Index into `photos` while the viewer is open, else -1 (AC-24). */
   const [viewerIndex, setViewerIndex] = useState(-1);
   /** The viewer's code loads on first open only. */
@@ -339,31 +335,36 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
   const opener = useRef<HTMLButtonElement | null>(null);
 
   const list = attachments.list;
-  const photoKind = list?.kinds.find((k) => k.kind === 'VEHICLE_PHOTO');
+  // Spec 0018, AC-1 and AC-16: the server files a photo Before or After; the strip mirrors its rule
+  const workStarted = ticket.workStartedAt != null;
+  const target = PHOTO_GROUP_LABELS[uploadGroup(workStarted)].toLowerCase();
+  const photoKind = list?.kinds.find((k) => k.kind === 'PHOTO');
   const canAddPhotos = list != null && list.can.addFiles && photoKind != null;
-  /** Every live photo in list order: the viewer walks all of them (AC-24). */
-  const photos = list?.items.filter((a) => a.kind === 'VEHICLE_PHOTO') ?? [];
+  const groups = list ? photoGroups(list, workStarted) : [];
+  /** Every live photo in the order shown: the viewer walks all of them (AC-24). */
+  const photos = groups.flatMap((group) => group.photos);
   const inFlight = photoQueue.filter((item) => item.status === 'waiting' || item.status === 'uploading').length;
-  const room = list ? photoRoomLeft(list.limits, inFlight) : 0;
+  const room = list ? photoRoomLeft(list.limits, inFlight, workStarted) : 0;
+  const targetLimit = list ? groupLimit(list.limits, uploadGroup(workStarted)) : null;
   const limitText =
-    list && room === 0
-      ? `Photo limit reached (${Math.min(list.limits.maxVehiclePhotos, list.limits.vehiclePhotoCount + inFlight)} of ${list.limits.maxVehiclePhotos})`
+    targetLimit && room === 0
+      ? `${PHOTO_GROUP_LABELS[uploadGroup(workStarted)]} photos full (${Math.min(targetLimit.max, targetLimit.count + inFlight)} of ${targetLimit.max})`
       : null;
   const issueNames = new Map(issues.map((issue, index) => [issue.id, `Issue ${index + 1}: ${issue.description}`]));
 
-  /** Queue what fits under the photo limit; the queue uploads one at a time (AC-21, AC-23). */
-  const addPhotos = (files: File[], issueId: string | null) => {
-    if (!list || !photoKind) return;
+  /** Queue what fits in the group new photos land in; the queue uploads one at a time (AC-21, AC-23). */
+  const addPhotos = (files: File[]) => {
+    if (!list || !photoKind || !targetLimit) return;
     const taken = files.slice(0, room);
     if (taken.length < files.length) {
       showToast(
         room === 0
-          ? `This ticket already has ${list.limits.maxVehiclePhotos} photos, the most allowed.`
-          : `Only ${room} more ${room === 1 ? 'photo fits' : 'photos fit'} on this ticket, so the rest were left out.`,
+          ? `This ticket already has ${targetLimit.max} ${target} photos, the most allowed.`
+          : `Only ${room} more ${target} ${room === 1 ? 'photo fits' : 'photos fit'} on this ticket, so the rest were left out.`,
         'error',
       );
     }
-    if (taken.length) queue.add(taken, issueId, photoKind, list.limits.maxFileMb);
+    if (taken.length) queue.add(taken, photoKind, list.limits.maxFileMb);
   };
 
   /** AC-25: ask first, then the photo leaves the strip and the viewer. */
@@ -378,7 +379,7 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
     try {
       await removeAttachment(ticket.id, photo.id);
       const fresh = await attachments.reload();
-      const left = fresh?.items.filter((a) => a.kind === 'VEHICLE_PHOTO').length ?? 0;
+      const left = fresh?.items.filter(isPhoto).length ?? 0;
       setViewerIndex((i) => (i >= left ? left - 1 : i));
       showToast('Photo removed', 'success');
     } catch (err) {
@@ -392,25 +393,6 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
     setViewerLoaded(true);
     setViewerIndex(photos.findIndex((p) => p.id === photo.id));
   };
-
-  const strip = (issueId: string | null, label: string) =>
-    list ? (
-      <PhotoStrip
-        photos={photos.filter((p) => p.issueId === issueId)}
-        queue={photoQueue.filter((item) => item.issueId === issueId)}
-        canAdd={canAddPhotos}
-        // The ticket's own strip says it once; the issue strips only disable their buttons
-        limitText={issueId === null ? limitText : null}
-        atLimit={limitText != null}
-        label={label}
-        onAdd={(files) => addPhotos(files, issueId)}
-        onRetry={queue.retry}
-        onDismiss={queue.remove}
-        onOpen={openViewer}
-        onRemove={(photo) => void removePhoto(photo)}
-        onLinkError={attachments.reload}
-      />
-    ) : null;
 
   return (
     <DetailSection title="Issues">
@@ -429,7 +411,21 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
       {attachments.state === 'error' ? (
         <p className="text-sm text-muted-foreground">{attachments.errorMessage}</p>
       ) : (
-        strip(null, 'Photos')
+        list && (
+          <PhotoStrip
+            groups={groups}
+            queue={photoQueue}
+            canAdd={canAddPhotos}
+            limitText={limitText}
+            label="Photos"
+            onAdd={addPhotos}
+            onRetry={queue.retry}
+            onDismiss={queue.remove}
+            onOpen={openViewer}
+            onRemove={(photo) => void removePhoto(photo)}
+            onLinkError={attachments.reload}
+          />
+        )
       )}
       {issues.length === 0 ? (
         <p className="text-sm text-muted-foreground">No issues logged.</p>
@@ -445,7 +441,6 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
               knowledgeOn={knowledgeOn}
               canTick={canTick}
               entries={entries}
-              photos={strip(issue.id, `Photos for issue ${index + 1}`)}
               onChanged={onChanged}
               onStale={onStale}
             />

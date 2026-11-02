@@ -1,4 +1,4 @@
-import { useRef, useState, type DragEvent } from 'react';
+import { useId, useRef, useState, type DragEvent } from 'react';
 import { Camera, ImageOff, ImagePlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -6,19 +6,18 @@ import { useIsTouchDevice } from '../../../hooks/useIsTouchDevice';
 import type { Attachment } from '../../../lib/api/attachmentsApi';
 import type { QueuedPhoto } from '../hooks/usePhotoUploadQueue';
 import { formatManilaDateTime } from '../lib/photoCaption';
+import type { PhotoGroup } from '../lib/photoUpload';
 import { UploadQueueRow } from './UploadQueueRow';
 
 interface PhotoStripProps {
-  photos: Attachment[];
-  /** Uploads headed for this strip. */
+  /** Before and After, in the order to show them (spec 0018, AC-16). */
+  groups: PhotoGroup[];
+  /** Photo uploads for this ticket. */
   queue: QueuedPhoto[];
   /** Whether the viewer may add photos here; false hides the buttons. */
   canAdd: boolean;
-  /** Set when the ticket is at its photo limit: the buttons disable and say so (AC-21). */
+  /** Set when the group new photos land in is full: the buttons disable and say so (AC-21). */
   limitText: string | null;
-  /** The ticket is at its photo limit: the buttons disable, whether or not this strip says so. */
-  atLimit: boolean;
-  /** "Photos" for the ticket, or "Photos for issue 2". */
   label: string;
   onAdd: (files: File[]) => void;
   onRetry: (id: string) => void;
@@ -29,7 +28,14 @@ interface PhotoStripProps {
   onLinkError: () => Promise<unknown>;
 }
 
-function Thumb({ photo, onOpen, onRemove, onLinkError }: Pick<PhotoStripProps, 'onOpen' | 'onRemove' | 'onLinkError'> & { photo: Attachment }) {
+function Thumb({
+  photo,
+  groupLabel,
+  onOpen,
+  onRemove,
+  onLinkError,
+}: Pick<PhotoStripProps, 'onOpen' | 'onRemove' | 'onLinkError'> & { photo: Attachment; groupLabel: string }) {
+  const name = `${groupLabel} photo by ${photo.uploadedBy.name}, ${formatManilaDateTime(photo.createdAt)}`;
   // 0: fine, 1: refetched once, 2: still failing (AC-26)
   const [errors, setErrors] = useState(0);
 
@@ -59,7 +65,7 @@ function Thumb({ photo, onOpen, onRemove, onLinkError }: Pick<PhotoStripProps, '
             // A new key after the refetch makes the browser try the fresh link
             key={`${errors}:${photo.thumbnailUrl ?? photo.url}`}
             src={photo.thumbnailUrl ?? photo.url}
-            alt={`Photo by ${photo.uploadedBy.name}, ${formatManilaDateTime(photo.createdAt)}`}
+            alt={name}
             width={photo.width ?? undefined}
             height={photo.height ?? undefined}
             loading="lazy"
@@ -73,7 +79,7 @@ function Thumb({ photo, onOpen, onRemove, onLinkError }: Pick<PhotoStripProps, '
           type="button"
           variant="outline"
           size="icon"
-          aria-label={`Remove photo by ${photo.uploadedBy.name}, ${formatManilaDateTime(photo.createdAt)}`}
+          aria-label={`Remove ${name.charAt(0).toLowerCase()}${name.slice(1)}`}
           onClick={() => onRemove(photo)}
           className="absolute -top-2 -right-2 size-7 rounded-full bg-card shadow-sm pointer-coarse:size-11"
         >
@@ -84,16 +90,22 @@ function Thumb({ photo, onOpen, onRemove, onLinkError }: Pick<PhotoStripProps, '
   );
 }
 
-/** Thumbnails for one place on the ticket, the add buttons and its uploads (spec 0017, AC-20 to AC-26). */
-export function PhotoStrip({ photos, queue, canAdd, limitText, atLimit, label, onAdd, onRetry, onDismiss, onOpen, onRemove, onLinkError }: PhotoStripProps) {
+/**
+ * The ticket's one photo strip: the Before and After groups with their counts, one add control and
+ * the uploads (spec 0017, AC-20 to AC-26; spec 0018, AC-16). The server files each photo.
+ */
+export function PhotoStrip({ groups, queue, canAdd, limitText, label, onAdd, onRetry, onDismiss, onOpen, onRemove, onLinkError }: PhotoStripProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const chooseRef = useRef<HTMLInputElement>(null);
   // AC-21: "Take photo" is for phones (a real camera), not for a narrow desktop window
   const isTouch = useIsTouchDevice();
   const [dragging, setDragging] = useState(false);
+  const headingId = useId();
+  const atLimit = limitText != null;
+  const empty = groups.every((group) => group.photos.length === 0);
 
   // AC-20: with no photos, people who can't add see nothing
-  if (photos.length === 0 && queue.length === 0 && !canAdd) return null;
+  if (empty && queue.length === 0 && !canAdd) return null;
 
   const dropEnabled = canAdd && !isTouch && !atLimit;
 
@@ -127,21 +139,27 @@ export function PhotoStrip({ photos, queue, canAdd, limitText, atLimit, label, o
       role="group"
       aria-label={label}
       {...dropHandlers}
-      className={cn('flex flex-col gap-2 rounded-lg', dragging && 'bg-muted/50 ring-2 ring-primary ring-offset-2 ring-offset-card')}
+      className={cn('flex flex-col gap-3 rounded-lg', dragging && 'bg-muted/50 ring-2 ring-primary ring-offset-2 ring-offset-card')}
     >
-      {photos.length > 0 ? (
-        <ul className="flex flex-wrap gap-3 pt-2 pr-2">
-          {photos.map((photo) => (
-            <Thumb key={photo.id} photo={photo} onOpen={onOpen} onRemove={onRemove} onLinkError={onLinkError} />
-          ))}
-        </ul>
-      ) : (
-        queue.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No photos yet.{!atLimit && ' Add one so others can see the problem.'}{dropEnabled && ' You can also drop photos here.'}
-          </p>
-        )
-      )}
+      {groups.map((group) => (
+        <section key={group.kind} aria-labelledby={`${headingId}-${group.kind}`} className="flex flex-col gap-1">
+          <h3 id={`${headingId}-${group.kind}`} className="flex items-baseline gap-2 text-sm font-semibold text-foreground">
+            {group.label}
+            <span className="text-xs font-normal text-muted-foreground tabular-nums">
+              {group.count} of {group.max}
+            </span>
+          </h3>
+          {group.photos.length > 0 ? (
+            <ul className="flex flex-wrap gap-3 pt-2 pr-2">
+              {group.photos.map((photo) => (
+                <Thumb key={photo.id} photo={photo} groupLabel={group.label} onOpen={onOpen} onRemove={onRemove} onLinkError={onLinkError} />
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No {group.label.toLowerCase()} photos yet.</p>
+          )}
+        </section>
+      ))}
 
       {/* The live region stays mounted so the first upload is announced too */}
       <div aria-live="polite">
@@ -188,7 +206,11 @@ export function PhotoStrip({ photos, queue, canAdd, limitText, atLimit, label, o
             <ImagePlus aria-hidden="true" />
             Choose photos
           </Button>
-          {limitText && <span className="text-xs text-muted-foreground">{limitText}</span>}
+          {limitText ? (
+            <span className="text-xs text-muted-foreground">{limitText}</span>
+          ) : (
+            dropEnabled && <span className="text-xs text-muted-foreground">or drop photos here</span>
+          )}
         </div>
       )}
     </div>

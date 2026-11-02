@@ -16,9 +16,13 @@ export function formatManilaDateTime(value: string | Date): string {
   return MANILA.format(new Date(value));
 }
 
-/** The viewer caption: uploader as the title, then when, then the issue's name when tagged (AC-24). */
+/**
+ * The viewer caption: uploader as the title, then the group (Before or After, spec 0018), when, and
+ * the issue's name when an older photo was tagged (AC-24).
+ */
 export function photoCaption(photo: Attachment, issueNames: Map<string, string>): { title: string; description: string } {
   const issue = photo.issueId ? issueNames.get(photo.issueId) : undefined;
-  const when = formatManilaDateTime(photo.createdAt);
+  const group = photo.kind === 'PROOF' ? 'After' : 'Before';
+  const when = `${group} · ${formatManilaDateTime(photo.createdAt)}`;
   return { title: photo.uploadedBy.name, description: issue ? `${when} · ${issue}` : when };
 }

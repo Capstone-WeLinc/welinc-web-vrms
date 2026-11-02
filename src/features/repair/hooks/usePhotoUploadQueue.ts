@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { uploadAttachment, type AttachmentKind, type AttachmentKindInfo } from '../../../lib/api/attachmentsApi';
+import { uploadAttachment, type AttachmentKindInfo, type UploadKind } from '../../../lib/api/attachmentsApi';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
 import { isRetryable, normalizeType, RETRY_DELAYS_MS, sizeProblem, typeProblem } from '../lib/photoUpload';
 import { shrinkPhoto } from '../lib/shrinkPhoto';
@@ -8,10 +8,8 @@ export type QueueStatus = 'waiting' | 'uploading' | 'done' | 'failed';
 
 export interface QueuedPhoto {
   id: string;
-  /** What it uploads as: photos show in their strip, documents in the Documents card. */
-  kind: AttachmentKind;
-  /** The strip it belongs to: an issue id, or null for the ticket strip (and for documents). */
-  issueId: string | null;
+  /** What it uploads as: PHOTO shows in the photo strip, documents in the Documents card. */
+  kind: UploadKind;
   name: string;
   status: QueueStatus;
   /** 0 to 100 while uploading. */
@@ -21,7 +19,6 @@ export interface QueuedPhoto {
 
 interface Job {
   id: string;
-  issueId: string | null;
   file: File;
   kind: AttachmentKindInfo;
   maxFileMb: number;
@@ -77,7 +74,6 @@ export function usePhotoUploadQueue(ticketId: string, onUploaded: () => Promise<
           // A 200 duplicate counts as done (AC-8)
           await uploadAttachment(ticketId, file, {
             kind: job.kind.kind,
-            issueId: job.issueId,
             signal,
             onProgress: (progress) => patch(job.id, { progress }),
           });
@@ -135,11 +131,11 @@ export function usePhotoUploadQueue(ticketId: string, onUploaded: () => Promise<
   );
 
   const add = useCallback(
-    (files: File[], issueId: string | null, kind: AttachmentKindInfo, maxFileMb: number) => {
+    (files: File[], kind: AttachmentKindInfo, maxFileMb: number) => {
       const added = files.map((file) => {
-        const job: Job = { id: `upload-${nextId++}`, issueId, file, kind, maxFileMb };
+        const job: Job = { id: `upload-${nextId++}`, file, kind, maxFileMb };
         jobs.current.set(job.id, job);
-        return { id: job.id, kind: kind.kind, issueId, name: file.name, status: 'waiting' as const, progress: 0 };
+        return { id: job.id, kind: kind.kind, name: file.name, status: 'waiting' as const, progress: 0 };
       });
       setItems((list) => [...list, ...added]);
       void run();
