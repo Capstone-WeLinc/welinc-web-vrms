@@ -293,25 +293,26 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
       ) : null}
 
       {hasSavedResolution(issue) && (
-        <dl className="grid gap-2 rounded-lg bg-muted p-3 text-sm sm:grid-cols-3">
+        // Spec 0018, AC-19: the pill and the note sit beside the <dl>, which holds only dt and dd groups
+        <div className="flex flex-col gap-2 rounded-lg bg-muted p-3 text-sm">
           {/* Spec 0014, AC-21: Return to mechanic keeps the notes but clears resolvedAt */}
           {!issue.resolvedAt && (
-            <div className="sm:col-span-3">
+            <div>
               <BadgePill className="h-auto max-w-full bg-highlight py-0.5 text-highlight-foreground whitespace-normal">Returned, not resent yet</BadgePill>
             </div>
           )}
-          <div className="min-w-0 sm:col-span-2">
-            <dt className="text-xs font-medium text-muted-strong">What fixed it</dt>
-            <dd className="break-words text-foreground">{issue.resolutionNote ?? (issue.followedKnownFix ? 'Followed the known fix' : '—')}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-muted-strong">Hours spent</dt>
-            <dd className="text-foreground tabular-nums">{issue.hoursSpent != null ? formatHours(issue.hoursSpent) : '—'}</dd>
-          </div>
-          {issue.followedKnownFix && issue.resolutionNote && (
-            <p className="text-xs text-muted-strong sm:col-span-3">Followed the known fix</p>
-          )}
-        </dl>
+          <dl className="grid gap-2 sm:grid-cols-3">
+            <div className="min-w-0 sm:col-span-2">
+              <dt className="text-xs font-medium text-muted-strong">What fixed it</dt>
+              <dd className="break-words text-foreground">{issue.resolutionNote ?? (issue.followedKnownFix ? 'Followed the known fix' : '—')}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-muted-strong">Hours spent</dt>
+              <dd className="text-foreground tabular-nums">{issue.hoursSpent != null ? formatHours(issue.hoursSpent) : '—'}</dd>
+            </div>
+          </dl>
+          {issue.followedKnownFix && issue.resolutionNote && <p className="text-xs text-muted-strong">Followed the known fix</p>}
+        </div>
       )}
     </li>
   );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Attachment } from '../../../lib/api/attachmentsApi';
-import { formatManilaDateTime, photoCaption } from './photoCaption';
+import { formatManilaDateTime, photoCaption, photoMarks } from './photoCaption';
 
 // Spec 0017, AC-24: the viewer caption is uploader, then Manila date and time, then the issue name.
 
@@ -72,6 +72,25 @@ describe('formatManilaDateTime (AC-24)', () => {
   it('accepts a Date as well as a string', () => {
     expect(formatManilaDateTime(new Date('2026-11-01T02:42:00Z'))).toBe(
       'Nov 1, 2026, 10:42 AM',
+    );
+  });
+});
+
+describe('photoMarks and the viewer lines (spec 0018, AC-13, AC-14)', () => {
+  it('has no marks on a plain photo', () => {
+    expect(photoMarks(photo())).toEqual([]);
+  });
+
+  it('gives the flag first, then the return mark, each with its chip and viewer text', () => {
+    expect(photoMarks(photo({ kind: 'PROOF', takenBeforeWork: true, returnedAfter: true }))).toEqual([
+      { id: 'takenBeforeWork', short: 'Taken before work started', long: 'Taken before work started' },
+      { id: 'returnedAfter', short: 'Added after return', long: 'Added after the ticket was returned to the mechanic' },
+    ]);
+  });
+
+  it('adds each mark as its own line under the caption', () => {
+    expect(photoCaption(photo({ kind: 'PROOF', returnedAfter: true }), new Map()).description).toBe(
+      'After · Nov 1, 2026, 10:42 AM\nAdded after the ticket was returned to the mechanic',
     );
   });
 });
