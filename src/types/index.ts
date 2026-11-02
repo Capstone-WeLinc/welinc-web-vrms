@@ -248,7 +248,12 @@ export type RepairHistoryRow = Pick<
   | 'cancellationReason'
   | 'isUnlocked'
   | 'totalCost'
-> & { closedAt: string | null };
+> & {
+  closedAt: string | null;
+  /** Feature 23: who verified and when; null on a cancelled ticket. */
+  verifiedByName: string | null;
+  verifiedAt: string | null;
+};
 
 /** Totals over every row that matches the filters, not just the page. `spend` is null for mechanics. */
 export interface RepairHistorySummary {

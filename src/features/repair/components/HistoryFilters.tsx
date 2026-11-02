@@ -4,19 +4,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRangeFilter } from '../../../components/shared/date-range/DateRangeFilter';
 import type { DateRangeValue } from '../../../components/shared/date-range/dateRange';
+import type { VerifierOption } from '../../../lib/api/repairApi';
 import type { GarageOption } from '../../../lib/api/vrmsConfigApi';
 import type { HistoryFilterValues, Outcome } from '../lib/historyFilters';
 
 interface HistoryFiltersProps {
   value: HistoryFilterValues;
   garages: GarageOption[];
+  verifiers: VerifierOption[];
   rangeError?: string;
   onChange: (value: HistoryFilterValues) => void;
 }
 
 const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
 
-export function HistoryFilters({ value, garages, rangeError, onChange }: HistoryFiltersProps) {
+export function HistoryFilters({ value, garages, verifiers, rangeError, onChange }: HistoryFiltersProps) {
   const set = (patch: Partial<HistoryFilterValues>) => onChange({ ...value, ...patch });
 
   return (
@@ -70,6 +72,27 @@ export function HistoryFilters({ value, garages, rangeError, onChange }: History
               {garages.map((garage) => (
                 <SelectItem key={garage.id} value={garage.id}>
                   {garage.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="history-verifier" className={LABEL}>
+          Verified by
+        </Label>
+        <Select value={value.verifierId} onValueChange={(verifierId) => set({ verifierId })}>
+          <SelectTrigger id="history-verifier" className="w-full lg:w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="all">Anyone</SelectItem>
+              {verifiers.map((verifier) => (
+                <SelectItem key={verifier.id} value={verifier.id}>
+                  {verifier.name}
                 </SelectItem>
               ))}
             </SelectGroup>

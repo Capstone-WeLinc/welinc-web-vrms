@@ -37,6 +37,8 @@ export interface RepairHistoryParams {
   search?: string;
   status?: 'CLOSED' | 'CANCELLED';
   garageId?: string;
+  /** Feature 23: only tickets this user verified. */
+  verifiedBy?: string;
   /** ISO instant, inclusive, on the close date. */
   from?: string;
   /** ISO instant, exclusive. */
@@ -49,6 +51,13 @@ export interface RepairHistoryResponse {
   data: RepairHistoryRow[];
   total: number;
   summary: RepairHistorySummary;
+  /** Everyone who verified a closed ticket the caller can read, sorted by name. Ignores the other filters. */
+  verifiers: VerifierOption[];
+}
+
+export interface VerifierOption {
+  id: string;
+  name: string;
 }
 
 export async function getRepairHistory(params: RepairHistoryParams = {}): Promise<RepairHistoryResponse> {

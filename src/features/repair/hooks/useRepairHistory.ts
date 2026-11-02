@@ -42,6 +42,7 @@ export function useRepairHistory(params: RepairHistoryParams | null) {
     rows: loaded?.status === 'ready' ? loaded.response.data : [],
     total: loaded?.status === 'ready' ? loaded.response.total : 0,
     summary: loaded?.status === 'ready' ? loaded.response.summary : null,
+    verifiers: loaded?.status === 'ready' ? loaded.response.verifiers : [],
     errorMessage: loaded?.status === 'error' ? loaded.message : undefined,
     retry: () => setAttempt((n) => n + 1),
   };

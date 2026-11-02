@@ -79,6 +79,18 @@ function historyColumns(showCosts: boolean): Column<RepairHistoryRow>[] {
       ),
     },
     { id: 'garage', header: 'Garage', cell: (row) => row.garageLocation ?? '—' },
+    {
+      id: 'verifier',
+      header: 'Verified by',
+      cell: (row) =>
+        row.verifiedByName ? (
+          <span className="block max-w-48 truncate" title={row.verifiedByName}>
+            {row.verifiedByName}
+          </span>
+        ) : (
+          '—'
+        ),
+    },
   ];
   if (showCosts) {
     columns.push({
@@ -148,6 +160,7 @@ export function HistoryPage() {
       <HistoryFilters
         value={filters}
         garages={garages}
+        verifiers={history.verifiers}
         rangeError={range.status === 'invalid' ? range.error : undefined}
         onChange={changeFilters}
       />
@@ -181,7 +194,7 @@ export function HistoryPage() {
               filtered
                 ? {
                     title: 'No repairs match these filters',
-                    description: 'Try a wider date range or another outcome or garage.',
+                    description: 'Try a wider date range, or another outcome, garage or verifier.',
                     icon: Archive,
                     action: (
                       <Button variant="outline" onClick={() => changeFilters(DEFAULT_HISTORY_FILTERS)}>
