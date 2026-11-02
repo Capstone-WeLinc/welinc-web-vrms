@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SearchX, ShieldAlert, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -78,8 +78,20 @@ export function RepairDetailPage() {
   const usesAi = useCan('ai.use');
   const hasTabBar = useHasTabBar();
   const { showToast } = useToast();
-  const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId);
+  const navigate = useNavigate();
   const [dialog, setDialog] = useState<DialogKind>(null);
+  const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId, {
+    // The status dialogs are keyed on the ticket's version, so a refetch would clear a typed note
+    paused: dialog !== null,
+    // Spec 0019, AC-23: removed from the ticket (403) or the ticket is gone (404) while it was open
+    onGone: (code) => {
+      showToast(
+        code === 403 && ticket ? `You’re no longer assigned to ${ticket.repairNumber}.` : 'This ticket is no longer available.',
+        'warning',
+      );
+      navigate('/repairs', { replace: true });
+    },
+  });
   // Spec 0019: the edit dialogs, one at a time, each with the ticket it opened with (AC-22)
   const edits = useEditSession();
 
@@ -213,7 +225,7 @@ export function RepairDetailPage() {
     <div key={ticket.id} className={barLabel ? (barSecondary ? 'pb-36 md:pb-20 lg:pb-0' : 'pb-20 lg:pb-0') : undefined}>
       <BackLink to={back.to} label={back.label} />
       <PageHeader title={rep} subtitle={ticket.vehicleModel ? `${ticket.vehiclePlate} · ${ticket.vehicleModel}` : ticket.vehiclePlate} icon={Wrench} />
-      {ticket.lastRejection && <SendBackBanner key={`${ticket.lastRejection.at}:${loadedAt}`} rejection={ticket.lastRejection} now={loadedAt} />}
+      {ticket.lastRejection && <SendBackBanner key={ticket.lastRejection.at} rejection={ticket.lastRejection} now={loadedAt} />}
 
       {/* Spec 0017: one file list and one upload queue for the photos and the Documents card. Spec 0018: a
           file change reloads the ticket (its photo rules), and photos still in the queue hold Start work. */}

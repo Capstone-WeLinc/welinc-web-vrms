@@ -24,9 +24,13 @@ export interface RepairListParams {
   limit?: number;
 }
 
-export async function getRepairs(params: RepairListParams = {}): Promise<{ data: RepairTicket[], total: number }> {
+export async function getRepairs(
+  params: RepairListParams = {},
+  options: { quiet?: boolean } = {},
+): Promise<{ data: RepairTicket[], total: number }> {
   const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs', {
     params: { ...params, search: params.search || undefined, overdue: params.overdue || undefined },
+    quiet: options.quiet,
   });
   if (Array.isArray(response.data)) {
     return { data: response.data, total: response.data.length };
@@ -61,15 +65,20 @@ export interface VerifierOption {
   name: string;
 }
 
-export async function getRepairHistory(params: RepairHistoryParams = {}): Promise<RepairHistoryResponse> {
+export async function getRepairHistory(
+  params: RepairHistoryParams = {},
+  options: { quiet?: boolean } = {},
+): Promise<RepairHistoryResponse> {
   const response = await api.get<RepairHistoryResponse>('/vrms/repairs/history', {
     params: { ...params, search: params.search || undefined },
+    quiet: options.quiet,
   });
   return response.data;
 }
 
-export async function getRepair(repairId: string): Promise<RepairTicket> {
-  const response = await api.get<RepairTicket>(`/vrms/repairs/${repairId}`);
+/** `quiet` skips the global error toasts, for the background refetch that handles its own (spec 0019, AC-23). */
+export async function getRepair(repairId: string, options: { quiet?: boolean } = {}): Promise<RepairTicket> {
+  const response = await api.get<RepairTicket>(`/vrms/repairs/${repairId}`, { quiet: options.quiet });
   return response.data;
 }
 
