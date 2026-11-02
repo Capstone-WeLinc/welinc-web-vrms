@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { ImageOff } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
@@ -83,6 +83,8 @@ function LinkError({ onError }: { onError: () => Promise<unknown> }) {
       Could not load this photo. Close the viewer and open it again.
     </div>
   );
+    if (asked.current) return;
+    asked.current = true;
 }
 
 /** Every live photo on the ticket, with swipe, arrows, pinch and double tap zoom (spec 0017, AC-24). */
@@ -102,7 +104,7 @@ export function PhotoViewer({ photos, index, issueNames, onIndexChange, onLinkEr
           src: photo.url,
           width: photo.width ?? undefined,
           height: photo.height ?? undefined,
-          alt: `Photo by ${photo.uploadedBy.name}`,
+          alt: photoAlt(photo, photo.kind === 'PROOF' ? 'After' : 'Before'),
           title: caption.title,
           // Spec 0018: each evidence mark is its own line (AC-13, AC-14)
           description: <span className="whitespace-pre-line">{caption.description}</span>,
