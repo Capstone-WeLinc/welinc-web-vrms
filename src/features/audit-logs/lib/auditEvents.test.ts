@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AuditChange } from '../../../types';
-import { attachmentLine, movedFileName, photoMoveLine } from './auditEvents';
+import { attachmentLine, issueEventLines, movedFileName, photoMoveLine, ticketEditLines } from './auditEvents';
 
 // Spec 0018, AC-18: photo audit events name the groups Before and After.
 
@@ -63,5 +63,52 @@ describe('photoMoveLine and movedFileName', () => {
 
   it('is null when the kinds are not photo groups', () => {
     expect(photoMoveLine(event([{ field: 'kind', before: 'RECEIPT', after: 'PROOF' }]))).toBeNull();
+  });
+});
+
+// Spec 0019, AC-19b: the edit rows in plain words
+describe('ticketEditLines', () => {
+  const c = (field: string, before: string | null, after: string | null): AuditChange => ({ field, before, after });
+
+  it('writes one line per change', () => {
+    expect(
+      ticketEditLines({
+        changes: [
+          c('driver', 'Juan Cruz (A01-23-456789)', 'Maria Santos (C03-45-678901)'),
+          c('odometer', '120400', '120040'),
+          c('priority', 'MEDIUM', 'HIGH'),
+          c('accountType', 'ONLINE', 'CORPORATE'),
+          c('corporation', null, 'Acme'),
+        ],
+      }),
+    ).toEqual([
+      'Driver: Juan Cruz (A01-23-456789) → Maria Santos (C03-45-678901)',
+      'Odometer: 120,400 → 120,040 km',
+      'Priority: Medium → High',
+      'Account: Online → Corporate (Acme)',
+    ]);
+  });
+
+  it('names a corporation swap on its own', () => {
+    expect(ticketEditLines({ changes: [c('corporation', 'Acme', 'Beta')] })).toEqual(['Corporation: Acme → Beta']);
+  });
+});
+
+describe('issueEventLines', () => {
+  const c = (field: string, before: string | null, after: string | null): AuditChange => ({ field, before, after });
+
+  it('shows the added text, the edit and the removed text with its note', () => {
+    expect(issueEventLines({ type: 'ISSUE_ADDED', changes: [c('issue', null, '[Brakes] Leak: Line cut'), c('issueId', null, 'i1')] })).toEqual([
+      '[Brakes] Leak: Line cut',
+    ]);
+    expect(
+      issueEventLines({
+        type: 'ISSUE_EDITED',
+        changes: [c('description', '[Brakes] A', '[Engine] B'), c('system', 'Brakes', 'Engine'), c('knowledgeEntry', 'Pads', null)],
+      }),
+    ).toEqual(['Now: [Engine] B', 'Was: [Brakes] A', 'System: Brakes → Engine', 'Known fix removed: Pads']);
+    expect(
+      issueEventLines({ type: 'ISSUE_REMOVED', changes: [c('issue', '[Brakes] A', null), c('resolutionNote', 'Bled the lines', null)] }),
+    ).toEqual(['[Brakes] A', 'What fixed it: Bled the lines']);
   });
 });

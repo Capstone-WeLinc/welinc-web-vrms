@@ -3,7 +3,7 @@ import type { EditDetailsPayload } from '../../../lib/api/repairApi';
 import type { LookupOption } from '../../../lib/api/vrmsConfigApi';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { NO_MECHANIC_STATUSES } from '../../../lib/mechanicProblem';
-import type { AccountType, PriorityLevel, RepairStatus, RepairTicket } from '../../../types';
+import type { AccountType, PriorityLevel, RepairIssue, RepairStatus, RepairTicket } from '../../../types';
 import { isClosed } from './nextAction';
 import { LICENSE_FORMAT_MESSAGE, LICENSE_PATTERN, NAME_LIMIT } from './repairFormSchema';
 
@@ -169,4 +169,80 @@ export function detailsPayload(
   if (Object.keys(payload).length === 1) return null;
   if (editNeedsReason(ticket)) payload.reason = values.reason.trim();
   return payload;
+}
+
+// ── Issues (AC-14 to AC-17) ─────────────────────────────────────────────────────
+
+/** The server's limits: create's for a new issue, 600 for the reworded text after "[System] ". */
+export const ROOT_CAUSE_MAX = 100;
+export const ISSUE_DESCRIPTION_MAX = 500;
+export const ISSUE_TEXT_MAX = 600;
+
+/** AC-15: the stored description without its leading "[System] ", which the edit dialog prefills. */
+export function issueText(description: string) {
+  return description.replace(/^\[[^\]]*\]\s*/, '');
+}
+
+export type IssueFormValues = {
+  categoryId: string;
+  rootCause: string;
+  knowledgeEntryId: string;
+  /** New issue: the description after the root cause. Edit: the whole text after "[System] ". */
+  text: string;
+  reason: string;
+};
+
+export function issueSchema(mode: 'add' | 'edit', needsReason: boolean) {
+  return z
+    .object({
+      categoryId: z.string().min(1, 'Choose a system.'),
+      rootCause: z.string(),
+      knowledgeEntryId: z.string(),
+      text: z.string(),
+      reason: reasonField(needsReason),
+    })
+    .superRefine((v, ctx) => {
+      const text = v.text.trim();
+      if (mode === 'edit') {
+        if (!text) ctx.addIssue({ code: 'custom', path: ['text'], message: 'Describe the issue.' });
+        else if (text.length > ISSUE_TEXT_MAX) ctx.addIssue({ code: 'custom', path: ['text'], message: `Keep it to ${ISSUE_TEXT_MAX} characters.` });
+        return;
+      }
+      if (!v.rootCause.trim()) ctx.addIssue({ code: 'custom', path: ['rootCause'], message: 'Choose a root cause.' });
+      // Optional only with a known fix, whose name is then used (spec 0016, AC-5)
+      if (!text && !v.knowledgeEntryId) ctx.addIssue({ code: 'custom', path: ['text'], message: 'Describe the issue, or pick a known fix.' });
+      else if (text.length > ISSUE_DESCRIPTION_MAX) {
+        ctx.addIssue({ code: 'custom', path: ['text'], message: `Keep it to ${ISSUE_DESCRIPTION_MAX} characters.` });
+      }
+    });
+}
+
+export function issueDefaults(issue?: RepairIssue): IssueFormValues {
+  return {
+    categoryId: issue?.categoryId ?? '',
+    rootCause: '',
+    knowledgeEntryId: '',
+    text: issue ? issueText(issue.description) : '',
+    reason: '',
+  };
+}
+
+/** AC-15: a system change drops a known fix from another category, and its copied steps. */
+export function clearsKnownFix(issue: RepairIssue | undefined, categoryId: string) {
+  const entry = issue?.knowledgeEntry;
+  return !!entry && !!entry.categoryId && entry.categoryId !== categoryId;
+}
+
+/** AC-16: what goes with an issue when it is removed, for the confirm. */
+export function issueRemovalSummary(issue: RepairIssue, taggedPhotos: number) {
+  const ticked = issue.steps.filter((s) => s.checkedAt).length;
+  const parts: string[] = [];
+  if (ticked > 0) parts.push(`${ticked} ticked ${ticked === 1 ? 'step' : 'steps'}`);
+  if (issue.resolutionNote) parts.push('its “What fixed it” note');
+  const lost = parts.length > 0 ? `This also removes ${parts.join(' and ')}. ` : '';
+  const photos =
+    taggedPhotos > 0
+      ? `${taggedPhotos} ${taggedPhotos === 1 ? 'photo stays' : 'photos stay'} on the ticket without this issue’s tag. `
+      : '';
+  return `${lost}${photos}The activity keeps a record of the issue.`;
 }

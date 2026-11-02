@@ -3,7 +3,7 @@ import { confirm } from '../../../components/shared/confirm/confirm';
 import type { RepairTicket } from '../../../types';
 
 /** Which edit dialog is open on the detail page (spec 0019, AC-20). */
-export type EditKind = 'details' | 'mechanics';
+export type EditKind = 'details' | 'mechanics' | 'addIssue' | 'editIssue' | 'removeIssue';
 
 type Session = {
   kind: EditKind;
@@ -12,6 +12,10 @@ type Session = {
   /** A new number per opening, used as the dialog's key so each opening starts fresh. */
   n: number;
   open: boolean;
+  /** The issue an issue dialog is about. */
+  issueId?: string;
+  /** Extra text the dialog shows, such as what a removal takes with it. */
+  detail?: string;
 };
 
 /**
@@ -22,7 +26,8 @@ export function useEditSession() {
   const [session, setSession] = useState<Session | null>(null);
   return {
     session,
-    open: (kind: EditKind, ticket: RepairTicket) => setSession((s) => ({ kind, ticket, n: (s?.n ?? 0) + 1, open: true })),
+    open: (kind: EditKind, ticket: RepairTicket, extra: { issueId?: string; detail?: string } = {}) =>
+      setSession((s) => ({ kind, ticket, ...extra, n: (s?.n ?? 0) + 1, open: true })),
     /** Keeps the snapshot while the dialog animates out. */
     close: () => setSession((s) => (s ? { ...s, open: false } : s)),
   };

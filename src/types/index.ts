@@ -90,6 +90,8 @@ export interface RepairIssue {
   knowledgeEntry: {
     id: string;
     name: string;
+    /** Spec 0019, AC-15: a system change clears a known fix from another category. */
+    categoryId?: string;
     status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
     safetyNotes: string | null;
     parts: string[];

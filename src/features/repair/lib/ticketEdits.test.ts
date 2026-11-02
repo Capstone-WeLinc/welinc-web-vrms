@@ -6,6 +6,10 @@ import {
   detailsSchema,
   editNeedsReason,
   mechanicsEffect,
+  clearsKnownFix,
+  issueRemovalSummary,
+  issueSchema,
+  issueText,
   openedCorporationId,
   ticketEditable,
   type DetailsFormValues,
@@ -163,5 +167,61 @@ describe('mechanicsEffect (AC-10)', () => {
   it('says nothing for a swap', () => {
     expect(mechanicsEffect('ASSIGNED', 1, 1)).toBeNull();
     expect(mechanicsEffect('IN_PROGRESS', 1, 2)).toBeNull();
+  });
+});
+
+describe('issues (AC-14 to AC-17)', () => {
+  const issue = {
+    id: 'i1',
+    description: '[Brakes] Wear and tear: Pads worn',
+    categoryId: 'brakes',
+    categoryName: 'Brakes',
+    knowledgeEntry: null,
+    steps: [],
+    resolutionNote: null,
+    hoursSpent: null,
+    followedKnownFix: null,
+    resolvedAt: null,
+  } as unknown as Parameters<typeof issueRemovalSummary>[0];
+
+  it('prefills the text after the system', () => {
+    expect(issueText('[Brakes] Wear and tear: Pads worn')).toBe('Wear and tear: Pads worn');
+    expect(issueText('No prefix here')).toBe('No prefix here');
+  });
+
+  it('needs a root cause and a description unless a known fix is picked, when adding', () => {
+    const add = issueSchema('add', false);
+    const base = { categoryId: 'brakes', rootCause: 'Unknown', knowledgeEntryId: '', text: 'Squeals', reason: '' };
+    expect(add.safeParse(base).success).toBe(true);
+    expect(add.safeParse({ ...base, rootCause: '' }).success).toBe(false);
+    expect(add.safeParse({ ...base, text: '' }).success).toBe(false);
+    expect(add.safeParse({ ...base, text: '', knowledgeEntryId: 'k1' }).success).toBe(true);
+  });
+
+  it('takes 1 to 600 characters when editing', () => {
+    const editing = issueSchema('edit', false);
+    const base = { categoryId: 'brakes', rootCause: '', knowledgeEntryId: '', text: 'x', reason: '' };
+    expect(editing.safeParse(base).success).toBe(true);
+    expect(editing.safeParse({ ...base, text: '  ' }).success).toBe(false);
+    expect(editing.safeParse({ ...base, text: 'x'.repeat(601) }).success).toBe(false);
+  });
+
+  it('warns that another system clears a linked known fix', () => {
+    const linked = { ...issue, knowledgeEntry: { id: 'k1', name: 'Pads', categoryId: 'brakes' } } as typeof issue;
+    expect(clearsKnownFix(linked, 'engine')).toBe(true);
+    expect(clearsKnownFix(linked, 'brakes')).toBe(false);
+    expect(clearsKnownFix(issue, 'engine')).toBe(false);
+  });
+
+  it('names what a removal takes with it', () => {
+    const worked = {
+      ...issue,
+      resolutionNote: 'Bled the lines',
+      steps: [{ checkedAt: '2026-11-01T00:00:00.000Z' }, { checkedAt: null }],
+    } as unknown as typeof issue;
+    expect(issueRemovalSummary(worked, 2)).toBe(
+      'This also removes 1 ticked step and its “What fixed it” note. 2 photos stay on the ticket without this issue’s tag. The activity keeps a record of the issue.',
+    );
+    expect(issueRemovalSummary(issue, 0)).toBe('The activity keeps a record of the issue.');
   });
 });

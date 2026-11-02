@@ -10,7 +10,10 @@ import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getApiErrorStatus, getInvalidTransition, getPhotoRequired } from '../../../lib/api/errors';
 import {
+  addTicketIssue,
   editTicketDetails,
+  editTicketIssue,
+  removeTicketIssue,
   setMechanics,
   unlockRepairTicket,
   updateRepairStatus,
@@ -18,7 +21,7 @@ import {
 } from '../../../lib/api/repairApi';
 import { useHasTabBar } from '../../../components/layout/useNavSections';
 import { useCan } from '../../../lib/permissions/usePermissions';
-import type { IssueResolution, RepairStatus, RepairTicket } from '../../../types';
+import type { IssueResolution, RepairIssue, RepairStatus, RepairTicket } from '../../../types';
 import { ActivitySection } from '../components/ActivitySection';
 import { AiDiagnosisSection } from '../components/AiDiagnosisSection';
 import { Callout } from '../../../components/shared/Callout';
@@ -33,10 +36,12 @@ import { TicketNoteDialog } from '../components/TicketNoteDialog';
 import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePanel';
 import { DocumentsCard } from '../components/DocumentsCard';
 import { EditDetailsDialog } from '../components/edit/EditDetailsDialog';
+import { IssueEditDialog, type IssueSave } from '../components/edit/IssueEditDialog';
+import { confirm } from '../../../components/shared/confirm/confirm';
 import { TicketFilesProvider } from '../components/TicketFilesProvider';
 import { useEditSession } from '../hooks/useEditSession';
 import { useRepairTicket } from '../hooks/useRepairTicket';
-import { editNeedsReason, ticketEditable } from '../lib/ticketEdits';
+import { editNeedsReason, issueRemovalSummary, ticketEditable } from '../lib/ticketEdits';
 import { photosInFlight } from '../lib/photoUpload';
 import {
   canWorkTicket,
@@ -226,6 +231,57 @@ export function RepairDetailPage() {
     }
   };
 
+  // Spec 0019, AC-14 and AC-15: add or reword an issue, from the ticket as the dialog opened
+  const saveIssue = async (opened: RepairTicket, issueId: string | undefined, save: IssueSave) => {
+    try {
+      const base = { lastUpdatedAt: opened.updatedAt, reason: save.reason };
+      const updated =
+        save.mode === 'add'
+          ? await addTicketIssue(ticket.id, {
+              ...base,
+              categoryId: save.categoryId,
+              rootCause: save.rootCause,
+              description: save.description,
+              knowledgeEntryId: save.knowledgeEntryId,
+            })
+          : await editTicketIssue(ticket.id, issueId!, { ...base, categoryId: save.categoryId, text: save.text });
+      edits.close();
+      replace(updated);
+      showToast(save.mode === 'add' ? `Issue added to ${rep}.` : `Issue on ${rep} is updated.`, 'success');
+    } catch (err) {
+      if (getApiErrorStatus(err) === 409) return handleStale();
+      throw err;
+    }
+  };
+
+  /** AC-16: remove after a confirm naming what goes with it; a closed ticket asks for the reason too. */
+  const removeIssue = async (issue: RepairIssue, taggedPhotos: number) => {
+    const detail = issueRemovalSummary(issue, taggedPhotos);
+    if (editNeedsReason(ticket)) {
+      edits.open('removeIssue', ticket, { issueId: issue.id, detail });
+      return;
+    }
+    const ok = await confirm({ title: 'Remove this issue?', description: detail, confirmText: 'Remove issue', tone: 'destructive' });
+    if (!ok) return;
+    try {
+      await sendRemoval(ticket, issue.id);
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Couldn’t remove the issue. Try again.'), 'error');
+    }
+  };
+
+  const sendRemoval = async (opened: RepairTicket, issueId: string, reason?: string) => {
+    try {
+      const updated = await removeTicketIssue(ticket.id, issueId, { lastUpdatedAt: opened.updatedAt, reason });
+      edits.close();
+      replace(updated);
+      showToast(`Issue removed from ${rep}.`, 'success');
+    } catch (err) {
+      if (getApiErrorStatus(err) === 409) return handleStale();
+      throw err;
+    }
+  };
+
   // Spec 0019, AC-1 and AC-2: the Edit buttons follow the ticket's flags and lock state
   const canEditDetails = !readOnly && ticket.can.edit && ticketEditable(ticket);
   const canEditMechanics = !readOnly && ticket.can.assign && ticketEditable(ticket);
@@ -285,7 +341,21 @@ export function RepairDetailPage() {
                       ) : null
                     }
                   />
-                  <IssuesSection ticket={ticket} canWork={!readOnly && canWorkTicket(ticket)} onChanged={replace} onStale={handleStale} />
+                  <IssuesSection
+                    ticket={ticket}
+                    canWork={!readOnly && canWorkTicket(ticket)}
+                    onChanged={replace}
+                    onStale={handleStale}
+                    edit={
+                      canEditDetails
+                        ? {
+                            onAdd: () => edits.open('addIssue', ticket),
+                            onEdit: (issue) => edits.open('editIssue', ticket, { issueId: issue.id }),
+                            onRemove: (issue, photos) => void removeIssue(issue, photos),
+                          }
+                        : null
+                    }
+                  />
                   {usesAi && <AiDiagnosisSection ticket={ticket} />}
                   {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
                   {seesActivity && <ActivitySection ticketId={ticket.id} />}
@@ -405,6 +475,33 @@ export function RepairDetailPage() {
           onOpenChange={(open) => !open && edits.close()}
           ticket={edits.session.ticket}
           onSave={saveDetails}
+        />
+      )}
+
+      {(edits.session?.kind === 'addIssue' || edits.session?.kind === 'editIssue') && (
+        <IssueEditDialog
+          key={edits.session.n}
+          open={edits.session.open}
+          onOpenChange={(open) => !open && edits.close()}
+          ticket={edits.session.ticket}
+          issue={edits.session.ticket.issues?.find((i) => i.id === edits.session?.issueId)}
+          onSave={(save) => saveIssue(edits.session!.ticket, edits.session!.issueId, save)}
+        />
+      )}
+
+      {edits.session?.kind === 'removeIssue' && (
+        <TicketNoteDialog
+          key={edits.session.n}
+          open={edits.session.open}
+          onOpenChange={(open) => !open && edits.close()}
+          title="Remove this issue?"
+          description={edits.session.detail}
+          fieldLabel="Reason for the change"
+          requiredMessage="Say why this closed ticket is being changed."
+          minLength={5}
+          confirmLabel="Remove issue"
+          destructive
+          onSubmit={(reason) => sendRemoval(edits.session!.ticket, edits.session!.issueId!, reason.trim())}
         />
       )}
 

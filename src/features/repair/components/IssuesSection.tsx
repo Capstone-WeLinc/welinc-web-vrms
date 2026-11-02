@@ -1,6 +1,6 @@
 import { lazy, Suspense, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Clock, MessageSquarePlus, Unlink } from 'lucide-react';
+import { BookOpen, Clock, MessageSquarePlus, Pencil, Plus, Trash2, Unlink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,6 +37,12 @@ interface IssuesSectionProps {
   onChanged: (ticket: RepairTicket) => void;
   /** A 409: the page says so and loads the latest ticket. */
   onStale: () => void;
+  /** Spec 0019, AC-14 to AC-16: Add issue, and each issue's Edit and Remove; null when the caller can't edit. */
+  edit?: {
+    onAdd: () => void;
+    onEdit: (issue: RepairIssue) => void;
+    onRemove: (issue: RepairIssue, taggedPhotos: number) => void;
+  } | null;
 }
 
 /** Same option shape as the repair form picker (AC-24, AC-27). */
@@ -93,9 +99,12 @@ interface IssueBlockProps {
   entries: ReturnType<typeof useEntryOptions>;
   onChanged: (ticket: RepairTicket) => void;
   onStale: () => void;
+  /** Spec 0019, AC-20: the issue's Edit and Remove, when the caller may edit this ticket. */
+  onEdit?: () => void;
+  onRemove?: () => void;
 }
 
-function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entries, onChanged, onStale }: IssueBlockProps) {
+function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entries, onChanged, onStale, onEdit, onRemove }: IssueBlockProps) {
   const { showToast } = useToast();
   // Ticks show at once; a failed save puts the row back (AC-28).
   const [overrides, setOverrides] = useState<Record<string, Pick<RepairIssueStep, 'checkedAt' | 'checkedByEmail'>>>({});
@@ -188,6 +197,27 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
           </p>
           {issue.categoryName && <Badge variant="outline">{issue.categoryName}</Badge>}
         </div>
+        {(onEdit || onRemove) && (
+          <div className="flex shrink-0 items-start gap-1">
+            {onEdit && (
+              <Button type="button" variant="ghost" size="icon" className="size-11 md:size-8" aria-label={`Edit issue ${index + 1}`} onClick={onEdit}>
+                <Pencil aria-hidden="true" />
+              </Button>
+            )}
+            {onRemove && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-11 text-destructive hover:text-destructive md:size-8"
+                aria-label={`Remove issue ${index + 1}`}
+                onClick={onRemove}
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {entry ? (
@@ -319,7 +349,7 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
 }
 
 /** One block per issue with its known fix, checklist and "What fixed it" (spec 0007, AC-27 to AC-31). */
-export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSectionProps) {
+export function IssuesSection({ ticket, canWork, onChanged, onStale, edit }: IssuesSectionProps) {
   const issues = ticket.issues ?? [];
   const knowledgeOn = useModuleOn('knowledge');
   const canLink = knowledgeOn && canWork && (ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS');
@@ -419,7 +449,17 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
   };
 
   return (
-    <DetailSection title="Issues">
+    <DetailSection
+      title="Issues"
+      action={
+        edit ? (
+          <Button variant="outline" size="sm" onClick={edit.onAdd}>
+            <Plus aria-hidden="true" />
+            Add issue
+          </Button>
+        ) : null
+      }
+    >
       {viewerLoaded && (
         <Suspense fallback={null}>
           <PhotoViewer
@@ -469,6 +509,13 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale }: IssuesSec
               entries={entries}
               onChanged={onChanged}
               onStale={onStale}
+              onEdit={edit ? () => edit.onEdit(issue) : undefined}
+              // AC-17: a ticket always keeps one issue, so the last one has no Remove
+              onRemove={
+                edit && issues.length > 1
+                  ? () => edit.onRemove(issue, (list?.items ?? []).filter((file) => file.issueId === issue.id).length)
+                  : undefined
+              }
             />
           ))}
         </ol>

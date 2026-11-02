@@ -192,3 +192,33 @@ export async function setMechanics(repairId: string, mechanicIds: string[], base
   });
   return response.data;
 }
+
+/** POST /issues: create's issue fields and rules (spec 0019, AC-14). */
+export interface AddIssuePayload extends TicketEditBase {
+  categoryId: string;
+  rootCause: string;
+  /** Left out when blank and a known fix is picked: the server uses its name. */
+  description?: string;
+  knowledgeEntryId?: string;
+}
+
+export async function addTicketIssue(repairId: string, payload: AddIssuePayload): Promise<RepairTicket> {
+  const response = await api.post<RepairTicket>(`/vrms/repairs/${repairId}/issues`, payload);
+  return response.data;
+}
+
+/** PATCH /issues/:issueId: the system and the text after "[System] " (spec 0019, AC-15). */
+export async function editTicketIssue(
+  repairId: string,
+  issueId: string,
+  payload: TicketEditBase & { categoryId: string; text: string },
+): Promise<RepairTicket> {
+  const response = await api.patch<RepairTicket>(`/vrms/repairs/${repairId}/issues/${issueId}`, payload);
+  return response.data;
+}
+
+/** A POST, since proxies may drop a DELETE body; the last issue answers 400 LAST_ISSUE (spec 0019, AC-16, AC-17). */
+export async function removeTicketIssue(repairId: string, issueId: string, base: TicketEditBase): Promise<RepairTicket> {
+  const response = await api.post<RepairTicket>(`/vrms/repairs/${repairId}/issues/${issueId}/remove`, base);
+  return response.data;
+}
