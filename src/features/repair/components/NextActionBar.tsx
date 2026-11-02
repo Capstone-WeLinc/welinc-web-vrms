@@ -23,11 +23,14 @@ export function NextActionBar({ label, secondaryLabel, aboveTabBar, blockedReaso
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card pb-safe lg:hidden">
       {/* DOM order is reading order (primary, then Return to mechanic); from 768px they sit side by side on the right */}
       <div className={cn('flex flex-col gap-2 p-3 md:flex-row md:justify-end md:px-8', aboveTabBar && 'mb-16 md:mb-0')}>
-        {blockedReason && (
-          <p id="bar-blocked" className="text-sm text-muted-foreground md:order-first md:self-center">
-            {blockedReason}
-          </p>
-        )}
+        {/* Stays mounted so a reason that appears or clears is announced (role status is polite) */}
+        <div role="status" className="md:order-first md:self-center">
+          {blockedReason && (
+            <p id="bar-blocked" className="text-sm text-muted-foreground">
+              {blockedReason}
+            </p>
+          )}
+        </div>
         <Button
           size="touch"
           className="w-full md:w-auto"

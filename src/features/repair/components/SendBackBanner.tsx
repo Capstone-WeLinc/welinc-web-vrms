@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Callout } from '../../../components/shared/Callout';
@@ -24,6 +24,7 @@ export function SendBackBanner({ rejection, now }: SendBackBannerProps) {
   const [cutOff, setCutOff] = useState(false);
   const [clock, setClock] = useState(now);
   const remarksRef = useRef<HTMLParagraphElement>(null);
+  const remarksId = useId();
 
   // The relative time counts on while the page stays open, once a minute
   useEffect(() => {
@@ -47,11 +48,11 @@ export function SendBackBanner({ rejection, now }: SendBackBannerProps) {
       className="mb-4"
       title={`Returned by ${rejection.byName}, ${formatRelativeTime(rejection.at, new Date(clock))}`}
     >
-      <p ref={remarksRef} className={cn('whitespace-pre-line', !open && 'line-clamp-4')}>
+      <p ref={remarksRef} id={remarksId} className={cn('whitespace-pre-line', !open && 'line-clamp-4')}>
         {rejection.remarks}
       </p>
       {cutOff && (
-        <Button type="button" variant="link" aria-expanded={open} className="h-auto self-start px-0 py-1 text-xs" onClick={() => setOpen((v) => !v)}>
+        <Button type="button" variant="link" aria-expanded={open} aria-controls={remarksId} className="h-auto self-start px-0 py-1 text-xs pointer-coarse:py-3" onClick={() => setOpen((v) => !v)}>
           {open ? 'Show less' : 'Show more'}
         </Button>
       )}

@@ -31,9 +31,12 @@ function MoveButton({ photo, moving, onMove }: { photo: Attachment; moving: bool
   return (
     <button
       type="button"
-      className="my-1 mr-2 min-h-11 rounded-md bg-primary-foreground/15 px-3 text-sm font-semibold whitespace-nowrap text-primary-foreground outline-none hover:bg-primary-foreground/25 focus-visible:ring-2 focus-visible:ring-highlight disabled:opacity-60"
-      onClick={() => onMove(photo)}
-      disabled={moving}
+      className="my-1 mr-2 min-h-11 min-w-34 rounded-md bg-primary-foreground/15 px-3 text-center text-sm font-semibold whitespace-nowrap text-primary-foreground outline-none transition-colors duration-150 hover:bg-primary-foreground/25 focus-visible:ring-2 focus-visible:ring-highlight aria-disabled:opacity-60"
+      // aria-disabled, not disabled: a disabled button drops keyboard focus out of the viewer
+      onClick={() => {
+        if (!moving) onMove(photo);
+      }}
+      aria-disabled={moving}
       aria-busy={moving}
     >
       {moving ? 'Moving…' : `Move to ${to}`}

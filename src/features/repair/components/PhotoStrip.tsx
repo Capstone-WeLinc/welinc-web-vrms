@@ -124,6 +124,7 @@ export function PhotoStrip({ groups, queue, canAdd, limitText, label, onAdd, onR
   const empty = groups.every((group) => group.photos.length === 0);
 
   // AC-20: with no photos, people who can't add see nothing
+  const limitId = useId();
   if (empty && queue.length === 0 && !canAdd) return null;
 
   const dropEnabled = canAdd && !isTouch && !atLimit;
@@ -205,7 +206,7 @@ export function PhotoStrip({ groups, queue, canAdd, limitText, label, onAdd, onR
                 aria-hidden="true"
                 onChange={(event) => pick(event.target)}
               />
-              <Button type="button" variant="outline" size="sm" disabled={atLimit} onClick={() => cameraRef.current?.click()}>
+              <Button type="button" variant="outline" size="sm" disabled={atLimit} aria-describedby={limitText ? limitId : undefined} onClick={() => cameraRef.current?.click()}>
                 <Camera aria-hidden="true" />
                 Take photo
               </Button>
@@ -221,12 +222,14 @@ export function PhotoStrip({ groups, queue, canAdd, limitText, label, onAdd, onR
             aria-hidden="true"
             onChange={(event) => pick(event.target)}
           />
-          <Button type="button" variant="outline" size="sm" disabled={atLimit} onClick={() => chooseRef.current?.click()}>
+          <Button type="button" variant="outline" size="sm" disabled={atLimit} aria-describedby={limitText ? limitId : undefined} onClick={() => chooseRef.current?.click()}>
             <ImagePlus aria-hidden="true" />
             Choose photos
           </Button>
           {limitText ? (
-            <span className="text-xs text-muted-foreground">{limitText}</span>
+            <span id={limitId} className="text-xs text-muted-foreground">
+              {limitText}
+            </span>
           ) : (
             dropEnabled && <span className="text-xs text-muted-foreground">or drop photos here</span>
           )}
