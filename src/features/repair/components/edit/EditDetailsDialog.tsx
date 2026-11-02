@@ -146,7 +146,7 @@ export function EditDetailsDialog({ open, onOpenChange, ticket, onSave }: EditDe
       <form id={formId} noValidate onSubmit={handleSubmit(submit)} className="flex flex-col gap-5">
         <DetailsDriverField control={control} setValue={setValue} clearErrors={clearErrors} />
         {existingDriver && (
-          <Callout tone="warning">
+          <Callout tone="warning" className="animate-in fade-in-0 duration-150">
             <p>A driver with this license exists: {existingDriver.name}.</p>
             <Button type="button" variant="link" className="h-auto min-h-11 px-0 md:min-h-0" onClick={() => pickExistingDriver(existingDriver)}>
               Use {existingDriver.name}
@@ -165,7 +165,7 @@ export function EditDetailsDialog({ open, onOpenChange, ticket, onSave }: EditDe
           )}
         />
         {jumpConfirmed && (
-          <Callout tone="warning">
+          <Callout tone="warning" className="animate-in fade-in-0 duration-150">
             <p>{jump.message}</p>
             <p>Save again to confirm the reading.</p>
           </Callout>

@@ -163,7 +163,7 @@ export function IssueEditDialog({ open, onOpenChange, ticket, issue, onSave }: I
           )}
         />
         {losesFix && issue?.knowledgeEntry && (
-          <Callout tone="warning">
+          <Callout tone="warning" className="animate-in fade-in-0 duration-150">
             Saving under another system removes the known fix “{issue.knowledgeEntry.name}” and its steps from this issue.
           </Callout>
         )}

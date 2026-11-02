@@ -190,7 +190,7 @@ export function AssignMechanicDialog({
         ) : (
           editing && <p className="text-sm text-muted-foreground">No mechanic on this ticket.</p>
         )}
-        {editing && effect && <Callout tone="warning">{effect}</Callout>}
+        {editing && effect && <Callout tone="warning" className="animate-in fade-in-0 duration-150">{effect}</Callout>}
         {needsReason && (
           <div className="flex flex-col gap-2">
             <label htmlFor={reasonId} className="text-sm font-medium">
