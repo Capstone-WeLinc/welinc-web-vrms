@@ -120,3 +120,11 @@ export function photoRoomLeft(limits: AttachmentList['limits'], queued: number, 
   const { count, max } = groupLimit(limits, uploadGroup(workStarted));
   return Math.max(0, max - count - queued);
 }
+
+/**
+ * Spec 0018, AC-20: whether photos for this ticket are still waiting or uploading. A failed one
+ * does not count; its retry after Start work lands in After, and the Move action fixes that.
+ */
+export function photosInFlight(items: readonly { kind: string; status: string }[]): boolean {
+  return items.some((item) => item.kind === 'PHOTO' && (item.status === 'waiting' || item.status === 'uploading'));
+}

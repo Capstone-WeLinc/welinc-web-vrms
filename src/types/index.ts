@@ -151,6 +151,8 @@ export interface TicketMove {
   kind: 'forward' | 'back' | 'cancel';
   /** What the move's dialog must collect; resolutions only while the knowledge base is on. */
   needs: 'resolutions' | 'remarks' | 'cancellationReason' | 'costs' | null;
+  /** Spec 0018: a photo the move needs that can't be added inside its dialog; fix it first. */
+  blockedBy?: 'beforePhoto' | 'afterPhoto' | null;
 }
 
 /** The newest Send back still in force (spec 0014, AC-14). */

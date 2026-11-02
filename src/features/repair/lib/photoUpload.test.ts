@@ -8,6 +8,7 @@ import {
   normalizeType,
   photoGroups,
   photoRoomLeft,
+  photosInFlight,
   shrinkSize,
   sizeProblem,
   typeProblem,
@@ -170,5 +171,15 @@ describe('typeProblem for documents (AC-4, AC-27)', () => {
 describe('formatManilaDateTime (AC-24 caption)', () => {
   it('shows Asia/Manila time whatever the device zone', () => {
     expect(formatManilaDateTime('2026-11-01T02:42:00Z')).toBe('Nov 1, 2026, 10:42 AM');
+  });
+});
+
+describe('photosInFlight (spec 0018, AC-20)', () => {
+  it('counts photos waiting or uploading, never documents or failed photos', () => {
+    expect(photosInFlight([{ kind: 'PHOTO', status: 'waiting' }])).toBe(true);
+    expect(photosInFlight([{ kind: 'PHOTO', status: 'uploading' }])).toBe(true);
+    expect(photosInFlight([{ kind: 'PHOTO', status: 'failed' }])).toBe(false);
+    expect(photosInFlight([{ kind: 'RECEIPT', status: 'uploading' }])).toBe(false);
+    expect(photosInFlight([])).toBe(false);
   });
 });

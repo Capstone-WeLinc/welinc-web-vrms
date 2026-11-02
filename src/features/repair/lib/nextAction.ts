@@ -18,7 +18,7 @@ export interface TicketActions {
   cancel: TicketMove | null;
   /** What the status card says when there is no primary button. */
   note: string | null;
-  /** Why the primary button is disabled, or null when it works (spec 0015, AC-5). */
+  /** Why the primary button is disabled, or null when it works (spec 0015, AC-5; spec 0018, AC-4 to AC-6, AC-20). */
   blocked: string | null;
 }
 
@@ -51,8 +51,29 @@ export const COSTS_REQUIRED_REASON = 'Add the costs before closing this ticket.'
 
 export const SELF_VERIFY_REASON = "Someone else must verify work on a ticket you're assigned to.";
 
-/** `holdsVerify` is the caller's `ticket.verify` right, so a verifier assigned to the ticket sees why they can't close it. */
-export function ticketActions(ticket: RepairTicket, holdsVerify = false): TicketActions {
+/** Spec 0018, AC-20: a photo still in the queue would land in After once work starts. */
+export const PHOTOS_UPLOADING_REASON = 'Photos still uploading.';
+
+/** Spec 0018, AC-4 to AC-6: the reason for a photo rule, the same words as the server's 400. */
+function photoReason(move: TicketMove): string {
+  if (move.blockedBy === 'beforePhoto') return 'Add a before photo first.';
+  return move.to === 'CLOSED' ? 'Add an after photo before closing.' : 'Add an after photo first.';
+}
+
+/** Why the forward move is disabled, or null. A photo rule comes before costs: it is fixed outside the dialog. */
+function blockedReason(ticket: RepairTicket, forward: TicketMove | null, photosUploading: boolean): string | null {
+  if (!forward) return null;
+  if (photosUploading && forward.to === 'IN_PROGRESS') return PHOTOS_UPLOADING_REASON;
+  if (forward.blockedBy) return photoReason(forward);
+  // The server sends needs 'costs' on the close while the setting is on; it still refuses with no costs
+  return forward.needs === 'costs' && !hasCosts(ticket) ? COSTS_REQUIRED_REASON : null;
+}
+
+/**
+ * `holdsVerify` is the caller's `ticket.verify` right, so a verifier assigned to the ticket sees why they can't close it.
+ * `photosUploading` is true while this ticket's upload queue still holds photos (spec 0018, AC-20).
+ */
+export function ticketActions(ticket: RepairTicket, holdsVerify = false, photosUploading = false): TicketActions {
   if (isClosed(ticket)) return finishedActions(ticket);
   const moves = ticket.moves ?? [];
   const forward = moves.find((m) => m.kind === 'forward') ?? null;
@@ -64,8 +85,7 @@ export function ticketActions(ticket: RepairTicket, holdsVerify = false): Ticket
     secondary: moves.find((m) => m.kind === 'back') ?? null,
     cancel: moves.find((m) => m.kind === 'cancel') ?? null,
     note: forward || assign ? null : openNote(ticket, moves, holdsVerify),
-    // The server sends needs 'costs' on the close while the setting is on; it still refuses with no costs
-    blocked: forward?.needs === 'costs' && !hasCosts(ticket) ? COSTS_REQUIRED_REASON : null,
+    blocked: blockedReason(ticket, forward, photosUploading),
   };
 }
 
