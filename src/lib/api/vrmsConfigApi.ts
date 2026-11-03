@@ -1,4 +1,5 @@
 import api from './axios';
+import type { RepairStatus } from '../../types';
 
 export interface GarageOption {
   id: string;
@@ -89,6 +90,40 @@ export interface OpenWork {
 /** What a person still holds in VRMS (users.manage, spec 0011, AC-32). */
 export async function getOpenWork(authUserId: string): Promise<OpenWork> {
   const response = await api.get<OpenWork>(`/vrms/mechanics/${authUserId}/open-work`);
+  return response.data;
+}
+
+export interface MechanicWorkload extends OpenWork {
+  authUserId: string;
+  /** At least one open ticket is In Progress (feature 57, the same rule as the picker's `busy`). */
+  occupied: boolean;
+}
+
+/** Every mechanic's open work, for the Users page (users.manage, feature 57). */
+export async function getMechanicWorkload(): Promise<MechanicWorkload[]> {
+  const response = await api.get<MechanicWorkload[]>('/vrms/mechanics/workload', { quiet: true });
+  return response.data;
+}
+
+export interface MechanicOpenTicket {
+  id: string;
+  repairNumber: string;
+  repairStatus: RepairStatus;
+  /** Sent back as lastUpdatedAt on unassign or reassign. */
+  updatedAt: string;
+  plateNumber: string;
+  mechanics: { id: string; name: string }[];
+}
+
+export interface MechanicOpenTickets {
+  /** The person's Mechanic row id; null when they have none. */
+  mechanicId: string | null;
+  tickets: MechanicOpenTicket[];
+}
+
+/** The person's open tickets with every mechanic on each (users.manage, feature 57). */
+export async function getMechanicOpenTickets(authUserId: string): Promise<MechanicOpenTickets> {
+  const response = await api.get<MechanicOpenTickets>(`/vrms/mechanics/${authUserId}/open-tickets`, { quiet: true });
   return response.data;
 }
 

@@ -82,7 +82,7 @@ export function AssignMechanicDialog({
           label: m.name,
           group: 'In house',
           description: `${m.openCount} open`,
-          badge: m.busy ? <Badge variant="secondary">Busy</Badge> : undefined,
+          badge: m.busy ? <Badge variant="secondary">Occupied</Badge> : undefined,
         })),
     [mechanics, chosen],
   );

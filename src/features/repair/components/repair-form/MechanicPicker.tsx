@@ -44,7 +44,7 @@ export function MechanicPicker({ control, mechanics, clearErrors }: MechanicPick
             label: m.name,
             group: 'In house',
             description: `${m.openCount} open`,
-            badge: m.busy ? <Badge variant="secondary">Busy</Badge> : undefined,
+            badge: m.busy ? <Badge variant="secondary">Occupied</Badge> : undefined,
           }));
 
         const add = (chip: { id: string; name: string }) => {

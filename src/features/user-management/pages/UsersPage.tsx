@@ -16,6 +16,8 @@ import { usersColumns } from '../components/usersColumns';
 import { useUserActions } from '../hooks/useUserActions';
 import { useUserFilters } from '../hooks/useUserFilters';
 import { useUsers } from '../hooks/useUsers';
+import { useWorkload } from '../hooks/useWorkload';
+import { workStateOf } from '../lib/workload';
 import { syncAfterSave } from '../lib/mechanicSync';
 import { syncMechanics } from '../../../lib/api/vrmsConfigApi';
 import { sortUsers } from '../lib/accountStatus';
@@ -84,8 +86,14 @@ export function UsersPage() {
     closeDialog();
   };
 
+  // Feature 57: Occupied or Free and open counts for each mechanic
+  const { workload, reload: reloadWorkload } = useWorkload(list.users);
+
   const sorted = useMemo(() => sortUsers(list.users), [list.users]);
-  const visible = useMemo(() => sorted.filter((user) => matchesUserFilters(user, filters)), [sorted, filters]);
+  const visible = useMemo(
+    () => sorted.filter((user) => matchesUserFilters(user, filters, workStateOf(user, workload))),
+    [sorted, filters, workload],
+  );
   // A page past the end shows the last page; the URL stays as it is (AC-6).
   const shownPage = Math.min(page, lastPage(visible.length, USERS_PAGE_SIZE));
   const pageRows = visible.slice((shownPage - 1) * USERS_PAGE_SIZE, shownPage * USERS_PAGE_SIZE);
@@ -149,7 +157,7 @@ export function UsersPage() {
       />
 
       <DataTable
-        columns={usersColumns(currentUserId, isMobile)}
+        columns={usersColumns(currentUserId, isMobile, workload)}
         rows={pageRows}
         getRowId={(user) => user.id}
         state={list.status}
@@ -177,6 +185,7 @@ export function UsersPage() {
         runWrite={list.runWrite}
         refetch={list.refetch}
         onSaved={onSaved}
+        onWorkChanged={reloadWorkload}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { ACCOUNT_STATUSES } from '../lib/accountStatus';
+import { WORK_FILTERS, WORK_LABELS } from '../lib/workload';
 import { hasActiveFilters, SEARCH_MAX_LENGTH, USERS_SEARCH_ID, type UserFilterValues } from '../lib/userFilters';
 
 interface UserListFiltersProps {
@@ -76,6 +77,27 @@ export function UserListFilters({ value, searchText, onSearchTextChange, onChang
               {ACCOUNT_STATUSES.map((status) => (
                 <SelectItem key={status} value={status}>
                   {statusLabel(status)}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="users-work" className={LABEL}>
+          Work
+        </Label>
+        <Select value={value.work} onValueChange={(work) => onChange({ work: work as UserFilterValues['work'] })}>
+          <SelectTrigger id="users-work" className="w-full lg:w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="all">Everyone</SelectItem>
+              {WORK_FILTERS.map((work) => (
+                <SelectItem key={work} value={work}>
+                  {WORK_LABELS[work]} mechanics
                 </SelectItem>
               ))}
             </SelectGroup>
