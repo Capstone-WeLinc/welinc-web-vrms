@@ -27,7 +27,9 @@ export function usersColumns(
       id: 'added',
       header: 'Added',
       mobile: 'hidden',
-      cell: (user) => <time dateTime={user.createdAt}>{formatShortDate(user.createdAt)}</time>,
+      cell: (user) => <time dateTime={user.createdAt} className="whitespace-nowrap">
+          {formatShortDate(user.createdAt)}
+        </time>,
     },
   ];
 

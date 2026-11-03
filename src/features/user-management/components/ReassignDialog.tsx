@@ -6,6 +6,7 @@ import { FormAlert } from '../../../components/shared/FormAlert';
 import { ResponsiveDialog } from '../../../components/shared/ResponsiveDialog';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 import { getAvailableMechanics, type MechanicOpenTicket, type MechanicOption } from '../../../lib/api/vrmsConfigApi';
+import { mechanicDescription } from '../../repair/lib/mechanicOrder';
 import { reassignCandidates } from '../lib/workload';
 
 interface ReassignDialogProps {
@@ -62,7 +63,7 @@ export function ReassignDialog({ ticket, fromName, onOpenChange, onSubmit }: Rea
         value: m.id,
         label: m.name,
         group: 'In house',
-        description: `${m.openCount} open`,
+        description: mechanicDescription(m),
         badge: m.busy ? <Badge variant="secondary">Occupied</Badge> : undefined,
       })),
     [candidates],
@@ -120,6 +121,7 @@ export function ReassignDialog({ ticket, fromName, onOpenChange, onSubmit }: Rea
           options={options}
           value={pickedId}
           onValueChange={setPickedId}
+          disabled={mechanics !== null && candidates.length === 0}
           placeholder={mechanics === null && !loadFailed ? 'Loading mechanics' : 'Choose a mechanic'}
           searchPlaceholder="Search mechanics"
           emptyText="No mechanic matches."

@@ -11,7 +11,7 @@ import { getApiErrorMessage } from '../../../lib/api/errors';
 import { getAvailableMechanics, type MechanicOption } from '../../../lib/api/vrmsConfigApi';
 import type { MechanicAssignment, RepairStatus } from '../../../types';
 import { guardedClose } from '../hooks/useEditSession';
-import { sortMechanics } from '../lib/mechanicOrder';
+import { mechanicDescription, sortMechanics } from '../lib/mechanicOrder';
 import { EDIT_REASON_MAX, EDIT_REASON_MIN, mechanicsEffect } from '../lib/ticketEdits';
 
 interface AssignMechanicDialogProps {
@@ -81,7 +81,7 @@ export function AssignMechanicDialog({
           value: m.id,
           label: m.name,
           group: 'In house',
-          description: `${m.openCount} open`,
+          description: mechanicDescription(m),
           badge: m.busy ? <Badge variant="secondary">Occupied</Badge> : undefined,
         })),
     [mechanics, chosen],

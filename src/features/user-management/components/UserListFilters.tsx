@@ -23,8 +23,8 @@ export function UserListFilters({ value, searchText, onSearchTextChange, onChang
   const filtered = hasActiveFilters(value) || searchText.trim() !== '';
 
   return (
-    <div role="search" aria-label="Filter users" className="mb-4 grid gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
-      <div className="flex flex-col gap-1.5 sm:col-span-2 lg:min-w-64 lg:flex-1">
+    <div role="search" aria-label="Filter users" className="mb-4 grid grid-cols-2 gap-3 lg:flex lg:flex-wrap lg:items-end">
+      <div className="col-span-2 flex flex-col gap-1.5 lg:min-w-64 lg:flex-1">
         <Label htmlFor={USERS_SEARCH_ID} className={LABEL}>
           Search
         </Label>
@@ -106,7 +106,7 @@ export function UserListFilters({ value, searchText, onSearchTextChange, onChang
       </div>
 
       {filtered && (
-        <Button variant="ghost" className="h-11 sm:self-end md:h-10" onClick={onClear}>
+        <Button variant="ghost" className="h-11 self-end md:h-10" onClick={onClear}>
           <X aria-hidden="true" />
           Clear filters
         </Button>

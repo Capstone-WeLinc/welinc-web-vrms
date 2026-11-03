@@ -15,7 +15,7 @@ import {
 } from '../../../lib/api/vrmsConfigApi';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import type { ManagedUser } from '../../../types';
-import { swapMechanic, withoutMechanic, workloadTotal } from '../lib/workload';
+import { namesSummary, swapMechanic, TICKETS_SHOWN, visibleTickets, withoutMechanic } from '../lib/workload';
 import { ReassignDialog } from './ReassignDialog';
 
 type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: OpenTicketsData };
@@ -29,7 +29,7 @@ interface MechanicOpenTicketsProps {
 /** What Unassign does to the ticket, in words, before the Admin confirms. */
 function unassignEffect(ticket: MechanicOpenTicket, mechanicId: string) {
   const others = ticket.mechanics.filter((m) => m.id !== mechanicId);
-  if (others.length > 0) return `${others.map((m) => m.name).join(', ')} stay on it.`;
+  if (others.length > 0) return `${namesSummary(others.map((m) => m.name), 3, 'others')} stay on it.`;
   if (ticket.repairStatus === 'ASSIGNED') return 'It goes back to Open for someone else to pick up.';
   return 'It will have no mechanic until someone is added.';
 }
@@ -46,6 +46,7 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
   const [attempt, setAttempt] = useState(0);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [reassigning, setReassigning] = useState<MechanicOpenTicket | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,11 +106,11 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
   };
 
   return (
-    <section aria-labelledby="open-tickets-heading" className="flex flex-col gap-2 border-t border-border pt-4">
+    <section aria-labelledby="open-tickets-heading" className="mt-5 flex flex-col gap-2 border-t border-border pt-4">
       <h3 id="open-tickets-heading" className="text-sm font-semibold">
         Open tickets
         {state.status === 'ready' && (
-          <span className="ml-2 font-normal text-muted-foreground">{workloadTotal({ total: state.data.tickets.length })}</span>
+          <span className="ml-2 font-normal text-muted-foreground">({state.data.tickets.length})</span>
         )}
       </h3>
 
@@ -130,7 +131,7 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
 
       {state.status === 'ready' && state.data.mechanicId && state.data.tickets.length > 0 && (
         <ul className="flex flex-col divide-y divide-border">
-          {state.data.tickets.map((ticket) => {
+          {visibleTickets(state.data.tickets, showAll).map((ticket) => {
             const mechanicId = state.data.mechanicId!;
             const others = ticket.mechanics.filter((m) => m.id !== mechanicId);
             return (
@@ -144,7 +145,9 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
                     <Link to={`/repairs/${ticket.id}`} className="whitespace-nowrap underline-offset-4 hover:underline">
                       {ticket.repairNumber}
                     </Link>
-                    {others.length > 0 && <> · with {others.map((m) => m.name).join(', ')}</>}
+                    {others.length > 0 && (
+                      <span title={others.map((m) => m.name).join(', ')}> · with {namesSummary(others.map((m) => m.name), 2, 'more')}</span>
+                    )}
                   </span>
                 </div>
                 {canAssign && (
@@ -178,6 +181,12 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
             );
           })}
         </ul>
+      )}
+
+      {state.status === 'ready' && state.data.tickets.length > TICKETS_SHOWN && (
+        <Button type="button" variant="ghost" size="sm" className="min-h-11 self-start md:min-h-0" onClick={() => setShowAll((all) => !all)}>
+          {showAll ? 'Show fewer' : `Show all ${state.data.tickets.length}`}
+        </Button>
       )}
 
       <ReassignDialog ticket={reassigning} fromName={user.name} onOpenChange={(open) => !open && setReassigning(null)} onSubmit={reassign} />

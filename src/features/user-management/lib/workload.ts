@@ -1,8 +1,8 @@
 import type { MechanicOption, MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
 import { sortMechanics } from '../../repair/lib/mechanicOrder';
-import { onMechanicRoster } from './accountStatus';
-import { openWorkSummary, ticketCount } from './openWorkCopy';
+import { getAccountStatus, onMechanicRoster } from './accountStatus';
+import { openWorkSummary } from './openWorkCopy';
 
 // Feature 57: how busy each mechanic is on the Users page. Pure, so it tests without a screen.
 // Occupied (at least one In Progress ticket) comes from the server, the same rule as the picker.
@@ -18,11 +18,15 @@ export function workloadMap(rows: readonly MechanicWorkload[]) {
 }
 
 /**
- * Occupied or Free for a person on the mechanic roster, or null: not a mechanic, or the workload
- * has not loaded. A mechanic with no row yet (never synced) holds no tickets, so is Free.
+ * Occupied or Free for a person on the mechanic roster, or null: not a mechanic, the workload has
+ * not loaded, or the account is deactivated or locked (Free would say they can take work, and they
+ * cannot; their open tickets still show in the dialog so an Admin can move them). A mechanic with
+ * no row yet (never synced) holds no tickets, so is Free.
  */
 export function workStateOf(user: ManagedUser, workload: ReadonlyMap<string, MechanicWorkload> | null): WorkState | null {
   if (!workload || !onMechanicRoster(user)) return null;
+  const account = getAccountStatus(user);
+  if (account === 'INACTIVE' || account === 'LOCKED') return null;
   return workload.get(user.id)?.occupied ? 'occupied' : 'free';
 }
 
@@ -32,9 +36,25 @@ export function workloadSummary(work: Pick<MechanicWorkload, 'total' | 'byStatus
   return openWorkSummary(work.byStatus);
 }
 
-/** "3 open tickets", for screen readers and the dialog heading. */
-export function workloadTotal(work: Pick<MechanicWorkload, 'total'> | undefined) {
-  return ticketCount(work?.total ?? 0);
+/** How many open tickets the dialog lists before "Show all". */
+export const TICKETS_SHOWN = 5;
+
+/** The first TICKETS_SHOWN tickets, or all of them once expanded. */
+export function visibleTickets<T>(tickets: readonly T[], expanded: boolean): T[] {
+  return expanded ? [...tickets] : tickets.slice(0, TICKETS_SHOWN);
+}
+
+/**
+ * "Ana, Ben and 9 more": the first `max` names, then a count. The word after the count is the
+ * caller's ("more" in a row, "others" in a sentence). Nobody to name gives an empty string.
+ */
+export function namesSummary(names: readonly string[], max: number, rest: 'more' | 'others') {
+  if (names.length === 0) return '';
+  if (names.length <= max + 1) {
+    // One extra name is cheaper to show than "+1 more"
+    return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  }
+  return `${names.slice(0, max).join(', ')} and ${names.length - max} ${rest}`;
 }
 
 /** The ticket's mechanics without this person: what Unassign sends. */

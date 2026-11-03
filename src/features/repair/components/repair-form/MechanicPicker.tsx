@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import type { MechanicOption } from '../../../../lib/api/vrmsConfigApi';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
 import type { RepairFormControl, RepairFormInput } from '../../lib/repairFormSchema';
-import { sortMechanics } from '../../lib/mechanicOrder';
+import { mechanicDescription, sortMechanics } from '../../lib/mechanicOrder';
 import { ListError } from './RepairFormParts';
 
 interface MechanicPickerProps {
@@ -43,7 +43,7 @@ export function MechanicPicker({ control, mechanics, clearErrors }: MechanicPick
             value: m.id,
             label: m.name,
             group: 'In house',
-            description: `${m.openCount} open`,
+            description: mechanicDescription(m),
             badge: m.busy ? <Badge variant="secondary">Occupied</Badge> : undefined,
           }));
 

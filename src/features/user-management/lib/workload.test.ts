@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MechanicOption, MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
 import { DEFAULT_USER_FILTERS, hasActiveFilters, matchesUserFilters, readUserListState, writeUserListState } from './userFilters';
-import { reassignCandidates, swapMechanic, withoutMechanic, workloadMap, workloadSummary, workloadTotal, workStateOf } from './workload';
+import { reassignCandidates, swapMechanic, withoutMechanic, workloadMap, workloadSummary, workStateOf, namesSummary, visibleTickets, TICKETS_SHOWN } from './workload';
 
 // Feature 57: Occupied or Free, the counts, the filter in the URL, and what Unassign and Reassign send.
 
@@ -111,14 +111,67 @@ describe('workStateOf edge cases', () => {
   });
 });
 
-describe('workloadTotal', () => {
-  it('says one open ticket in the singular and the rest in the plural', () => {
-    expect(workloadTotal(row('x', true, { IN_PROGRESS: 1 }))).toBe('1 open ticket');
-    expect(workloadTotal(row('x', true, { IN_PROGRESS: 1, ASSIGNED: 2 }))).toBe('3 open tickets');
+describe('workStateOf for accounts that cannot work', () => {
+  it('shows nothing for a deactivated mechanic who still holds tickets', () => {
+    const left = { ...person('busy', 'MECHANIC'), isActive: false } as unknown as ManagedUser;
+    expect(workStateOf(left, workload)).toBeNull();
   });
 
-  it('says zero when there is no workload row', () => {
-    expect(workloadTotal(undefined)).toBe('0 open tickets');
+  it('shows nothing for a locked mechanic', () => {
+    const locked = { ...person('busy', 'MECHANIC'), isLocked: true } as unknown as ManagedUser;
+    expect(workStateOf(locked, workload)).toBeNull();
+  });
+
+  it('still shows a mechanic who has not finished setting up', () => {
+    const pending = { ...person('idle', 'MECHANIC'), emailVerified: false } as unknown as ManagedUser;
+    expect(workStateOf(pending, workload)).toBe('free');
+  });
+
+  it('keeps a deactivated mechanic out of both work filters', () => {
+    const left = { ...person('busy', 'MECHANIC'), isActive: false } as unknown as ManagedUser;
+    const state = workStateOf(left, workload);
+    expect(matchesUserFilters(left, { ...DEFAULT_USER_FILTERS, work: 'occupied' }, state)).toBe(false);
+    expect(matchesUserFilters(left, { ...DEFAULT_USER_FILTERS, work: 'free' }, state)).toBe(false);
+  });
+});
+
+describe('visibleTickets', () => {
+  const tickets = Array.from({ length: 12 }, (_, i) => i);
+
+  it('shows the first few until expanded, then all of them', () => {
+    expect(visibleTickets(tickets, false)).toEqual(tickets.slice(0, TICKETS_SHOWN));
+    expect(visibleTickets(tickets, true)).toEqual(tickets);
+  });
+
+  it('shows a short list as it is, and does not change the list it was given', () => {
+    expect(visibleTickets([1, 2], false)).toEqual([1, 2]);
+    expect(visibleTickets([], false)).toEqual([]);
+    visibleTickets(tickets, true).pop();
+    expect(tickets).toHaveLength(12);
+  });
+});
+
+describe('namesSummary', () => {
+  it('names one or two people in full', () => {
+    expect(namesSummary(['Ana'], 2, 'more')).toBe('Ana');
+    expect(namesSummary(['Ana', 'Ben'], 2, 'more')).toBe('Ana and Ben');
+  });
+
+  it('names a third person rather than saying "1 more"', () => {
+    expect(namesSummary(['Ana', 'Ben', 'Cy'], 2, 'more')).toBe('Ana, Ben and Cy');
+  });
+
+  it('counts the rest once there are more than one extra', () => {
+    expect(namesSummary(['Ana', 'Ben', 'Cy', 'Di'], 2, 'more')).toBe('Ana, Ben and 2 more');
+    expect(namesSummary(Array.from({ length: 11 }, (_, i) => `P${i}`), 3, 'others')).toBe('P0, P1, P2 and 8 others');
+  });
+
+  it('says nothing when there is nobody to name', () => {
+    expect(namesSummary([], 2, 'more')).toBe('');
+  });
+
+  it('keeps two people with the same name as two names', () => {
+    expect(namesSummary(['Juan dela Cruz', 'Juan dela Cruz'], 2, 'more')).toBe('Juan dela Cruz and Juan dela Cruz');
   });
 });
 
