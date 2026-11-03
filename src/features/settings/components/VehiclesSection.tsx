@@ -1,19 +1,26 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Search, Truck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DataTable } from '../../../components/shared/data-table/DataTable';
-import type { Column } from '../../../components/shared/data-table/types';
+import type { Column, RowAction } from '../../../components/shared/data-table/types';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
+import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
-import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
-import { getManagedVehicles, setVehicleType, type ManagedVehicle } from '../../../lib/api/vehiclesApi';
+import { getApiErrorMessage, getApiErrorStatus, getConflictCode } from '../../../lib/api/errors';
+import { getManagedVehicles, setVehicleStatus, setVehicleType, type ManagedVehicle } from '../../../lib/api/vehiclesApi';
 import { getLookup, type LookupOption } from '../../../lib/api/vrmsConfigApi';
 import { useLoad } from '../../knowledge-base/hooks/useLoad';
+import { TicketNoteDialog } from '../../repair/components/TicketNoteDialog';
+import { REASON_MIN, statusActions, type StatusAction } from '../lib/vehicleStatus';
 
 const NONE = '__none';
 const PAGE_SIZE = 25;
 const STALE_MESSAGE = 'This truck changed. Check the type and save again.';
+// Spec 0020, AC-5: the status toggle's own stale message
+const STALE_STATUS_MESSAGE = 'This truck changed. Reload and try again.';
+
+type StatusDialog = { vehicle: ManagedVehicle; action: StatusAction; key: number };
 
 const fetchVehicles = () => getManagedVehicles();
 const fetchTypes = () => getLookup('vehicle_type');
@@ -21,6 +28,7 @@ const fetchTypes = () => getLookup('vehicle_type');
 /**
  * Spec 0016, AC-21: every active truck with a type select. A save that meets a truck changed
  * since the list loaded (a new ticket bumps it) reloads the list and asks the Admin to check.
+ * Spec 0020: a row menu sets the truck Available or Disabled with a reason.
  */
 export function VehiclesSection() {
   const { showToast } = useToast();
@@ -29,6 +37,10 @@ export function VehiclesSection() {
   const [saving, setSaving] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [statusDialog, setStatusDialog] = useState<StatusDialog | null>(null);
+  const [statusOpen, setStatusOpen] = useState(false);
+  // The row menu trigger of the truck being changed, so focus goes back to it (AC-11)
+  const menuTrigger = useRef<HTMLElement | null>(null);
   const rows = useMemo(() => vehicles.data ?? [], [vehicles.data]);
   const options: LookupOption[] = types.data ?? [];
   const needle = query.trim().toLowerCase();
@@ -57,6 +69,41 @@ export function VehiclesSection() {
       setSaving(null);
     }
   };
+
+  const openStatus = (vehicle: ManagedVehicle, action: StatusAction) => {
+    menuTrigger.current = document.querySelector<HTMLElement>(`[data-row-actions="${vehicle.id}"]`);
+    setStatusDialog({ vehicle, action, key: Date.now() });
+    setStatusOpen(true);
+  };
+
+  // Spec 0020, AC-11: resolve to close the dialog; throw to show the message in it (reason kept)
+  const saveStatus = async (reason: string) => {
+    if (!statusDialog) return;
+    const { vehicle, action } = statusDialog;
+    try {
+      const saved = await setVehicleStatus(vehicle.id, action.target, reason, vehicle.updatedAt);
+      vehicles.replace(rows.map((r) => (r.id === saved.id ? saved : r)));
+      setStatusOpen(false);
+      showToast(`${vehicle.plateNumber} is now ${statusLabel(saved.status)}.`, 'success');
+    } catch (err) {
+      const code = getConflictCode(err);
+      if (code === 'STALE_VEHICLE') {
+        setStatusOpen(false);
+        showToast(STALE_STATUS_MESSAGE, 'error');
+        await vehicles.refresh();
+        return;
+      }
+      if (code === 'OPEN_TICKET_EXISTS' || code === 'VEHICLE_STATUS_LOCKED') void vehicles.refresh();
+      throw err;
+    }
+  };
+
+  const rowActions = (vehicle: ManagedVehicle): RowAction[] =>
+    statusActions(vehicle).map((action) => ({
+      label: action.label,
+      destructive: action.destructive,
+      onSelect: () => openStatus(vehicle, action),
+    }));
 
   const columns = useMemo<Column<ManagedVehicle>[]>(
     () => [
@@ -121,6 +168,8 @@ export function VehiclesSection() {
         onRetry={vehicles.retry}
         errorMessage={vehicles.errorMessage}
         label="Vehicles"
+        rowActions={rowActions}
+        rowActionsLabel={(v) => `Actions for ${v.plateNumber}`}
         pagination={{ page: currentPage, pageSize: PAGE_SIZE, total: matching.length, onPageChange: setPage }}
         empty={{
           title: needle ? 'No vehicle matches.' : 'No vehicles yet.',
@@ -128,6 +177,26 @@ export function VehiclesSection() {
           icon: Truck,
         }}
       />
+      {statusDialog && (
+        <TicketNoteDialog
+          key={statusDialog.key}
+          open={statusOpen}
+          onOpenChange={setStatusOpen}
+          title={statusDialog.action.title(statusDialog.vehicle.plateNumber)}
+          description={
+            statusDialog.action.target === 'DISABLED'
+              ? 'Nobody should dispatch or plan around it until it is made available again.'
+              : 'It rejoins the fleet and can be dispatched again.'
+          }
+          fieldLabel="Reason"
+          requiredMessage={`Give a reason of ${REASON_MIN} to 500 characters.`}
+          minLength={REASON_MIN}
+          confirmLabel={statusDialog.action.label}
+          destructive={statusDialog.action.destructive}
+          finalFocusRef={menuTrigger}
+          onSubmit={saveStatus}
+        />
+      )}
     </div>
   );
 }

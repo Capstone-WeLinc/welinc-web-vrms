@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode, type RefObject } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,8 @@ interface TicketNoteDialogProps {
    * throw to show the error inside the dialog with the typed note kept.
    */
   onSubmit: (note: string, resolutions?: IssueResolution[]) => Promise<void>;
+  /** Focus goes here on close when it is mounted (a row menu trigger), instead of back to the opener. */
+  finalFocusRef?: RefObject<HTMLElement | null>;
 }
 
 /** The confirm dialog behind every status move, cancel and unlock (spec 0004, AC-15 to AC-17). */
@@ -61,6 +63,7 @@ export function TicketNoteDialog({
   children,
   resolutionIssues,
   onSubmit,
+  finalFocusRef,
 }: TicketNoteDialogProps) {
   const formId = useId();
   const [formError, setFormError] = useState<string | null>(null);
@@ -103,6 +106,7 @@ export function TicketNoteDialog({
       onOpenChange={changeOpen}
       title={title}
       description={description}
+      finalFocusRef={finalFocusRef}
       footer={
         <>
           <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={isSubmitting} onClick={() => changeOpen(false)}>
