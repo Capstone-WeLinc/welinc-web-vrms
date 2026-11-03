@@ -78,6 +78,8 @@ export function TicketNoteDialog({
   });
   const rows = useWatch({ control, name: 'resolutions' });
   const note = useWatch({ control, name: 'note' });
+  // The hint counts what is sent: trimmed, like the schema and the server
+  const used = note.trim().length;
   // AC-30: the submit waits until every required "What fixed it" is valid, and a note with a
   // minimum until it is long enough (spec 0014, AC-16).
   const blocked =
@@ -86,7 +88,8 @@ export function TicketNoteDialog({
   const submit = async ({ note, resolutions }: NoteFormValues) => {
     setFormError(null);
     try {
-      await onSubmit(note, resolutionIssues ? toResolutions(resolutions) : undefined);
+      // Sent trimmed: the count and the limit are after trimming, and some routes keep the text as sent
+      await onSubmit(note.trim(), resolutionIssues ? toResolutions(resolutions) : undefined);
       reset();
     } catch (err) {
       setFormError(getApiErrorMessage(err, 'That didn’t save. Try again.'));
@@ -134,12 +137,22 @@ export function TicketNoteDialog({
           name="note"
           label={fieldLabel}
           required={!!requiredMessage}
+          // Non breaking spaces keep a number with its unit when the hint wraps on a phone
           description={
-            note.length > NOTE_MAX
-              ? `${note.length - NOTE_MAX} too many. Keep it to ${NOTE_MAX} characters.`
-              : minLength && requiredMessage
-                ? `${minLength} to ${NOTE_MAX} characters.`
-                : `Up to ${NOTE_MAX} characters.`
+            used > NOTE_MAX ? (
+              <>
+                {used - NOTE_MAX} too many. Keep it to {NOTE_MAX}&nbsp;characters.
+              </>
+            ) : minLength && requiredMessage ? (
+              <>
+                {minLength} to {NOTE_MAX}&nbsp;characters.{' '}
+                <span className="tabular-nums">
+                  {used}&nbsp;of&nbsp;{NOTE_MAX}&nbsp;used.
+                </span>
+              </>
+            ) : (
+              <>Up to {NOTE_MAX}&nbsp;characters.</>
+            )
           }
           // No maxLength: it would cut a pasted comment with no word. The count above says what to trim.
           render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={3} />}

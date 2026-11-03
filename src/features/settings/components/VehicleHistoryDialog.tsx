@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { ArrowRight, History } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -25,12 +25,13 @@ function Entry({ change }: { change: VehicleChange }) {
   const entry = describeChange(change);
   const { detail } = entry;
   return (
-    <li className="flex flex-col gap-0.5 py-3 text-sm first:pt-0 last:pb-0">
+    // tabIndex -1 lets Load more move focus to the first new entry (it is not a tab stop)
+    <li id={`change-${change.id}`} tabIndex={-1} className="flex flex-col gap-0.5 py-3 text-sm outline-none first:pt-0 last:pb-0">
       <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
         <span className="text-foreground">{entry.what}:</span>
         <span className="flex flex-wrap items-center gap-1 text-foreground">
           <span className="text-muted-foreground">{entry.before}</span>
-          <ArrowRight aria-label="changed to" className="size-3.5 shrink-0 text-muted-foreground" />
+          <ArrowRight role="img" aria-label="changed to" className="size-3.5 shrink-0 text-muted-foreground" />
           <span className="font-medium">{entry.after}</span>
         </span>
       </span>
@@ -66,14 +67,26 @@ export function VehicleHistoryDialog({ vehicle, open, onOpenChange, finalFocusRe
   const [cursor, setCursor] = useState<string | null | undefined>(undefined);
   const [more, setMore] = useState<'idle' | 'loading' | 'error'>('idle');
   const [moreError, setMoreError] = useState('');
+  // Said to screen readers after a Load more, which otherwise changes the list silently
+  const [announcement, setAnnouncement] = useState('');
+  // The first entry a Load more added: focus moves there, so it does not drop when the button goes
+  const pendingFocus = useRef<string | null>(null);
   const next = cursor === undefined ? (first.data?.nextCursor ?? null) : cursor;
   const items = [...(first.data?.items ?? []), ...older];
+
+  useEffect(() => {
+    if (!pendingFocus.current) return;
+    document.getElementById(`change-${pendingFocus.current}`)?.focus();
+    pendingFocus.current = null;
+  }, [older]);
 
   const loadMore = async () => {
     if (!next) return;
     setMore('loading');
     try {
       const page = await getVehicleChanges(vehicle.id, next);
+      pendingFocus.current = page.items[0]?.id ?? null;
+      setAnnouncement(`${page.items.length} older ${page.items.length === 1 ? 'change' : 'changes'} loaded.`);
       setOlder((rows) => [...rows, ...page.items]);
       setCursor(page.nextCursor);
       setMore('idle');
@@ -97,7 +110,8 @@ export function VehicleHistoryDialog({ vehicle, open, onOpenChange, finalFocusRe
       }
     >
       {first.state === 'loading' && (
-        <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading history">
+        <div className="flex flex-col gap-4" role="status" aria-busy="true">
+          <span className="sr-only">Loading history</span>
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex flex-col gap-1.5">
               <Skeleton className="h-4 w-3/4" />
@@ -115,6 +129,9 @@ export function VehicleHistoryDialog({ vehicle, open, onOpenChange, finalFocusRe
               <Entry key={change.id} change={change} />
             ))}
           </ul>
+          <p role="status" className="sr-only">
+            {announcement}
+          </p>
           {more === 'error' && (
             <p role="alert" className="text-sm text-destructive">
               {moreError}

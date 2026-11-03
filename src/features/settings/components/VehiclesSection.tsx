@@ -175,7 +175,7 @@ export function VehiclesSection() {
           const stale = v.type && !options.some((o) => o.id === v.type!.id) ? v.type : null;
           return (
             <Select value={v.type?.id ?? NONE} onValueChange={(next) => void change(v, next)} disabled={saving === v.id || types.state !== 'ready'}>
-              <SelectTrigger aria-label={`Type for ${v.plateNumber}`} className="h-11 w-full min-w-40 md:h-9">
+              <SelectTrigger aria-label={`Type for ${v.plateNumber}`} title={v.type?.name} className="h-11 w-full min-w-40 max-w-64 md:h-9">
                 <SelectValue placeholder="Not set" />
               </SelectTrigger>
               <SelectContent>
@@ -209,6 +209,8 @@ export function VehiclesSection() {
           <Input
             type="search"
             aria-label="Search vehicles"
+            name="vehicle-search"
+            autoComplete="off"
             placeholder="Search plate, model or type"
             className="pl-9"
             value={query}
@@ -219,7 +221,8 @@ export function VehiclesSection() {
           />
         </div>
         {/* Scrolls sideways on a phone instead of wrapping */}
-        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+        {/* Vertical padding keeps the focus ring of the first and last chip from being clipped; the right fade (phones only) says more chips are off screen */}
+        <div className="-mx-4 -my-1 overflow-x-auto mask-r-from-95% px-4 py-1 md:mx-0 md:px-0 md:mask-none">
           <ToggleGroup
             type="single"
             aria-label="Status"
@@ -231,7 +234,7 @@ export function VehiclesSection() {
             {STATUS_CHIPS.map((value) => (
               <ToggleGroupItem key={value} value={value} variant="outline" size="touch" className="rounded-full">
                 {value === 'ALL' ? 'All' : statusLabel(value)}
-                {vehicles.state === 'ready' && <span className="text-sm font-normal tabular-nums opacity-80">{counts[value]}</span>}
+                {vehicles.state === 'ready' && <span className="text-sm font-normal tabular-nums opacity-80">{counts[value].toLocaleString()}</span>}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>

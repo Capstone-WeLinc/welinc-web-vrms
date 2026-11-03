@@ -110,7 +110,7 @@ function DesktopTable<T>({
             </TableHead>
           ))}
           {rowActions && (
-            <TableHead className="w-14 px-4">
+            <TableHead className="sticky right-0 z-10 w-14 bg-muted px-4">
               <span className="sr-only">Actions</span>
             </TableHead>
           )}
@@ -159,7 +159,7 @@ function DesktopTable<T>({
                   </TableCell>
                 ))}
                 {rowActions && (
-                  <TableCell className="px-4 text-right">
+                  <TableCell className="sticky right-0 bg-card px-4 text-right">
                     <RowActionsMenu actions={rowActions(row)} touch={false} label={rowActionsLabel(row)} rowId={getRowId(row)} />
                   </TableCell>
                 )}
