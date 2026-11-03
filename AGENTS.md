@@ -14,6 +14,7 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 
 | `src/lib/api/errors.ts` | `getApiErrorMessage(err, fallback)` and `getApiErrorStatus(err)` for `catch` blocks. A 403 always reads as the fixed denied text, so a page never shows the server's wording for one |
 | `src/store/authStore.ts` | Zustand auth store (token, user, login, logout), persisted |
 | `src/features/auth/pages/LoginPage.tsx` | SSO handoff (`?token=` from the portal); with no token it redirects to `{VITE_PORTAL_URL}/login`. There is no local login form |
+| `src/features/user-management/` workload files (`lib/workload.ts`, `hooks/useWorkload.ts`, `components/UserWorkCell.tsx`, `MechanicOpenTickets.tsx`, `ReassignDialog.tsx`) | The Users page workload (feature 57): Occupied or Free from `GET /vrms/mechanics/workload` (a deactivated or locked mechanic gets a dash), the `?work=` filter, and the Open tickets list in the Edit user dialog. Its Unassign and Reassign call `PUT /vrms/repairs/:id/assignments`, so the audit rows, status moves and the 409 stale check stay on the server. The pure rules live in `lib/workload.ts` |
 | `src/features/user-management/lib/mechanicSync.ts` | Calls `POST /vrms/mechanics/sync` after Users page saves and when `/users` or `/repairs/new` opens |
 | `src/components/SessionMonitor.tsx` | 15 minute inactivity logout with a warning modal |
 | `src/components/layout/` | `DashboardShell`, `AppHeader`, `SidebarNav`, `UserMenu`, `MobileNavSheet`, `MobileTabBar`, `PageHeader` |
@@ -56,6 +57,7 @@ npm run build        # typecheck then vite build
 - The lint config includes the React Compiler rules. Don't call `setState` synchronously inside `useEffect`: fetch in the effect and set state in `.then` with a `cancelled` flag, reset pagination inside the filter `onChange`, and adjust state from changed props during render (see `CostEncodingPanel`).
 - Live data refreshes through `useVisiblePoll`; don't add a page timer or a refetch on focus of your own. A background refetch updates the page but never an open edit dialog's form, which keeps the `lastUpdatedAt` it opened with (spec 0019).
 - Motion uses the theme curves `ease-snappy` (dialogs, popups) and `ease-drawer` (sheets) from `index.css`. The lint config bans arbitrary values such as `ease-[cubic-bezier(...)]`, so add a token instead.
+- The mechanic pickers (Assign, new ticket, Reassign) share `mechanicDescription` and `sharedNames` in `features/repair/lib/mechanicOrder.ts`: a row shows only the open count, its email is the hover `title`, and the email shows inline only when two mechanics share a name. The shared `Combobox` takes an optional `title` per option.
 - Files that export components export only components (fast refresh). Put hooks, constants and helpers in their own `.ts` file.
 
 ## Gotchas
@@ -67,7 +69,7 @@ npm run build        # typecheck then vite build
 - `src/lib/repairOptions.ts` holds the fixed priority, account type and root cause lists for the repair form. Corporations come from the `corporation` lookup list, and drivers from the server search (`GET /vrms/config/drivers?q=`), never from `localStorage` (spec 0016).
 - shadcn components live in `src/components/ui/` (config in `components.json`). Check there before hand rolling a dialog, select, combobox or table.
 - For quick session timeout tests, set `window.__WELINC_INACTIVITY_LIMIT__ = 30` (seconds) in the browser console.
-- In development only, a "Demo data" pill on every page (mounted in `DashboardShell`; the x folds it to a dot, Alt+Shift+D shows or hides it, an amber dot means a fixture is on; or `?data=worst`) swaps in break-ui's worst case, empty, one and 1,284 row datasets (`src/features/dev-ui/worst-case/`); on `/repairs/new` it also fills the form (`formPrefill.ts`), and saves are refused while a fixture shows. Production builds drop it.
+- In development only, a "Demo data" pill on every page (mounted in `DashboardShell`; the x folds it to a dot, Alt+Shift+D shows or hides it, an amber dot means a fixture is on; or `?data=worst`) swaps in break-ui's worst case, empty, one and 1,284 row datasets (`src/features/dev-ui/worst-case/`); on `/repairs/new` it also fills the form (`formPrefill.ts`), and saves are refused while a fixture shows. Production builds drop it. The Users page and its workload are covered too (`usersData.ts`).
 - Seed logins for local testing are in `welinc-auth/prisma/seeds/users.seed.ts` (for example `vrms.admin@welinc.com`). In portal mode, open `/login?token=<jwt>` to skip the portal.
 
 ## Agent skills
