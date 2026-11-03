@@ -31,3 +31,32 @@ export async function setVehicleStatus(id: string, status: ToggleStatus, reason:
   const response = await api.post<ManagedVehicle>(`/vrms/vehicles/${id}/status`, { status, reason, updatedAt }, { quiet: true });
   return response.data;
 }
+
+/**
+ * One row of a truck's history (spec 0020, AC-9). Status rows hold the status as a string; type
+ * rows hold `{ id, name }` or null. `ticket` is set on rows a ticket create or release wrote.
+ */
+export interface VehicleChange {
+  id: string;
+  field: 'status' | 'vehicleType' | string;
+  before: unknown;
+  after: unknown;
+  note: string | null;
+  actorName: string | null;
+  createdAt: string;
+  ticket: { id: string; repairNumber: string } | null;
+}
+
+export interface VehicleChangesPage {
+  items: VehicleChange[];
+  nextCursor: string | null;
+}
+
+/** Newest first, 20 a page; pass the previous page's nextCursor for the next one. */
+export async function getVehicleChanges(id: string, cursor?: string): Promise<VehicleChangesPage> {
+  const response = await api.get<VehicleChangesPage>(`/vrms/vehicles/${id}/changes`, {
+    params: cursor ? { cursor } : undefined,
+    quiet: true,
+  });
+  return response.data;
+}

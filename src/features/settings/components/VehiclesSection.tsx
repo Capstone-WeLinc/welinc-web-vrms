@@ -14,6 +14,7 @@ import { getManagedVehicles, setVehicleStatus, setVehicleType, type ManagedVehic
 import { getLookup, type LookupOption } from '../../../lib/api/vrmsConfigApi';
 import { useLoad } from '../../knowledge-base/hooks/useLoad';
 import { TicketNoteDialog } from '../../repair/components/TicketNoteDialog';
+import { VehicleHistoryDialog } from './VehicleHistoryDialog';
 import {
   blockedAction,
   chipCounts,
@@ -55,6 +56,8 @@ export function VehiclesSection() {
   const chip = readStatusChip(searchParams.get('status'));
   const [statusDialog, setStatusDialog] = useState<StatusDialog | null>(null);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [history, setHistory] = useState<{ vehicle: ManagedVehicle; key: number } | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   // The row menu trigger of the truck being changed, so focus goes back to it (AC-11)
   const menuTrigger = useRef<HTMLElement | null>(null);
   const rows = useMemo(() => vehicles.data ?? [], [vehicles.data]);
@@ -127,8 +130,20 @@ export function VehiclesSection() {
     }
   };
 
-  // AC-10: an open ticket or maintenance turns the status action off and says why
-  const rowActions = (vehicle: ManagedVehicle): RowAction[] => {
+  const openHistory = (vehicle: ManagedVehicle) => {
+    menuTrigger.current = document.querySelector<HTMLElement>(`[data-row-actions="${vehicle.id}"]`);
+    setHistory({ vehicle, key: Date.now() });
+    setHistoryOpen(true);
+  };
+
+  // AC-10: every row offers History after its status action
+  const rowActions = (vehicle: ManagedVehicle): RowAction[] => [
+    ...statusRowActions(vehicle),
+    { label: 'History', onSelect: () => openHistory(vehicle) },
+  ];
+
+  // An open ticket or maintenance turns the status action off and says why
+  const statusRowActions = (vehicle: ManagedVehicle): RowAction[] => {
     const block = statusBlock(vehicle);
     if (block) {
       const off: RowAction = {
@@ -239,6 +254,15 @@ export function VehiclesSection() {
           icon: Truck,
         }}
       />
+      {history && (
+        <VehicleHistoryDialog
+          key={history.key}
+          vehicle={history.vehicle}
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
+          finalFocusRef={menuTrigger}
+        />
+      )}
       {statusDialog && (
         <TicketNoteDialog
           key={statusDialog.key}
