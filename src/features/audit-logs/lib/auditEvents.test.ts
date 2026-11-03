@@ -1,6 +1,39 @@
 import { describe, expect, it } from 'vitest';
 import type { AuditChange } from '../../../types';
-import { attachmentLine, issueEventLines, movedFileName, photoMoveLine, ticketEditLines } from './auditEvents';
+import {
+  attachmentLine,
+  issueEventLines,
+  movedFileName,
+  photoMoveLine,
+  stepLine,
+  ticketEditLines,
+  ticketTextLines,
+} from './auditEvents';
+
+// Spec 0021, AC-15
+describe('ticketTextLines', () => {
+  it('reads remarks and the cancel reason as old → new, with None for nothing', () => {
+    expect(
+      ticketTextLines({
+        changes: [
+          { field: 'remarks', before: null, after: 'Pads replaced' },
+          { field: 'cancellationReason', before: 'Duplicate', after: 'Truck sold' },
+        ],
+      }),
+    ).toEqual(['Remarks: None → Pads replaced', 'Cancel reason: Duplicate → Truck sold']);
+  });
+
+  it('leaves the detail fields to ticketEditLines', () => {
+    expect(ticketTextLines({ changes: [{ field: 'priority', before: 'LOW', after: 'HIGH' }] })).toEqual([]);
+  });
+});
+
+describe('stepLine', () => {
+  it('reads the numbered step text, or null without one', () => {
+    expect(stepLine({ changes: [{ field: 'step', before: null, after: '2. Check brake fluid' }] })).toBe('2. Check brake fluid');
+    expect(stepLine({ changes: [] })).toBeNull();
+  });
+});
 
 // Spec 0018, AC-18: photo audit events name the groups Before and After.
 
