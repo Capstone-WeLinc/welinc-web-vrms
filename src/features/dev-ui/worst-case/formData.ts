@@ -32,7 +32,13 @@ function vehicles(mode: DataMode): VehicleOption[] {
 
 function managed(mode: DataMode): ManagedVehicle[] {
   const types = [{ id: 'fixture-t-0', name: TYPE_LONG }, null, { id: 'fixture-t-1', name: '4 wheeler' }];
-  return vehicles(mode).map((v, i) => ({ ...v, type: types[i % types.length], updatedAt: new Date().toISOString() }));
+  return vehicles(mode).map((v, i) => ({
+    ...v,
+    type: types[i % types.length],
+    updatedAt: new Date().toISOString(),
+    // Spec 0020: an open ticket on every Under repair row, with a long number
+    openTicket: v.status === 'UNDER_REPAIR' ? { id: `fixture-r-${i}`, repairNumber: `REP-20261103-${String(i).padStart(4, 'W')}` } : null,
+  }));
 }
 
 function mechanics(mode: DataMode): MechanicOption[] {

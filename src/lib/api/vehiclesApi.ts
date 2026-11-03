@@ -9,6 +9,8 @@ export interface ManagedVehicle {
   type: { id: string; name: string } | null;
   /** Sent back on a save, so a truck changed meanwhile answers 409. */
   updatedAt: string;
+  /** Spec 0020, AC-8: the truck's newest open ticket; while set, its status can't be toggled. */
+  openTicket: { id: string; repairNumber: string } | null;
 }
 
 export async function getManagedVehicles(): Promise<ManagedVehicle[]> {

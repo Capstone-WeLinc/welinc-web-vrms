@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
 import { Search, Truck } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DataTable } from '../../../components/shared/data-table/DataTable';
 import type { Column, RowAction } from '../../../components/shared/data-table/types';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
@@ -12,7 +14,18 @@ import { getManagedVehicles, setVehicleStatus, setVehicleType, type ManagedVehic
 import { getLookup, type LookupOption } from '../../../lib/api/vrmsConfigApi';
 import { useLoad } from '../../knowledge-base/hooks/useLoad';
 import { TicketNoteDialog } from '../../repair/components/TicketNoteDialog';
-import { REASON_MIN, statusActions, type StatusAction } from '../lib/vehicleStatus';
+import {
+  blockedAction,
+  chipCounts,
+  filterVehicles,
+  readStatusChip,
+  REASON_MIN,
+  STATUS_CHIPS,
+  statusActions,
+  statusBlock,
+  type StatusAction,
+  type StatusChip,
+} from '../lib/vehicleStatus';
 
 const NONE = '__none';
 const PAGE_SIZE = 25;
@@ -28,7 +41,8 @@ const fetchTypes = () => getLookup('vehicle_type');
 /**
  * Spec 0016, AC-21: every active truck with a type select. A save that meets a truck changed
  * since the list loaded (a new ticket bumps it) reloads the list and asks the Admin to check.
- * Spec 0020: a row menu sets the truck Available or Disabled with a reason.
+ * Spec 0020: a row menu sets the truck Available or Disabled with a reason, and status chips
+ * (kept in ?status=) narrow the list together with the search.
  */
 export function VehiclesSection() {
   const { showToast } = useToast();
@@ -37,6 +51,8 @@ export function VehiclesSection() {
   const [saving, setSaving] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const chip = readStatusChip(searchParams.get('status'));
   const [statusDialog, setStatusDialog] = useState<StatusDialog | null>(null);
   const [statusOpen, setStatusOpen] = useState(false);
   // The row menu trigger of the truck being changed, so focus goes back to it (AC-11)
@@ -44,10 +60,23 @@ export function VehiclesSection() {
   const rows = useMemo(() => vehicles.data ?? [], [vehicles.data]);
   const options: LookupOption[] = types.data ?? [];
   const needle = query.trim().toLowerCase();
-  const matching = useMemo(
-    () => (needle ? rows.filter((v) => `${v.plateNumber} ${v.model} ${v.type?.name ?? ''}`.toLowerCase().includes(needle)) : rows),
-    [rows, needle],
-  );
+  const matching = useMemo(() => filterVehicles(rows, chip, needle), [rows, chip, needle]);
+  const counts = useMemo(() => chipCounts(rows, needle), [rows, needle]);
+  const filtered = needle !== '' || chip !== 'ALL';
+
+  // AC-12: All drops the param; a new chip goes back to page 1
+  const changeChip = (next: StatusChip) => {
+    setSearchParams(
+      (current) => {
+        const params = new URLSearchParams(current);
+        if (next === 'ALL') params.delete('status');
+        else params.set('status', next);
+        return params;
+      },
+      { replace: true },
+    );
+    setPage(1);
+  };
   const lastPage = Math.max(1, Math.ceil(matching.length / PAGE_SIZE));
   const currentPage = Math.min(page, lastPage);
   const shown = matching.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -98,12 +127,25 @@ export function VehiclesSection() {
     }
   };
 
-  const rowActions = (vehicle: ManagedVehicle): RowAction[] =>
-    statusActions(vehicle).map((action) => ({
+  // AC-10: an open ticket or maintenance turns the status action off and says why
+  const rowActions = (vehicle: ManagedVehicle): RowAction[] => {
+    const block = statusBlock(vehicle);
+    if (block) {
+      const off: RowAction = {
+        label: blockedAction(vehicle).label,
+        disabled: true,
+        hint: block.kind === 'maintenance' ? 'Set by maintenance' : undefined,
+      };
+      return block.kind === 'ticket'
+        ? [off, { label: `Has open ticket ${block.ticket.repairNumber}`, href: `/repairs/${block.ticket.id}` }]
+        : [off];
+    }
+    return statusActions(vehicle).map((action) => ({
       label: action.label,
       destructive: action.destructive,
       onSelect: () => openStatus(vehicle, action),
     }));
+  };
 
   const columns = useMemo<Column<ManagedVehicle>[]>(
     () => [
@@ -146,19 +188,39 @@ export function VehiclesSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative max-w-sm">
-        <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          aria-label="Search vehicles"
-          placeholder="Search plate, model or type"
-          className="pl-9"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setPage(1);
-          }}
-        />
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-between">
+        <div className="relative w-full md:max-w-sm">
+          <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            aria-label="Search vehicles"
+            placeholder="Search plate, model or type"
+            className="pl-9"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+        {/* Scrolls sideways on a phone instead of wrapping */}
+        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+          <ToggleGroup
+            type="single"
+            aria-label="Status"
+            value={chip}
+            // Pressing the chosen chip again would clear the group; keep the choice instead.
+            onValueChange={(next) => next && changeChip(next as StatusChip)}
+            className="w-max flex-nowrap"
+          >
+            {STATUS_CHIPS.map((value) => (
+              <ToggleGroupItem key={value} value={value} variant="outline" size="touch" className="rounded-full">
+                {value === 'ALL' ? 'All' : statusLabel(value)}
+                {vehicles.state === 'ready' && <span className="text-sm font-normal tabular-nums opacity-80">{counts[value]}</span>}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
       </div>
       <DataTable
         columns={columns}
@@ -172,8 +234,8 @@ export function VehiclesSection() {
         rowActionsLabel={(v) => `Actions for ${v.plateNumber}`}
         pagination={{ page: currentPage, pageSize: PAGE_SIZE, total: matching.length, onPageChange: setPage }}
         empty={{
-          title: needle ? 'No vehicle matches.' : 'No vehicles yet.',
-          description: needle ? 'Try another plate, model or type.' : 'Vehicles come from the fleet records.',
+          title: filtered ? 'No vehicle matches.' : 'No vehicles yet.',
+          description: filtered ? 'Try another search or status.' : 'Vehicles come from the fleet records.',
           icon: Truck,
         }}
       />
