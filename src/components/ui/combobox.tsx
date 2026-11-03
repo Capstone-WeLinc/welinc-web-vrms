@@ -24,6 +24,8 @@ type ComboboxOption = {
   description?: string
   /** A small badge at the end of the row, such as "Under repair". */
   badge?: React.ReactNode
+  /** A hover tooltip for the row, for detail too long to sit in it, such as an email. */
+  title?: string
   /** Extra search terms; the label always matches. */
   keywords?: string[]
   /** A heading to list the option under; options keep their order inside each group. */
@@ -111,6 +113,7 @@ function Combobox({
                 <CommandItem
                   key={option.value}
                   value={option.label}
+                  title={option.title}
                   keywords={option.keywords}
                   forceMount={forceMount}
                   onSelect={() => {

@@ -12,7 +12,13 @@ const STATE_CLASSES = {
 /** Occupied or Free, with the open counts by status below (feature 57). A dash for non mechanics. */
 export function UserWorkCell({ user, workload }: { user: ManagedUser; workload: ReadonlyMap<string, MechanicWorkload> | null }) {
   const state = workStateOf(user, workload);
-  if (!state) return <span className="text-muted-foreground">—</span>;
+  if (!state)
+    return (
+      <span className="text-muted-foreground">
+        <span aria-hidden="true">—</span>
+        <span className="sr-only">Not applicable</span>
+      </span>
+    );
   return (
     <span className="flex min-w-0 flex-col items-start gap-1">
       <BadgePill className={STATE_CLASSES[state]}>{WORK_LABELS[state]}</BadgePill>

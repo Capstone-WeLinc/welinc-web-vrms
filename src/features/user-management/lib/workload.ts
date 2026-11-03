@@ -44,6 +44,12 @@ export function visibleTickets<T>(tickets: readonly T[], expanded: boolean): T[]
   return expanded ? [...tickets] : tickets.slice(0, TICKETS_SHOWN);
 }
 
+/** Co-workers on one ticket: up to 3 names in full, else the first 2 and a count of the rest. */
+export function coworkerSplit(names: readonly string[]) {
+  if (names.length <= 3) return { shown: [...names], hidden: 0 };
+  return { shown: names.slice(0, 2), hidden: names.length - 2 };
+}
+
 /**
  * "Ana, Ben and 9 more": the first `max` names, then a count. The word after the count is the
  * caller's ("more" in a row, "others" in a sentence). Nobody to name gives an empty string.

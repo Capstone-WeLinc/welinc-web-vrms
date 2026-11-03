@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MechanicOption } from '../../../lib/api/vrmsConfigApi';
-import { mechanicDescription, sortMechanics } from './mechanicOrder';
+import { mechanicDescription, nameKey, sharedNames, sortMechanics } from './mechanicOrder';
 
 const m = (name: string, openCount: number, busy = false): MechanicOption => ({
   id: name,
@@ -23,20 +23,46 @@ describe('sortMechanics', () => {
   });
 });
 
-// The pickers' second line: open count, plus the email so two people with one name stay apart.
+// The pickers' second text: the open count, with the email inline only for a shared name.
+describe('nameKey', () => {
+  it('ignores case, outer spaces and repeated spaces', () => {
+    expect(nameKey('  Juan   dela Cruz ')).toBe('juan dela cruz');
+    expect(nameKey('JUAN DELA CRUZ')).toBe(nameKey('Juan dela Cruz'));
+  });
+});
+
+describe('sharedNames', () => {
+  const named = (name: string) => ({ name });
+
+  it('finds a name two mechanics have, however it is spaced or cased', () => {
+    const shared = sharedNames([named('Juan dela Cruz'), named('Ana'), named(' juan  DELA cruz ')]);
+    expect(shared.has(nameKey('Juan dela Cruz'))).toBe(true);
+    expect(shared.has(nameKey('Ana'))).toBe(false);
+  });
+
+  it('is empty when every name is different, or the list is empty', () => {
+    expect(sharedNames([named('Ana'), named('Ben')]).size).toBe(0);
+    expect(sharedNames([]).size).toBe(0);
+  });
+});
+
 describe('mechanicDescription', () => {
-  it('adds the email after the open count', () => {
-    expect(mechanicDescription({ openCount: 2, email: 'juan@example.com' })).toBe('2 open · juan@example.com');
+  const none = new Set<string>();
+  const shared = sharedNames([{ name: 'Juan dela Cruz' }, { name: 'Juan dela Cruz' }]);
+
+  it('is only the open count for a name nobody else has', () => {
+    expect(mechanicDescription({ name: 'Ana', openCount: 2, email: 'ana@example.com' }, none)).toBe('2 open');
   });
 
-  it('shows only the count for a row with no login email', () => {
-    expect(mechanicDescription({ openCount: 0, email: null })).toBe('0 open');
-    expect(mechanicDescription({ openCount: 1 })).toBe('1 open');
-  });
-
-  it('tells two mechanics with the same name apart', () => {
-    const a = mechanicDescription({ openCount: 1, email: 'juan.a@example.com' });
-    const b = mechanicDescription({ openCount: 1, email: 'juan.b@example.com' });
+  it('adds the email when another mechanic has the same name, so the two tell apart', () => {
+    const a = mechanicDescription({ name: 'Juan dela Cruz', openCount: 1, email: 'juan.a@example.com' }, shared);
+    const b = mechanicDescription({ name: 'Juan dela Cruz', openCount: 1, email: 'juan.b@example.com' }, shared);
+    expect(a).toBe('1 open, juan.a@example.com');
     expect(a).not.toBe(b);
+  });
+
+  it('shows only the count for a shared name with no email on file', () => {
+    expect(mechanicDescription({ name: 'Juan dela Cruz', openCount: 3, email: null }, shared)).toBe('3 open');
+    expect(mechanicDescription({ name: 'Juan dela Cruz', openCount: 0 }, shared)).toBe('0 open');
   });
 });

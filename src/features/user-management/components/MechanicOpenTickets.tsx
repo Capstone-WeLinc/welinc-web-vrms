@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { confirm } from '../../../components/shared/confirm/confirm';
@@ -15,7 +15,7 @@ import {
 } from '../../../lib/api/vrmsConfigApi';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import type { ManagedUser } from '../../../types';
-import { namesSummary, swapMechanic, TICKETS_SHOWN, visibleTickets, withoutMechanic } from '../lib/workload';
+import { coworkerSplit, namesSummary, swapMechanic, TICKETS_SHOWN, visibleTickets, withoutMechanic } from '../lib/workload';
 import { ReassignDialog } from './ReassignDialog';
 
 type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: OpenTicketsData };
@@ -34,6 +34,27 @@ function unassignEffect(ticket: MechanicOpenTicket, mechanicId: string) {
   return 'It will have no mechanic until someone is added.';
 }
 
+/** "with Ana, Ben and 9 more", where the count opens the full list (a title alone never reaches touch or keyboard). */
+function CoWorkers({ names }: { names: string[] }) {
+  const [open, setOpen] = useState(false);
+  const { shown, hidden } = coworkerSplit(names);
+  if (hidden === 0) return <span> · with {namesSummary(shown, 2, 'more')}</span>;
+  return (
+    <span>
+      {' · with '}
+      {open ? names.join(', ') : `${shown.join(', ')} and `}
+      <button
+        type="button"
+        aria-expanded={open}
+        className="inline-flex min-h-11 items-center underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-0"
+        onClick={() => setOpen((o) => !o)}
+      >
+        {open ? 'fewer' : `${hidden} more`}
+      </button>
+    </span>
+  );
+}
+
 /**
  * Feature 57: the mechanic's open tickets in the Edit user dialog, each with Unassign and
  * Reassign. Both go through PUT /vrms/repairs/:id/assignments, which runs the status moves, the
@@ -47,6 +68,9 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
   const [savingId, setSavingId] = useState<string | null>(null);
   const [reassigning, setReassigning] = useState<MechanicOpenTicket | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const listId = useId();
+  // Focus lands here after a change, because the row that was acted on may be gone
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +95,7 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
       await setMechanics(ticket.id, mechanicIds, { lastUpdatedAt: ticket.updatedAt });
       showToast(done);
       onChanged();
+      headingRef.current?.focus();
     } catch (err) {
       showToast(
         getApiErrorStatus(err) === 409
@@ -107,17 +132,26 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
 
   return (
     <section aria-labelledby="open-tickets-heading" className="mt-5 flex flex-col gap-2 border-t border-border pt-4">
-      <h3 id="open-tickets-heading" className="text-sm font-semibold">
+      <h3
+        id="open-tickets-heading"
+        ref={headingRef}
+        tabIndex={-1}
+        className="rounded-sm text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
         Open tickets
         {state.status === 'ready' && (
           <span className="ml-2 font-normal text-muted-foreground">({state.data.tickets.length})</span>
         )}
       </h3>
 
-      {state.status === 'loading' && <p className="text-sm text-muted-foreground">Loading their open tickets…</p>}
+      {state.status === 'loading' && (
+        <p role="status" className="text-sm text-muted-foreground">
+          Loading their open tickets…
+        </p>
+      )}
 
       {state.status === 'error' && (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
+        <div role="alert" className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-destructive">{state.message}</span>
           <Button type="button" variant="outline" size="sm" onClick={reload}>
             Try again
@@ -126,11 +160,13 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
       )}
 
       {state.status === 'ready' && state.data.tickets.length === 0 && (
-        <p className="text-sm text-muted-foreground">They have no open tickets.</p>
+        <p role="status" className="text-sm text-muted-foreground">
+          They have no open tickets.
+        </p>
       )}
 
       {state.status === 'ready' && state.data.mechanicId && state.data.tickets.length > 0 && (
-        <ul className="flex flex-col divide-y divide-border">
+        <ul id={listId} className="flex flex-col divide-y divide-border">
           {visibleTickets(state.data.tickets, showAll).map((ticket) => {
             const mechanicId = state.data.mechanicId!;
             const others = ticket.mechanics.filter((m) => m.id !== mechanicId);
@@ -145,9 +181,7 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
                     <Link to={`/repairs/${ticket.id}`} className="whitespace-nowrap underline-offset-4 hover:underline">
                       {ticket.repairNumber}
                     </Link>
-                    {others.length > 0 && (
-                      <span title={others.map((m) => m.name).join(', ')}> · with {namesSummary(others.map((m) => m.name), 2, 'more')}</span>
-                    )}
+                    {others.length > 0 && <CoWorkers names={others.map((m) => m.name)} />}
                   </span>
                 </div>
                 {canAssign && (
@@ -184,12 +218,26 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
       )}
 
       {state.status === 'ready' && state.data.tickets.length > TICKETS_SHOWN && (
-        <Button type="button" variant="ghost" size="sm" className="min-h-11 self-start md:min-h-0" onClick={() => setShowAll((all) => !all)}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="min-h-11 self-start md:min-h-0"
+          aria-expanded={showAll}
+          aria-controls={listId}
+          onClick={() => setShowAll((all) => !all)}
+        >
           {showAll ? 'Show fewer' : `Show all ${state.data.tickets.length}`}
         </Button>
       )}
 
-      <ReassignDialog ticket={reassigning} fromName={user.name} onOpenChange={(open) => !open && setReassigning(null)} onSubmit={reassign} />
+      <ReassignDialog
+        ticket={reassigning}
+        fromName={user.name}
+        finalFocusRef={headingRef}
+        onOpenChange={(open) => !open && setReassigning(null)}
+        onSubmit={reassign}
+      />
     </section>
   );
 }

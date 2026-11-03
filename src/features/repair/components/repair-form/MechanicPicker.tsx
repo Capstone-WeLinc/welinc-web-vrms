@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import type { MechanicOption } from '../../../../lib/api/vrmsConfigApi';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
 import type { RepairFormControl, RepairFormInput } from '../../lib/repairFormSchema';
-import { mechanicDescription, sortMechanics } from '../../lib/mechanicOrder';
+import { mechanicDescription, sharedNames, sortMechanics } from '../../lib/mechanicOrder';
 import { ListError } from './RepairFormParts';
 
 interface MechanicPickerProps {
@@ -28,6 +28,7 @@ export function MechanicPicker({ control, mechanics, clearErrors }: MechanicPick
   const id = useId();
   const { errors } = useFormState({ control, name: 'mechanics' });
   const sorted = useMemo(() => sortMechanics(mechanics.data ?? []), [mechanics.data]);
+  const shared = useMemo(() => sharedNames(mechanics.data ?? []), [mechanics.data]);
   const noneInHouse = mechanics.data?.length === 0;
 
   return (
@@ -43,7 +44,8 @@ export function MechanicPicker({ control, mechanics, clearErrors }: MechanicPick
             value: m.id,
             label: m.name,
             group: 'In house',
-            description: mechanicDescription(m),
+            description: mechanicDescription(m, shared),
+            title: m.email ?? undefined,
             badge: m.busy ? <Badge variant="secondary">Occupied</Badge> : undefined,
           }));
 

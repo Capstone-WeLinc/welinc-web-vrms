@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MechanicOption, MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
 import { DEFAULT_USER_FILTERS, hasActiveFilters, matchesUserFilters, readUserListState, writeUserListState } from './userFilters';
-import { reassignCandidates, swapMechanic, withoutMechanic, workloadMap, workloadSummary, workStateOf, namesSummary, visibleTickets, TICKETS_SHOWN } from './workload';
+import { reassignCandidates, swapMechanic, withoutMechanic, workloadMap, workloadSummary, workStateOf, namesSummary, visibleTickets, TICKETS_SHOWN, coworkerSplit } from './workload';
 
 // Feature 57: Occupied or Free, the counts, the filter in the URL, and what Unassign and Reassign send.
 
@@ -240,5 +240,23 @@ describe('Unassign and Reassign payload edge cases', () => {
     const input = [m('z', 5), m('a', 1)];
     reassignCandidates(input, []);
     expect(input.map((x) => x.id)).toEqual(['z', 'a']);
+  });
+});
+
+describe('coworkerSplit', () => {
+  it('shows up to three names in full', () => {
+    expect(coworkerSplit([])).toEqual({ shown: [], hidden: 0 });
+    expect(coworkerSplit(['A', 'B', 'C'])).toEqual({ shown: ['A', 'B', 'C'], hidden: 0 });
+  });
+
+  it('shows two names and counts the rest from four up', () => {
+    expect(coworkerSplit(['A', 'B', 'C', 'D'])).toEqual({ shown: ['A', 'B'], hidden: 2 });
+    expect(coworkerSplit(Array.from({ length: 11 }, (_, i) => `P${i}`)).hidden).toBe(9);
+  });
+
+  it('does not change the list it was given', () => {
+    const names = ['A', 'B', 'C', 'D'];
+    coworkerSplit(names);
+    expect(names).toEqual(['A', 'B', 'C', 'D']);
   });
 });

@@ -11,7 +11,7 @@ import { getApiErrorMessage } from '../../../lib/api/errors';
 import { getAvailableMechanics, type MechanicOption } from '../../../lib/api/vrmsConfigApi';
 import type { MechanicAssignment, RepairStatus } from '../../../types';
 import { guardedClose } from '../hooks/useEditSession';
-import { mechanicDescription, sortMechanics } from '../lib/mechanicOrder';
+import { mechanicDescription, sharedNames, sortMechanics } from '../lib/mechanicOrder';
 import { EDIT_REASON_MAX, EDIT_REASON_MIN, mechanicsEffect } from '../lib/ticketEdits';
 
 interface AssignMechanicDialogProps {
@@ -73,6 +73,7 @@ export function AssignMechanicDialog({
     };
   }, [open, attempt]);
 
+  const shared = useMemo(() => sharedNames(mechanics ?? []), [mechanics]);
   const options = useMemo<ComboboxOption[]>(
     () =>
       sortMechanics(mechanics ?? [])
@@ -81,10 +82,11 @@ export function AssignMechanicDialog({
           value: m.id,
           label: m.name,
           group: 'In house',
-          description: mechanicDescription(m),
+          description: mechanicDescription(m, shared),
+          title: m.email ?? undefined,
           badge: m.busy ? <Badge variant="secondary">Occupied</Badge> : undefined,
         })),
-    [mechanics, chosen],
+    [mechanics, chosen, shared],
   );
 
   const ids = chosen.map((m) => m.id);
