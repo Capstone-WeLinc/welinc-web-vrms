@@ -7,6 +7,9 @@ import {
   Images,
   ListPlus,
   ListX,
+  ListChecks,
+  ListRestart,
+  Lock,
   PencilLine,
   LockOpen,
   Paperclip,
@@ -94,10 +97,16 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   ISSUE_ADDED: { icon: ListPlus, tone: 'bg-primary/10 text-primary' },
   ISSUE_EDITED: { icon: PencilLine, tone: 'bg-primary/10 text-primary' },
   ISSUE_REMOVED: { icon: ListX, tone: 'bg-muted text-muted-strong' },
+  // Spec 0021, AC-15
+  LOCKED: { icon: Lock, tone: 'bg-muted text-muted-strong' },
+  STEP_CHECKED: { icon: ListChecks, tone: 'bg-success/10 text-success' },
+  STEP_UNCHECKED: { icon: ListRestart, tone: 'bg-muted text-muted-strong' },
 };
 
 export function eventStyle(type: string): EventStyle {
-  return EVENT_STYLES[type] ?? { icon: Activity, tone: 'bg-muted text-muted-strong' };
+  // Own keys only: a type like "constructor" must not find an inherited member
+  const own = Object.prototype.hasOwnProperty.call(EVENT_STYLES, type);
+  return (own && EVENT_STYLES[type]) || { icon: Activity, tone: 'bg-muted text-muted-strong' };
 }
 
 /** The actor's name, else their email; null means "no actor" wording. */
@@ -205,6 +214,25 @@ export function ticketEditLines(event: Pick<AuditEvent, 'changes'>): string[] {
     lines.push(`Corporation: ${corporation.before ?? 'None'} → ${corporation.after ?? 'None'}`);
   }
   return lines;
+}
+
+/**
+ * Spec 0021, AC-15: the free text a TICKET_EDITED row can carry after an unlock, "Remarks: old →
+ * new" and "Cancel reason: old → new". Kept apart from ticketEditLines because they can be long
+ * and render clamped, with the full line in a tooltip.
+ */
+export function ticketTextLines(event: Pick<AuditEvent, 'changes'>): string[] {
+  const lines: string[] = [];
+  const remarks = changeOf(event, 'remarks');
+  if (remarks) lines.push(`Remarks: ${remarks.before ?? 'None'} → ${remarks.after ?? 'None'}`);
+  const reason = changeOf(event, 'cancellationReason');
+  if (reason) lines.push(`Cancel reason: ${reason.before ?? 'None'} → ${reason.after ?? 'None'}`);
+  return lines;
+}
+
+/** Spec 0021, AC-15: the ticked or unticked step, "2. Check brake fluid". */
+export function stepLine(event: Pick<AuditEvent, 'changes'>): string | null {
+  return changeOf(event, 'step')?.after ?? null;
 }
 
 /** The lines under an issue event: its text, and what else changed or went with it. */

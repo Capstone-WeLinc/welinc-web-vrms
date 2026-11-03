@@ -1,6 +1,78 @@
 import { describe, expect, it } from 'vitest';
 import type { AuditChange } from '../../../types';
-import { attachmentLine, issueEventLines, movedFileName, photoMoveLine, ticketEditLines } from './auditEvents';
+import {
+  attachmentLine,
+  eventStyle,
+  issueEventLines,
+  movedFileName,
+  photoMoveLine,
+  stepLine,
+  ticketEditLines,
+  ticketTextLines,
+} from './auditEvents';
+
+// Spec 0021, AC-15
+describe('ticketTextLines', () => {
+  it('reads remarks and the cancel reason as old → new, with None for nothing', () => {
+    expect(
+      ticketTextLines({
+        changes: [
+          { field: 'remarks', before: null, after: 'Pads replaced' },
+          { field: 'cancellationReason', before: 'Duplicate', after: 'Truck sold' },
+        ],
+      }),
+    ).toEqual(['Remarks: None → Pads replaced', 'Cancel reason: Duplicate → Truck sold']);
+  });
+
+  it('leaves the detail fields to ticketEditLines', () => {
+    expect(ticketTextLines({ changes: [{ field: 'priority', before: 'LOW', after: 'HIGH' }] })).toEqual([]);
+  });
+});
+
+describe('eventStyle for the spec 0021 types (AC-15)', () => {
+  const fallback = eventStyle('NOT_A_TYPE');
+
+  it('gives locked, ticked and unticked their own icon instead of the fallback', () => {
+    for (const type of ['LOCKED', 'STEP_CHECKED', 'STEP_UNCHECKED']) {
+      expect(eventStyle(type).icon).not.toBe(fallback.icon);
+    }
+  });
+
+  it('treats an inherited object name as an unknown type, not a style', () => {
+    expect(eventStyle('constructor')).toEqual(fallback);
+    expect(eventStyle('toString')).toEqual(fallback);
+  });
+
+  it('tells a ticked step from an unticked one', () => {
+    expect(eventStyle('STEP_CHECKED').icon).not.toBe(eventStyle('STEP_UNCHECKED').icon);
+  });
+});
+
+describe('ticketTextLines edge cases (AC-15)', () => {
+  it('shows None for a cleared value on either side', () => {
+    expect(
+      ticketTextLines({ changes: [{ field: 'remarks', before: 'Old note', after: null }] }),
+    ).toEqual(['Remarks: Old note → None']);
+  });
+
+  it('keeps remarks before the cancel reason whatever order the changes came in', () => {
+    expect(
+      ticketTextLines({
+        changes: [
+          { field: 'cancellationReason', before: null, after: 'Sold' },
+          { field: 'remarks', before: null, after: 'Note' },
+        ],
+      }),
+    ).toEqual(['Remarks: None → Note', 'Cancel reason: None → Sold']);
+  });
+});
+
+describe('stepLine', () => {
+  it('reads the numbered step text, or null without one', () => {
+    expect(stepLine({ changes: [{ field: 'step', before: null, after: '2. Check brake fluid' }] })).toBe('2. Check brake fluid');
+    expect(stepLine({ changes: [] })).toBeNull();
+  });
+});
 
 // Spec 0018, AC-18: photo audit events name the groups Before and After.
 
