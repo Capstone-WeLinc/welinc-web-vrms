@@ -1,5 +1,5 @@
 import type { DriverOption, GarageOption, LookupOption, MechanicOption, VehicleOption, VehicleSummary } from '../../../lib/api/vrmsConfigApi';
-import type { ManagedVehicle } from '../../../lib/api/vehiclesApi';
+import type { ManagedVehicle, VehicleChange, VehicleChangesPage } from '../../../lib/api/vehiclesApi';
 import type { DataMode } from './dataMode';
 
 // Development only (break-ui, spec 0016): the new repair form, its pickers and the two new
@@ -32,7 +32,53 @@ function vehicles(mode: DataMode): VehicleOption[] {
 
 function managed(mode: DataMode): ManagedVehicle[] {
   const types = [{ id: 'fixture-t-0', name: TYPE_LONG }, null, { id: 'fixture-t-1', name: '4 wheeler' }];
-  return vehicles(mode).map((v, i) => ({ ...v, type: types[i % types.length], updatedAt: new Date().toISOString() }));
+  return vehicles(mode).map((v, i) => ({
+    ...v,
+    type: types[i % types.length],
+    updatedAt: new Date().toISOString(),
+    // Spec 0020: an open ticket on every Under repair row, with a long number
+    openTicket: v.status === 'UNDER_REPAIR' ? { id: `fixture-r-${i}`, repairNumber: `REP-20261103-${String(i).padStart(4, 'W')}` } : null,
+  }));
+}
+
+// Spec 0020, the History dialog. Limits: reason 500 (the DTO), actor name 100 and email 255
+// (vehicle_changes), ticket number 50 (repair_number), type name 100 (lookup). A null actor reads
+// "System"; whoName() falls back to the email when a user has no name.
+const REASON_500 = (
+  'Rear brake drums scored beyond limit on the LTO inspection; the shop quoted a full axle set and the driver says the truck pulled left under load on the Calamba route. ' +
+  'Do not dispatch until the new drums are on and the road test is signed off by the chief mechanic. Parts promised for Thursday, so plan the Friday run around another unit. ' +
+  'Supplier ticket 884-2291-REAR-AXLE-SET. Ask Ngọc Hân to recheck the tyres at the same time.'
+).slice(0, 500);
+const REASON_URL = 'Brake pads ordered 🛞 https://example.com/welinc/garages/marikina/audits/2026-10/repeat-vehicles/brake-pads-order-confirmation\nPickup after 3 PM';
+const ACTOR_100 = 'Maria Cristina Esperanza de la Cruz-Villanueva y Fernandez-Montgomery de los Santos, Jr.'.padEnd(100, '.').slice(0, 100);
+const ACTOR_EMAIL = 'bartholomew.fitzgerald@northwind-industries-holdings.example.com';
+const TICKET_50 = 'REP-20261103-WORKSHOP-ANNEX-TRUCK-0042-RETURN-JOB-X'.slice(0, 50);
+
+function changeAt(i: number, mode: DataMode): VehicleChange {
+  const base = { id: `fixture-c-${i}`, createdAt: new Date(Date.now() - i * 3 * 86_400_000).toISOString(), ticket: null, note: null, actorName: 'Victor Ramos' };
+  const type = { id: 'fixture-t-0', name: TYPE_LONG };
+  if (mode === 'worst' || mode === 'huge') {
+    const worst: VehicleChange[] = [
+      { ...base, field: 'status', before: 'AVAILABLE', after: 'DISABLED', note: REASON_500, actorName: ACTOR_100 },
+      { ...base, field: 'status', before: 'DISABLED', after: 'UNDER_REPAIR', ticket: { id: 'fixture-r-1', repairNumber: TICKET_50 } },
+      { ...base, field: 'status', before: 'UNDER_REPAIR', after: 'AVAILABLE', ticket: { id: 'fixture-r-1', repairNumber: 'REP-20261103-0042' }, actorName: null },
+      { ...base, field: 'vehicleType', before: null, after: type, actorName: ACTOR_EMAIL },
+      { ...base, field: 'vehicleType', before: type, after: null },
+      { ...base, field: 'status', before: 'UNDER_REPAIR', after: 'DISABLED' },
+      { ...base, field: 'status', before: 'DISABLED', after: 'AVAILABLE', note: REASON_URL, actorName: 'Jo' },
+      { ...base, field: 'status', before: 'AVAILABLE', after: 'DISABLED', note: 'Fixed', createdAt: '2019-01-02T03:04:05.000Z' },
+    ];
+    return { ...worst[i % worst.length], id: base.id, createdAt: i % worst.length === 7 ? worst[7].createdAt : base.createdAt };
+  }
+  return { ...base, field: 'status', before: 'AVAILABLE', after: 'DISABLED', note: 'Engine seized' };
+}
+
+/** `/vrms/vehicles/:id/changes`: 20 a page, the cursor is the offset (the real one is opaque). */
+function vehicleChanges(mode: DataMode, params: Record<string, unknown>): VehicleChangesPage {
+  const total = mode === 'empty' ? 0 : mode === 'one' ? 1 : mode === 'huge' ? 400 : 45;
+  const start = typeof params.cursor === 'string' ? Number(params.cursor) || 0 : 0;
+  const end = Math.min(start + 20, total);
+  return { items: Array.from({ length: end - start }, (_, k) => changeAt(start + k, mode)), nextCursor: end < total ? String(end) : null };
 }
 
 function mechanics(mode: DataMode): MechanicOption[] {
@@ -105,6 +151,7 @@ export function madeUpFormData(mode: DataMode, url: string, params: Record<strin
   if (path === '/vrms/mechanics/available') return mechanics(mode);
   if (path === '/vrms/config/drivers') return drivers(mode, typeof params.q === 'string' ? params.q : '');
   if (path === '/vrms/config/garages') return garages(mode);
+  if (/^\/vrms\/vehicles\/[^/]+\/changes$/.test(path)) return vehicleChanges(mode, params);
   const summaryMatch = /^\/vrms\/vehicles\/([^/]+)\/summary$/.exec(path);
   if (summaryMatch) return summary(mode, summaryMatch[1]);
   const lookupMatch = /^\/vrms\/lookups\/([a-z_]+)(\/all)?$/.exec(path);

@@ -12,7 +12,17 @@ export type Column<T> = {
   align?: 'start' | 'end';
 };
 
-export type RowAction = { label: string; onSelect: () => void; destructive?: boolean };
+export type RowAction = {
+  label: string;
+  onSelect?: () => void;
+  destructive?: boolean;
+  /** Shown but not selectable; say why in `hint`. */
+  disabled?: boolean;
+  /** A short line under the label, such as why the action is off. */
+  hint?: string;
+  /** Makes the item a link to this app path instead of calling onSelect. */
+  href?: string;
+};
 
 export type PaginationState = {
   /** 1 based. */

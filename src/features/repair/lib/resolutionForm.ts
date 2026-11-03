@@ -42,7 +42,8 @@ export function noteFormSchema(requiredMessage: string | undefined, minLength = 
   return z.object({
     note: z
       .string()
-      .max(NOTE_MAX, `Keep it to ${NOTE_MAX} characters or fewer.`)
+      // Counted after trimming, as the server does: a pasted paragraph with a trailing newline is fine
+      .refine((note) => note.trim().length <= NOTE_MAX, `Keep it to ${NOTE_MAX} characters or fewer.`)
       .refine((note) => !requiredMessage || note.trim().length >= minLength, requiredMessage ?? ''),
     resolutions: z.array(resolutionRow),
   });

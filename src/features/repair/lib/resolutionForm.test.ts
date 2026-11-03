@@ -71,4 +71,14 @@ describe('the Return to mechanic comment (AC-16)', () => {
     expect(result.error?.issues[0].message).toBe('Say what needs fixing.');
     expect(schema.safeParse({ note: 'Squeals again', resolutions: [] }).success).toBe(true);
   });
+
+  it('counts the limit after trimming, so a pasted paragraph with a trailing newline passes (spec 0020, AC-1)', () => {
+    const schema = noteFormSchema('Give a reason.', 5);
+    const body = 'x'.repeat(500);
+    expect(schema.safeParse({ note: `${body}\n`, resolutions: [] }).success).toBe(true);
+    expect(schema.safeParse({ note: `  ${body}  `, resolutions: [] }).success).toBe(true);
+    const over = schema.safeParse({ note: `${body}y`, resolutions: [] });
+    expect(over.success).toBe(false);
+    expect(over.error?.issues[0].message).toBe('Keep it to 500 characters or fewer.');
+  });
 });

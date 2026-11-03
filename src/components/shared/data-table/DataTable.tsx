@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react';
 import { MoreVertical } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -41,15 +42,30 @@ function RowActionsMenu({ actions, touch, label, rowId }: RowActionsMenuProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
         <DropdownMenuGroup>
-          {actions.map((action) => (
-            <DropdownMenuItem
-              key={action.label}
-              variant={action.destructive ? 'destructive' : 'default'}
-              onSelect={action.onSelect}
-            >
-              {action.label}
-            </DropdownMenuItem>
-          ))}
+          {actions.map((action) => {
+            const text = action.hint ? (
+              <span className="flex flex-col gap-0.5">
+                {action.label}
+                <span className="text-xs text-muted-foreground">{action.hint}</span>
+              </span>
+            ) : (
+              action.label
+            );
+            return action.href ? (
+              <DropdownMenuItem key={action.label} asChild>
+                <Link to={action.href}>{text}</Link>
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                key={action.label}
+                variant={action.destructive ? 'destructive' : 'default'}
+                disabled={action.disabled}
+                onSelect={action.onSelect}
+              >
+                {text}
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -94,7 +110,7 @@ function DesktopTable<T>({
             </TableHead>
           ))}
           {rowActions && (
-            <TableHead className="w-14 px-4">
+            <TableHead className="sticky right-0 z-10 w-14 bg-muted px-4">
               <span className="sr-only">Actions</span>
             </TableHead>
           )}
@@ -143,7 +159,7 @@ function DesktopTable<T>({
                   </TableCell>
                 ))}
                 {rowActions && (
-                  <TableCell className="px-4 text-right">
+                  <TableCell className="sticky right-0 bg-card px-4 text-right">
                     <RowActionsMenu actions={rowActions(row)} touch={false} label={rowActionsLabel(row)} rowId={getRowId(row)} />
                   </TableCell>
                 )}
