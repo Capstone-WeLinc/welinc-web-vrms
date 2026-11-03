@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MechanicOption, MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
 import { DEFAULT_USER_FILTERS, matchesUserFilters, readUserListState, writeUserListState } from './userFilters';
-import { reassignChoices, swapMechanic, withoutMechanic, workloadMap, workloadSummary, workStateOf } from './workload';
+import { reassignCandidates, swapMechanic, withoutMechanic, workloadMap, workloadSummary, workStateOf } from './workload';
 
 // Feature 57: Occupied or Free, the counts, the filter in the URL, and what Unassign and Reassign send.
 
@@ -83,10 +83,14 @@ describe('Unassign and Reassign payloads', () => {
     expect(swapMechanic(['a', 'b'], 'a', 'b')).toEqual(['b']);
   });
 
-  it('offers the least busy first and skips who is already on the ticket', () => {
+  it('offers the fewest open tickets first, by name on a tie, and skips who is already on the ticket', () => {
     const m = (id: string, openCount: number, busy: boolean): MechanicOption => ({ id, name: id, isAvailable: openCount === 0, openCount, busy });
-    const choices = reassignChoices([m('ana', 3, true), m('ben', 2, false), m('cy', 0, false), m('me', 1, true)], ['me']);
-    expect(choices.map((c) => c.value)).toEqual(['cy', 'ben', 'ana']);
-    expect(choices[2].label).toBe('ana (3 open, occupied)');
+    const choices = reassignCandidates([m('ana', 3, true), m('ben', 2, false), m('cy', 0, false), m('abe', 2, true), m('me', 1, true)], ['me']);
+    expect(choices.map((c) => c.id)).toEqual(['cy', 'abe', 'ben', 'ana']);
+  });
+
+  it('offers nobody when every mechanic is already on the ticket', () => {
+    const m = (id: string): MechanicOption => ({ id, name: id, isAvailable: true, openCount: 0, busy: false });
+    expect(reassignCandidates([m('a'), m('b')], ['a', 'b'])).toEqual([]);
   });
 });

@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { confirm, confirmChoice } from '../../../components/shared/confirm/confirm';
+import { confirm } from '../../../components/shared/confirm/confirm';
 import { PlateChip } from '../../../components/shared/PlateChip';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
 import { setMechanics } from '../../../lib/api/repairApi';
 import {
-  getAvailableMechanics,
   getMechanicOpenTickets,
   type MechanicOpenTicket,
   type MechanicOpenTickets as OpenTicketsData,
+  type MechanicOption,
 } from '../../../lib/api/vrmsConfigApi';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import type { ManagedUser } from '../../../types';
-import { reassignChoices, swapMechanic, withoutMechanic, workloadTotal } from '../lib/workload';
+import { swapMechanic, withoutMechanic, workloadTotal } from '../lib/workload';
+import { ReassignDialog } from './ReassignDialog';
 
 type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: OpenTicketsData };
 
@@ -44,6 +45,7 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [reassigning, setReassigning] = useState<MechanicOpenTicket | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,32 +95,13 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
     await save(ticket, withoutMechanic(ids, mechanicId), `${user.name} unassigned from ${ticket.repairNumber}.`);
   };
 
-  const reassign = async (ticket: MechanicOpenTicket, mechanicId: string) => {
-    setSavingId(ticket.id);
-    let choices: { value: string; label: string }[];
-    try {
-      const ids = ticket.mechanics.map((m) => m.id);
-      choices = reassignChoices(await getAvailableMechanics(), ids);
-    } catch (err) {
-      showToast(getApiErrorMessage(err, 'Couldn’t load the mechanics.'), 'error');
-      return;
-    } finally {
-      setSavingId(null);
-    }
-    if (choices.length === 0) {
-      showToast('No other mechanic is available for this ticket.', 'info');
-      return;
-    }
-    const to = await confirmChoice({
-      title: `Reassign ${ticket.repairNumber}`,
-      description: `Move it from ${user.name} to another mechanic. The least busy is picked first.`,
-      confirmText: 'Reassign',
-      choices,
-    });
-    if (!to) return;
-    const name = choices.find((c) => c.value === to)?.label.replace(/ \(.*$/, '') ?? 'the new mechanic';
+  // The dialog saves through the same path as Unassign, so it gets the same stale check and toasts
+  const reassign = async (ticket: MechanicOpenTicket, to: MechanicOption) => {
+    const mechanicId = state.status === 'ready' ? state.data.mechanicId : null;
+    if (!mechanicId) return;
     const ids = ticket.mechanics.map((m) => m.id);
-    await save(ticket, swapMechanic(ids, mechanicId, to), `${ticket.repairNumber} moved from ${user.name} to ${name}.`);
+    await save(ticket, swapMechanic(ids, mechanicId, to.id), `${ticket.repairNumber} moved from ${user.name} to ${to.name}.`);
+    setReassigning(null);
   };
 
   return (
@@ -174,7 +157,7 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
                       disabled={savingId !== null}
                       loading={savingId === ticket.id}
                       aria-label={`Reassign ${ticket.repairNumber}`}
-                      onClick={() => void reassign(ticket, mechanicId)}
+                      onClick={() => setReassigning(ticket)}
                     >
                       Reassign
                     </Button>
@@ -196,6 +179,8 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
           })}
         </ul>
       )}
+
+      <ReassignDialog ticket={reassigning} fromName={user.name} onOpenChange={(open) => !open && setReassigning(null)} onSubmit={reassign} />
     </section>
   );
 }

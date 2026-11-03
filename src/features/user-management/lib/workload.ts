@@ -1,5 +1,6 @@
 import type { MechanicOption, MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
+import { sortMechanics } from '../../repair/lib/mechanicOrder';
 import { onMechanicRoster } from './accountStatus';
 import { openWorkSummary, ticketCount } from './openWorkCopy';
 
@@ -47,16 +48,7 @@ export function swapMechanic(mechanicIds: readonly string[], from: string, to: s
   return mechanicIds.map((id) => (id === from ? to : id));
 }
 
-/**
- * Who the ticket can move to: active mechanics not already on it, Free before Occupied, then the
- * fewest open tickets, then name. The first is the prompt's default, so it is the least loaded.
- */
-export function reassignChoices(mechanics: readonly MechanicOption[], onTicket: readonly string[]) {
-  return mechanics
-    .filter((m) => !onTicket.includes(m.id))
-    .sort((a, b) => Number(a.busy) - Number(b.busy) || a.openCount - b.openCount || a.name.localeCompare(b.name))
-    .map((m) => ({
-      value: m.id,
-      label: `${m.name} (${m.openCount} open${m.busy ? ', occupied' : ''})`,
-    }));
+/** Who the ticket can move to: active mechanics not already on it, fewest open tickets first (the Assign dialog's order). */
+export function reassignCandidates(mechanics: readonly MechanicOption[], onTicket: readonly string[]) {
+  return sortMechanics(mechanics.filter((m) => !onTicket.includes(m.id)));
 }
