@@ -16,6 +16,7 @@ import { hasUneditableRoles, onMechanicRoster, vrmsRoles } from '../lib/accountS
 import { askAboutOpenWork, releaseAfterLeaving } from '../lib/openWorkFlow';
 import { systemsText } from '../lib/openWorkCopy';
 import { ExistingAccountPicker } from './ExistingAccountPicker';
+import { MechanicOpenTickets } from './MechanicOpenTickets';
 import { userFormSchema, type UserFormOutput, type UserFormValues } from '../lib/userFormSchema';
 
 export type SaveOutcome = 'created' | 'updated' | 'created-mail-failed' | 'attached';
@@ -34,6 +35,8 @@ interface UserFormDialogProps {
   refetch: () => Promise<ManagedUser[] | null>;
   /** The server's copy after a save. The page updates the list, toasts and closes the dialog. */
   onSaved: (user: ManagedUser, outcome: SaveOutcome) => void;
+  /** A mechanic's tickets changed from the Open tickets section (feature 57). */
+  onWorkChanged: () => void;
 }
 
 const ROLE_OPTIONS = [
@@ -61,6 +64,7 @@ export function UserFormDialog({
   runWrite,
   refetch,
   onSaved,
+  onWorkChanged,
 }: UserFormDialogProps) {
   const formId = useId();
   const { showToast } = useToast();
@@ -380,6 +384,7 @@ export function UserFormDialog({
         />
         {formError && <FormAlert message={formError} />}
       </form>
+      {user && onMechanicRoster(user) && <MechanicOpenTickets user={user} onChanged={onWorkChanged} />}
     </ResponsiveDialog>
   );
 }

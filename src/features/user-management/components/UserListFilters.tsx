@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { ACCOUNT_STATUSES } from '../lib/accountStatus';
+import { WORK_FILTERS, WORK_LABELS } from '../lib/workload';
 import { hasActiveFilters, SEARCH_MAX_LENGTH, USERS_SEARCH_ID, type UserFilterValues } from '../lib/userFilters';
 
 interface UserListFiltersProps {
@@ -22,8 +23,8 @@ export function UserListFilters({ value, searchText, onSearchTextChange, onChang
   const filtered = hasActiveFilters(value) || searchText.trim() !== '';
 
   return (
-    <div role="search" aria-label="Filter users" className="mb-4 grid gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
-      <div className="flex flex-col gap-1.5 sm:col-span-2 lg:min-w-64 lg:flex-1">
+    <div role="search" aria-label="Filter users" className="mb-4 grid grid-cols-2 gap-3 lg:flex lg:flex-wrap lg:items-end">
+      <div className="col-span-2 flex flex-col gap-1.5 lg:min-w-64 lg:flex-1">
         <Label htmlFor={USERS_SEARCH_ID} className={LABEL}>
           Search
         </Label>
@@ -83,8 +84,29 @@ export function UserListFilters({ value, searchText, onSearchTextChange, onChang
         </Select>
       </div>
 
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="users-work" className={LABEL}>
+          Work
+        </Label>
+        <Select value={value.work} onValueChange={(work) => onChange({ work: work as UserFilterValues['work'] })}>
+          <SelectTrigger id="users-work" className="w-full lg:w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="all">Everyone</SelectItem>
+              {WORK_FILTERS.map((work) => (
+                <SelectItem key={work} value={work}>
+                  {WORK_LABELS[work]} mechanics
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
       {filtered && (
-        <Button variant="ghost" className="h-11 sm:self-end md:h-10" onClick={onClear}>
+        <Button variant="ghost" className="h-11 self-end md:h-10" onClick={onClear}>
           <X aria-hidden="true" />
           Clear filters
         </Button>

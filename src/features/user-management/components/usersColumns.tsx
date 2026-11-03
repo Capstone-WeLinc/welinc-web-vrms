@@ -1,25 +1,35 @@
 import type { Column } from '../../../components/shared/data-table/types';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { formatShortDate } from '../../../lib/utils/format';
+import type { MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
 import { getAccountStatus } from '../lib/accountStatus';
 import { UserNameCell, UserRoleCell } from './UserCells';
+import { UserWorkCell } from './UserWorkCell';
 
 /**
  * The Users table (spec 0006, AC-6). Desktop shows name and email in one User column; a phone
- * card needs them apart, as its title and subtitle, so each layout gets its own set.
+ * card needs them apart, as its title and subtitle, so each layout gets its own set. Work shows a
+ * mechanic's Occupied or Free and open counts (feature 57).
  */
-export function usersColumns(currentUserId: string | undefined, isMobile: boolean): Column<ManagedUser>[] {
+export function usersColumns(
+  currentUserId: string | undefined,
+  isMobile: boolean,
+  workload: ReadonlyMap<string, MechanicWorkload> | null,
+): Column<ManagedUser>[] {
   const name = (user: ManagedUser) => <UserNameCell user={user} isSelf={user.id === currentUserId} />;
 
   const rest: Column<ManagedUser>[] = [
     { id: 'role', header: 'Role', mobile: 'field', cell: (user) => <UserRoleCell user={user} /> },
     { id: 'status', header: 'Status', mobile: 'badge', cell: (user) => <StatusBadge status={getAccountStatus(user)} /> },
+    { id: 'work', header: 'Work', mobile: 'field', cell: (user) => <UserWorkCell user={user} workload={workload} /> },
     {
       id: 'added',
       header: 'Added',
       mobile: 'hidden',
-      cell: (user) => <time dateTime={user.createdAt}>{formatShortDate(user.createdAt)}</time>,
+      cell: (user) => <time dateTime={user.createdAt} className="whitespace-nowrap">
+          {formatShortDate(user.createdAt)}
+        </time>,
     },
   ];
 
