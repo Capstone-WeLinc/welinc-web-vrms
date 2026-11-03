@@ -104,7 +104,9 @@ const EVENT_STYLES: Record<string, EventStyle> = {
 };
 
 export function eventStyle(type: string): EventStyle {
-  return EVENT_STYLES[type] ?? { icon: Activity, tone: 'bg-muted text-muted-strong' };
+  // Own keys only: a type like "constructor" must not find an inherited member
+  const own = Object.prototype.hasOwnProperty.call(EVENT_STYLES, type);
+  return (own && EVENT_STYLES[type]) || { icon: Activity, tone: 'bg-muted text-muted-strong' };
 }
 
 /** The actor's name, else their email; null means "no actor" wording. */

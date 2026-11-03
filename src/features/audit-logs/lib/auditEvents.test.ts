@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AuditChange } from '../../../types';
 import {
   attachmentLine,
+  eventStyle,
   issueEventLines,
   movedFileName,
   photoMoveLine,
@@ -25,6 +26,44 @@ describe('ticketTextLines', () => {
 
   it('leaves the detail fields to ticketEditLines', () => {
     expect(ticketTextLines({ changes: [{ field: 'priority', before: 'LOW', after: 'HIGH' }] })).toEqual([]);
+  });
+});
+
+describe('eventStyle for the spec 0021 types (AC-15)', () => {
+  const fallback = eventStyle('NOT_A_TYPE');
+
+  it('gives locked, ticked and unticked their own icon instead of the fallback', () => {
+    for (const type of ['LOCKED', 'STEP_CHECKED', 'STEP_UNCHECKED']) {
+      expect(eventStyle(type).icon).not.toBe(fallback.icon);
+    }
+  });
+
+  it('treats an inherited object name as an unknown type, not a style', () => {
+    expect(eventStyle('constructor')).toEqual(fallback);
+    expect(eventStyle('toString')).toEqual(fallback);
+  });
+
+  it('tells a ticked step from an unticked one', () => {
+    expect(eventStyle('STEP_CHECKED').icon).not.toBe(eventStyle('STEP_UNCHECKED').icon);
+  });
+});
+
+describe('ticketTextLines edge cases (AC-15)', () => {
+  it('shows None for a cleared value on either side', () => {
+    expect(
+      ticketTextLines({ changes: [{ field: 'remarks', before: 'Old note', after: null }] }),
+    ).toEqual(['Remarks: Old note → None']);
+  });
+
+  it('keeps remarks before the cancel reason whatever order the changes came in', () => {
+    expect(
+      ticketTextLines({
+        changes: [
+          { field: 'cancellationReason', before: null, after: 'Sold' },
+          { field: 'remarks', before: null, after: 'Note' },
+        ],
+      }),
+    ).toEqual(['Remarks: None → Note', 'Cancel reason: None → Sold']);
   });
 });
 
