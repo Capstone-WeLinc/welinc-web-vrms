@@ -286,6 +286,8 @@ export interface AuditChange {
 export interface AuditEvent {
   id: string;
   type: string;
+  /** Spec 0021, AC-8: STATUS, ASSIGNMENT, EDITS, COSTS, FILES, CHECKLIST or KNOWLEDGE; null outside the catalog. */
+  category: string | null;
   at: string;
   actor: { id: string | null; name: string | null; email: string | null; role: string | null } | null;
   ticket: { id: string; repairNumber: string };

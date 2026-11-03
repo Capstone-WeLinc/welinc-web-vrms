@@ -16,7 +16,9 @@ import {
   issueEventLines,
   movedFileName,
   photoMoveLine,
+  stepLine,
   ticketEditLines,
+  ticketTextLines,
 } from '../lib/auditEvents';
 
 const FOCUSABLE_TEXT = 'rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -100,6 +102,13 @@ function Sentence({ event, showTicket }: { event: AuditEvent; showTicket: boolea
       return who ? withActor('edited an issue on') : <>An issue on {rep} was edited</>;
     case 'ISSUE_REMOVED':
       return who ? withActor('removed an issue from') : <>An issue was removed from {rep}</>;
+    // Spec 0021, AC-15
+    case 'LOCKED':
+      return who ? withActor('locked', ' again') : <>{rep} was locked again</>;
+    case 'STEP_CHECKED':
+      return who ? withActor('ticked a step on') : <>A step was ticked on {rep}</>;
+    case 'STEP_UNCHECKED':
+      return who ? withActor('unticked a step on') : <>A step was unticked on {rep}</>;
     default:
       return who ? (
         <>
@@ -186,14 +195,33 @@ function Change({ event }: { event: AuditEvent }) {
   }
   if (event.type === 'TICKET_EDITED' || event.type.startsWith('ISSUE_')) {
     const lines = event.type === 'TICKET_EDITED' ? ticketEditLines(event) : issueEventLines(event);
-    if (lines.length === 0) return null;
+    // Spec 0021, AC-15: remarks and the cancel reason, clamped to 2 lines with the full text on hover or focus
+    const texts = event.type === 'TICKET_EDITED' ? ticketTextLines(event) : [];
+    if (lines.length === 0 && texts.length === 0) return null;
     return (
       <ul className="flex flex-col gap-0.5 text-sm break-words text-muted-foreground">
         {lines.map((line) => (
           <li key={line}>{line}</li>
         ))}
+        {texts.map((line) => (
+          <li key={line}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0} className={cn('line-clamp-2', FOCUSABLE_TEXT)}>
+                  {line}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-sm break-words">{line}</TooltipContent>
+            </Tooltip>
+          </li>
+        ))}
       </ul>
     );
+  }
+  if (event.type === 'STEP_CHECKED' || event.type === 'STEP_UNCHECKED') {
+    const step = stepLine(event);
+    if (!step) return null;
+    return <p className="text-sm break-words text-muted-foreground">{step}</p>;
   }
   if (event.type === 'GARAGE_CHANGE') {
     const garage = changeOf(event, 'garage');
