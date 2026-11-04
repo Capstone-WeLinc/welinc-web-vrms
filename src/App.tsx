@@ -8,6 +8,7 @@ import { RepairDetailPage } from './features/repair/pages/RepairDetailPage';
 import { RepairFormPage } from './features/repair/pages/RepairFormPage';
 import { RepairListPage } from './features/repair/pages/RepairListPage';
 import { UsersPage } from './features/user-management/pages/UsersPage';
+import { MechanicsPage } from './features/mechanics/pages/MechanicsPage';
 import { AuditLogsPage } from './features/audit-logs/pages/AuditLogsPage';
 import { ProfilePage } from './features/auth/pages/ProfilePage';
 import { AnalyticsPage } from './features/analytics/pages/AnalyticsPage';
@@ -171,6 +172,14 @@ function App() {
             element={
               <RequirePermission keys={['users.manage']}>
                 <UsersPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="mechanics"
+            element={
+              <RequirePermission keys={['mechanics.view']}>
+                <MechanicsPage />
               </RequirePermission>
             }
           />

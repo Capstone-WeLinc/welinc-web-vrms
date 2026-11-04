@@ -2,6 +2,7 @@ import {
   BarChart2,
   BookOpen,
   ClipboardList,
+  HardHat,
   History,
   LayoutDashboard,
   PlusCircle,
@@ -59,6 +60,8 @@ export function getNavSections(can: (key: PermissionKey) => boolean): NavSection
         },
         can('ticket.create') && { to: '/repairs/new', label: 'New repair', icon: PlusCircle },
         seesTickets && { to: '/history', label: 'Repair history', shortLabel: 'History', icon: History },
+        // Spec 0022, AC-5: Admin keeps the Users page for this, so the item shows only without users.manage
+        can('mechanics.view') && !can('users.manage') && { to: '/mechanics', label: 'Mechanics', icon: HardHat },
       ]),
     },
     {
