@@ -11,12 +11,14 @@ type Loaded = { attempt: number; status: 'ready'; rows: MechanicRosterRow[] } | 
  * first load is the error state; a failed refresh keeps the rows and sets `refreshFailed` until
  * the next one lands.
  */
-export function useMechanicRoster() {
+/** `enabled` false skips every read, for a viewer without mechanics.view. */
+export function useMechanicRoster(enabled = true) {
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [refreshFailed, setRefreshFailed] = useState(false);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     getMechanicRoster().then(
       (rows) => {
@@ -29,7 +31,7 @@ export function useMechanicRoster() {
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, [attempt, enabled]);
 
   const current = loaded?.attempt === attempt ? loaded : null;
   const state = current ? current.status : ('loading' as const);
@@ -48,7 +50,7 @@ export function useMechanicRoster() {
         throw err;
       },
     );
-  useVisiblePoll(refetch, state === 'ready');
+  useVisiblePoll(refetch, enabled && state === 'ready');
 
   return {
     state,

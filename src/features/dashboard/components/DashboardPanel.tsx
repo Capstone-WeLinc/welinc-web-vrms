@@ -7,6 +7,7 @@ const TONES = {
   verification: 'bg-status-for-verification-bg text-status-for-verification-fg',
   progress: 'bg-status-in-progress-bg text-status-in-progress-fg',
   primary: 'bg-primary/10 text-primary',
+  danger: 'bg-destructive/10 text-destructive',
 } as const;
 
 type PanelProps = {
