@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import { PlateChip } from '../../../components/shared/PlateChip';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { cn } from '@/lib/utils';
@@ -17,34 +18,40 @@ export function DashboardTicketRow({ ticket, facts }: { ticket: RepairTicket; fa
     <li>
       <Link
         to={`/repairs/${ticket.id}`}
-        className="flex min-h-11 flex-col justify-center gap-1 px-4 py-2.5 outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        className="group flex min-h-11 items-center gap-3 px-4 py-3 outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none md:px-5"
       >
-        <span className="flex flex-wrap items-center gap-2">
-          <PlateChip plate={ticket.vehiclePlate} />
-          <StatusBadge status={ticket.status} />
+        <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <span className="flex flex-wrap items-center gap-2">
+            <PlateChip plate={ticket.vehiclePlate} />
+            <StatusBadge status={ticket.status} />
+          </span>
+          <span className="flex flex-wrap gap-x-1.5 text-xs text-muted-foreground">
+            <span className="whitespace-nowrap">{ticket.repairNumber}</span>
+            {facts.map((fact) => (
+              <span
+                key={fact.text}
+                title={fact.title}
+                className={cn('wrap-anywhere', fact.overdue && 'font-medium text-destructive')}
+              >
+                <span aria-hidden="true">· </span>
+                {fact.text}
+              </span>
+            ))}
+          </span>
         </span>
-        <span className="flex flex-wrap gap-x-1.5 text-xs text-muted-foreground">
-          <span className="whitespace-nowrap">{ticket.repairNumber}</span>
-          {facts.map((fact) => (
-            <span
-              key={fact.text}
-              title={fact.title}
-              className={cn('wrap-anywhere', fact.overdue && 'font-medium text-destructive')}
-            >
-              <span aria-hidden="true">· </span>
-              {fact.text}
-            </span>
-          ))}
-        </span>
+        <ChevronRight
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none"
+        />
       </Link>
     </li>
   );
 }
 
-/** The bordered list the rows sit in, separated by dividers (design.md, no card per row). */
+/** The rows inside a panel, separated by dividers (design.md: no card per row). */
 export function TicketRowList({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <ul aria-label={label} className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+    <ul aria-label={label} className="divide-y divide-border">
       {children}
     </ul>
   );

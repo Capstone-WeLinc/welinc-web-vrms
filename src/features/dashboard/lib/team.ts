@@ -172,3 +172,27 @@ export function buildTeam(rows: readonly MechanicRosterRow[], active: readonly R
 export function showsEmail(person: { name: string }, shared: ReadonlySet<string>) {
   return shared.has(nameKey(person.name));
 }
+
+/** The workload bar's groups, in the Admin pipeline's chart colors (same hue families as the badges). */
+export const WORKLOAD_GROUPS = [
+  { key: 'IN_PROGRESS', label: 'In progress', statuses: ['IN_PROGRESS'] },
+  { key: 'ASSIGNED', label: 'Assigned', statuses: ['ASSIGNED'] },
+  { key: 'FOR_VERIFICATION', label: 'For verification', statuses: ['FOR_VERIFICATION'] },
+  { key: 'OTHER', label: 'On hold and other', statuses: ['OPEN', 'ON_HOLD', 'OUTSOURCED', 'PENDING_APPROVAL'] },
+] as const;
+
+export type WorkloadGroup = (typeof WORKLOAD_GROUPS)[number]['key'];
+
+/** The group a ticket status falls in, for the chip's dot. */
+export function workloadGroupOf(status: RepairStatus): WorkloadGroup {
+  return WORKLOAD_GROUPS.find((g) => (g.statuses as readonly RepairStatus[]).includes(status))?.key ?? 'OTHER';
+}
+
+/** A roster row's open counts by group, in bar order, zero groups left out. */
+export function workloadSegments(byStatus: Readonly<Record<string, number>>) {
+  return WORKLOAD_GROUPS.map((group) => ({
+    key: group.key,
+    label: group.label,
+    count: group.statuses.reduce((sum, status) => sum + (byStatus[status] ?? 0), 0),
+  })).filter((segment) => segment.count > 0);
+}
