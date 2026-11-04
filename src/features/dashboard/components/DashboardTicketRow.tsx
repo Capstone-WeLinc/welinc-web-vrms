@@ -13,7 +13,16 @@ export type RowFact = { text: string; overdue?: boolean; title?: string };
  * Spec 0022, AC-8: the Chief dashboard's one ticket row. Line 1 the plate and status, line 2 the
  * ticket number and the section's facts. The whole row is one link, at least 44px tall on phones.
  */
-export function DashboardTicketRow({ ticket, facts }: { ticket: RepairTicket; facts: RowFact[] }) {
+export function DashboardTicketRow({
+  ticket,
+  facts,
+  lead,
+}: {
+  ticket: RepairTicket;
+  facts: RowFact[];
+  /** Line 1 after the plate, in place of the status badge, when every row shares that status. */
+  lead?: ReactNode;
+}) {
   return (
     <li>
       <Link
@@ -23,7 +32,7 @@ export function DashboardTicketRow({ ticket, facts }: { ticket: RepairTicket; fa
         <span className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="flex flex-wrap items-center gap-2">
             <PlateChip plate={ticket.vehiclePlate} />
-            <StatusBadge status={ticket.status} />
+            {lead ?? <StatusBadge status={ticket.status} />}
           </span>
           <span className="flex flex-wrap gap-x-1.5 text-xs text-muted-foreground">
             <span className="whitespace-nowrap">{ticket.repairNumber}</span>

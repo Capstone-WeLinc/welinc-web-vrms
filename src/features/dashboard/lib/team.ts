@@ -20,6 +20,10 @@ export type TeamChip = {
   ticket: RepairTicket;
   /** "On hold · 4 days" */
   text: string;
+  /** "On hold" */
+  status: string;
+  /** "4 days" */
+  time: string;
   /** "Overdue by 2 days" or "Due today" when overdue, else null. */
   overdue: string | null;
 };
@@ -73,9 +77,13 @@ export function compareChips(now: number) {
 }
 
 export function chipOf(ticket: RepairTicket, now: number): TeamChip {
+  const status = statusLabel(ticket.status);
+  const time = timeInStatus(ticket.statusChangedAt, now);
   return {
     ticket,
-    text: `${statusLabel(ticket.status)} · ${timeInStatus(ticket.statusChangedAt, now)}`,
+    text: `${status} · ${time}`,
+    status,
+    time,
     overdue: isOverdue(ticket, now) ? overdueText(ticket, now) : null,
   };
 }
@@ -93,9 +101,6 @@ export function teamSummary(roster: readonly MechanicRosterRow[]): TeamSummary {
   return { working, waiting, free };
 }
 
-export function summaryText({ working, waiting, free }: TeamSummary) {
-  return `${working} working · ${waiting} with work waiting · ${free} free`;
-}
 
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
 
@@ -171,19 +176,4 @@ export function buildTeam(rows: readonly MechanicRosterRow[], active: readonly R
 /** The email shows inline only when another listed person shares the name (AC-12, AC-13). */
 export function showsEmail(person: { name: string }, shared: ReadonlySet<string>) {
   return shared.has(nameKey(person.name));
-}
-
-/** Status groups for the chip dots, in the Admin pipeline's chart colors (same hue families as the badges). */
-export const WORKLOAD_GROUPS = [
-  { key: 'IN_PROGRESS', label: 'In progress', statuses: ['IN_PROGRESS'] },
-  { key: 'ASSIGNED', label: 'Assigned', statuses: ['ASSIGNED'] },
-  { key: 'FOR_VERIFICATION', label: 'For verification', statuses: ['FOR_VERIFICATION'] },
-  { key: 'OTHER', label: 'On hold and other', statuses: ['OPEN', 'ON_HOLD', 'OUTSOURCED', 'PENDING_APPROVAL'] },
-] as const;
-
-export type WorkloadGroup = (typeof WORKLOAD_GROUPS)[number]['key'];
-
-/** The group a ticket status falls in, for the chip's dot. */
-export function workloadGroupOf(status: RepairStatus): WorkloadGroup {
-  return WORKLOAD_GROUPS.find((g) => (g.statuses as readonly RepairStatus[]).includes(status))?.key ?? 'OTHER';
 }

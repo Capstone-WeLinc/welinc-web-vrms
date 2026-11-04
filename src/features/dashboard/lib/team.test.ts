@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MechanicRosterRow } from '../../../lib/api/vrmsConfigApi';
 import { ticket } from '../../../test/ticketFixture';
 import type { RepairStatus } from '../../../types';
-import { buildTeam, chipOf, compareChips, summaryText, teamSummary, workloadGroupOf } from './team';
+import { buildTeam, chipOf, compareChips, teamSummary } from './team';
 
 // Spec 0022, AC-7 and AC-10 to AC-15: the Team section's rules.
 
@@ -45,7 +45,6 @@ describe('teamSummary', () => {
       row('gone', { isActive: false, total: 1 }),
     ]);
     expect(summary).toEqual({ working: 1, waiting: 2, free: 1 });
-    expect(summaryText(summary)).toBe('1 working · 2 with work waiting · 1 free');
   });
 });
 
@@ -145,12 +144,5 @@ describe('chip order and text', () => {
       text: 'In progress · 3 h',
       overdue: null,
     });
-  });
-});
-
-describe('workloadGroupOf', () => {
-  it('maps a status to its group', () => {
-    expect(workloadGroupOf('FOR_VERIFICATION')).toBe('FOR_VERIFICATION');
-    expect(workloadGroupOf('ON_HOLD')).toBe('OTHER');
   });
 });
