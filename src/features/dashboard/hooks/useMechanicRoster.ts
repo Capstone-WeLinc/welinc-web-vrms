@@ -6,9 +6,10 @@ import { getMechanicRoster, type MechanicRosterRow } from '../../../lib/api/vrms
 type Loaded = { attempt: number; status: 'ready'; rows: MechanicRosterRow[] } | { attempt: number; status: 'error'; message: string };
 
 /**
- * The Mechanics screen's roster (spec 0022, AC-2 and AC-9). Refetches every 3 seconds while the
- * tab is visible. A failed first load is the error state; a failed refresh keeps the rows and
- * sets `refreshFailed` until the next one lands.
+ * The Team section's roster (spec 0022, AC-2 and AC-15). Refetches every 3 seconds while the
+ * tab is visible, on its own so a roster failure never blanks the rest of the dashboard. A failed
+ * first load is the error state; a failed refresh keeps the rows and sets `refreshFailed` until
+ * the next one lands.
  */
 export function useMechanicRoster() {
   const [attempt, setAttempt] = useState(0);
@@ -22,7 +23,7 @@ export function useMechanicRoster() {
         if (!cancelled) setLoaded({ attempt, status: 'ready', rows });
       },
       (err: unknown) => {
-        if (!cancelled) setLoaded({ attempt, status: 'error', message: getApiErrorMessage(err, 'Couldn’t load the mechanics.') });
+        if (!cancelled) setLoaded({ attempt, status: 'error', message: getApiErrorMessage(err, 'Couldn’t load the team.') });
       },
     );
     return () => {
@@ -33,29 +34,31 @@ export function useMechanicRoster() {
   const current = loaded?.attempt === attempt ? loaded : null;
   const state = current ? current.status : ('loading' as const);
 
-  useVisiblePoll(
-    () =>
-      getMechanicRoster({ quiet: true }).then(
-        (rows) => {
-          // Unchanged rows keep the same state, so the list does not redraw every few seconds
-          setLoaded((prev) =>
-            prev?.status === 'ready' && JSON.stringify(prev.rows) === JSON.stringify(rows) ? prev : { attempt, status: 'ready', rows },
-          );
-          setRefreshFailed(false);
-        },
-        (err: unknown) => {
-          setRefreshFailed(true);
-          throw err;
-        },
-      ),
-    state === 'ready',
-  );
+  const refetch = () =>
+    getMechanicRoster({ quiet: true }).then(
+      (rows) => {
+        // Unchanged rows keep the same state, so the list does not redraw every few seconds
+        setLoaded((prev) =>
+          prev?.status === 'ready' && JSON.stringify(prev.rows) === JSON.stringify(rows) ? prev : { attempt, status: 'ready', rows },
+        );
+        setRefreshFailed(false);
+      },
+      (err: unknown) => {
+        setRefreshFailed(true);
+        throw err;
+      },
+    );
+  useVisiblePoll(refetch, state === 'ready');
 
   return {
     state,
     rows: current?.status === 'ready' ? current.rows : [],
     errorMessage: current?.status === 'error' ? current.message : undefined,
     refreshFailed: state === 'ready' && refreshFailed,
+    /** Spec 0022, AC-14: refetch now, quietly, after a Reassign or Unassign. */
+    refresh: () => {
+      if (state === 'ready') refetch().catch(() => undefined);
+    },
     retry: () => {
       setRefreshFailed(false);
       setAttempt((n) => n + 1);
