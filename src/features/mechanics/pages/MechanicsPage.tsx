@@ -6,6 +6,8 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import type { MechanicRosterRow } from '../../../lib/api/vrmsConfigApi';
 import { nameKey, sharedNames } from '../../repair/lib/mechanicOrder';
+import { MechanicOpenTickets } from '../../user-management/components/MechanicOpenTickets';
+import { ResponsiveDialog } from '../../../components/shared/ResponsiveDialog';
 import { MechanicRow } from '../components/MechanicRow';
 import { MechanicsFilters } from '../components/MechanicsFilters';
 import { useMechanicRoster } from '../hooks/useMechanicRoster';
@@ -22,7 +24,13 @@ export function MechanicsPage() {
   const roster = useMechanicRoster();
   const { filters, searchText, setSearchText, setFilters, clearFilters } = useMechanicsFilters();
   const [fixed, setFixed] = useState<FixedOrder | null>(null);
-  const [, setOpenRow] = useState<MechanicRosterRow | null>(null);
+  // The row is kept, not looked up, so the dialog stays open if that person drops off the list (AC-10)
+  const [openRow, setOpenRow] = useState<MechanicRosterRow | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const openTickets = (row: MechanicRosterRow) => {
+    setOpenRow(row);
+    setDialogOpen(true);
+  };
 
   // Filters run on the live rows, so someone who stops matching leaves at once (AC-7)
   const matching = roster.rows.filter((row) => matchesMechanicsFilters(row, filters));
@@ -103,10 +111,16 @@ export function MechanicsPage() {
           )}
           <ul aria-label="Mechanics" className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
             {shown.map((row) => (
-              <MechanicRow key={row.authUserId} row={row} showEmail={shared.has(nameKey(row.name))} onOpen={setOpenRow} />
+              <MechanicRow key={row.authUserId} row={row} showEmail={shared.has(nameKey(row.name))} onOpen={openTickets} />
             ))}
           </ul>
         </>
+      )}
+
+      {openRow && (
+        <ResponsiveDialog open={dialogOpen} onOpenChange={setDialogOpen} title={`${openRow.name}’s open tickets`}>
+          <MechanicOpenTickets key={openRow.authUserId} user={{ id: openRow.authUserId, name: openRow.name }} readOnly />
+        </ResponsiveDialog>
       )}
     </div>
   );

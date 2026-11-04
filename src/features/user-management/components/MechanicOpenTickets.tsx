@@ -20,11 +20,21 @@ import { ReassignDialog } from './ReassignDialog';
 
 type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: OpenTicketsData };
 
-interface MechanicOpenTicketsProps {
-  user: ManagedUser;
-  /** After an unassign or reassign lands, so the page's Work column catches up. */
-  onChanged: () => void;
-}
+type MechanicOpenTicketsProps = {
+  /** The person whose tickets these are: their welinc-auth id and name. */
+  user: Pick<ManagedUser, 'id' | 'name'>;
+} & (
+  | {
+      readOnly?: false;
+      /** After an unassign or reassign lands, so the page's Work column catches up. */
+      onChanged: () => void;
+    }
+  | {
+      /** Spec 0022, AC-10: the Mechanics screen's list, with no Unassign or Reassign whatever the viewer holds. */
+      readOnly: true;
+      onChanged?: never;
+    }
+);
 
 /** What Unassign does to the ticket, in words, before the Admin confirms. */
 function unassignEffect(ticket: MechanicOpenTicket, mechanicId: string) {
@@ -60,9 +70,10 @@ function CoWorkers({ names }: { names: string[] }) {
  * Reassign. Both go through PUT /vrms/repairs/:id/assignments, which runs the status moves, the
  * verifier block, the audit rows and the stale check (spec 0019).
  */
-export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProps) {
+export function MechanicOpenTickets({ user, readOnly = false, onChanged }: MechanicOpenTicketsProps) {
   const { showToast } = useToast();
-  const canAssign = useCan('ticket.assign');
+  const holdsAssign = useCan('ticket.assign');
+  const canAssign = !readOnly && holdsAssign;
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -94,7 +105,7 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
     try {
       await setMechanics(ticket.id, mechanicIds, { lastUpdatedAt: ticket.updatedAt });
       showToast(done);
-      onChanged();
+      onChanged?.();
       headingRef.current?.focus();
     } catch (err) {
       showToast(
@@ -131,7 +142,10 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
   };
 
   return (
-    <section aria-labelledby="open-tickets-heading" className="mt-5 flex flex-col gap-2 border-t border-border pt-4">
+    <section
+      aria-labelledby="open-tickets-heading"
+      className={readOnly ? 'flex flex-col gap-2' : 'mt-5 flex flex-col gap-2 border-t border-border pt-4'}
+    >
       <h3
         id="open-tickets-heading"
         ref={headingRef}
@@ -231,13 +245,15 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
         </Button>
       )}
 
-      <ReassignDialog
-        ticket={reassigning}
-        fromName={user.name}
-        finalFocusRef={headingRef}
-        onOpenChange={(open) => !open && setReassigning(null)}
-        onSubmit={reassign}
-      />
+      {canAssign && (
+        <ReassignDialog
+          ticket={reassigning}
+          fromName={user.name}
+          finalFocusRef={headingRef}
+          onOpenChange={(open) => !open && setReassigning(null)}
+          onSubmit={reassign}
+        />
+      )}
     </section>
   );
 }
