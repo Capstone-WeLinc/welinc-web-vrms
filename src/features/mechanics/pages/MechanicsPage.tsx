@@ -31,7 +31,12 @@ export function MechanicsPage() {
             const state = row.occupied ? 'occupied' : 'free';
             return (
               <li key={row.authUserId} className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="min-w-0 truncate font-medium">{row.name}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="min-w-0 truncate font-medium">{row.name}</span>
+                  {row.role === 'CHIEF_MECHANIC' && (
+                    <BadgePill className="bg-role-chief-mechanic-bg text-role-chief-mechanic-fg">Chief</BadgePill>
+                  )}
+                </span>
                 <BadgePill className={STATE_CLASSES[state]}>{WORK_LABELS[state]}</BadgePill>
               </li>
             );
