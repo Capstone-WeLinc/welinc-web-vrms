@@ -1,16 +1,17 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, LayoutDashboard } from 'lucide-react';
+import { ArrowRight, CircleCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { PageHeader } from '../../../components/layout/PageHeader';
 import { ErrorState } from '../../../components/shared/ErrorState';
+import { PlateChip } from '../../../components/shared/PlateChip';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import { useAuthStore } from '../../../store/authStore';
 import { dueLabel } from '../../../lib/utils/due';
+import type { RepairTicket } from '../../../types';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useMechanicRoster } from '../hooks/useMechanicRoster';
-import { greeting, mechanicWorkList, signOffNames, verificationQueue, waitingText } from '../lib/attention';
+import { mechanicWorkList, signOffNames, timeInStatus, verificationQueue, waitTone } from '../lib/attention';
 import { buildTeam, type TeamSummary } from '../lib/team';
 import { DashboardPanel, PanelEmpty } from './DashboardPanel';
 import { DashboardSkeleton } from './DashboardSkeleton';
@@ -21,42 +22,100 @@ import { TruncationNote } from './TruncationNote';
 
 const VERIFY_LIMIT = 8;
 
-type Stat = { label: string; value: ReactNode };
-
-/** A team number, or a dash while the roster loads or after it failed (Team shows why). */
-function teamValue(summary: TeamSummary | undefined, key: keyof TeamSummary): ReactNode {
-  return summary ? summary[key] : <span aria-label="Not loaded">—</span>;
+function todayLabel(time: number) {
+  return new Date(time).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-// Hairlines between cells: one row of four from 1024px, two by two below it
-function cellBorders(index: number, count: number) {
-  return cn(
-    index % 2 === 1 && 'border-l',
-    index >= 2 && 'border-t lg:border-t-0',
-    index > 0 && 'lg:border-l',
-    count === 2 && 'lg:col-span-2',
+/** The secondary numbers as one quiet line: said once, here, never as tiles. */
+function FloorLine({ summary, extra }: { summary: TeamSummary | undefined; extra: string[] }) {
+  const parts = summary
+    ? [`${summary.working} working`, `${summary.waiting} not started`, `${summary.free} free`, ...extra]
+    : extra;
+  if (parts.length === 0) return null;
+  return (
+    <p className="text-sm text-muted-foreground tabular-nums">
+      {parts.map((part, index) => (
+        <span key={part}>
+          {index > 0 && <span aria-hidden="true"> · </span>}
+          {part}
+        </span>
+      ))}
+    </p>
   );
 }
 
-/** The headline numbers as one scoreboard: each said once, here, and nowhere else on the page. */
-function Scoreboard({ stats }: { stats: Stat[] }) {
+/** The one thing the Chief acts on, with the one button that starts it. */
+function SignOffSummary({ count, oldest, now }: { count: number; oldest: RepairTicket | undefined; now: number }) {
+  if (count === 0 || !oldest) {
+    return (
+      <div className="flex items-center gap-3">
+        <CircleCheck aria-hidden="true" className="size-6 shrink-0 text-status-completed-fg" />
+        <p className="text-lg font-semibold text-foreground">Nothing waiting for verification.</p>
+      </div>
+    );
+  }
   return (
-    <dl aria-label="At a glance" className="grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card lg:grid-cols-4">
-      {stats.map((stat, index) => (
-        <div key={stat.label} className={cn('flex flex-col-reverse gap-0.5 border-border px-5 py-4', cellBorders(index, stats.length))}>
-          <dt className="text-sm text-muted-foreground">{stat.label}</dt>
-          <dd className="text-3xl font-semibold tracking-tight text-foreground tabular-nums">{stat.value}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <p className="flex flex-wrap items-baseline gap-x-3 text-lg font-semibold text-foreground">
+          <span className="text-4xl font-semibold tracking-tight text-foreground tabular-nums">{count}</span>
+          {count === 1 ? 'repair waiting for verification' : 'repairs waiting for verification'}
+        </p>
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          Oldest
+          <PlateChip plate={oldest.vehiclePlate} />
+          <span>
+            by {signOffNames(oldest.mechanics)}, waiting {timeInStatus(oldest.statusChangedAt, now)}
+          </span>
+        </p>
+      </div>
+      <Button asChild className="h-11 shrink-0 px-5">
+        <Link to={`/repairs/${oldest.id}`}>
+          Verify the oldest
+          <ArrowRight aria-hidden="true" />
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+const WAIT_TONE = {
+  fresh: 'text-muted-foreground',
+  stale: 'font-medium text-status-pending-fg',
+  late: 'font-medium text-destructive',
+} as const;
+
+/** A For verification row: plate, who did it and how long it has waited, then what the job was. */
+function QueueRow({ ticket, now }: { ticket: RepairTicket; now: number }) {
+  const names = ticket.mechanics?.map((m) => m.name).join(', ');
+  const tone = waitTone(ticket.statusChangedAt, now);
+  return (
+    <li>
+      <Link
+        to={`/repairs/${ticket.id}`}
+        title={`${ticket.repairNumber}${names ? ` · ${names}` : ''}`}
+        className="flex min-h-11 flex-col gap-1 px-4 py-3 outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none md:px-5"
+      >
+        <span className="flex items-center gap-3">
+          <PlateChip plate={ticket.vehiclePlate} />
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{signOffNames(ticket.mechanics)}</span>
+          <span className={cn('shrink-0 text-xs tabular-nums', WAIT_TONE[tone])}>
+            {timeInStatus(ticket.statusChangedAt, now)}
+          </span>
+        </span>
+        {ticket.issueDescription && (
+          <span className="line-clamp-1 text-sm text-muted-foreground">{ticket.issueDescription}</span>
+        )}
+      </Link>
+    </li>
   );
 }
 
 /**
  * Spec 0022 (replacing spec 0015's tiles, tables and pipeline on this view), reworked after a
- * design review: a scoreboard of headline numbers, then Ready to verify and My work in a narrow
- * left column and the Team grid in a wide right one from 1280px. Below that they stack in the
- * same order, so reading and tab order never change.
+ * design review: the For verification count and its one action lead, the rest of the floor is one line
+ * of text, then the queue and My work beside the Team roster from 1280px. Below that they stack
+ * in the same order, so reading and tab order never change.
  */
 export function ChiefDashboard() {
   const user = useAuthStore((state) => state.user);
@@ -83,27 +142,21 @@ export function ChiefDashboard() {
     [seesTeam, roster.state, roster.rows, active, user?.id, fetchedAt],
   );
 
-  const stats: Stat[] = seesTeam
-    ? [
-        { label: 'Ready to verify', value: derived.queueCount },
-        { label: 'Mechanics working', value: teamValue(team?.summary, 'working') },
-        { label: 'With work waiting', value: teamValue(team?.summary, 'waiting') },
-        { label: 'Free mechanics', value: teamValue(team?.summary, 'free') },
-      ]
-    : [
-        { label: 'Ready to verify', value: derived.queueCount },
-        { label: 'My work', value: derived.work.length },
-      ];
+  const extra: string[] = [];
+  if (team && team.noMechanic.length > 0) extra.push(`${team.noMechanic.length} with no mechanic`);
+  if (!seesTeam) extra.push(`${derived.work.length} in my work`);
 
   return (
-    <div>
-      <PageHeader
-        title="Dashboard"
-        subtitle={`${greeting(user?.name)} Here's your shop floor today.`}
-        icon={LayoutDashboard}
-      />
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+          {state === 'ready' && <p className="text-sm text-muted-foreground">{todayLabel(fetchedAt)}</p>}
+        </div>
+        {state === 'ready' && <LastUpdated fetchedAt={fetchedAt} refreshFailed={refreshFailed} />}
+      </header>
 
-      {state === 'loading' && <DashboardSkeleton admin={false} />}
+      {state === 'loading' && <DashboardSkeleton admin={false} tiles={false} />}
 
       {state === 'error' && (
         <ErrorState
@@ -114,21 +167,27 @@ export function ChiefDashboard() {
       )}
 
       {state === 'ready' && (
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-3">
-            <LastUpdated fetchedAt={fetchedAt} refreshFailed={refreshFailed} />
-            {truncated && <TruncationNote rows={active.length} />}
-          </div>
+        <>
+          {truncated && <TruncationNote rows={active.length} />}
 
-          <Scoreboard stats={stats} />
+          <section
+            aria-label="At a glance"
+            className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 md:p-6"
+          >
+            <SignOffSummary count={derived.queueCount} oldest={derived.queue[0]} now={fetchedAt} />
+            <div className="border-t border-border pt-4">
+              <FloorLine summary={team?.summary} extra={extra} />
+            </div>
+          </section>
 
           <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-5">
             <div className="flex min-w-0 flex-col gap-6 xl:col-span-2">
               <DashboardPanel
                 id="verify-heading"
-                title="Ready to verify"
+                title="For verification"
+                count={derived.queueCount > 0 ? derived.queueCount : undefined}
                 action={
-                  derived.queue.length > 0 && (
+                  derived.queueCount > VERIFY_LIMIT && (
                     <Button asChild variant="ghost" size="sm" className="-mr-2 min-h-11 shrink-0 md:min-h-8">
                       <Link to="/repairs?status=FOR_VERIFICATION">
                         See all
@@ -143,26 +202,13 @@ export function ChiefDashboard() {
                 ) : (
                   <TicketRowList label="Tickets ready to verify, oldest first">
                     {derived.queue.map((ticket) => (
-                      <DashboardTicketRow
-                        key={ticket.id}
-                        ticket={ticket}
-                        // Every row here is For verification, so line 1 names who did the work instead
-                        lead={
-                          <span
-                            title={ticket.mechanics?.map((m) => m.name).join(', ')}
-                            className="min-w-0 truncate text-sm text-foreground"
-                          >
-                            {signOffNames(ticket.mechanics)}
-                          </span>
-                        }
-                        facts={[{ text: waitingText(ticket, fetchedAt) }]}
-                      />
+                      <QueueRow key={ticket.id} ticket={ticket} now={fetchedAt} />
                     ))}
                   </TicketRowList>
                 )}
               </DashboardPanel>
 
-              <DashboardPanel id="my-work-heading" title="My work" count={seesTeam ? derived.work.length : undefined}>
+              <DashboardPanel id="my-work-heading" title="My work" count={derived.work.length || undefined}>
                 {derived.work.length === 0 ? (
                   <PanelEmpty>Nothing assigned to you.</PanelEmpty>
                 ) : (
@@ -182,7 +228,7 @@ export function ChiefDashboard() {
               </div>
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   );

@@ -90,6 +90,20 @@ export function timeInStatus(statusChangedAt: string | null | undefined, now: nu
   return `${days} ${days === 1 ? 'day' : 'days'}`;
 }
 
+/** Hours after which a sign-off wait counts as stale (amber), then late (red). */
+export const SIGN_OFF_STALE_HOURS = 24;
+export const SIGN_OFF_LATE_HOURS = 48;
+
+/** How worrying a sign-off wait is; a missing or unreadable date stays 'fresh' (no false alarm). */
+export function waitTone(statusChangedAt: string | null | undefined, now: number): 'fresh' | 'stale' | 'late' {
+  const since = toTime(statusChangedAt);
+  if (since === null) return 'fresh';
+  const hours = (now - since) / 3_600_000;
+  if (hours >= SIGN_OFF_LATE_HOURS) return 'late';
+  if (hours >= SIGN_OFF_STALE_HOURS) return 'stale';
+  return 'fresh';
+}
+
 /** Spec 0015, AC-15: the sign off wait, on timeInStatus's thresholds (spec 0022, AC-12). */
 export function waitingText(ticket: Pick<RepairTicket, 'statusChangedAt'>, now: number) {
   const time = timeInStatus(ticket.statusChangedAt, now);

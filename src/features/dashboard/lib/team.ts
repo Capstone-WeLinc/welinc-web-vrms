@@ -28,6 +28,9 @@ export type TeamChip = {
   overdue: string | null;
 };
 
+/** A person's open jobs by what they are waiting on, for the workload bar. */
+export type TeamMix = { working: number; signOff: number; notStarted: number; overdue: number };
+
 export type TeamPerson = {
   /** The roster row, or null for a fallback row (a mechanic missing from the roster, AC-15). */
   row: MechanicRosterRow | null;
@@ -36,6 +39,10 @@ export type TeamPerson = {
   chips: TeamChip[];
   /** The "+N more" count: roster total minus the chips shown, when the total is above 3. */
   more: number;
+  /** All their joined open tickets by group (not only the chips shown). */
+  mix: TeamMix;
+  /** Plates of the trucks they have In progress, longest running first. */
+  onNow: string[];
 };
 
 export type TeamSummary = { working: number; waiting: number; free: number };
@@ -102,6 +109,27 @@ export function teamSummary(roster: readonly MechanicRosterRow[]): TeamSummary {
 }
 
 
+const WORKING: readonly RepairStatus[] = ['IN_PROGRESS', 'OUTSOURCED'];
+
+export function mixOf(tickets: readonly RepairTicket[], now: number): TeamMix {
+  const mix: TeamMix = { working: 0, signOff: 0, notStarted: 0, overdue: 0 };
+  for (const ticket of tickets) {
+    if (ticket.status === 'FOR_VERIFICATION') mix.signOff += 1;
+    else if (WORKING.includes(ticket.status)) mix.working += 1;
+    else mix.notStarted += 1;
+    if (isOverdue(ticket, now)) mix.overdue += 1;
+  }
+  return mix;
+}
+
+/** The trucks a person is on right now: In progress, longest running first. */
+export function onNowOf(tickets: readonly RepairTicket[]): string[] {
+  return tickets
+    .filter((t) => t.status === 'IN_PROGRESS')
+    .sort((a, b) => (toTime(a.statusChangedAt) ?? Infinity) - (toTime(b.statusChangedAt) ?? Infinity))
+    .map((t) => t.vehiclePlate);
+}
+
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
 
 /** Inactive first, then anyone with an overdue chip, then highest total, then name (AC-11). */
@@ -145,6 +173,8 @@ export function buildTeam(rows: readonly MechanicRosterRow[], active: readonly R
         name: row.name,
         chips,
         more: row.total > CHIPS_SHOWN ? Math.max(0, row.total - chips.length) : 0,
+        mix: mixOf(byMechanic.get(row.mechanicId) ?? [], now),
+        onNow: onNowOf(byMechanic.get(row.mechanicId) ?? []),
       };
     })
     .sort(comparePeople);
@@ -157,7 +187,7 @@ export function buildTeam(rows: readonly MechanicRosterRow[], active: readonly R
     if (known.has(mechanicId)) continue;
     const all = chipsFor(mechanicId);
     const name = tickets[0].mechanics?.find((m) => m.id === mechanicId)?.name ?? 'Unknown mechanic';
-    fallback.push({ row: null, key: `fallback-${mechanicId}`, name, chips: all.slice(0, CHIPS_SHOWN), more: Math.max(0, all.length - CHIPS_SHOWN) });
+    fallback.push({ row: null, key: `fallback-${mechanicId}`, name, chips: all.slice(0, CHIPS_SHOWN), more: Math.max(0, all.length - CHIPS_SHOWN), mix: mixOf(tickets, now), onNow: onNowOf(tickets) });
   }
   fallback.sort(byName);
 

@@ -13,6 +13,7 @@ import {
   timeInStatus,
   verificationQueue,
   waitingText,
+  waitTone,
 } from './attention';
 
 // Spec 0002 dashboard rules in the spec 0010 statuses (AC-16, AC-4a).
@@ -223,5 +224,20 @@ describe('signOffNames', () => {
         { id: '3', name: 'Cy' },
       ]),
     ).toBe('Ana, Ben +1 more');
+  });
+});
+
+describe('waitTone', () => {
+  const HOUR = 60 * 60 * 1000;
+  it('is fresh under a day, stale from 24 h, late from 48 h', () => {
+    expect(waitTone(at(-23 * HOUR), now)).toBe('fresh');
+    expect(waitTone(at(-24 * HOUR), now)).toBe('stale');
+    expect(waitTone(at(-47 * HOUR), now)).toBe('stale');
+    expect(waitTone(at(-48 * HOUR), now)).toBe('late');
+  });
+
+  it('never alarms on a missing or unreadable date', () => {
+    expect(waitTone(null, now)).toBe('fresh');
+    expect(waitTone('not a date', now)).toBe('fresh');
   });
 });

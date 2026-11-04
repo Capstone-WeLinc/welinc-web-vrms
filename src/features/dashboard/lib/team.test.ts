@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MechanicRosterRow } from '../../../lib/api/vrmsConfigApi';
 import { ticket } from '../../../test/ticketFixture';
 import type { RepairStatus } from '../../../types';
-import { buildTeam, chipOf, compareChips, teamSummary } from './team';
+import { buildTeam, chipOf, compareChips, mixOf, onNowOf, teamSummary } from './team';
 
 // Spec 0022, AC-7 and AC-10 to AC-15: the Team section's rules.
 
@@ -144,5 +144,24 @@ describe('chip order and text', () => {
       text: 'In progress · 3 h',
       overdue: null,
     });
+  });
+});
+
+describe('mixOf and onNowOf', () => {
+  const now = Date.parse('2026-10-29T08:00:00.000Z');
+  const tickets = [
+    ticket({ id: 'a', status: 'IN_PROGRESS', vehiclePlate: 'NEW 1', statusChangedAt: '2026-10-28T00:00:00.000Z' }),
+    ticket({ id: 'b', status: 'IN_PROGRESS', vehiclePlate: 'OLD 1', statusChangedAt: '2026-10-20T00:00:00.000Z' }),
+    ticket({ id: 'c', status: 'OUTSOURCED' }),
+    ticket({ id: 'd', status: 'FOR_VERIFICATION' }),
+    ticket({ id: 'e', status: 'ASSIGNED', dueAt: '2026-10-01T00:00:00.000Z' }),
+  ];
+
+  it('groups jobs into working, sign-off and not started, and counts overdue', () => {
+    expect(mixOf(tickets, now)).toEqual({ working: 3, signOff: 1, notStarted: 1, overdue: 1 });
+  });
+
+  it('lists only In progress plates, longest running first', () => {
+    expect(onNowOf(tickets)).toEqual(['OLD 1', 'NEW 1']);
   });
 });

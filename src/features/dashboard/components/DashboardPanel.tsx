@@ -24,7 +24,7 @@ export function DashboardPanel({ id, title, count, action, danger = false, child
       <header className="flex min-h-12 items-center gap-3 border-b border-border px-4 py-2 md:px-5">
         <h2
           id={id}
-          className={cn('flex min-w-0 flex-1 items-baseline gap-2 text-sm font-semibold', danger ? 'text-destructive' : 'text-foreground')}
+          className={cn('flex min-w-0 flex-1 items-baseline gap-2 text-base font-semibold', danger ? 'text-destructive' : 'text-foreground')}
         >
           <span className="min-w-0">{title}</span>
           {count !== undefined && <span className="font-normal text-muted-foreground tabular-nums">{count}</span>}
