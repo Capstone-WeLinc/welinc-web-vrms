@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PermissionKey } from '../../lib/permissions/keys';
-import { getMobileTabs, getNavSections, usesTabBar } from './navItems';
+import { getActiveNavTrail, getMobileTabs, getNavSections, getPhoneMenuItems, usesTabBar } from './navItems';
 
 // The default matrix of spec 0011 (backend catalog.ts)
 const ADMIN: PermissionKey[] = [
@@ -100,5 +100,60 @@ describe('usesTabBar', () => {
 
   it('switches to the sheet when a granted page has no tab, so it is never out of reach', () => {
     expect(usesTabBar(getNavSections(holding([...CHIEF, 'analytics.view'])))).toBe(false);
+  });
+});
+
+// Spec 0022: the Mechanics item and the phone nav around it
+describe('Mechanics in the nav (spec 0022)', () => {
+  const tabsOf = (keys: PermissionKey[]) => getMobileTabs(getNavSections(holding(keys))).map((t) => t.to);
+  const menuOf = (keys: PermissionKey[]) => getPhoneMenuItems(getNavSections(holding(keys))).map((t) => t.to);
+  const tabBar = (keys: PermissionKey[]) => usesTabBar(getNavSections(holding(keys)));
+  const CHIEF_M: PermissionKey[] = [...CHIEF, 'mechanics.view'];
+
+  it('shows Mechanics after Repair history with mechanics.view and without users.manage (AC-5)', () => {
+    expect(getNavSections(holding(CHIEF_M))[1].items.map((i) => i.label)).toEqual(['Repair tickets', 'Repair history', 'Mechanics']);
+    expect(paths(CHIEF)).not.toContain('/mechanics');
+    expect(paths([...ADMIN, 'mechanics.view'])).not.toContain('/mechanics');
+  });
+
+  it('gives the Chief five tabs and moves Knowledge base to the user menu (AC-11)', () => {
+    expect(tabsOf(CHIEF_M)).toEqual(['/dashboard', '/repairs', '/history', '/mechanics', '/profile']);
+    expect(tabBar(CHIEF_M)).toBe(true);
+    expect(menuOf(CHIEF_M)).toEqual(['/knowledge-base']);
+  });
+
+  it('changes nothing for a Chief without knowledge.view', () => {
+    const keys = CHIEF_M.filter((k) => !k.startsWith('knowledge.'));
+    expect(tabsOf(keys)).toEqual(['/dashboard', '/repairs', '/history', '/mechanics', '/profile']);
+    expect(tabBar(keys)).toBe(true);
+    expect(menuOf(keys)).toEqual([]);
+  });
+
+  it('keeps the sheet menu, with Knowledge base in it, when more pages than the tabs and menu can carry', () => {
+    expect(tabBar([...CHIEF_M, 'analytics.view'])).toBe(false);
+    expect(menuOf([...CHIEF_M, 'analytics.view'])).toEqual([]);
+    // The default matrix also gives the Chief lookups.manage, so Settings: still the sheet
+    expect(tabBar([...CHIEF_M, 'lookups.manage'])).toBe(false);
+    expect(paths([...CHIEF_M, 'lookups.manage'])).toContain('/knowledge-base');
+  });
+
+  it('reads keys, not roles: a Mechanic granted mechanics.view gets the same tabs', () => {
+    const keys: PermissionKey[] = [...MECHANIC, 'mechanics.view'];
+    expect(tabsOf(keys)).toEqual(['/dashboard', '/repairs', '/history', '/mechanics', '/profile']);
+    expect(menuOf(keys)).toEqual(['/knowledge-base']);
+  });
+
+  it('leaves the Mechanic tabs and the Admin sheet as they were', () => {
+    expect(tabsOf(MECHANIC)).toEqual(['/dashboard', '/repairs', '/history', '/knowledge-base', '/profile']);
+    expect(menuOf(MECHANIC)).toEqual([]);
+    expect(tabBar(ADMIN)).toBe(false);
+    expect(menuOf(ADMIN)).toEqual([]);
+  });
+
+  it('names /mechanics in the breadcrumb even when the item is hidden (Admin by URL)', () => {
+    const trail = getActiveNavTrail('/mechanics', getNavSections(holding(ADMIN)));
+    expect(trail).toMatchObject({ section: { title: 'Vehicle repairs' }, item: { label: 'Mechanics' } });
+    expect(getActiveNavTrail('/mechanics', getNavSections(holding(CHIEF_M)))?.item.label).toBe('Mechanics');
+    expect(getActiveNavTrail('/nowhere', getNavSections(holding(ADMIN)))).toBeUndefined();
   });
 });

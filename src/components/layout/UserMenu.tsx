@@ -10,7 +10,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { getInitials } from '../../lib/utils/format';
+import { getPhoneMenuItems } from './navItems';
+import { useNavSections } from './useNavSections';
 import { useShellActions } from './useShellActions';
 
 /**
@@ -20,6 +23,10 @@ import { useShellActions } from './useShellActions';
 export function UserMenu() {
   const user = useAuthStore((state) => state.user);
   const { canSwitchToVmms, switchToVmms, signOut } = useShellActions();
+  const sections = useNavSections();
+  const isMobile = useIsMobile();
+  // Spec 0022, AC-11: a page the full phone tab bar left out (Knowledge base)
+  const phoneItems = isMobile ? getPhoneMenuItems(sections) : [];
 
   if (!user) return null;
   const name = user.name || user.email;
@@ -54,6 +61,14 @@ export function UserMenu() {
             Profile
           </Link>
         </DropdownMenuItem>
+        {phoneItems.map(({ to, label, icon: Icon }) => (
+          <DropdownMenuItem key={to} asChild>
+            <Link to={to}>
+              <Icon aria-hidden="true" />
+              {label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
         {canSwitchToVmms && (
           <DropdownMenuItem onSelect={switchToVmms}>
             <ArrowRightLeft aria-hidden="true" />
