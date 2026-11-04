@@ -8,7 +8,9 @@ import {
   isWaiting,
   mechanicWorkList,
   pipelineCounts,
+  signOffNames,
   spendFor,
+  timeInStatus,
   verificationQueue,
   waitingText,
 } from './attention';
@@ -188,5 +190,38 @@ describe('waitingText', () => {
 
   it('says the wait is unknown when the date cannot be read', () => {
     expect(waitingText(ticket({ statusChangedAt: 'not a date' }), base)).toBe('Waiting time unknown');
+  });
+});
+
+// Spec 0022, AC-12: the chip's time in status, on the same thresholds as waitingText
+describe('timeInStatus', () => {
+  const since = '2026-10-10T00:00:00.000Z';
+  const base = Date.parse(since);
+  const MIN = 60_000;
+
+  it('reads under an hour, hours, then days', () => {
+    expect(timeInStatus(since, base + 59 * MIN)).toBe('under an hour');
+    expect(timeInStatus(since, base + 3 * 60 * MIN)).toBe('3 h');
+    expect(timeInStatus(since, base + 24 * 60 * MIN)).toBe('1 day');
+    expect(timeInStatus(since, base + 4 * 24 * 60 * MIN)).toBe('4 days');
+  });
+
+  it('says time unknown for a missing or unreadable date', () => {
+    expect(timeInStatus(undefined, base)).toBe('time unknown');
+    expect(timeInStatus('not a date', base)).toBe('time unknown');
+  });
+});
+
+describe('signOffNames', () => {
+  it('names two, then a count, or says No mechanic', () => {
+    expect(signOffNames([])).toBe('No mechanic');
+    expect(signOffNames([{ id: '1', name: 'Ana' }, { id: '2', name: 'Ben' }])).toBe('Ana, Ben');
+    expect(
+      signOffNames([
+        { id: '1', name: 'Ana' },
+        { id: '2', name: 'Ben' },
+        { id: '3', name: 'Cy' },
+      ]),
+    ).toBe('Ana, Ben +1 more');
   });
 });

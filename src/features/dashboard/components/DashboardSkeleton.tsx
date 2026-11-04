@@ -13,17 +13,20 @@ function TileSkeleton() {
   );
 }
 
-// Shaped like the loaded page: tiles, the list, and for admins the pipeline and spend cards.
-export function DashboardSkeleton({ admin }: { admin: boolean }) {
+// Shaped like the loaded page: tiles (none on the Chief view, spec 0022), the list, and for admins
+// the pipeline and spend cards.
+export function DashboardSkeleton({ admin, tiles = true }: { admin: boolean; tiles?: boolean }) {
   return (
     <div role="status" aria-busy="true" className="flex flex-col gap-6">
       <span className="sr-only">Loading dashboard</span>
       <Skeleton className="h-4 w-40" />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {Array.from({ length: 4 }, (_, index) => (
-          <TileSkeleton key={index} />
-        ))}
-      </div>
+      {tiles && (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, index) => (
+            <TileSkeleton key={index} />
+          ))}
+        </div>
+      )}
       <div className="flex flex-col gap-3">
         <Skeleton className="h-6 w-48" />
         <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">

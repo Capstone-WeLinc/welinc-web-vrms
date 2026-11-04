@@ -74,17 +74,34 @@ export function verificationQueue(active: RepairTicket[]) {
     });
 }
 
-/** Spec 0015, AC-15: how long a ticket has sat in its status. A negative gap (clock skew) counts as 0. */
-export function waitingText(ticket: RepairTicket, now: number) {
-  const since = toTime(ticket.statusChangedAt);
-  // An unreadable date must not pose as a fresh wait
-  if (since === null) return 'Waiting time unknown';
+/**
+ * Spec 0022, AC-12: how long a ticket has sat in its status, measured to `now` (the fetch time):
+ * "under an hour", "3 h", "1 day", "4 days", or "time unknown" when the date is missing or
+ * unreadable (it must not pose as a fresh wait). A negative gap (clock skew) counts as 0.
+ */
+export function timeInStatus(statusChangedAt: string | null | undefined, now: number) {
+  const since = toTime(statusChangedAt);
+  if (since === null) return 'time unknown';
   const minutes = Math.max(0, Math.floor((now - since) / 60_000));
-  if (minutes < 60) return 'Waiting under an hour';
+  if (minutes < 60) return 'under an hour';
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Waiting ${hours} h`;
+  if (hours < 24) return `${hours} h`;
   const days = Math.floor(hours / 24);
-  return `Waiting ${days} ${days === 1 ? 'day' : 'days'}`;
+  return `${days} ${days === 1 ? 'day' : 'days'}`;
+}
+
+/** Spec 0015, AC-15: the sign off wait, on timeInStatus's thresholds (spec 0022, AC-12). */
+export function waitingText(ticket: Pick<RepairTicket, 'statusChangedAt'>, now: number) {
+  const time = timeInStatus(ticket.statusChangedAt, now);
+  return time === 'time unknown' ? 'Waiting time unknown' : `Waiting ${time}`;
+}
+
+/** Spec 0022, AC-8: a sign off row's mechanics, two names then "+N more", or "No mechanic". */
+export function signOffNames(mechanics: RepairTicket['mechanics']) {
+  if (!mechanics?.length) return 'No mechanic';
+  const names = mechanics.map((m) => m.name);
+  const extra = names.length - 2;
+  return extra > 0 ? `${names.slice(0, 2).join(', ')} +${extra} more` : names.join(', ');
 }
 
 /** A mechanic's ASSIGNED and IN_PROGRESS tickets: overdue first, then due soonest (none last), then newest update. */

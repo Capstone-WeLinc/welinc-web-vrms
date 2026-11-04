@@ -57,22 +57,24 @@ export function useDashboardData({ includeHistory }: { includeHistory: boolean }
 
   // Spec 0019, AC-21: every 3 seconds while visible (was 15). After one success the data stays on
   // screen; a failed refetch only changes the status line.
-  useVisiblePoll(
-    () =>
-      fetchSnapshot(includeHistory, true).then(
-        (next) => {
-          setSnapshot(next);
-          setRefreshFailed(false);
-        },
-        (err: unknown) => {
-          setRefreshFailed(true);
-          throw err;
-        },
-      ),
-    snapshot !== null && !loadError,
-  );
+  const refetch = () =>
+    fetchSnapshot(includeHistory, true).then(
+      (next) => {
+        setSnapshot(next);
+        setRefreshFailed(false);
+      },
+      (err: unknown) => {
+        setRefreshFailed(true);
+        throw err;
+      },
+    );
+  useVisiblePoll(refetch, snapshot !== null && !loadError);
 
   const retry = () => setLoadError(null);
+  /** Spec 0022, AC-14: refetch now, quietly, after a change elsewhere on the page. */
+  const refresh = () => {
+    refetch().catch(() => undefined);
+  };
 
   const state: 'loading' | 'error' | 'ready' = snapshot ? 'ready' : loadError ? 'error' : 'loading';
   const truncated = snapshot
@@ -89,5 +91,6 @@ export function useDashboardData({ includeHistory }: { includeHistory: boolean }
     refreshFailed,
     truncated,
     retry,
+    refresh,
   };
 }

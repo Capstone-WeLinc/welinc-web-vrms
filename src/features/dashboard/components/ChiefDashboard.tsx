@@ -1,61 +1,58 @@
-import { useMemo } from 'react';
-import { AlertTriangle, CheckCircle2, ClipboardList, LayoutDashboard, ShieldCheck, Wrench } from 'lucide-react';
+import { useMemo, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, LayoutDashboard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { ErrorState } from '../../../components/shared/ErrorState';
+import { useCan } from '../../../lib/permissions/usePermissions';
 import { useAuthStore } from '../../../store/authStore';
-import { dueLabel, isOverdue } from '../../../lib/utils/due';
+import { dueLabel } from '../../../lib/utils/due';
 import { useDashboardData } from '../hooks/useDashboardData';
-import {
-  attentionDueLabel,
-  attentionList,
-  greeting,
-  mechanicWorkList,
-  pipelineCounts,
-  verificationQueue,
-} from '../lib/attention';
-import { AttentionTiles, type AttentionTile } from './AttentionTiles';
+import { greeting, mechanicWorkList, signOffNames, verificationQueue, waitingText } from '../lib/attention';
 import { DashboardSkeleton } from './DashboardSkeleton';
+import { DashboardTicketRow, TicketRowList } from './DashboardTicketRow';
 import { LastUpdated } from './LastUpdated';
-import { RepairProgressChart } from './RepairProgressChart';
-import { TicketAttentionTable } from './TicketAttentionTable';
+import { TeamSection } from './TeamSection';
 import { TruncationNote } from './TruncationNote';
-import { VerificationQueueTable } from './VerificationQueueTable';
 
-const SECTION_LIMIT = 8;
+const SIGN_OFF_LIMIT = 8;
 
-// Spec 0015: the Chief Mechanic's view. Sign off queue first, then own work, attention, pipeline. No spend.
+/** A section heading with its count after it (spec 0022, AC-7). */
+function SectionHeading({ id, title, count }: { id: string; title: string; count: number }) {
+  return (
+    <h2 id={id} className="text-lg font-semibold text-foreground">
+      {title} <span className="font-normal text-muted-foreground">· {count}</span>
+    </h2>
+  );
+}
+
+function EmptyLine({ children }: { children: ReactNode }) {
+  return <p className="text-sm text-muted-foreground">{children}</p>;
+}
+
+/**
+ * Spec 0022 (replacing spec 0015's tiles, tables and pipeline on this view): Sign off, My work and
+ * Team. Below 1280px they stack in that order; from 1280px Sign off and My work sit in a narrow
+ * left column and Team in a wide right one, so reading and tab order stay the same (AC-5, AC-6).
+ */
 export function ChiefDashboard() {
   const user = useAuthStore((state) => state.user);
-  const { active, history, fetchedAt, state, errorMessage, refreshFailed, truncated, retry } = useDashboardData({
-    includeHistory: true,
+  const seesTeam = useCan('mechanics.view');
+  const { active, fetchedAt, state, errorMessage, refreshFailed, truncated, retry, refresh } = useDashboardData({
+    includeHistory: false,
   });
 
   const derived = useMemo(() => {
     const queue = verificationQueue(active);
-    const work = mechanicWorkList(
-      active.filter((t) => t.can.work),
-      fetchedAt,
-    );
-    const overdue = active.filter((t) => isOverdue(t, fetchedAt)).length;
-    const queued = new Set(queue.map((t) => t.id));
-    const tiles: AttentionTile[] = [
-      { caption: 'Waiting for you', value: queue.length, icon: ShieldCheck },
-      { caption: 'My open work', value: work.length, icon: Wrench },
-      { caption: 'Overdue', value: overdue, icon: AlertTriangle, tone: overdue > 0 ? 'destructive' : 'default' },
-      { caption: 'Open', value: active.length, icon: ClipboardList },
-    ];
     return {
-      tiles,
-      queue: queue.slice(0, SECTION_LIMIT),
-      work,
-      // AC-18: every queued ticket leaves this list, not just the 8 shown above
-      attention: attentionList(active, fetchedAt, Infinity)
-        .filter((t) => !queued.has(t.id))
-        .slice(0, SECTION_LIMIT),
-      pipeline: pipelineCounts(active, history, fetchedAt),
-      rowCount: active.length + history.length,
+      queueCount: queue.length,
+      queue: queue.slice(0, SIGN_OFF_LIMIT),
+      work: mechanicWorkList(
+        active.filter((t) => t.can.work),
+        fetchedAt,
+      ),
     };
-  }, [active, history, fetchedAt]);
+  }, [active, fetchedAt]);
 
   return (
     <div>
@@ -65,7 +62,7 @@ export function ChiefDashboard() {
         icon={LayoutDashboard}
       />
 
-      {state === 'loading' && <DashboardSkeleton admin={false} />}
+      {state === 'loading' && <DashboardSkeleton admin={false} tiles={false} />}
 
       {state === 'error' && (
         <ErrorState
@@ -77,61 +74,62 @@ export function ChiefDashboard() {
 
       {state === 'ready' && (
         <div className="flex flex-col gap-6">
-          <LastUpdated fetchedAt={fetchedAt} refreshFailed={refreshFailed} />
-
           <div className="flex flex-col gap-3">
-            <AttentionTiles tiles={derived.tiles} />
-            {truncated && <TruncationNote rows={derived.rowCount} />}
+            <LastUpdated fetchedAt={fetchedAt} refreshFailed={refreshFailed} />
+            {truncated && <TruncationNote rows={active.length} />}
           </div>
 
-          <section aria-labelledby="sign-off-heading" className="flex flex-col gap-3">
-            <div>
-              <h2 id="sign-off-heading" className="text-lg font-semibold text-foreground">
-                Waiting for your sign off
-              </h2>
-              <p className="text-sm text-muted-foreground">Oldest first.</p>
-            </div>
-            <VerificationQueueTable rows={derived.queue} now={fetchedAt} />
-          </section>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+            <div className="flex min-w-0 flex-col gap-6 xl:col-span-2">
+              <section aria-labelledby="sign-off-heading" className="flex flex-col gap-3">
+                <SectionHeading id="sign-off-heading" title="Waiting for your sign off" count={derived.queueCount} />
+                {derived.queue.length === 0 ? (
+                  <EmptyLine>Nothing waiting for your sign off.</EmptyLine>
+                ) : (
+                  <>
+                    <TicketRowList label="Tickets waiting for your sign off, oldest first">
+                      {derived.queue.map((ticket) => (
+                        <DashboardTicketRow
+                          key={ticket.id}
+                          ticket={ticket}
+                          facts={[
+                            { text: signOffNames(ticket.mechanics), title: ticket.mechanics?.map((m) => m.name).join(', ') },
+                            { text: waitingText(ticket, fetchedAt) },
+                          ]}
+                        />
+                      ))}
+                    </TicketRowList>
+                    <Button asChild variant="link" className="min-h-11 self-end px-0 md:min-h-9">
+                      <Link to="/repairs?status=FOR_VERIFICATION">
+                        See all
+                        <ArrowRight aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  </>
+                )}
+              </section>
 
-          <section aria-labelledby="my-work-heading" className="flex flex-col gap-3">
-            <div>
-              <h2 id="my-work-heading" className="text-lg font-semibold text-foreground">
-                My work
-              </h2>
-              <p className="text-sm text-muted-foreground">Overdue first, then by due date.</p>
+              <section aria-labelledby="my-work-heading" className="flex flex-col gap-3">
+                <SectionHeading id="my-work-heading" title="My work" count={derived.work.length} />
+                {derived.work.length === 0 ? (
+                  <EmptyLine>Nothing assigned to you.</EmptyLine>
+                ) : (
+                  <TicketRowList label="My work, overdue first, then by due date">
+                    {derived.work.map((ticket) => {
+                      const due = dueLabel(ticket, fetchedAt);
+                      return <DashboardTicketRow key={ticket.id} ticket={ticket} facts={due ? [due] : []} />;
+                    })}
+                  </TicketRowList>
+                )}
+              </section>
             </div>
-            <TicketAttentionTable
-              rows={derived.work}
-              dueLabel={(t) => dueLabel(t, fetchedAt)}
-              label="My active tickets"
-              empty={{ title: 'Nothing assigned to you' }}
-            />
-          </section>
 
-          <section aria-labelledby="needs-attention-heading" className="flex flex-col gap-3">
-            <div>
-              <h2 id="needs-attention-heading" className="text-lg font-semibold text-foreground">
-                Needs attention
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Across every garage: overdue first, then tickets with no active mechanic, then your own tickets waiting
-                for someone else to sign off.
-              </p>
-            </div>
-            <TicketAttentionTable
-              rows={derived.attention}
-              dueLabel={(t) => attentionDueLabel(t, fetchedAt)}
-              label="Tickets that need attention"
-              empty={{
-                title: 'Nothing else needs attention',
-                description: 'No overdue tickets and none without a mechanic.',
-                icon: CheckCircle2,
-              }}
-            />
-          </section>
-
-          <RepairProgressChart counts={derived.pipeline} />
+            {seesTeam && (
+              <div className="min-w-0 xl:col-span-3">
+                <TeamSection active={active} fetchedAt={fetchedAt} onTicketsChanged={refresh} />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

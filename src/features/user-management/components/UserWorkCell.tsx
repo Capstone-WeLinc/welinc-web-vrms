@@ -1,13 +1,7 @@
 import { BadgePill } from '../../../components/shared/BadgePill';
 import type { MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
-import { WORK_LABELS, workloadSummary, workStateOf } from '../lib/workload';
-
-const STATE_CLASSES = {
-  // Occupied wears In progress's color, since that is what makes someone occupied
-  occupied: 'bg-status-in-progress-bg text-status-in-progress-fg',
-  free: 'bg-status-completed-bg text-status-completed-fg',
-} as const;
+import { WORK_LABELS, WORK_STATE_CLASSES, workloadSummary, workStateOf } from '../lib/workload';
 
 /** Occupied or Free, with the open counts by status below (feature 57). A dash for non mechanics. */
 export function UserWorkCell({ user, workload }: { user: ManagedUser; workload: ReadonlyMap<string, MechanicWorkload> | null }) {
@@ -21,7 +15,7 @@ export function UserWorkCell({ user, workload }: { user: ManagedUser; workload: 
     );
   return (
     <span className="flex min-w-0 flex-col items-start gap-1">
-      <BadgePill className={STATE_CLASSES[state]}>{WORK_LABELS[state]}</BadgePill>
+      <BadgePill className={WORK_STATE_CLASSES[state]}>{WORK_LABELS[state]}</BadgePill>
       <span className="text-xs text-muted-foreground">{workloadSummary(workload?.get(user.id))}</span>
     </span>
   );
