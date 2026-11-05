@@ -288,10 +288,10 @@ export function TeamSection({
             team && !team.empty ? (
               <TabsList aria-label="Team view" className="h-9">
                 <TabsTrigger value="busy" className="h-full px-3">
-                  Busy <span className="text-muted-foreground tabular-nums">{team.people.length}</span>
+                  Busy <span className="text-muted-strong tabular-nums">{team.people.length}</span>
                 </TabsTrigger>
                 <TabsTrigger value="free" className="h-full px-3">
-                  Free <span className="text-muted-foreground tabular-nums">{team.free.length}</span>
+                  Free <span className="text-muted-strong tabular-nums">{team.free.length}</span>
                 </TabsTrigger>
               </TabsList>
             ) : undefined
