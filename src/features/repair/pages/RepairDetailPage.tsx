@@ -14,6 +14,7 @@ import {
   editTicketDetails,
   editTicketIssue,
   removeTicketIssue,
+  saveIssueChecklist,
   setMechanics,
   unlockRepairTicket,
   updateRepairStatus,
@@ -37,6 +38,8 @@ import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePan
 import { DocumentsCard } from '../components/DocumentsCard';
 import { EditDetailsDialog } from '../components/edit/EditDetailsDialog';
 import { IssueEditDialog, type IssueSave } from '../components/edit/IssueEditDialog';
+import { ChecklistEditDialog, type ChecklistSave } from '../components/edit/ChecklistEditDialog';
+import { canEditChecklist, STALE_CHECKLIST_MESSAGE } from '../lib/checklist';
 import { confirm } from '../../../components/shared/confirm/confirm';
 import { TicketFilesProvider } from '../components/TicketFilesProvider';
 import { useEditSession } from '../hooks/useEditSession';
@@ -255,6 +258,24 @@ export function RepairDetailPage() {
     }
   };
 
+  // Spec 0023, AC-6 and AC-17: the issue's full list; a 409 closes the dialog, reloads and says why
+  const saveChecklist = async (issueId: string, save: ChecklistSave) => {
+    try {
+      const updated = await saveIssueChecklist(ticket.id, issueId, save);
+      edits.close();
+      replace(updated);
+      showToast(`Steps on ${rep} are saved.`, 'success');
+    } catch (err) {
+      if (getApiErrorStatus(err) === 409) {
+        edits.close();
+        showToast(STALE_CHECKLIST_MESSAGE, 'error');
+        void reload();
+        return;
+      }
+      throw err;
+    }
+  };
+
   /** AC-16: remove after a confirm naming what goes with it; a closed ticket asks for the reason too. */
   const removeIssue = async (issue: RepairIssue, taggedPhotos: number) => {
     const detail = issueRemovalSummary(issue, taggedPhotos);
@@ -347,6 +368,9 @@ export function RepairDetailPage() {
                     canWork={!readOnly && canWorkTicket(ticket)}
                     onChanged={replace}
                     onStale={handleStale}
+                    onEditSteps={
+                      !readOnly && canEditChecklist(ticket) ? (issue) => edits.open('checklist', ticket, { issueId: issue.id }) : null
+                    }
                     edit={
                       canEditDetails
                         ? {
@@ -489,6 +513,23 @@ export function RepairDetailPage() {
           onSave={(save) => saveIssue(edits.session!.ticket, edits.session!.issueId, save)}
         />
       )}
+
+      {edits.session?.kind === 'checklist' &&
+        (() => {
+          const issueId = edits.session.issueId!;
+          const openedIssue = edits.session.ticket.issues?.find((i) => i.id === issueId);
+          if (!openedIssue) return null;
+          return (
+            <ChecklistEditDialog
+              key={edits.session.n}
+              open={edits.session.open}
+              onOpenChange={(open) => !open && edits.close()}
+              issue={openedIssue}
+              latestSteps={ticket.issues?.find((i) => i.id === issueId)?.steps ?? []}
+              onSave={(save) => saveChecklist(issueId, save)}
+            />
+          );
+        })()}
 
       {edits.session?.kind === 'removeIssue' && (
         <TicketNoteDialog

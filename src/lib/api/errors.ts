@@ -93,6 +93,12 @@ export function getOdometerProblem(err: unknown): OdometerProblem | null {
   return { code, message: body?.message ?? 'Check the odometer reading.', last: body?.last ?? 0 };
 }
 
+/** Spec 0023, AC-5: the per row messages of a 400 checklist save, by the row's place in the sent list. */
+export function getFieldErrors(err: unknown): { index: number; message: string }[] {
+  if (!isAxiosError<{ fieldErrors?: { index: number; message: string }[] }>(err) || err.response?.status !== 400) return [];
+  return err.response.data?.fieldErrors ?? [];
+}
+
 /** The `code` on a 409 body, such as STALE or DUPLICATE_NAME (spec 0007, AC-20). */
 export function getConflictCode(err: unknown): string | undefined {
   if (!isAxiosError<{ code?: string }>(err) || err.response?.status !== 409) return undefined;

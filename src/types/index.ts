@@ -78,7 +78,13 @@ export interface RepairIssueStep {
   text: string;
   checkedAt: string | null;
   checkedByEmail: string | null;
+  /** Spec 0023, AC-13: copied from a known fix, or added on this ticket. */
+  origin: StepOrigin;
+  /** Spec 0023, AC-13: set when a copied step was reworded on this ticket. */
+  editedAt: string | null;
 }
+
+export type StepOrigin = 'KNOWN_FIX' | 'ADDED';
 
 /** One issue on a ticket, as formatTicket sends it (spec 0007, AC-27). */
 export interface RepairIssue {
@@ -99,6 +105,8 @@ export interface RepairIssue {
     typicalHours: number | null;
     estimatedHours: number | null;
   } | null;
+  /** Spec 0023, AC-6: the checklist lock the Edit steps dialog sends back. */
+  checklistVersion: number;
   steps: RepairIssueStep[];
   /** "What fixed it", saved on the move to For verification (AC-31). */
   resolutionNote: string | null;
@@ -146,6 +154,8 @@ export interface TicketCan {
   assign: boolean;
   /** Edit the details and issues after create (ticket.edit, spec 0019, AC-1). */
   edit: boolean;
+  /** Add, reword, remove and reorder an issue's steps (ticket.checklist.edit, spec 0023, AC-2). */
+  editChecklist: boolean;
 }
 
 /** One status move the server lets this caller make now (spec 0014, AC-13). */

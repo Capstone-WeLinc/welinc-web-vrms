@@ -12,6 +12,7 @@ function issue(overrides: Partial<RepairIssue> = {}): RepairIssue {
     categoryId: 'cat',
     categoryName: 'Brakes',
     knowledgeEntry: null,
+    checklistVersion: 0,
     steps: [],
     resolutionNote: null,
     hoursSpent: null,

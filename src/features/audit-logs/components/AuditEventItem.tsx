@@ -13,6 +13,7 @@ import {
   costDetailLine,
   costTotalLine,
   eventStyle,
+  checklistEditLine,
   issueEventLines,
   movedFileName,
   photoMoveLine,
@@ -109,6 +110,15 @@ function Sentence({ event, showTicket }: { event: AuditEvent; showTicket: boolea
       return who ? withActor('ticked a step on') : <>A step was ticked on {rep}</>;
     case 'STEP_UNCHECKED':
       return who ? withActor('unticked a step on') : <>A step was unticked on {rep}</>;
+    // Spec 0023, AC-10
+    case 'STEP_ADDED':
+      return who ? withActor('added a step to') : <>A step was added to {rep}</>;
+    case 'STEP_REMOVED':
+      return who ? withActor('removed a step from') : <>A step was removed from {rep}</>;
+    case 'STEP_EDITED':
+      return who ? withActor('reworded a step on') : <>A step was reworded on {rep}</>;
+    case 'STEP_MOVED':
+      return who ? withActor('moved a step on') : <>A step was moved on {rep}</>;
     default:
       return who ? (
         <>
@@ -223,6 +233,8 @@ function Change({ event }: { event: AuditEvent }) {
     if (!step) return null;
     return <p className="text-sm break-words text-muted-foreground">{step}</p>;
   }
+  const checklistLine = checklistEditLine(event);
+  if (checklistLine) return <p className="text-sm break-words text-muted-foreground">{checklistLine}</p>;
   if (event.type === 'GARAGE_CHANGE') {
     const garage = changeOf(event, 'garage');
     if (!garage) return null;
