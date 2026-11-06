@@ -1,6 +1,6 @@
 import { PlateChip } from '../../../components/shared/PlateChip';
 import type { RepairTicket } from '../../../types';
-import { stripSystem } from '../lib/issueRow';
+import { issueDisplayText, stripSystem } from '../lib/issueRow';
 
 /**
  * Spec 0024, AC-11 (`docs/context/vrms/design.md`, Naming a ticket): the plate leads, then the model,
@@ -15,7 +15,7 @@ export function TicketHeader({ ticket }: { ticket: RepairTicket }) {
           <PlateChip plate={ticket.vehiclePlate} />
           {ticket.vehicleModel && <span className="text-sm font-medium text-muted-strong">{ticket.vehicleModel}</span>}
         </span>
-        {first && <span className="line-clamp-1 text-xl font-semibold break-words md:text-2xl">{stripSystem(first.description)}</span>}
+        {first && <span className="line-clamp-1 text-xl font-semibold break-words md:text-2xl">{issueDisplayText(stripSystem(first.description))}</span>}
       </h1>
       <p className="text-sm whitespace-nowrap text-muted-foreground tabular-nums">{ticket.repairNumber}</p>
     </header>

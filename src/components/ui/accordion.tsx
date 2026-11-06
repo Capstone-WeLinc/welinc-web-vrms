@@ -14,28 +14,41 @@ function AccordionItem({ className, ...props }: React.ComponentProps<typeof Acco
   return <AccordionPrimitive.Item data-slot="accordion-item" className={className} {...props} />;
 }
 
-/** The whole header is the one button, inside an `h3` (Radix sets `aria-expanded` and `aria-controls`). */
+/**
+ * The whole header is the one button, inside an `h3` (Radix sets `aria-expanded` and `aria-controls`).
+ * Spec 0024, AC-7: `actions` (a row menu) sit inside the header after the button, never inside it, and
+ * the chevron follows them, outside the button too: hidden from screen readers, a click on it toggles.
+ */
 function AccordionTrigger({
   className,
   children,
+  actions,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Trigger>) {
+}: React.ComponentProps<typeof AccordionPrimitive.Trigger> & { actions?: React.ReactNode }) {
+  const trigger = React.useRef<HTMLButtonElement>(null);
   return (
-    <AccordionPrimitive.Header className="flex">
+    <AccordionPrimitive.Header className="group/header flex items-start gap-1">
       <AccordionPrimitive.Trigger
+        ref={trigger}
         data-slot="accordion-trigger"
         className={cn(
-          'group/trigger flex flex-1 items-start justify-between gap-3 rounded-md text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+          'group/trigger flex min-w-0 flex-1 items-start justify-between gap-3 rounded-md text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
           className,
         )}
         {...props}
       >
         {children}
-        <ChevronDownIcon
-          aria-hidden="true"
-          className="pointer-events-none size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-snappy group-data-[state=open]/trigger:rotate-180"
-        />
       </AccordionPrimitive.Trigger>
+      {actions}
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-hidden="true"
+        onClick={() => trigger.current?.click()}
+        className="flex size-11 shrink-0 items-center justify-center md:mt-2 md:size-8"
+      >
+        <ChevronDownIcon className="size-4 text-muted-foreground transition-transform duration-200 ease-snappy group-data-[state=open]/header:rotate-180" />
+      </button>
     </AccordionPrimitive.Header>
   );
 }

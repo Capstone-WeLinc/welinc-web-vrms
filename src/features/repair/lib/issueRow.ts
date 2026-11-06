@@ -17,6 +17,28 @@ export function stripSystem(description: string): string {
   return issueText(description);
 }
 
+/** A letter or digit right after the matched root cause means it was only part of a word. */
+const WORD_GOES_ON = /^[\p{L}\p{N}]/u;
+/** What a repeated root cause leaves behind: spaces, commas, periods or colons. */
+const REPEAT_TAIL = /^[\s,.:]+/;
+
+/**
+ * AC-12: issue text as the rows and the title show it (after `stripSystem`). The text splits at its
+ * first ": " into root cause and description; when the description starts with the root cause as a
+ * whole word (case insensitive, after trimming), that repeat goes. Anything else comes back unchanged.
+ */
+export function issueDisplayText(text: string): string {
+  const at = text.indexOf(': ');
+  if (at <= 0) return text;
+  const root = text.slice(0, at).trim();
+  const description = text.slice(at + 2).trim();
+  if (!root || description.slice(0, root.length).toLowerCase() !== root.toLowerCase()) return text;
+  const after = description.slice(root.length);
+  if (WORD_GOES_ON.test(after)) return text;
+  const rest = after.replace(REPEAT_TAIL, '');
+  return rest ? `${root}: ${rest}` : root;
+}
+
 /** The server's steps with this page's pending ticks on top. */
 export function mergedSteps(issue: Pick<RepairIssue, 'steps'>, overrides: TickOverrides): RepairIssueStep[] {
   return issue.steps.map((step) => {

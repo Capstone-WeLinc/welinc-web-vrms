@@ -88,9 +88,10 @@ function BlockedReason({ id, actions, onPhotos }: { id: string; actions: TicketA
 }
 
 /**
- * Spec 0024, AC-17: no heading. The badges with the ⋮ menu, the due line, then the primary move with
- * its blocked reason under it and Return to mechanic, stacked. The phone line (AC-18) has the same
- * badges, due line and reason; the fixed bar holds its buttons.
+ * Spec 0024, AC-17: no heading. One row with the badges and the due line, the ⋮ menu at its right;
+ * then the actions: Return to mechanic (outlined) and the primary side by side once the card is 280px
+ * wide, stacked with the primary on top below that, and the blocked reason under them. The phone line
+ * (AC-18) has the same row and reason; the fixed bar holds its buttons.
  */
 export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecondary, onCancel, onPhotosBlocked, variant = 'card' }: StatusCardProps) {
   const { primary, secondary, cancel } = actions;
@@ -107,9 +108,11 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
       )
     ) : null;
 
+  const due = <DueLine ticket={ticket} now={now} />;
   const badges = (
-    <div className="flex min-h-9 items-center justify-between gap-2">
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+    <div className="flex min-h-9 items-start justify-between gap-2">
+      {/* The due line follows the badges and wraps under them when the row is full; the ⋮ stays right */}
+      <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <HoverLabel label="Ticket status">
           <StatusBadge status={ticket.status} />
         </HoverLabel>
@@ -120,12 +123,16 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
         )}
         <MechanicProblemBadge ticket={ticket} />
         {lockBadge}
+        {due}
       </div>
-      {!readOnly && cancel && <MoreActions cancel={cancel} onCancel={onCancel} />}
+      {!readOnly && cancel && (
+        <span className="flex min-h-9 items-center">
+          <MoreActions cancel={cancel} onCancel={onCancel} />
+        </span>
+      )}
     </div>
   );
 
-  const due = <DueLine ticket={ticket} now={now} />;
   const reason = <BlockedReason id={blockedId} actions={actions} onPhotos={onPhotosBlocked} />;
 
   const body = readOnly ? (
@@ -144,30 +151,28 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
           without a primary the bar has nothing, so Return stays. */}
       {line && reason}
       {(line ? !primary && secondary : primary || secondary) && (
-        <div className="flex flex-col gap-2">
+        // AC-17: the primary first, so it sits on top when stacked; side by side it moves right, equal widths
+        <div className="flex flex-col gap-2 @[280px]:flex-row-reverse">
           {primary && !line && (
-            <div className="flex flex-col gap-1">
-              <Button
-                size="touch"
-                className="w-full lg:h-10 lg:text-sm"
-                onClick={onPrimary}
-                disabled={!!actions.blocked}
-                aria-describedby={actions.blocked ? blockedId : undefined}
-              >
-                {primary.kind === 'move' ? primary.move.label : primary.label}
-              </Button>
-              {reason}
-            </div>
+            <Button
+              size="touch"
+              className="w-full min-w-0 flex-1 lg:h-10 lg:text-sm"
+              onClick={onPrimary}
+              disabled={!!actions.blocked}
+              aria-describedby={actions.blocked ? blockedId : undefined}
+            >
+              {primary.kind === 'move' ? primary.move.label : primary.label}
+            </Button>
           )}
-          {/* AC-17: Return to mechanic is borderless, so only the primary carries weight */}
           {secondary && (
-            <Button variant="ghost" size="touch" className="w-full lg:h-10 lg:text-sm" onClick={onSecondary}>
+            <Button variant="outline" size="touch" className="w-full min-w-0 flex-1 lg:h-10 lg:text-sm" onClick={onSecondary}>
               {secondary.label}
             </Button>
           )}
         </div>
       )}
-      {!line && !primary && reason}
+      {/* The reason is helper text under the buttons */}
+      {!line && reason}
     </div>
   );
 
@@ -175,15 +180,14 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
     return (
       <section aria-label="Status" className="flex flex-col gap-2 border-b border-border pb-3">
         {badges}
-        {due}
         {body}
       </section>
     );
   }
   return (
-    <Card role="region" aria-label="Status" className="gap-3 p-4 md:p-5">
+    // A container, so the buttons pair up by the card's own width, not the screen's (AC-17)
+    <Card role="region" aria-label="Status" className="@container gap-3 p-4 md:p-5">
       {badges}
-      {due}
       {body}
     </Card>
   );
@@ -284,13 +288,18 @@ function DetailsGroup({ title, children }: { title: string; children: ReactNode 
 
 /**
  * Spec 0024, AC-16: the ticket's details under two small headings, Vehicle and Record. Plate and model
- * are in the title, priority and due in the Status card. The details Edit dialog fixes the vehicle
+ * show here as well as in the title (your call, 2026-11-07); priority and due are in the Status card. The details Edit dialog fixes the vehicle
  * part (spec 0019, AC-20), so its Edit button comes in as `action`.
  */
 export function DetailsCard({ ticket, now, action }: { ticket: RepairTicket; now: number; action?: ReactNode }) {
   return (
     <DetailSection title="Details" action={action}>
       <DetailsGroup title="Vehicle">
+        {/* Shown here too, though the title has them, so Details holds the whole vehicle record */}
+        <DetailItem label="Plate">
+          <span className="whitespace-nowrap">{ticket.vehiclePlate}</span>
+        </DetailItem>
+        <DetailItem label="Model">{ticket.vehicleModel || '—'}</DetailItem>
         <DetailItem label="Odometer" className="col-span-2">
           {ticket.odometerReading != null ? <span className="tabular-nums">{ticket.odometerReading.toLocaleString('en-US')} km</span> : '—'}
         </DetailItem>

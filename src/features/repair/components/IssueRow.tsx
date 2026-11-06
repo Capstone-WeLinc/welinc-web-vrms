@@ -22,6 +22,7 @@ import type { useEntryOptions } from '../hooks/useEntryOptions';
 import { relinkLossMessage, STEP_TAG_TOOLTIP, stepTag } from '../lib/checklist';
 import {
   issueAnchor,
+  issueDisplayText,
   type IssueState,
   needsResolution,
   resolutionLine,
@@ -63,7 +64,8 @@ function Progress({ state, ticked, total }: { state: IssueState; ticked: number;
   }
   const bar = state !== 'returned' && state !== 'none';
   return (
-    <span className="flex w-20 shrink-0 flex-col items-end gap-1.5 pt-0.5 text-xs md:w-24">
+    // AC-3: a fixed column, so the state words line up on every row
+    <span className="flex w-24 shrink-0 flex-col items-end gap-1.5 pt-0.5 text-right text-xs">
       {label}
       {bar && (
         <span aria-hidden="true" className="h-1 w-full overflow-hidden rounded-full bg-muted">
@@ -84,18 +86,37 @@ function Progress({ state, ticked, total }: { state: IssueState; ticked: number;
  */
 function RowMeta({ issue, state, status }: { issue: RepairIssue; state: IssueState; status: RepairTicket['status'] }) {
   const resolution = resolutionLine(issue);
-  const parts: ReactNode[] = [];
-  const fixed = 'shrink-0';
-  const flexible = 'min-w-0 truncate';
+  const line = 'flex min-w-0 items-center gap-3 overflow-hidden text-xs whitespace-nowrap text-muted-foreground';
   if (resolution) {
-    if (resolution.text) parts.push(<span key="fix" className={cn(flexible, 'text-foreground/80')}>{resolution.text}</span>);
-    if (resolution.hours) parts.push(<span key="hours" className={cn(fixed, 'tabular-nums')}>{resolution.hours}</span>);
-  } else {
-    if (issue.categoryName) parts.push(<span key="cat" className={fixed}>{issue.categoryName}</span>);
-    const entry = issue.knowledgeEntry;
-    parts.push(
-      entry ? (
-        <span key="fix" className="flex min-w-0 items-center gap-1.5">
+    // AC-2: closed, What fixed it and the hours; open, the category line, since the resolution block shows below (AC-7)
+    return (
+      <>
+        <span className={cn(line, 'group-data-[state=open]/trigger:hidden')}>
+          {resolution.text && <span className="min-w-0 truncate text-foreground/80">{resolution.text}</span>}
+          {resolution.hours && <span className="shrink-0 tabular-nums">{resolution.hours}</span>}
+        </span>
+        <span className={cn(line, 'hidden group-data-[state=open]/trigger:flex')}>
+          <FixParts issue={issue} />
+        </span>
+      </>
+    );
+  }
+  return (
+    <span className={line}>
+      <FixParts issue={issue} />
+      {needsResolution(issue, state, status) && <span className="shrink-0">Needs what fixed it</span>}
+    </span>
+  );
+}
+
+/** AC-2: the category, the known fix (or No known fix) and the Safety word. */
+function FixParts({ issue }: { issue: RepairIssue }) {
+  const entry = issue.knowledgeEntry;
+  return (
+    <>
+      {issue.categoryName && <span className="shrink-0">{issue.categoryName}</span>}
+      {entry ? (
+        <span className="flex min-w-0 items-center gap-1.5">
           <span className="min-w-0 truncate">Known fix: {entry.name}</span>
           {entry.status !== 'ACTIVE' && (
             <span className="shrink-0">
@@ -104,14 +125,11 @@ function RowMeta({ issue, state, status }: { issue: RepairIssue; state: IssueSta
           )}
         </span>
       ) : (
-        <span key="fix" className={fixed}>No known fix</span>
-      ),
-    );
-    if (safetyNote(issue)) parts.push(<span key="safety" className={cn(fixed, 'font-medium text-warning-text')}>Safety</span>);
-  }
-  if (needsResolution(issue, state, status)) parts.push(<span key="needs" className={fixed}>Needs what fixed it</span>);
-  if (parts.length === 0) return null;
-  return <span className="flex min-w-0 items-center gap-3 overflow-hidden text-xs whitespace-nowrap text-muted-foreground">{parts}</span>;
+        <span className="shrink-0">No known fix</span>
+      )}
+      {safetyNote(issue) && <span className="shrink-0 font-medium text-warning-text">Safety</span>}
+    </>
+  );
 }
 
 /** AC-8: one line of warning text above the checklist, with More only when it is cut off. */
@@ -233,6 +251,8 @@ export function IssueRow(props: IssueRowProps) {
   const [suggesting, setSuggesting] = useState(false);
   const entry = issue.knowledgeEntry;
   const text = stripSystem(issue.description);
+  // AC-12: a repeated root cause shows once on the row; Suggest keeps the text as stored, prefix off
+  const shown = issueDisplayText(text);
   const ticked = tickedCount(steps);
   const n = index + 1;
   const safety = safetyNote(issue);
@@ -297,12 +317,44 @@ export function IssueRow(props: IssueRowProps) {
   // AC-7: Change known fix only when the issue may be relinked; Open known fix while the module is on
   const canChange = canLink && entry != null;
   const hasMenu = !!(onEdit || onRemove || canChange || (entry && knowledgeOn));
-  const hasActions = !!onEditSteps || hasMenu;
   const resolution = hasSavedResolution(issue);
+
+  // AC-7: the row menu on the header line, beside the fold button and never inside it; with no menu its
+  // space stays, so the progress column lines up with the rows that have one (AC-3)
+  const menu = hasMenu ? (
+    <DropdownMenu>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="size-11 shrink-0 text-muted-strong md:mt-2 md:size-8" aria-label={`More actions for issue ${n}`}>
+              <MoreVertical aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>More actions</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align="end">
+        {onEdit && <DropdownMenuItem onSelect={onEdit}>Edit issue</DropdownMenuItem>}
+        {canChange && <DropdownMenuItem onSelect={() => setChanging(true)}>Change known fix</DropdownMenuItem>}
+        {entry && knowledgeOn && (
+          <DropdownMenuItem asChild>
+            <Link to={`/knowledge-base/${entry.id}`}>Open known fix</Link>
+          </DropdownMenuItem>
+        )}
+        {onRemove && (
+          <DropdownMenuItem variant="destructive" onSelect={onRemove}>
+            Remove issue
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ) : (
+    <span aria-hidden="true" className="size-11 shrink-0 md:size-8" />
+  );
 
   return (
     <AccordionItem value={issue.id} id={issueAnchor(index)} className="scroll-mt-24">
-      <AccordionTrigger className="min-h-11 py-3">
+      <AccordionTrigger className="min-h-11 py-3" actions={menu}>
         <span className="flex min-w-0 flex-1 gap-2">
           <span aria-hidden="true" className="w-5 shrink-0 pt-px text-sm text-muted-foreground tabular-nums">
             {n}.
@@ -310,7 +362,7 @@ export function IssueRow(props: IssueRowProps) {
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="line-clamp-2 text-sm font-semibold break-words text-foreground group-data-[state=open]/trigger:line-clamp-none md:line-clamp-1 md:text-base">
               <span className="sr-only">Issue {n}: </span>
-              {text}
+              {shown}
             </span>
             <RowMeta issue={issue} state={state} status={ticket.status} />
           </span>
@@ -337,42 +389,12 @@ export function IssueRow(props: IssueRowProps) {
           </div>
         )}
 
-        {/* AC-7: one quiet Edit steps, with the issue's other actions in the row menu on the right */}
-        {hasActions && (
-          <div className="-ml-2 flex items-center gap-1">
-            {onEditSteps && (
-              <Button type="button" variant="ghost" size="sm" className={quiet} aria-label={steps.length ? `Edit steps for issue ${n}` : `Add steps to issue ${n}`} onClick={onEditSteps}>
-                {steps.length ? 'Edit steps' : 'Add steps'}
-              </Button>
-            )}
-            {hasMenu && (
-              <DropdownMenu>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="ghost" size="icon" className="ml-auto size-11 shrink-0 text-muted-strong md:size-8" aria-label={`More actions for issue ${n}`}>
-                        <MoreVertical aria-hidden="true" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>More actions</TooltipContent>
-                </Tooltip>
-                <DropdownMenuContent align="end">
-                  {onEdit && <DropdownMenuItem onSelect={onEdit}>Edit issue</DropdownMenuItem>}
-                  {canChange && <DropdownMenuItem onSelect={() => setChanging(true)}>Change known fix</DropdownMenuItem>}
-                  {entry && knowledgeOn && (
-                    <DropdownMenuItem asChild>
-                      <Link to={`/knowledge-base/${entry.id}`}>Open known fix</Link>
-                    </DropdownMenuItem>
-                  )}
-                  {onRemove && (
-                    <DropdownMenuItem variant="destructive" onSelect={onRemove}>
-                      Remove issue
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+        {/* AC-7: one quiet Edit steps; the issue's other actions are in the row menu on the header line */}
+        {onEditSteps && (
+          <div className="-ml-2 flex">
+            <Button type="button" variant="ghost" size="sm" className={quiet} aria-label={steps.length ? `Edit steps for issue ${n}` : `Add steps to issue ${n}`} onClick={onEditSteps}>
+              {steps.length ? 'Edit steps' : 'Add steps'}
+            </Button>
           </div>
         )}
 
@@ -412,20 +434,21 @@ export function IssueRow(props: IssueRowProps) {
         )}
 
         {resolution && (
-          // Spec 0018, AC-19: the <dl> holds only dt and dd groups
-          <dl className="grid gap-3 border-t border-border pt-3 text-sm sm:grid-cols-3">
-            <div className="min-w-0 sm:col-span-2">
-              <dt className="text-xs font-medium text-muted-foreground">What fixed it</dt>
-              <dd className="break-words text-foreground">
-                {issue.resolutionNote ?? (issue.followedKnownFix ? 'Followed the known fix' : '—')}
-                {issue.followedKnownFix && issue.resolutionNote && <span className="block text-xs text-muted-foreground">Followed the known fix</span>}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground">Hours spent</dt>
-              <dd className="text-foreground tabular-nums">{issue.hoursSpent != null ? formatHours(issue.hoursSpent) : '—'}</dd>
-            </div>
-          </dl>
+          // AC-7: one block, the label with the hours on its right, then the note
+          <div className="flex flex-col gap-1 border-t border-border pt-3 text-sm">
+            <p className="flex items-baseline justify-between gap-3 text-xs font-medium text-muted-foreground">
+              What fixed it
+              {issue.hoursSpent != null && (
+                <span className="shrink-0 tabular-nums">
+                  <span className="sr-only">Hours spent </span>
+                  {formatHours(issue.hoursSpent)}
+                </span>
+              )}
+            </p>
+            {(issue.resolutionNote || issue.followedKnownFix) && (
+              <p className="break-words whitespace-pre-line text-foreground">{issue.resolutionNote ?? 'Followed the known fix'}</p>
+            )}
+          </div>
         )}
       </AccordionContent>
     </AccordionItem>

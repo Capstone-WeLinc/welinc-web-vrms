@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { RepairIssue, RepairIssueStep } from '../../../types';
 import {
   initialOpen,
+  issueDisplayText,
   issueHashIndex,
   issueState,
   mergedSteps,
@@ -214,5 +215,39 @@ describe('stored view (AC-5)', () => {
     expect(evicted).toEqual(['t19']);
     expect(touchIndex(JSON.stringify(ids), 't5').index[0]).toBe('t5');
     expect(touchIndex('broken', 't1')).toEqual({ index: ['t1'], evicted: [] });
+  });
+});
+
+describe('issueDisplayText (AC-12)', () => {
+  it('drops a repeated root cause and the separators after it', () => {
+    expect(issueDisplayText('Aircon not cooling: Aircon not cooling, blows warm air.')).toBe('Aircon not cooling: blows warm air.');
+    expect(issueDisplayText('Brakes: brakes. : grinding')).toBe('Brakes: grinding');
+  });
+
+  it('matches case insensitively, after trimming', () => {
+    expect(issueDisplayText('Flat tyre:   FLAT TYRE, front left')).toBe('Flat tyre: front left');
+  });
+
+  it('shows only the root cause when nothing is left', () => {
+    expect(issueDisplayText('Battery dead: Battery dead.')).toBe('Battery dead');
+    expect(issueDisplayText('Battery dead: battery dead')).toBe('Battery dead');
+  });
+
+  it('leaves text with no repeat, no ": ", or a leading ": " unchanged', () => {
+    expect(issueDisplayText('Aircon not cooling: blows warm air')).toBe('Aircon not cooling: blows warm air');
+    expect(issueDisplayText('Aircon not cooling')).toBe('Aircon not cooling');
+    expect(issueDisplayText(': Aircon')).toBe(': Aircon');
+    expect(issueDisplayText('Noise:clunk')).toBe('Noise:clunk');
+  });
+
+  it('needs a whole word match', () => {
+    expect(issueDisplayText('Aircon: Aircon cooling weak')).toBe('Aircon: cooling weak');
+    expect(issueDisplayText('Air: Aircon cooling weak')).toBe('Air: Aircon cooling weak');
+    expect(issueDisplayText('Leak: Leak2 at hose')).toBe('Leak: Leak2 at hose');
+  });
+
+  it('splits only at the first ": "', () => {
+    expect(issueDisplayText('Engine: Engine: misfire')).toBe('Engine: misfire');
+    expect(issueDisplayText('Engine: Fuel: Engine misfire')).toBe('Engine: Fuel: Engine misfire');
   });
 });
