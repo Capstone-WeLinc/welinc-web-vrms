@@ -103,9 +103,9 @@ export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, 
       {actions.note && <p className="text-sm text-muted-foreground">{actions.note}</p>}
       <BlockedReason id={blockedId} actions={actions} onPhotos={onPhotosBlocked} />
       {/* The line leaves the primary and Return to mechanic to the fixed bar; without a primary the bar has
-          nothing, so Return stays. One column under 300px, where two side by side overflow (about 400% zoom). */}
+          nothing, so Return stays. The sidebar is too narrow for the two side by side, so they stack. */}
       {(line ? !primary && secondary : primary || secondary) && (
-        <div className={cn('grid gap-2', primary && secondary && 'min-[300px]:grid-cols-2')}>
+        <div className="grid gap-2">
           {primary && (
             <Button
               size="touch"
