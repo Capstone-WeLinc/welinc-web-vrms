@@ -210,7 +210,15 @@ export function PhotoStrip({ groups, queue, canAdd, limitText, label, onAdd, onR
                 aria-hidden="true"
                 onChange={(event) => pick(event.target)}
               />
-              <Button type="button" variant="outline" size="sm" disabled={atLimit} aria-describedby={limitText ? limitId : undefined} onClick={() => cameraRef.current?.click()}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-photo-add
+                disabled={atLimit}
+                aria-describedby={limitText ? limitId : undefined}
+                onClick={() => cameraRef.current?.click()}
+              >
                 <Camera aria-hidden="true" />
                 Take photo
               </Button>
@@ -221,12 +229,22 @@ export function PhotoStrip({ groups, queue, canAdd, limitText, label, onAdd, onR
             type="file"
             accept="image/*"
             multiple
+            data-photo-choose
             className="sr-only"
             tabIndex={-1}
             aria-hidden="true"
             onChange={(event) => pick(event.target)}
           />
-          <Button type="button" variant="outline" size="sm" disabled={atLimit} aria-describedby={limitText ? limitId : undefined} onClick={() => chooseRef.current?.click()}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            // Spec 0024, AC-13: the blocked reason link focuses the first add button
+            data-photo-add={isTouch ? undefined : true}
+            disabled={atLimit}
+            aria-describedby={limitText ? limitId : undefined}
+            onClick={() => chooseRef.current?.click()}
+          >
             <ImagePlus aria-hidden="true" />
             Choose photos
           </Button>

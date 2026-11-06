@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, CircleCheck, Sparkles, Star, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { ChevronDown, CircleCheck, Star, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { FormAlert } from '../../../components/shared/FormAlert';
@@ -11,7 +12,7 @@ import { formatPeso, formatRelativeTime } from '../../../lib/utils/format';
 import type { RepairTicket } from '../../../types';
 import { isClosed } from '../lib/nextAction';
 import { Callout } from '../../../components/shared/Callout';
-import { DetailItem, DetailSection } from '../../../components/shared/DetailSection';
+import { DetailItem } from '../../../components/shared/DetailSection';
 
 const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
 const CONFIDENCE_TEXT: Record<string, string> = {
@@ -203,78 +204,140 @@ function Results({ data }: { data: Diagnosis }) {
   );
 }
 
+/** "HIGH" as "High". */
+function sentenceCase(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
+type Latest = { ticketId: string; attempt: number } & ({ status: 'ready'; diagnosis: Diagnosis | null } | { status: 'error' });
+
 /**
- * The ticket's latest AI diagnosis, loaded on open, with Run again while the ticket is open
- * (spec 0013, AC-9). A closed ticket shows its latest read only. The rest of the page works if
- * AI is down.
+ * Spec 0024, AC-14: the ticket's latest AI diagnosis as a folded card. Closed it is one line; open
+ * it is the full result with Run again while the ticket is open (spec 0013, AC-9). The card loads
+ * the latest diagnosis whether folded or not, and the rest of the page works if AI is down.
  */
 export function AiDiagnosisSection({ ticket }: { ticket: RepairTicket }) {
-  const [latest, setLatest] = useState<{ ticketId: string; diagnosis: Diagnosis | null } | null>(null);
+  const [open, setOpen] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [latest, setLatest] = useState<Latest | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
+  const headingId = useId();
+  const panelId = useId();
   const closed = isClosed(ticket);
   const hasIssues = (ticket.issues ?? []).length > 0;
-  // A result for another ticket means this one is still loading
-  const loaded = latest?.ticketId === ticket.id ? latest : null;
-  const diagnosis = loaded?.diagnosis ?? null;
+  // A result for another ticket or an older attempt means this one is still loading
+  const loaded = latest?.ticketId === ticket.id && latest.attempt === attempt ? latest : null;
+  const diagnosis = loaded?.status === 'ready' ? loaded.diagnosis : null;
 
   useEffect(() => {
     let cancelled = false;
     getLatestDiagnosis(ticket.id)
-      .then((found) => { if (!cancelled) setLatest({ ticketId: ticket.id, diagnosis: found }); })
-      // A failed load reads as no diagnosis yet; a run reports its own error
-      .catch(() => { if (!cancelled) setLatest({ ticketId: ticket.id, diagnosis: null }); });
+      .then((found) => { if (!cancelled) setLatest({ ticketId: ticket.id, attempt, status: 'ready', diagnosis: found }); })
+      .catch(() => { if (!cancelled) setLatest({ ticketId: ticket.id, attempt, status: 'error' }); });
     return () => { cancelled = true; };
-  }, [ticket.id]);
+  }, [ticket.id, attempt]);
 
   const run = () => {
     setRunning(true);
     setError('');
     runDiagnosis(ticket.id)
-      .then((created) => setLatest({ ticketId: ticket.id, diagnosis: created }))
-      .catch((err) => setError(runErrorMessage(err)))
+      .then((created) => {
+        setLatest({ ticketId: ticket.id, attempt, status: 'ready', diagnosis: created });
+        setOpen(true);
+      })
+      .catch((err) => {
+        setError(runErrorMessage(err));
+        setOpen(true);
+      })
       .finally(() => setRunning(false));
   };
 
+  let summary;
+  if (running) {
+    summary = <span className="text-muted-foreground">Running on {ticket.vehiclePlate}…</span>;
+  } else if (!loaded) {
+    summary = <Skeleton className="h-4 w-40" />;
+  } else if (loaded.status === 'error') {
+    summary = <span className="text-muted-foreground">Couldn’t load the last diagnosis</span>;
+  } else if (diagnosis) {
+    const { predictedCategory, predictedPriority } = diagnosis.result;
+    summary = (
+      <span className="text-muted-foreground">
+        AI suggests {predictedCategory || 'no category'}, {sentenceCase(predictedPriority)} priority
+      </span>
+    );
+  } else {
+    summary = <span className="text-muted-foreground">{closed ? 'No AI diagnosis was run' : 'No AI diagnosis yet'}</span>;
+  }
+  // The one line keeps its own action: Retry a failed load, or Run when there is none yet
+  const lineAction =
+    loaded?.status === 'error' ? (
+      <Button variant="ghost" size="sm" className="h-11 px-2 text-muted-strong md:h-8" onClick={() => setAttempt((n) => n + 1)}>
+        Retry
+      </Button>
+    ) : loaded && !diagnosis && !closed && !open && !running ? (
+      <Button variant="ghost" size="sm" className="h-11 px-2 text-muted-strong md:h-8" disabled={!hasIssues} onClick={run}>
+        Run
+      </Button>
+    ) : diagnosis && open && !closed && !running ? (
+      <Button variant="ghost" size="sm" className="h-11 px-2 text-muted-strong md:h-8" onClick={run}>
+        Run again
+      </Button>
+    ) : null;
+
   return (
-    <DetailSection
-      title="AI diagnosis"
-      action={diagnosis && !closed && !running ? (
-        <Button variant="outline" size="sm" onClick={run}>
-          Run again
-        </Button>
-      ) : null}
-    >
-      {!loaded || running ? (
-        <div aria-live="polite" className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">
-            {running ? `Running the diagnosis on ${ticket.vehiclePlate}…` : 'Loading the last diagnosis…'}
-          </p>
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-4 w-2/3" />
-        </div>
-      ) : diagnosis ? (
-        <div className="flex flex-col gap-4">
-          {error && <FormAlert message={error} />}
-          <Results key={diagnosis.id} data={diagnosis} />
-        </div>
-      ) : closed ? (
-        <p className="text-sm text-muted-foreground">No AI diagnosis was run while this ticket was open.</p>
-      ) : (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-muted-foreground">
-            {hasIssues
-              ? 'Suggests likely causes and parts from this ticket’s issues and similar past repairs.'
-              : 'Log an issue on this ticket to run a diagnosis.'}
-          </p>
-          {error && <FormAlert message={error} />}
-          <Button variant="outline" disabled={!hasIssues} onClick={run}>
-            <Sparkles aria-hidden="true" />
-            {error ? 'Try again' : 'Run AI diagnosis'}
-          </Button>
-        </div>
-      )}
-    </DetailSection>
+    <Card role="region" aria-labelledby={headingId} className="gap-0 px-4 py-2 md:px-5">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id={headingId} className="min-w-0 flex-1 text-base font-semibold text-foreground">
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={panelId}
+            onClick={() => setOpen((v) => !v)}
+            className="flex min-h-11 w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md py-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span>AI diagnosis</span>
+            <span className="flex min-w-0 items-center gap-2 text-sm font-normal">
+              {summary}
+              <ChevronDown
+                aria-hidden="true"
+                className={cn('size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-snappy', open && 'rotate-180')}
+              />
+            </span>
+          </button>
+        </h2>
+        {lineAction}
+      </div>
+      <div id={panelId} hidden={!open} aria-live="polite" className="pt-2 pb-3">
+        {open &&
+          (running ? (
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          ) : diagnosis ? (
+            <div className="flex flex-col gap-4">
+              {error && <FormAlert message={error} />}
+              <Results key={diagnosis.id} data={diagnosis} />
+            </div>
+          ) : loaded?.status === 'ready' && !closed ? (
+            <div className="flex flex-col items-start gap-3">
+              <p className="text-sm text-muted-foreground">
+                {hasIssues
+                  ? 'Suggests likely causes and parts from this ticket’s issues and similar past repairs.'
+                  : 'Log an issue on this ticket to run a diagnosis.'}
+              </p>
+              {error && <FormAlert message={error} />}
+              <Button variant="outline" disabled={!hasIssues} onClick={run}>
+                {error ? 'Try again' : 'Run AI diagnosis'}
+              </Button>
+            </div>
+          ) : loaded?.status === 'ready' ? (
+            <p className="text-sm text-muted-foreground">No AI diagnosis was run while this ticket was open.</p>
+          ) : null)}
+      </div>
+    </Card>
   );
 }

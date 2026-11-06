@@ -73,6 +73,9 @@ export function documentRoomLeft(limits: AttachmentList['limits'], queued: numbe
 }
 
 /** Spec 0018: the two photo groups of the one strip. Before is how the truck arrived, After the proof. */
+/** Spec 0024, AC-13: the Photos line's anchor, for the blocked reason link. */
+export const PHOTOS_SECTION_ID = 'photos';
+
 export type PhotoGroupKind = 'VEHICLE_PHOTO' | 'PROOF';
 
 export const PHOTO_GROUP_LABELS: Record<PhotoGroupKind, string> = {

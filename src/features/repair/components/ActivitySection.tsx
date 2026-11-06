@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { AlertCircle, ChevronDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 import { AuditEventItem } from '../../audit-logs/components/AuditEventItem';
 import { getAuditEvents } from '../../../lib/api/auditApi';
 import { dayKey, formatDayHeading } from '../../../lib/utils/format';
@@ -12,7 +11,7 @@ import { DetailSection } from '../../../components/shared/DetailSection';
 const PAGE_SIZE = 50;
 
 type Activity =
-  | { status: 'idle' | 'loading' | 'error' }
+  | { status: 'loading' | 'error' }
   | { status: 'ready'; events: AuditEvent[]; nextCursor: string | null; more: 'idle' | 'loading' | 'error' };
 
 /** Consecutive events that share a local calendar day; events arrive newest first. */
@@ -27,40 +26,50 @@ function byDay(events: AuditEvent[]) {
   return days;
 }
 
+/** Spec 0024, AC-15: the newest events shown before Show all. */
+const RECENT = 5;
+
 /**
- * The ticket's audit events, admins only (spec 0004, AC-23). Collapsed at first; the first
- * expand loads the newest 50 from the same endpoint and renderer as the audit log page.
+ * The ticket's audit events (spec 0004, AC-23), shown open with the 5 newest (spec 0024, AC-15).
+ * Show all loads the first 50 in their place, then pages on by cursor. The 3 second refresh never
+ * reloads it: it loads per ticket only.
  */
 export function ActivitySection({ ticketId }: { ticketId: string }) {
-  const [open, setOpen] = useState(false);
-  const [activity, setActivity] = useState<Activity>({ status: 'idle' });
+  const [all, setAll] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState<{ key: string; activity: Activity } | null>(null);
+  const key = `${ticketId}:${all ? 'all' : 'recent'}:${attempt}`;
+  // A result for another ticket, mode or attempt means this one is still loading
+  const activity: Activity = result?.key === key ? result.activity : { status: 'loading' };
 
-  const load = () => {
-    setActivity({ status: 'loading' });
-    getAuditEvents({ ticketId, limit: PAGE_SIZE })
-      .then((page) => setActivity({ status: 'ready', events: page.data, nextCursor: page.nextCursor, more: 'idle' }))
-      .catch(() => setActivity({ status: 'error' }));
-  };
+  useEffect(() => {
+    let cancelled = false;
+    getAuditEvents({ ticketId, limit: all ? PAGE_SIZE : RECENT })
+      .then((page) => {
+        if (!cancelled) setResult({ key, activity: { status: 'ready', events: page.data, nextCursor: all ? page.nextCursor : null, more: 'idle' } });
+      })
+      .catch(() => {
+        if (!cancelled) setResult({ key, activity: { status: 'error' } });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ticketId, all, attempt, key]);
 
+  /** Today's paging, once Show all has loaded the first page. */
   const loadOlder = () => {
     if (activity.status !== 'ready' || !activity.nextCursor || activity.more === 'loading') return;
     const cursor = activity.nextCursor;
-    setActivity({ ...activity, more: 'loading' });
+    const update = (change: (current: Extract<Activity, { status: 'ready' }>) => Activity) =>
+      setResult((r) => (r && r.key === key && r.activity.status === 'ready' ? { key, activity: change(r.activity) } : r));
+    update((current) => ({ ...current, more: 'loading' }));
     getAuditEvents({ ticketId, limit: PAGE_SIZE, cursor })
-      .then((page) =>
-        setActivity((current) =>
-          current.status === 'ready'
-            ? { ...current, events: [...current.events, ...page.data], nextCursor: page.nextCursor, more: 'idle' }
-            : current,
-        ),
-      )
-      .catch(() => setActivity((current) => (current.status === 'ready' ? { ...current, more: 'error' } : current)));
+      .then((page) => update((current) => ({ ...current, events: [...current.events, ...page.data], nextCursor: page.nextCursor, more: 'idle' })))
+      .catch(() => update((current) => ({ ...current, more: 'error' })));
   };
 
-  const toggle = () => {
-    if (!open && activity.status === 'idle') load();
-    setOpen(!open);
-  };
+  // Show all only when the 5 newest may not be everything
+  const canShowAll = !all && activity.status === 'ready' && activity.events.length >= RECENT;
 
   const now = new Date();
   const panelId = `activity-${ticketId}`;
@@ -69,16 +78,17 @@ export function ActivitySection({ ticketId }: { ticketId: string }) {
     <DetailSection
       title="Activity"
       action={
-        <Button variant="ghost" size="sm" aria-expanded={open} aria-controls={panelId} onClick={toggle}>
-          {open ? 'Hide' : 'Show'}
-          <ChevronDown aria-hidden="true" className={cn('transition-transform motion-reduce:transition-none', open && 'rotate-180')} />
-        </Button>
+        canShowAll ? (
+          <Button variant="ghost" size="sm" className="h-11 px-2 text-muted-strong md:h-8" onClick={() => setAll(true)}>
+            Show all
+          </Button>
+        ) : null
       }
     >
-      <div id={panelId} hidden={!open} aria-live="polite">
+      <div id={panelId} aria-live="polite">
         {activity.status === 'loading' && (
           <div className="flex flex-col gap-4" aria-busy="true">
-            {[0, 1, 2].map((row) => (
+            {(all ? [0, 1, 2] : [0, 1]).map((row) => (
               <div key={row} className="flex gap-3">
                 <Skeleton className="size-8 shrink-0 rounded-full" />
                 <div className="flex flex-1 flex-col gap-2 pt-1">
@@ -95,14 +105,14 @@ export function ActivitySection({ ticketId }: { ticketId: string }) {
               <AlertCircle aria-hidden="true" className="size-4" />
               Couldn’t load activity.
             </span>
-            <Button variant="outline" size="sm" onClick={load}>
+            <Button variant="outline" size="sm" onClick={() => setAttempt((n) => n + 1)}>
               Try again
             </Button>
           </div>
         )}
         {activity.status === 'ready' &&
           (activity.events.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
+            <p className="text-sm text-muted-foreground">No activity yet</p>
           ) : (
             <div className="flex flex-col gap-5">
               {byDay(activity.events).map((day) => {
