@@ -95,6 +95,15 @@ describe('photoMarks and the viewer lines (spec 0018, AC-13, AC-14)', () => {
     ]);
   });
 
+  it('marks a Before photo added after work started, for everyone (spec 0024, AC-22)', () => {
+    expect(photoMarks(photo({ addedAfterWorkStarted: true }))).toEqual([
+      { id: 'addedAfterWorkStarted', short: 'Added after work started', long: 'Added after work started' },
+    ]);
+    expect(photoCaption(photo({ addedAfterWorkStarted: true }), new Map()).description).toBe(
+      'Before\nNov 1, 2026, 10:42 AM\nAdded after work started',
+    );
+  });
+
   it('adds each mark as its own line under the caption', () => {
     expect(photoCaption(photo({ kind: 'PROOF', returnedAfter: true }), new Map()).description).toBe(
       'After\nNov 1, 2026, 10:42 AM\nAdded after the ticket was returned to the mechanic',

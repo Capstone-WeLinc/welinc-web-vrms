@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { AlertTriangle, ImageOff, Undo2, X } from 'lucide-react';
+import { useDraggable } from '@dnd-kit/core';
+import { AlertTriangle, Clock, ImageOff, Undo2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { Attachment } from '../../../lib/api/attachmentsApi';
-import { photoAlt, photoMarks, photoName } from '../lib/photoCaption';
+import { photoAlt, type PhotoMark, photoMarks, photoName } from '../lib/photoCaption';
 
 interface PhotoThumbProps {
   photo: Attachment;
@@ -13,16 +14,27 @@ interface PhotoThumbProps {
   onRemove: (photo: Attachment) => void;
   /** First load error on a thumbnail: fetch fresh links once (spec 0017, AC-26). */
   onLinkError: () => Promise<unknown>;
+  /** Spec 0024, AC-13: a thumbnail drag runs somewhere on the card, so the marks tooltip stays closed. */
+  dragActive?: boolean;
 }
 
-/** Spec 0024, AC-13: one fixed 72px square, its evidence marks as a corner badge, and Remove at its corner. */
-export function PhotoThumb({ photo, groupLabel, onOpen, onRemove, onLinkError }: PhotoThumbProps) {
+/**
+ * Spec 0024, AC-13: one fixed 72px square, its evidence marks as a corner badge, and Remove at its corner.
+ * A photo with `canMove` drags onto the other group from its open button (never from Remove): the
+ * wrapper is the dragged node, the button the activator. Must sit inside the card's `DndContext`.
+ */
+export function PhotoThumb({ photo, groupLabel, onOpen, onRemove, onLinkError, dragActive = false }: PhotoThumbProps) {
   const name = photoName(photo, groupLabel);
   // Spec 0018, AC-13 and AC-14: a badge on the photo with the words in its tooltip, and read with its name (AC-19)
   const marks = photoMarks(photo);
   const fullName = photoAlt(photo, groupLabel);
   // 0: fine, 1: refetched once, 2: still failing (spec 0017, AC-26)
   const [errors, setErrors] = useState(0);
+  const { setNodeRef, setActivatorNodeRef, listeners, attributes, isDragging } = useDraggable({
+    id: photo.id,
+    disabled: !photo.canMove,
+    attributes: { roleDescription: 'movable photo' },
+  });
 
   const onError = () => {
     if (errors === 0) {
@@ -34,11 +46,13 @@ export function PhotoThumb({ photo, groupLabel, onOpen, onRemove, onLinkError }:
   };
 
   return (
-    <li className="relative w-18 shrink-0">
-      <Tooltip open={marks.length > 0 ? undefined : false}>
+    <li ref={setNodeRef} data-photo-id={photo.id} className={cn('relative w-18 shrink-0', isDragging && 'opacity-40')}>
+      <Tooltip open={marks.length > 0 && !dragActive ? undefined : false}>
         <TooltipTrigger asChild>
           <button
+            ref={setActivatorNodeRef}
             type="button"
+            {...(photo.canMove ? { ...attributes, ...listeners } : {})}
             onClick={(event) => onOpen(photo, event.currentTarget)}
             className="relative block size-18 overflow-hidden rounded-lg border border-border bg-muted outline-none transition-colors duration-150 hover:border-primary focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -57,6 +71,8 @@ export function PhotoThumb({ photo, groupLabel, onOpen, onRemove, onLinkError }:
                 width={photo.width ?? undefined}
                 height={photo.height ?? undefined}
                 onError={onError}
+                // No native image drag: only file drags reach the card's drop handlers, and dnd-kit moves photos
+                draggable={false}
                 className="size-full object-cover"
               />
             )}
@@ -71,7 +87,7 @@ export function PhotoThumb({ photo, groupLabel, onOpen, onRemove, onLinkError }:
                       mark.id === 'takenBeforeWork' ? 'bg-status-pending-bg text-status-pending-fg' : 'bg-muted text-muted-strong',
                     )}
                   >
-                    {mark.id === 'takenBeforeWork' ? <AlertTriangle className="size-3" /> : <Undo2 className="size-3" />}
+                    <MarkIcon id={mark.id} />
                   </span>
                 ))}
               </span>
@@ -98,4 +114,10 @@ export function PhotoThumb({ photo, groupLabel, onOpen, onRemove, onLinkError }:
       )}
     </li>
   );
+}
+
+function MarkIcon({ id }: { id: PhotoMark['id'] }) {
+  if (id === 'takenBeforeWork') return <AlertTriangle className="size-3" />;
+  if (id === 'addedAfterWorkStarted') return <Clock className="size-3" />;
+  return <Undo2 className="size-3" />;
 }

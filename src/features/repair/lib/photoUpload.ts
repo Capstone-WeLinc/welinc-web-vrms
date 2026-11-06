@@ -1,4 +1,4 @@
-import type { Attachment, AttachmentKindInfo, AttachmentList } from '../../../lib/api/attachmentsApi';
+import type { Attachment, AttachmentKindInfo, AttachmentList, UploadGroup } from '../../../lib/api/attachmentsApi';
 
 // Spec 0017, AC-22 and AC-23: the browser side upload rules. The server stays the authority;
 // these only save a phone from sending a file the server would refuse anyway.
@@ -150,10 +150,81 @@ export function moreViewerIndex(groups: readonly Pick<PhotoGroup, 'kind' | 'phot
   return -1;
 }
 
-/** Photos the group new uploads land in can still take, after the ones already queued (AC-21, spec 0018 AC-3). */
-export function photoRoomLeft(limits: AttachmentList['limits'], queued: number, workStarted: boolean): number {
-  const { count, max } = groupLimit(limits, uploadGroup(workStarted));
-  return Math.max(0, max - count - queued);
+/**
+ * Spec 0024, value sourcing (drop zones): where a queued photo goes. `group` is the group it counts
+ * against, decided when it is queued (advisory; the server decides); `named` sends that group with the
+ * upload, which only a drop on a zone does (AC-21).
+ */
+export interface PhotoPlacement {
+  group: PhotoGroupKind;
+  named: boolean;
+}
+
+export function photoPlacement(dropped: PhotoGroupKind | undefined, workStarted: boolean): PhotoPlacement {
+  return dropped ? { group: dropped, named: true } : { group: uploadGroup(workStarted), named: false };
+}
+
+/** The upload's `group` field for a group kind (spec 0024, AC-21). */
+export function uploadGroupField(kind: PhotoGroupKind): UploadGroup {
+  return kind === 'PROOF' ? 'AFTER' : 'BEFORE';
+}
+
+/**
+ * Photos a group can still take, after the uploads queued for it that are still waiting or uploading
+ * (AC-21, spec 0018 AC-3, spec 0024 value sourcing: each queued photo counts only against its own group).
+ */
+export function photoRoomLeft(
+  limits: AttachmentList['limits'],
+  queued: readonly { group?: PhotoGroupKind; status: string }[],
+  target: PhotoGroupKind,
+): number {
+  const { count, max } = groupLimit(limits, target);
+  return Math.max(0, max - count - queuedFor(queued, target));
+}
+
+/** Uploads still waiting or uploading for one group. */
+export function queuedFor(queued: readonly { group?: PhotoGroupKind; status: string }[], target: PhotoGroupKind): number {
+  return queued.filter((item) => item.group === target && (item.status === 'waiting' || item.status === 'uploading')).length;
+}
+
+/** `Before photos full (5 of 5)`: a group with no room, counting its queued uploads (AC-13). */
+export function groupFullText(group: Pick<PhotoGroup, 'label' | 'max' | 'count'>, queued: number): string {
+  return `${group.label} photos full (${Math.min(group.max, group.count + queued)} of ${group.max})`;
+}
+
+/**
+ * Spec 0024, AC-13: what a screen reader hears while a thumbnail is dragged between groups. The ids
+ * are the photo id (active) and the group kind (over). `photo` names a photo by group and position,
+ * `full` says whether a group has no room left.
+ */
+export function photoDragAnnouncements(
+  photo: (id: string) => { group: PhotoGroupKind; position: number } | undefined,
+  full: (group: PhotoGroupKind) => boolean,
+) {
+  type Id = string | number;
+  const label = (id: Id | undefined) => (id === 'VEHICLE_PHOTO' || id === 'PROOF' ? PHOTO_GROUP_LABELS[id] : undefined);
+  const target = (activeId: Id, overId: Id | undefined): PhotoGroupKind | undefined => {
+    const from = photo(String(activeId))?.group;
+    return label(overId) && overId !== from ? (overId as PhotoGroupKind) : undefined;
+  };
+  return {
+    onDragStart({ active }: { active: { id: Id } }) {
+      const found = photo(String(active.id));
+      return found ? `Picked up ${PHOTO_GROUP_LABELS[found.group].toLowerCase()} photo ${found.position}` : undefined;
+    },
+    onDragOver({ active, over }: { active: { id: Id }; over: { id: Id } | null }) {
+      const to = target(active.id, over?.id);
+      if (!to) return undefined;
+      return full(to) ? `${PHOTO_GROUP_LABELS[to]} photos full` : `Over ${PHOTO_GROUP_LABELS[to]} photos`;
+    },
+    onDragEnd({ active, over }: { active: { id: Id }; over: { id: Id } | null }) {
+      const to = target(active.id, over?.id);
+      return to && !full(to) ? `Moved to ${PHOTO_GROUP_LABELS[to]}` : 'Not moved';
+    },
+    onDragCancel() {
+      return 'Not moved';
+    },
+  };
 }
 
 /**

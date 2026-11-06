@@ -30,6 +30,8 @@ export interface Attachment {
   takenAt?: string | null;
   /** Spec 0018, AC-13: an After photo the phone took well before work started. Verifiers only. */
   takenBeforeWork?: boolean;
+  /** Spec 0024, AC-22: a Before photo uploaded after work started, so not protected. For everyone. */
+  addedAfterWorkStarted?: boolean;
 }
 
 export interface AttachmentKindInfo {
@@ -63,8 +65,13 @@ export async function getAttachments(ticketId: string): Promise<AttachmentList> 
   return response.data;
 }
 
+/** Spec 0024, AC-21: the photo group a drop on a zone names. */
+export type UploadGroup = 'BEFORE' | 'AFTER';
+
 export interface UploadOptions {
   kind: UploadKind;
+  /** Spec 0024, AC-21: sent only for a drop on a zone; absent, the server picks from when work started. */
+  group?: UploadGroup;
   /** Spec 0018, AC-12: when the phone took the photo, as ISO UTC, read before the shrink. */
   takenAt?: string;
   /** 0 to 100, from the browser's upload progress. */
@@ -75,10 +82,11 @@ export interface UploadOptions {
 export async function uploadAttachment(
   ticketId: string,
   file: File,
-  { kind, takenAt, onProgress, signal }: UploadOptions,
+  { kind, group, takenAt, onProgress, signal }: UploadOptions,
 ): Promise<Attachment & { duplicate?: boolean }> {
   const body = new FormData();
   body.append('kind', kind);
+  if (group) body.append('group', group);
   if (takenAt) body.append('takenAt', takenAt);
   body.append('file', file);
   const response = await api.post<Attachment & { duplicate?: boolean }>(`/vrms/repairs/${ticketId}/attachments`, body, {

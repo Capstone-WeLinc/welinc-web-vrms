@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { uploadAttachment, type AttachmentKindInfo, type UploadKind } from '../../../lib/api/attachmentsApi';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
-import { isRetryable, normalizeType, RETRY_DELAYS_MS, sizeProblem, typeProblem } from '../lib/photoUpload';
+import {
+  isRetryable,
+  normalizeType,
+  type PhotoGroupKind,
+  type PhotoPlacement,
+  RETRY_DELAYS_MS,
+  sizeProblem,
+  typeProblem,
+  uploadGroupField,
+} from '../lib/photoUpload';
 import { shrinkPhoto } from '../lib/shrinkPhoto';
 import { readTakenAt } from '../lib/takenAt';
 
@@ -16,6 +25,8 @@ export interface QueuedPhoto {
   /** 0 to 100 while uploading. */
   progress: number;
   error?: string;
+  /** Spec 0024: the photo group it counts against, decided when queued (photos only; the server decides). */
+  group?: PhotoGroupKind;
 }
 
 interface Job {
@@ -23,6 +34,8 @@ interface Job {
   file: File;
   kind: AttachmentKindInfo;
   maxFileMb: number;
+  /** Spec 0024, AC-21: where a photo goes, and whether the upload names that group. */
+  placement?: PhotoPlacement;
 }
 
 function sleep(ms: number, signal: AbortSignal) {
@@ -77,6 +90,7 @@ export function usePhotoUploadQueue(ticketId: string, onUploaded: () => Promise<
           // A 200 duplicate counts as done (AC-8)
           await uploadAttachment(ticketId, file, {
             kind: job.kind.kind,
+            group: job.placement?.named ? uploadGroupField(job.placement.group) : undefined,
             takenAt,
             signal,
             onProgress: (progress) => patch(job.id, { progress }),
@@ -135,11 +149,11 @@ export function usePhotoUploadQueue(ticketId: string, onUploaded: () => Promise<
   );
 
   const add = useCallback(
-    (files: File[], kind: AttachmentKindInfo, maxFileMb: number) => {
-      const added = files.map((file) => {
-        const job: Job = { id: `upload-${nextId++}`, file, kind, maxFileMb };
+    (files: File[], kind: AttachmentKindInfo, maxFileMb: number, placement?: PhotoPlacement) => {
+      const added = files.map((file): QueuedPhoto => {
+        const job: Job = { id: `upload-${nextId++}`, file, kind, maxFileMb, placement };
         jobs.current.set(job.id, job);
-        return { id: job.id, kind: kind.kind, name: file.name, status: 'waiting' as const, progress: 0 };
+        return { id: job.id, kind: kind.kind, name: file.name, status: 'waiting', progress: 0, group: placement?.group };
       });
       setItems((list) => [...list, ...added]);
       void run();

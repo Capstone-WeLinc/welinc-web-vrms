@@ -19,7 +19,7 @@ export function formatManilaDateTime(value: string | Date): string {
 }
 
 export interface PhotoMark {
-  id: 'takenBeforeWork' | 'returnedAfter';
+  id: 'takenBeforeWork' | 'returnedAfter' | 'addedAfterWorkStarted';
   /** The chip on the thumbnail. */
   short: string;
   /** The line in the viewer. */
@@ -30,13 +30,17 @@ export interface PhotoMark {
  * Spec 0018: the evidence marks on a photo. "Taken before work started" reaches verifiers only
  * (the server leaves the flag out for everyone else, AC-13); "Added after return" is for everyone (AC-14).
  */
-export function photoMarks(photo: Pick<Attachment, 'takenBeforeWork' | 'returnedAfter'>): PhotoMark[] {
+export function photoMarks(photo: Pick<Attachment, 'takenBeforeWork' | 'returnedAfter' | 'addedAfterWorkStarted'>): PhotoMark[] {
   const marks: PhotoMark[] = [];
   if (photo.takenBeforeWork) {
     marks.push({ id: 'takenBeforeWork', short: 'Taken before work started', long: 'Taken before work started' });
   }
   if (photo.returnedAfter) {
     marks.push({ id: 'returnedAfter', short: 'Added after return', long: 'Added after the ticket was returned to the mechanic' });
+  }
+  // Spec 0024, AC-22: a Before photo that does not show the truck before work, so it is not protected
+  if (photo.addedAfterWorkStarted) {
+    marks.push({ id: 'addedAfterWorkStarted', short: 'Added after work started', long: 'Added after work started' });
   }
   return marks;
 }
@@ -47,7 +51,10 @@ export function photoName(photo: Pick<Attachment, 'uploadedBy' | 'createdAt'>, g
 }
 
 /** The name plus its evidence marks, as the image's alt text. */
-export function photoAlt(photo: Pick<Attachment, 'uploadedBy' | 'createdAt' | 'takenBeforeWork' | 'returnedAfter'>, groupLabel: string): string {
+export function photoAlt(
+  photo: Pick<Attachment, 'uploadedBy' | 'createdAt' | 'takenBeforeWork' | 'returnedAfter' | 'addedAfterWorkStarted'>,
+  groupLabel: string,
+): string {
   const name = photoName(photo, groupLabel);
   const marks = photoMarks(photo);
   return marks.length ? `${name}. ${marks.map((mark) => mark.short).join('. ')}` : name;
