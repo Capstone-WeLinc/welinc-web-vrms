@@ -17,7 +17,7 @@ import {
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Check, GripVertical, Plus, X } from 'lucide-react';
+import { GripVertical, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -261,20 +261,23 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
                           onKeyDown={onStepKey(index)}
                           className="min-h-11 resize-none border-transparent bg-transparent px-2 py-2.5 shadow-none hover:border-input focus-visible:ring-offset-0"
                         />
-                        {(tag || error) && (
+                        {(tag || error || step?.checkedAt) && (
                           <div className="flex flex-col gap-0.5 px-2">
-                            {tag && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span
-                                    tabIndex={0}
-                                    className="self-start rounded-sm text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                  >
-                                    {tag}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>{STEP_TAG_TOOLTIP[tag]}</TooltipContent>
-                              </Tooltip>
+                            {(tag || step?.checkedAt) && (
+                              <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                                {step?.checkedAt && <span className="text-success">Ticked</span>}
+                                {step?.checkedAt && tag && <span aria-hidden="true">·</span>}
+                                {tag && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span tabIndex={0} className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                        {tag}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>{STEP_TAG_TOOLTIP[tag]}</TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </p>
                             )}
                             {error && (
                               <p id={errorId} className="text-xs text-destructive">
@@ -284,14 +287,11 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
                           </div>
                         )}
                       </div>
-                      <span className="flex h-11 w-5 shrink-0 items-center justify-center">
-                        {step?.checkedAt && <Check role="img" aria-label="Ticked" className="size-4 text-success" />}
-                      </span>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon-touch"
-                        className="shrink-0 text-destructive hover:text-destructive"
+                        className="shrink-0 text-muted-foreground hover:text-destructive focus-visible:text-destructive"
                         aria-label={`Remove step ${n}`}
                         onClick={() => removeRow(index)}
                       >
