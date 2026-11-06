@@ -72,10 +72,20 @@ export function documentRoomLeft(limits: AttachmentList['limits'], queued: numbe
   return Math.max(0, limits.maxDocuments - limits.documentCount - queued);
 }
 
-/** Spec 0018: the two photo groups of the one strip. Before is how the truck arrived, After the proof. */
 /** Spec 0024, AC-13: the Photos line's anchor, for the blocked reason link. */
 export const PHOTOS_SECTION_ID = 'photos';
 
+/**
+ * Spec 0024, AC-13: the hint at the end of the Photos line while a photo holds the next move. The
+ * move names one photo at a time, so there is only ever one hint; any other reason gives none.
+ */
+export function photoNeededHint(blockedBy: 'beforePhoto' | 'afterPhoto' | null): string | null {
+  if (blockedBy === 'beforePhoto') return 'Before photo needed';
+  if (blockedBy === 'afterPhoto') return 'After photo needed';
+  return null;
+}
+
+/** Spec 0018: the two photo groups of the one strip. Before is how the truck arrived, After the proof. */
 export type PhotoGroupKind = 'VEHICLE_PHOTO' | 'PROOF';
 
 export const PHOTO_GROUP_LABELS: Record<PhotoGroupKind, string> = {

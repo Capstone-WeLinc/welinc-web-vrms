@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import type { RepairStatus } from '../../../types';
 import { initialOpen, issueHashIndex, type IssueState } from '../lib/issueRow';
-import { parseView, pruneView, type TicketView, toggleId, touchIndex, VIEW_INDEX_KEY, viewKey } from '../lib/ticketView';
+import { parseView, pruneView, type TicketView, touchIndex, VIEW_INDEX_KEY, viewKey } from '../lib/ticketView';
 
 function readStored(ticketId: string): TicketView | null {
   try {
@@ -31,7 +31,7 @@ const withHash = (view: TicketView, hash: string, ids: string[]): TicketView => 
 };
 
 /**
- * Spec 0024, AC-4 and AC-5: the open rows and the Hide done steps switches for one ticket. The
+ * Spec 0024, AC-4 and AC-5: the open rows and the one Hide done steps switch for one ticket. The
  * stored view wins over the default rule, `#issue-N` opens its row on top, and the 3 second
  * refresh never opens or closes a row (the value is state, never derived from the ticket).
  */
@@ -40,7 +40,7 @@ export function useTicketView(ticketId: string, status: RepairStatus, rows: { id
   const ids = rows.map((row) => row.id);
   const [view, setView] = useState<TicketView>(() => {
     const stored = readStored(ticketId);
-    return withHash(stored ? pruneView(stored, ids) : { open: initialOpen(status, rows), hideDone: [] }, hash, ids);
+    return withHash(stored ? pruneView(stored, ids) : { open: initialOpen(status, rows), hideDone: false }, hash, ids);
   });
   const [seenHash, setSeenHash] = useState(hash);
   if (hash !== seenHash) {
@@ -69,7 +69,7 @@ export function useTicketView(ticketId: string, status: RepairStatus, rows: { id
     open: shown.open,
     hideDone: shown.hideDone,
     setOpen: (open: string[]) => save({ ...shown, open }),
-    setHideDone: (issueId: string, on: boolean) => save({ ...shown, hideDone: toggleId(shown.hideDone, issueId, on) }),
+    setHideDone: (hideDone: boolean) => save({ ...shown, hideDone }),
     expandAll: () => save({ ...shown, open: ids }),
     collapseAll: () => save({ ...shown, open: [] }),
   };

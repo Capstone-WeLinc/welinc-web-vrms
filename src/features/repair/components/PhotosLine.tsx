@@ -9,7 +9,16 @@ import { getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
 import type { RepairTicket } from '../../../types';
 import { useTicketFiles } from '../hooks/ticketFiles';
 import { stripSystem } from '../lib/issueRow';
-import { groupLimit, isPhoto, PHOTO_GROUP_LABELS, photoGroups, photoRoomLeft, PHOTOS_SECTION_ID, uploadGroup } from '../lib/photoUpload';
+import {
+  groupLimit,
+  isPhoto,
+  PHOTO_GROUP_LABELS,
+  photoGroups,
+  photoNeededHint,
+  photoRoomLeft,
+  PHOTOS_SECTION_ID,
+  uploadGroup,
+} from '../lib/photoUpload';
 import { PhotoStrip } from './PhotoStrip';
 
 // Spec 0017, AC-24: the viewer and its library load on first open only
@@ -17,18 +26,20 @@ const PhotoViewer = lazy(() => import('./PhotoViewer').then((m) => ({ default: m
 
 interface PhotosLineProps {
   ticket: RepairTicket;
-  /** The page's choice, or null to follow the rule: open with any photo, or while a photo blocks the next move. */
+  /** The page's choice, or null to follow the rule: open only once the ticket has a photo. */
   open: boolean | null;
   onOpenChange: (open: boolean) => void;
-  blockedByPhoto: boolean;
+  /** The photo the next move waits for, from the move's `blockedBy`; the line ends with its hint. */
+  blockedBy: 'beforePhoto' | 'afterPhoto' | null;
 }
 
 /**
  * Spec 0024, AC-13: the ticket's photos as one line at the top of the Issues card, "Photos · 2 before
- * · 1 after", opening to the Before and After strip (spec 0018). The strip stays mounted while folded,
- * so Add photos can open the file picker in the same click.
+ * · 1 after", opening to the Before and After strip (spec 0018). It stays folded until a photo exists,
+ * even while a photo blocks the next move; the line then ends with the needed hint. The strip stays
+ * mounted while folded, so Add photos can open the file picker in the same click.
  */
-export function PhotosLine({ ticket, open, onOpenChange, blockedByPhoto }: PhotosLineProps) {
+export function PhotosLine({ ticket, open, onOpenChange, blockedBy }: PhotosLineProps) {
   const { showToast } = useToast();
   const { attachments, queue } = useTicketFiles();
   const panelId = useId();
@@ -62,7 +73,8 @@ export function PhotosLine({ ticket, open, onOpenChange, blockedByPhoto }: Photo
   const issueNames = new Map(issues.map((issue, index) => [issue.id, `Issue ${index + 1}: ${stripSystem(issue.description)}`]));
   const before = groups.find((g) => g.kind === 'VEHICLE_PHOTO')?.photos.length ?? 0;
   const after = groups.find((g) => g.kind === 'PROOF')?.photos.length ?? 0;
-  const shown = open ?? (photos.length > 0 || blockedByPhoto);
+  const shown = open ?? photos.length > 0;
+  const hint = photoNeededHint(blockedBy);
 
   /** Queue what fits in the group new photos land in; the queue uploads one at a time (spec 0017, AC-21, AC-23). */
   const addPhotos = (files: File[]) => {
@@ -160,13 +172,18 @@ export function PhotosLine({ ticket, open, onOpenChange, blockedByPhoto }: Photo
           onClick={() => onOpenChange(!shown)}
           className="group flex min-h-11 min-w-0 items-center gap-1.5 rounded-md text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-9"
         >
-          <span className="font-medium text-foreground">Photos</span>
-          {/* While the list loads there are no counts yet */}
-          {list && (
-            <span className="text-muted-foreground tabular-nums">
-              · {before} before · {after} after
-            </span>
-          )}
+          {/* One run of text, so a narrow screen wraps it like a sentence, not part by part */}
+          <span className="min-w-0">
+            <span className="font-medium text-foreground">Photos</span>
+            {/* While the list loads there are no counts yet */}
+            {list && (
+              <span className="text-muted-foreground tabular-nums">
+                {' '}
+                · {before} before · {after} after
+              </span>
+            )}
+            {hint && <span className="text-warning-text"> · {hint}</span>}
+          </span>
           <ChevronDown
             aria-hidden="true"
             className={cn('size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-snappy', shown && 'rotate-180')}

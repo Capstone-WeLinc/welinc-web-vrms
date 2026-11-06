@@ -1,5 +1,6 @@
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { DetailSection } from '../../../components/shared/DetailSection';
 import { useModuleOn } from '../../../lib/permissions/usePermissions';
 import type { RepairIssue, RepairTicket } from '../../../types';
@@ -7,7 +8,7 @@ import { useTicketFiles } from '../hooks/ticketFiles';
 import { useEntryOptions } from '../hooks/useEntryOptions';
 import { useTicketView } from '../hooks/useTicketView';
 import { useTickOverrides } from '../hooks/useTickOverrides';
-import { issueState, summaryCounts, summaryText } from '../lib/issueRow';
+import { issueState, summaryCounts, summaryText, tickedCount } from '../lib/issueRow';
 import { IssueRow } from './IssueRow';
 import { PhotosLine } from './PhotosLine';
 
@@ -27,7 +28,7 @@ interface IssuesSectionProps {
     onRemove: (issue: RepairIssue, taggedPhotos: number) => void;
   } | null;
   /** Spec 0024, AC-13: the Photos line's open state lives on the page, so the blocked reason can open it. */
-  photos: { open: boolean | null; onOpenChange: (open: boolean) => void; blockedByPhoto: boolean };
+  photos: { open: boolean | null; onOpenChange: (open: boolean) => void; blockedBy: 'beforePhoto' | 'afterPhoto' | null };
 }
 
 /** Spec 0024: the issues as foldable rows, each with its progress and state, plus the ticket's photos. */
@@ -49,6 +50,9 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps
     ticket.status,
     rows.map((row) => ({ id: row.issue.id, state: row.state })),
   );
+  // AC-6: the switch shows once any step is ticked; until then a stored "on" is ignored, not reset
+  const anyTicked = rows.some((row) => tickedCount(row.steps) > 0);
+  const hideDone = anyTicked && view.hideDone;
   return (
     <DetailSection
       title="Issues"
@@ -60,22 +64,32 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps
         ) : null
       }
     >
-      <PhotosLine ticket={ticket} open={photos.open} onOpenChange={photos.onOpenChange} blockedByPhoto={photos.blockedByPhoto} />
+      <PhotosLine ticket={ticket} open={photos.open} onOpenChange={photos.onOpenChange} blockedBy={photos.blockedBy} />
       {issues.length === 0 ? (
         <p className="text-sm text-muted-foreground">No issues logged.</p>
       ) : (
         <div className="flex flex-col">
-          {/* AC-6: the ticket's progress at a glance, with Expand all and Collapse all */}
+          {/* AC-6: the ticket's progress at a glance, then Hide done steps, Expand all and Collapse all */}
           <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-3 border-b border-border pb-2">
             <p className="text-xs text-muted-foreground tabular-nums">{summaryText(summaryCounts(rows))}</p>
-            {issues.length > 1 && (
-              <div className="-mr-2 flex items-center">
-                <Button type="button" variant="ghost" size="sm" className="h-11 px-2 text-xs text-muted-strong md:h-8" onClick={view.expandAll}>
-                  Expand all
-                </Button>
-                <Button type="button" variant="ghost" size="sm" className="h-11 px-2 text-xs text-muted-strong md:h-8" onClick={view.collapseAll}>
-                  Collapse all
-                </Button>
+            {(anyTicked || issues.length > 1) && (
+              <div className="-mr-2 flex flex-wrap items-center">
+                {anyTicked && (
+                  <label className="flex min-h-11 cursor-pointer items-center gap-2 px-2 text-xs text-muted-strong md:min-h-8">
+                    <Switch size="sm" checked={hideDone} onCheckedChange={view.setHideDone} />
+                    Hide done steps
+                  </label>
+                )}
+                {issues.length > 1 && (
+                  <>
+                    <Button type="button" variant="ghost" size="sm" className="h-11 px-2 text-xs text-muted-strong md:h-8" onClick={view.expandAll}>
+                      Expand all
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" className="h-11 px-2 text-xs text-muted-strong md:h-8" onClick={view.collapseAll}>
+                      Collapse all
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -92,8 +106,7 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps
                 knowledgeOn={knowledgeOn}
                 canTick={canTick}
                 entries={entries}
-                hideDone={view.hideDone.includes(issue.id)}
-                onHideDone={(on) => view.setHideDone(issue.id, on)}
+                hideDone={hideDone}
                 onToggle={(step, checked) => void ticks.toggle(issue, step, checked)}
                 onRelinked={() => ticks.clearIssue(issue.id)}
                 onChanged={onChanged}

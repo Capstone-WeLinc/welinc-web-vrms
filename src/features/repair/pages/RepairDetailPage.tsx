@@ -343,6 +343,7 @@ export function RepairDetailPage() {
           const status = (variant: 'card' | 'line') => (
             <StatusCard
               ticket={ticket}
+              now={loadedAt}
               readOnly={readOnly}
               actions={shown}
               variant={variant}
@@ -414,7 +415,7 @@ export function RepairDetailPage() {
                           }
                         : null
                     }
-                    photos={{ open: photosOpen, onOpenChange: setPhotosOpen, blockedByPhoto: shown.blockedBy != null }}
+                    photos={{ open: photosOpen, onOpenChange: setPhotosOpen, blockedBy: shown.blockedBy }}
                   />
                   {usesAi && <AiDiagnosisSection ticket={ticket} />}
                   {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}

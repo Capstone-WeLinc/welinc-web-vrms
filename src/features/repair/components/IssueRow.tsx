@@ -1,10 +1,11 @@
 import { type ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { MoreVertical } from 'lucide-react';
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
-import { Switch } from '@/components/ui/switch';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { BadgePill } from '../../../components/shared/BadgePill';
@@ -149,7 +150,8 @@ function StepRow({ step, enabled, onToggle }: { step: RepairIssueStep; enabled: 
     <label
       htmlFor={id}
       className={cn(
-        'flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg px-2 text-sm md:min-h-10',
+        // AC-9: 44px on phones, 36px from 768px
+        'flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg px-2 text-sm md:min-h-9',
         enabled ? 'cursor-pointer hover:bg-muted/50' : 'cursor-default',
         // AC-9: done steps dim, with no strikethrough
         checked ? 'text-muted-foreground' : 'text-foreground',
@@ -212,8 +214,8 @@ export interface IssueRowProps {
   knowledgeOn: boolean;
   canTick: boolean;
   entries: ReturnType<typeof useEntryOptions>;
+  /** AC-6 and AC-9: the one Hide done steps switch on the summary line. */
   hideDone: boolean;
-  onHideDone: (on: boolean) => void;
   onToggle: (step: RepairIssueStep, checked: boolean) => void;
   /** A relinked checklist brings its own ticks. */
   onRelinked: () => void;
@@ -229,7 +231,7 @@ export interface IssueRowProps {
 /** Spec 0024, AC-1 to AC-10: one foldable issue. Closed it reads; open it holds the work. */
 export function IssueRow(props: IssueRowProps) {
   const { ticket, issue, index, steps, state, canLink, knowledgeOn, canTick, entries, hideDone } = props;
-  const { onHideDone, onToggle, onRelinked, onChanged, onStale, onEdit, onRemove, onEditSteps } = props;
+  const { onToggle, onRelinked, onChanged, onStale, onEdit, onRemove, onEditSteps } = props;
   const { showToast } = useToast();
   const [changing, setChanging] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -299,7 +301,10 @@ export function IssueRow(props: IssueRowProps) {
 
   const shownSteps = hideDone ? steps.filter((s) => s.checkedAt == null) : steps;
   const hiddenCount = steps.length - shownSteps.length;
-  const hasActions = steps.length > 0 || onEditSteps || onEdit || onRemove;
+  // AC-7: Change known fix only when the issue may be relinked; Open known fix while the module is on
+  const canChange = canLink && entry != null;
+  const hasMenu = !!(onEdit || onRemove || canChange || (entry && knowledgeOn));
+  const hasActions = !!onEditSteps || hasMenu;
   const resolution = hasSavedResolution(issue);
 
   return (
@@ -310,7 +315,7 @@ export function IssueRow(props: IssueRowProps) {
             {n}.
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="line-clamp-2 text-sm font-medium break-words text-foreground group-data-[state=open]/trigger:line-clamp-none md:line-clamp-1">
+            <span className="line-clamp-2 text-sm font-semibold break-words text-foreground group-data-[state=open]/trigger:line-clamp-none md:line-clamp-1 md:text-base">
               <span className="sr-only">Issue {n}: </span>
               {text}
             </span>
@@ -345,79 +350,56 @@ export function IssueRow(props: IssueRowProps) {
           </div>
         )}
 
+        {/* AC-7: one quiet Edit steps, with the issue's other actions in the row menu on the right */}
         {hasActions && (
-          <div className="-mx-2 flex flex-wrap items-center gap-x-1 gap-y-1">
+          <div className="-mx-2 flex items-center gap-1">
             {onEditSteps && (
               <Button type="button" variant="ghost" size="sm" className={quiet} aria-label={steps.length ? `Edit steps for issue ${n}` : `Add steps to issue ${n}`} onClick={onEditSteps}>
                 {steps.length ? 'Edit steps' : 'Add steps'}
               </Button>
             )}
-            {steps.length > 0 && (
-              <label className="flex min-h-11 cursor-pointer items-center gap-2 px-2 text-sm text-muted-strong md:min-h-8">
-                <Switch size="sm" checked={hideDone} onCheckedChange={onHideDone} aria-label={`Hide done steps on issue ${n}`} />
-                Hide done steps
-              </label>
-            )}
-            {(onEdit || onRemove) && (
-              <span className="ml-auto flex items-center gap-1">
-                {onEdit && (
-                  <Button type="button" variant="ghost" size="sm" className={quiet} aria-label={`Edit issue ${n}`} onClick={onEdit}>
-                    Edit issue
+            {hasMenu && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="ml-auto size-11 shrink-0 text-muted-strong md:size-8" aria-label={`More actions for issue ${n}`}>
+                    <MoreVertical aria-hidden="true" />
                   </Button>
-                )}
-                {onRemove && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className={cn(quiet, 'text-destructive hover:text-destructive')}
-                    aria-label={`Remove issue ${n}`}
-                    onClick={onRemove}
-                  >
-                    Remove issue
-                  </Button>
-                )}
-              </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onEdit && <DropdownMenuItem onSelect={onEdit}>Edit issue</DropdownMenuItem>}
+                  {canChange && <DropdownMenuItem onSelect={() => setChanging(true)}>Change known fix</DropdownMenuItem>}
+                  {entry && knowledgeOn && (
+                    <DropdownMenuItem asChild>
+                      <Link to={`/knowledge-base/${entry.id}`}>Open known fix</Link>
+                    </DropdownMenuItem>
+                  )}
+                  {onRemove && (
+                    <DropdownMenuItem variant="destructive" onSelect={onRemove}>
+                      Remove issue
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         )}
 
-        {/* AC-10: the known fix by name, with Change; the picker and Suggest for an issue with none */}
+        {/* AC-10: the known fix's name is on the row header; Change opens the picker here. An issue with none
+            keeps the picker and Suggest a known fix. */}
         {entry ? (
-          <div className="flex flex-col gap-2">
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-              <span className="text-muted-foreground">Known fix</span>
-              {knowledgeOn ? (
-                <Link
-                  to={`/knowledge-base/${entry.id}`}
-                  className="rounded-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {entry.name}
-                </Link>
-              ) : (
-                <span className="font-medium text-foreground">{entry.name}</span>
-              )}
-              {entry.status !== 'ACTIVE' && <StatusBadge status={entry.status} />}
-              {canLink && !changing && (
-                <Button type="button" variant="link" size="sm" className="h-auto min-h-11 px-0 text-muted-strong md:min-h-0" onClick={() => setChanging(true)}>
-                  Change
+          changing && (
+            <div className="flex flex-col gap-2">
+              {picker}
+              <div className="-mx-2 flex flex-wrap gap-1">
+                <Button type="button" variant="ghost" size="sm" className={cn(quiet, 'text-destructive hover:text-destructive')} disabled={saving} onClick={() => void link(null)}>
+                  Remove link
                 </Button>
-              )}
-            </p>
-            {changing && (
-              <div className="flex flex-col gap-2">
-                {picker}
-                <div className="-mx-2 flex flex-wrap gap-1">
-                  <Button type="button" variant="ghost" size="sm" className={cn(quiet, 'text-destructive hover:text-destructive')} disabled={saving} onClick={() => void link(null)}>
-                    Remove link
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" className={quiet} disabled={saving} onClick={() => setChanging(false)}>
-                    Keep it
-                  </Button>
-                </div>
+                <Button type="button" variant="ghost" size="sm" className={quiet} disabled={saving} onClick={() => setChanging(false)}>
+                  Keep it
+                </Button>
               </div>
-            )}
-          </div>
+            </div>
+          )
         ) : (
           knowledgeOn && (
             <div className="flex flex-col gap-2">

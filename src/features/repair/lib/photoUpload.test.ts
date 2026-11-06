@@ -3,6 +3,7 @@ import type { Attachment, AttachmentKind, AttachmentKindInfo, AttachmentList } f
 import {
   documentRoomLeft,
   groupLimit,
+  photoNeededHint,
   isRetryable,
   jpegName,
   normalizeType,
@@ -183,5 +184,15 @@ describe('photosInFlight (spec 0018, AC-20)', () => {
     expect(photosInFlight([{ kind: 'PHOTO', status: 'failed' }])).toBe(false);
     expect(photosInFlight([{ kind: 'RECEIPT', status: 'uploading' }])).toBe(false);
     expect(photosInFlight([])).toBe(false);
+  });
+});
+
+describe('photoNeededHint (spec 0024, AC-13)', () => {
+  it('names the one photo the next move waits for', () => {
+    expect(photoNeededHint('beforePhoto')).toBe('Before photo needed');
+    expect(photoNeededHint('afterPhoto')).toBe('After photo needed');
+  });
+  it('gives no hint for a reason that is not a photo', () => {
+    expect(photoNeededHint(null)).toBeNull();
   });
 });

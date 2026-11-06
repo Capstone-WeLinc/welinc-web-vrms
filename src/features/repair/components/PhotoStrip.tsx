@@ -165,7 +165,11 @@ export function PhotoStrip({ groups, queue, canAdd, limitText, label, onAdd, onR
       {...dropHandlers}
       className={cn('flex flex-col gap-3 rounded-lg', dragging && 'bg-muted/50 ring-2 ring-primary ring-offset-2 ring-offset-card')}
     >
-      {groups.map((group) => (
+      {/* Spec 0024, AC-13: with no photos at all, one line instead of two empty groups */}
+      {empty ? (
+        <p className="text-sm text-muted-foreground">No photos yet</p>
+      ) : (
+        groups.map((group) => (
         <section key={group.kind} aria-labelledby={`${headingId}-${group.kind}`} className="flex flex-col gap-1">
           <h3 id={`${headingId}-${group.kind}`} className="flex items-baseline gap-2 text-sm font-semibold text-foreground">
             {group.label}
@@ -183,7 +187,8 @@ export function PhotoStrip({ groups, queue, canAdd, limitText, label, onAdd, onR
             <p className="text-sm text-muted-foreground">No {group.label.toLowerCase()} photos yet.</p>
           )}
         </section>
-      ))}
+        ))
+      )}
 
       {/* The live region stays mounted so the first upload is announced too */}
       <div aria-live="polite">

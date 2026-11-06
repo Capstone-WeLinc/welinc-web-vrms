@@ -1,8 +1,10 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, BadgeCheck, CircleAlert, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { BadgePill } from '../../../components/shared/BadgePill';
 import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
@@ -17,6 +19,8 @@ import { DetailItem, DetailSection } from '../../../components/shared/DetailSect
 
 interface StatusCardProps {
   ticket: RepairTicket;
+  /** The time of the last fetch, for the due and overdue text. */
+  now: number;
   readOnly: boolean;
   actions: TicketActions;
   onPrimary: () => void;
@@ -62,8 +66,12 @@ function BlockedReason({ id, actions, onPhotos }: { id: string; actions: TicketA
   );
 }
 
-/** Spec 0014, AC-15: the primary move and Return to mechanic side by side; Cancel sits in the ⋮ menu. */
-export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, onCancel, onPhotosBlocked, variant = 'card' }: StatusCardProps) {
+/**
+ * Spec 0024, AC-17: no heading. The badges with the ⋮ menu, the due line, then the primary move with
+ * its blocked reason under it and Return to mechanic, stacked. The phone line (AC-18) has the same
+ * badges, due line and reason; the fixed bar holds its buttons.
+ */
+export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecondary, onCancel, onPhotosBlocked, variant = 'card' }: StatusCardProps) {
   const { primary, secondary, cancel } = actions;
   const hasButton = !!(primary || secondary || cancel);
   const line = variant === 'line';
@@ -82,12 +90,16 @@ export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, 
     <div className="flex min-h-9 items-center justify-between gap-2">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <StatusBadge status={ticket.status} />
+        {ticket.priority && <PriorityBadge priority={ticket.priority} />}
         <MechanicProblemBadge ticket={ticket} />
         {lockBadge}
       </div>
       {!readOnly && cancel && <MoreActions cancel={cancel} onCancel={onCancel} />}
     </div>
   );
+
+  const due = <DueLine ticket={ticket} now={now} />;
+  const reason = <BlockedReason id={blockedId} actions={actions} onPhotos={onPhotosBlocked} />;
 
   const body = readOnly ? (
     <div className="flex flex-col items-start gap-1 text-sm text-muted-foreground">
@@ -101,21 +113,24 @@ export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, 
   ) : (
     <div className="flex flex-col gap-2">
       {actions.note && <p className="text-sm text-muted-foreground">{actions.note}</p>}
-      <BlockedReason id={blockedId} actions={actions} onPhotos={onPhotosBlocked} />
-      {/* The line leaves the primary and Return to mechanic to the fixed bar; without a primary the bar has
-          nothing, so Return stays. The sidebar is too narrow for the two side by side, so they stack. */}
+      {/* The line leaves the primary and Return to mechanic to the fixed bar, so its reason stands alone;
+          without a primary the bar has nothing, so Return stays. */}
+      {line && reason}
       {(line ? !primary && secondary : primary || secondary) && (
-        <div className="grid gap-2">
-          {primary && (
-            <Button
-              size="touch"
-              className="w-full lg:h-10 lg:text-sm"
-              onClick={onPrimary}
-              disabled={!!actions.blocked}
-              aria-describedby={actions.blocked ? blockedId : undefined}
-            >
-              {primary.kind === 'move' ? primary.move.label : primary.label}
-            </Button>
+        <div className="flex flex-col gap-2">
+          {primary && !line && (
+            <div className="flex flex-col gap-1">
+              <Button
+                size="touch"
+                className="w-full lg:h-10 lg:text-sm"
+                onClick={onPrimary}
+                disabled={!!actions.blocked}
+                aria-describedby={actions.blocked ? blockedId : undefined}
+              >
+                {primary.kind === 'move' ? primary.move.label : primary.label}
+              </Button>
+              {reason}
+            </div>
           )}
           {secondary && (
             <Button variant="outline" size="touch" className="w-full lg:h-10 lg:text-sm" onClick={onSecondary}>
@@ -124,6 +139,7 @@ export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, 
           )}
         </div>
       )}
+      {!line && !primary && reason}
     </div>
   );
 
@@ -131,15 +147,17 @@ export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, 
     return (
       <section aria-label="Status" className="flex flex-col gap-2 border-b border-border pb-3">
         {badges}
+        {due}
         {body}
       </section>
     );
   }
   return (
-    <DetailSection title="Status">
+    <Card role="region" aria-label="Status" className="gap-3 p-4 md:p-5">
       {badges}
+      {due}
       {body}
-    </DetailSection>
+    </Card>
   );
 }
 
@@ -195,20 +213,25 @@ function DriverValue({ ticket }: { ticket: RepairTicket }) {
   );
 }
 
-function DueValue({ ticket, now }: { ticket: RepairTicket; now: number }) {
-  if (!ticket.dueAt || Number.isNaN(Date.parse(ticket.dueAt))) return <>—</>;
-  // Due text only means something while the ticket is open.
+/**
+ * AC-17: the due date with its due or overdue text. Due text only means something while the ticket is
+ * open (For verification included); Closed and Cancelled show the date alone. No due date, no line.
+ */
+function DueLine({ ticket, now }: { ticket: RepairTicket; now: number }) {
+  if (!ticket.dueAt || Number.isNaN(Date.parse(ticket.dueAt))) return null;
   const due = isOpen(ticket) ? dueLabel(ticket, now) : null;
   return (
-    <span className="flex flex-col">
+    <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-foreground">
+      <span className="text-muted-foreground">Due</span>
       <time dateTime={ticket.dueAt}>{formatShortDate(ticket.dueAt)}</time>
       {due && (
-        <span className={cn('inline-flex items-center gap-1.5 text-xs', due.overdue ? 'font-medium text-destructive' : 'text-muted-foreground')}>
+        <span className={cn('inline-flex items-center gap-1.5', due.overdue ? 'font-medium text-destructive' : 'text-muted-foreground')}>
+          <span aria-hidden="true">·</span>
           {due.overdue && <AlertTriangle role="img" aria-label="Overdue" className="size-3.5 shrink-0" />}
           {due.text}
         </span>
       )}
-    </span>
+    </p>
   );
 }
 
@@ -216,20 +239,30 @@ function DateValue({ value }: { value: string | null | undefined }) {
   return value ? <time dateTime={value}>{formatShortDate(value)}</time> : <>—</>;
 }
 
+function DetailsGroup({ title, children }: { title: string; children: ReactNode }) {
+  const id = useId();
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-3">
+      <h3 id={id} className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        {title}
+      </h3>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">{children}</dl>
+    </section>
+  );
+}
+
 /**
- * Spec 0024, AC-16: the ticket's details with the vehicle and driver (spec 0019, AC-20: the details
- * Edit dialog fixes the vehicle part, so its Edit button comes in as `action`).
+ * Spec 0024, AC-16: the ticket's details under two small headings, Vehicle and Record. Plate and model
+ * are in the title, priority and due in the Status card. The details Edit dialog fixes the vehicle
+ * part (spec 0019, AC-20), so its Edit button comes in as `action`.
  */
 export function DetailsCard({ ticket, now, action }: { ticket: RepairTicket; now: number; action?: ReactNode }) {
   return (
     <DetailSection title="Details" action={action}>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <DetailItem label="Plate">{ticket.vehiclePlate}</DetailItem>
-        <DetailItem label="Model">{ticket.vehicleModel || '—'}</DetailItem>
-        <DetailItem label="Odometer">
+      <DetailsGroup title="Vehicle">
+        <DetailItem label="Odometer" className="col-span-2">
           {ticket.odometerReading != null ? <span className="tabular-nums">{ticket.odometerReading.toLocaleString('en-US')} km</span> : '—'}
         </DetailItem>
-        <DetailItem label="Priority">{ticket.priority ? <PriorityBadge priority={ticket.priority} /> : '—'}</DetailItem>
         <DetailItem label="Driver" className="col-span-2">
           <DriverValue ticket={ticket} />
         </DetailItem>
@@ -238,10 +271,12 @@ export function DetailsCard({ ticket, now, action }: { ticket: RepairTicket; now
             {ticket.accountType === 'CORPORATE' ? `Corporate${ticket.corporation ? ` · ${ticket.corporation}` : ''}` : 'Online'}
           </DetailItem>
         )}
-        <DetailItem label="Due date">
-          <DueValue ticket={ticket} now={now} />
+      </DetailsGroup>
+      <Separator />
+      <DetailsGroup title="Record">
+        <DetailItem label="Garage" className="col-span-2">
+          {ticket.garageLocation ?? '—'}
         </DetailItem>
-        <DetailItem label="Garage">{ticket.garageLocation ?? '—'}</DetailItem>
         <DetailItem label="Created">
           <DateValue value={ticket.createdAt} />
         </DetailItem>
@@ -257,12 +292,12 @@ export function DetailsCard({ ticket, now, action }: { ticket: RepairTicket; now
             {ticket.editedByName && <> by {ticket.editedByName}</>}
           </DetailItem>
         )}
-        {isClosed(ticket) && (
+        {ticket.closedAt && (
           <DetailItem label="Closed">
             <DateValue value={ticket.closedAt} />
           </DetailItem>
         )}
-      </dl>
+      </DetailsGroup>
     </DetailSection>
   );
 }
