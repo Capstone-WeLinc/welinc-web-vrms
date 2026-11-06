@@ -1,3 +1,4 @@
+import { stripSystem } from '../../lib/issueRow';
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -212,7 +213,7 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
         if (activeId != null) event.preventDefault();
       }}
       title="Edit steps"
-      description={issue.description}
+      description={stripSystem(issue.description)}
       footer={
         <>
           <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={isSubmitting} onClick={() => void changeOpen(false)}>

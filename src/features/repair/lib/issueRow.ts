@@ -1,6 +1,7 @@
 import type { RepairIssue, RepairIssueStep, RepairStatus } from '../../../types';
 import { formatHours } from '../../../lib/utils/format';
 import { hasSavedResolution } from './resolutionForm';
+import { issueText } from './ticketEdits';
 
 // Spec 0024: the pure rules behind the foldable issue rows. The issue state is derived here and
 // nowhere else (AC-3), and the row, the summary line and the open rule all read it.
@@ -13,7 +14,7 @@ export type IssueState = 'returned' | 'none' | 'notStarted' | 'inProgress' | 'do
 
 /** AC-12: the stored `[System] ` prefix off, matching the backend's `issueText` in `ticket-inputs.ts`. */
 export function stripSystem(description: string): string {
-  return description.replace(/^\[[^\]]*\]\s*/, '');
+  return issueText(description);
 }
 
 /** The server's steps with this page's pending ticks on top. */
