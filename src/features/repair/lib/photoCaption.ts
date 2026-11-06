@@ -54,13 +54,13 @@ export function photoAlt(photo: Pick<Attachment, 'uploadedBy' | 'createdAt' | 't
 }
 
 /**
- * The viewer caption: uploader as the title, then the group (Before or After, spec 0018), when, and
- * the issue's name when an older photo was tagged (AC-24). Each evidence mark adds a line under it.
+ * The viewer caption: uploader as the title, then one line each for the group (Before or After,
+ * spec 0018), when, and the issue's name when an older photo was tagged (AC-24). Lines, not a dot
+ * separator, since the date already holds commas (spec 0024, AC-19). Each evidence mark adds a line.
  */
 export function photoCaption(photo: Attachment, issueNames: Map<string, string>): { title: string; description: string } {
   const issue = photo.issueId ? issueNames.get(photo.issueId) : undefined;
   const group = photo.kind === 'PROOF' ? 'After' : 'Before';
-  const when = `${group} · ${formatManilaDateTime(photo.createdAt)}`;
-  const lines = [issue ? `${when} · ${issue}` : when, ...photoMarks(photo).map((mark) => mark.long)];
+  const lines = [group, formatManilaDateTime(photo.createdAt), ...(issue ? [issue] : []), ...photoMarks(photo).map((mark) => mark.long)];
   return { title: photo.uploadedBy.name, description: lines.join('\n') };
 }

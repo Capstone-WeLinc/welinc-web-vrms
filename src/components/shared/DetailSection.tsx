@@ -1,8 +1,8 @@
-import { useId, type ReactNode } from 'react';
+import { useId, type ComponentProps, type ReactNode } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-interface DetailSectionProps {
+interface DetailSectionProps extends Omit<ComponentProps<'div'>, 'title' | 'children'> {
   title: string;
   /** Anchor for in page links, such as "Go to costs". */
   id?: string;
@@ -13,10 +13,10 @@ interface DetailSectionProps {
 }
 
 /** One titled card on the repair detail page. */
-export function DetailSection({ title, id, action, className, children }: DetailSectionProps) {
+export function DetailSection({ title, id, action, className, children, ...rest }: DetailSectionProps) {
   const headingId = useId();
   return (
-    <Card id={id} role="region" aria-labelledby={headingId} className={cn('scroll-mt-20 gap-4 p-4 md:p-5', className)}>
+    <Card {...rest} id={id} role="region" aria-labelledby={headingId} className={cn('scroll-mt-20 gap-4 p-4 md:p-5', className)}>
       <div className="flex min-h-9 items-center justify-between gap-3">
         <h2 id={headingId} tabIndex={-1} className="text-base font-semibold text-foreground outline-none">
           {title}

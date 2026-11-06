@@ -102,7 +102,7 @@ function Results({ data }: { data: Diagnosis }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">
-        Ran {formatRelativeTime(data.createdAt)} · {data.model} · {CONFIDENCE_TEXT[data.confidence] ?? data.confidence}
+        Ran {formatRelativeTime(data.createdAt)} with {data.model}, {(CONFIDENCE_TEXT[data.confidence] ?? `${data.confidence} confidence`).toLowerCase()}
       </p>
 
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">

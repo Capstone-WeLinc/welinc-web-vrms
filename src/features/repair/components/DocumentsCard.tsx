@@ -23,9 +23,11 @@ function DocumentRow({ doc, kindLabel, onRemove }: { doc: Attachment; kindLabel:
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-xs font-medium text-muted-foreground">{kindLabel}</span>
         <span className="text-sm wrap-break-word text-foreground">{doc.fileName}</span>
-        <span className="text-xs text-muted-foreground">
-          {doc.uploadedBy.name} · <time dateTime={doc.createdAt}>{formatManilaDateTime(doc.createdAt)}</time>
-        </span>
+        {/* Spec 0024, AC-19: the uploader on one line, the date on the next */}
+        <span className="text-xs text-muted-foreground">{doc.uploadedBy.name}</span>
+        <time dateTime={doc.createdAt} className="text-xs text-muted-foreground">
+          {formatManilaDateTime(doc.createdAt)}
+        </time>
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <Button asChild variant="ghost" size="icon" className="size-8 pointer-coarse:size-11">

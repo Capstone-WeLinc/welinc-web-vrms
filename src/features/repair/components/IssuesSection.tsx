@@ -10,7 +10,6 @@ import { useTicketView } from '../hooks/useTicketView';
 import { useTickOverrides } from '../hooks/useTickOverrides';
 import { issueState, summaryCounts, summaryText, tickedCount } from '../lib/issueRow';
 import { IssueRow } from './IssueRow';
-import { PhotosLine } from './PhotosLine';
 
 interface IssuesSectionProps {
   ticket: RepairTicket;
@@ -27,12 +26,10 @@ interface IssuesSectionProps {
     onEdit: (issue: RepairIssue) => void;
     onRemove: (issue: RepairIssue, taggedPhotos: number) => void;
   } | null;
-  /** Spec 0024, AC-13: the Photos line's open state lives on the page, so the blocked reason can open it. */
-  photos: { open: boolean | null; onOpenChange: (open: boolean) => void; blockedBy: 'beforePhoto' | 'afterPhoto' | null };
 }
 
-/** Spec 0024: the issues as foldable rows, each with its progress and state, plus the ticket's photos. */
-export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps, edit, photos }: IssuesSectionProps) {
+/** Spec 0024: the issues as foldable rows, each with its progress and state. */
+export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps, edit }: IssuesSectionProps) {
   const list = useTicketFiles().attachments.list;
   const issues = ticket.issues ?? [];
   const knowledgeOn = useModuleOn('knowledge');
@@ -64,33 +61,18 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps
         ) : null
       }
     >
-      <PhotosLine ticket={ticket} open={photos.open} onOpenChange={photos.onOpenChange} blockedBy={photos.blockedBy} />
       {issues.length === 0 ? (
         <p className="text-sm text-muted-foreground">No issues logged.</p>
       ) : (
         <div className="flex flex-col">
-          {/* AC-6: the ticket's progress at a glance, then Hide done steps, Expand all and Collapse all */}
+          {/* AC-6: the ticket's progress at a glance, then the one Hide done steps switch */}
           <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-3 border-b border-border pb-2">
             <p className="text-xs text-muted-foreground tabular-nums">{summaryText(summaryCounts(rows))}</p>
-            {(anyTicked || issues.length > 1) && (
-              <div className="-mr-2 flex flex-wrap items-center">
-                {anyTicked && (
-                  <label className="flex min-h-11 cursor-pointer items-center gap-2 px-2 text-xs text-muted-strong md:min-h-8">
-                    <Switch size="sm" checked={hideDone} onCheckedChange={view.setHideDone} />
-                    Hide done steps
-                  </label>
-                )}
-                {issues.length > 1 && (
-                  <>
-                    <Button type="button" variant="ghost" size="sm" className="h-11 px-2 text-xs text-muted-strong md:h-8" onClick={view.expandAll}>
-                      Expand all
-                    </Button>
-                    <Button type="button" variant="ghost" size="sm" className="h-11 px-2 text-xs text-muted-strong md:h-8" onClick={view.collapseAll}>
-                      Collapse all
-                    </Button>
-                  </>
-                )}
-              </div>
+            {anyTicked && (
+              <label className="-mr-2 flex min-h-11 cursor-pointer items-center gap-2 px-2 text-xs text-muted-strong md:min-h-8">
+                <Switch size="sm" checked={hideDone} onCheckedChange={view.setHideDone} />
+                Hide done steps
+              </label>
             )}
           </div>
           <Accordion type="multiple" value={view.open} onValueChange={view.setOpen} className="flex flex-col divide-y divide-border">

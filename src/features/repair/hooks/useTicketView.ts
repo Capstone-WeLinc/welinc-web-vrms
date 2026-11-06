@@ -70,7 +70,5 @@ export function useTicketView(ticketId: string, status: RepairStatus, rows: { id
     hideDone: shown.hideDone,
     setOpen: (open: string[]) => save({ ...shown, open }),
     setHideDone: (hideDone: boolean) => save({ ...shown, hideDone }),
-    expandAll: () => save({ ...shown, open: ids }),
-    collapseAll: () => save({ ...shown, open: [] }),
   };
 }

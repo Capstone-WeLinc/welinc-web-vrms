@@ -9,7 +9,7 @@ export type QueueStatus = 'waiting' | 'uploading' | 'done' | 'failed';
 
 export interface QueuedPhoto {
   id: string;
-  /** What it uploads as: PHOTO shows in the photo strip, documents in the Documents card. */
+  /** What it uploads as: PHOTO shows in the Photos card, documents in the Documents card. */
   kind: UploadKind;
   name: string;
   status: QueueStatus;

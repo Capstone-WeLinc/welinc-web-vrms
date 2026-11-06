@@ -78,11 +78,11 @@ export function summaryCounts(rows: { state: IssueState; steps: Pick<RepairIssue
 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
-/** AC-6: "2 of 5 issues done · 14 of 30 steps", the step part left out when no issue has steps. */
+/** AC-6: "2 of 5 issues done, 14 of 30 steps ticked", the step part left out when no issue has steps. */
 export function summaryText(counts: SummaryCounts): string {
   const issues = `${counts.doneIssues} of ${counts.issues} ${plural(counts.issues, 'issue', 'issues')} done`;
   if (counts.steps === 0) return issues;
-  return `${issues} · ${counts.ticked} of ${counts.steps} ${plural(counts.steps, 'step', 'steps')}`;
+  return `${issues}, ${counts.ticked} of ${counts.steps} ${plural(counts.steps, 'step', 'steps')} ticked`;
 }
 
 /** AC-2: the Safety word shows only for a note with real text. */

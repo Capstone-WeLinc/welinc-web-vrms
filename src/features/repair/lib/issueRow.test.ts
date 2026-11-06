@@ -122,11 +122,11 @@ describe('summary line (AC-6)', () => {
     const list = [issue({ steps: [step('a', true), step('b', true)] }), issue({ id: 'i2', steps: [step('c'), step('d', true)] }), issue({ id: 'i3' })];
     const counts = summaryCounts(list.map((i) => ({ state: state(i), steps: i.steps })));
     expect(counts).toEqual({ doneIssues: 1, issues: 3, ticked: 3, steps: 4 });
-    expect(summaryText(counts)).toBe('1 of 3 issues done · 3 of 4 steps');
+    expect(summaryText(counts)).toBe('1 of 3 issues done, 3 of 4 steps ticked');
   });
   it('leaves the step part out when no issue has steps, and uses the singular', () => {
     expect(summaryText({ doneIssues: 0, issues: 1, ticked: 0, steps: 0 })).toBe('0 of 1 issue done');
-    expect(summaryText({ doneIssues: 1, issues: 1, ticked: 1, steps: 1 })).toBe('1 of 1 issue done · 1 of 1 step');
+    expect(summaryText({ doneIssues: 1, issues: 1, ticked: 1, steps: 1 })).toBe('1 of 1 issue done, 1 of 1 step ticked');
   });
 });
 

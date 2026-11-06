@@ -17,14 +17,10 @@ export function TicketHeader({ ticket }: { ticket: RepairTicket }) {
         </span>
         {first && <span className="line-clamp-1 text-xl font-semibold break-words md:text-2xl">{stripSystem(first.description)}</span>}
       </h1>
-      <p className="flex flex-wrap gap-x-1.5 text-sm text-muted-foreground">
+      {/* AC-11: split by space, never a dot */}
+      <p className="flex flex-wrap gap-x-3 text-sm text-muted-foreground">
         <span className="whitespace-nowrap tabular-nums">{ticket.repairNumber}</span>
-        {ticket.garageLocation && (
-          <>
-            <span aria-hidden="true">·</span>
-            <span>{ticket.garageLocation}</span>
-          </>
-        )}
+        {ticket.garageLocation && <span>{ticket.garageLocation}</span>}
       </p>
     </header>
   );

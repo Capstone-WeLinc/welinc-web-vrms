@@ -77,44 +77,41 @@ function Progress({ state, ticked, total }: { state: IssueState; ticked: number;
   );
 }
 
-/** AC-2: line 2 of a closed row, plain text only (the header is one button). */
+/**
+ * AC-2: line 2 of a closed row, plain text only (the header is one button). Its parts are split by
+ * space alone (`gap-3`, AC-19: never a dot). One line: the note or the known fix name gives way and
+ * ends in an ellipsis, the short parts keep their width.
+ */
 function RowMeta({ issue, state, status }: { issue: RepairIssue; state: IssueState; status: RepairTicket['status'] }) {
   const resolution = resolutionLine(issue);
   const parts: ReactNode[] = [];
+  const fixed = 'shrink-0';
+  const flexible = 'min-w-0 truncate';
   if (resolution) {
-    if (resolution.text) parts.push(<span key="fix" className="text-foreground/80">{resolution.text}</span>);
-    if (resolution.hours) parts.push(<span key="hours" className="tabular-nums">{resolution.hours}</span>);
+    if (resolution.text) parts.push(<span key="fix" className={cn(flexible, 'text-foreground/80')}>{resolution.text}</span>);
+    if (resolution.hours) parts.push(<span key="hours" className={cn(fixed, 'tabular-nums')}>{resolution.hours}</span>);
   } else {
-    if (issue.categoryName) parts.push(<span key="cat">{issue.categoryName}</span>);
+    if (issue.categoryName) parts.push(<span key="cat" className={fixed}>{issue.categoryName}</span>);
     const entry = issue.knowledgeEntry;
     parts.push(
       entry ? (
-        <span key="fix">
-          {entry.name}
+        <span key="fix" className="flex min-w-0 items-center gap-1.5">
+          <span className="min-w-0 truncate">Known fix: {entry.name}</span>
           {entry.status !== 'ACTIVE' && (
-            <span className="ml-1.5 inline-block align-middle">
+            <span className="shrink-0">
               <StatusBadge status={entry.status} />
             </span>
           )}
         </span>
       ) : (
-        <span key="fix">No known fix</span>
+        <span key="fix" className={fixed}>No known fix</span>
       ),
     );
-    if (safetyNote(issue)) parts.push(<span key="safety" className="font-medium text-warning-text">Safety</span>);
+    if (safetyNote(issue)) parts.push(<span key="safety" className={cn(fixed, 'font-medium text-warning-text')}>Safety</span>);
   }
-  if (needsResolution(issue, state, status)) parts.push(<span key="needs">Needs what fixed it</span>);
+  if (needsResolution(issue, state, status)) parts.push(<span key="needs" className={fixed}>Needs what fixed it</span>);
   if (parts.length === 0) return null;
-  return (
-    <span className="line-clamp-1 text-xs text-muted-foreground">
-      {parts.map((part, n) => (
-        <span key={n}>
-          {n > 0 && <span aria-hidden="true"> · </span>}
-          {part}
-        </span>
-      ))}
-    </span>
-  );
+  return <span className="flex min-w-0 items-center gap-3 overflow-hidden text-xs whitespace-nowrap text-muted-foreground">{parts}</span>;
 }
 
 /** AC-8: one line of warning text above the checklist, with More only when it is cut off. */
@@ -194,7 +191,7 @@ function StepRow({ step, enabled, onToggle }: { step: RepairIssueStep; enabled: 
     <Tooltip>
       <TooltipTrigger asChild>{label}</TooltipTrigger>
       <TooltipContent>
-        Ticked by {step.checkedByEmail} · {formatDateTime(step.checkedAt!)}
+        Ticked by {step.checkedByEmail} on {formatDateTime(step.checkedAt!)}
       </TooltipContent>
     </Tooltip>,
   );

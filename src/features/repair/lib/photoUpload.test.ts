@@ -7,6 +7,8 @@ import {
   isRetryable,
   jpegName,
   normalizeType,
+  groupPreview,
+  moreViewerIndex,
   photoGroups,
   photoRoomLeft,
   photosInFlight,
@@ -122,20 +124,20 @@ function attachment(id: string, kind: AttachmentKind): Attachment {
   };
 }
 
-describe('photoGroups (spec 0018, AC-16)', () => {
+describe('photoGroups (spec 0018, AC-16; spec 0024, AC-13)', () => {
   const items = [attachment('b1', 'VEHICLE_PHOTO'), attachment('a1', 'PROOF'), attachment('r1', 'RECEIPT'), attachment('b2', 'VEHICLE_PHOTO')];
 
-  it('shows Before first until work starts, with each group’s count and limit', () => {
-    const groups = photoGroups({ items, limits: LIMITS }, false);
+  it('shows Before then After, with each group’s count and limit', () => {
+    const groups = photoGroups({ items, limits: LIMITS });
     expect(groups.map((g) => [g.label, g.photos.map((p) => p.id), g.count, g.max])).toEqual([
       ['Before', ['b1', 'b2'], 3, 5],
       ['After', ['a1'], 9, 10],
     ]);
   });
 
-  it('shows After first once work has started, and never a document', () => {
-    const groups = photoGroups({ items, limits: LIMITS }, true);
-    expect(groups.map((g) => g.label)).toEqual(['After', 'Before']);
+  it('never swaps the groups and never shows a document', () => {
+    const groups = photoGroups({ items, limits: LIMITS });
+    expect(groups.map((g) => g.label)).toEqual(['Before', 'After']);
     expect(groups.flatMap((g) => g.photos).some((p) => p.kind === 'RECEIPT')).toBe(false);
   });
 
@@ -149,8 +151,29 @@ describe('photoGroups (spec 0018, AC-16)', () => {
 describe('photoCaption (spec 0018)', () => {
   it('names the group, and still shows an older photo’s issue tag', () => {
     const tagged = { ...attachment('b1', 'VEHICLE_PHOTO'), issueId: 'i1' };
-    expect(photoCaption(tagged, new Map([['i1', 'Issue 1: Brakes']])).description).toBe('Before · Nov 1, 2026, 10:42 AM · Issue 1: Brakes');
-    expect(photoCaption(attachment('a1', 'PROOF'), new Map()).description).toBe('After · Nov 1, 2026, 10:42 AM');
+    expect(photoCaption(tagged, new Map([['i1', 'Issue 1: Brakes']])).description).toBe('Before\nNov 1, 2026, 10:42 AM\nIssue 1: Brakes');
+    expect(photoCaption(attachment('a1', 'PROOF'), new Map()).description).toBe('After\nNov 1, 2026, 10:42 AM');
+  });
+});
+
+describe('groupPreview and moreViewerIndex (spec 0024, AC-13)', () => {
+  it('shows every photo up to 3', () => {
+    expect(groupPreview([])).toEqual({ shown: [], more: 0 });
+    expect(groupPreview(['a', 'b', 'c'])).toEqual({ shown: ['a', 'b', 'c'], more: 0 });
+  });
+
+  it('shows the first 2 and counts the rest past 3', () => {
+    expect(groupPreview(['a', 'b', 'c', 'd'])).toEqual({ shown: ['a', 'b'], more: 2 });
+    expect(groupPreview(['a', 'b', 'c', 'd', 'e', 'f', 'g'])).toEqual({ shown: ['a', 'b'], more: 5 });
+  });
+
+  it('opens the viewer at the group’s third photo in the Before then After list', () => {
+    const groups = [
+      { kind: 'VEHICLE_PHOTO' as const, photos: [attachment('b1', 'VEHICLE_PHOTO'), attachment('b2', 'VEHICLE_PHOTO'), attachment('b3', 'VEHICLE_PHOTO'), attachment('b4', 'VEHICLE_PHOTO')] },
+      { kind: 'PROOF' as const, photos: [attachment('a1', 'PROOF'), attachment('a2', 'PROOF'), attachment('a3', 'PROOF'), attachment('a4', 'PROOF')] },
+    ];
+    expect(moreViewerIndex(groups, 'VEHICLE_PHOTO')).toBe(2);
+    expect(moreViewerIndex(groups, 'PROOF')).toBe(6);
   });
 });
 

@@ -36,27 +36,27 @@ describe('photoCaption (AC-24, spec 0018 group label)', () => {
   it('uses the uploader as the title and the Manila time as the description', () => {
     expect(photoCaption(photo(), new Map())).toEqual({
       title: 'Mia Mechanic',
-      description: 'Before · Nov 1, 2026, 10:42 AM',
+      description: 'Before\nNov 1, 2026, 10:42 AM',
     });
   });
 
-  it('adds the issue name after the time when the photo is tagged', () => {
+  it('adds the issue name on its own line after the time when the photo is tagged', () => {
     const names = new Map([['i1', 'Brake pads worn']]);
     expect(photoCaption(photo({ issueId: 'i1' }), names).description).toBe(
-      'Before · Nov 1, 2026, 10:42 AM · Brake pads worn',
+      'Before\nNov 1, 2026, 10:42 AM\nBrake pads worn',
     );
   });
 
   it('leaves the issue out when the tagged issue is not in the map', () => {
     expect(
       photoCaption(photo({ issueId: 'gone' }), new Map()).description,
-    ).toBe('Before · Nov 1, 2026, 10:42 AM');
+    ).toBe('Before\nNov 1, 2026, 10:42 AM');
   });
 
   it('leaves the issue out when the photo has no tag, even if the map has names', () => {
     expect(
       photoCaption(photo(), new Map([['i1', 'Brake pads worn']])).description,
-    ).toBe('Before · Nov 1, 2026, 10:42 AM');
+    ).toBe('Before\nNov 1, 2026, 10:42 AM');
   });
 });
 
@@ -97,7 +97,7 @@ describe('photoMarks and the viewer lines (spec 0018, AC-13, AC-14)', () => {
 
   it('adds each mark as its own line under the caption', () => {
     expect(photoCaption(photo({ kind: 'PROOF', returnedAfter: true }), new Map()).description).toBe(
-      'After · Nov 1, 2026, 10:42 AM\nAdded after the ticket was returned to the mechanic',
+      'After\nNov 1, 2026, 10:42 AM\nAdded after the ticket was returned to the mechanic',
     );
   });
 });

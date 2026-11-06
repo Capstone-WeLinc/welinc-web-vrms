@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { flushSync } from 'react-dom';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SearchX, ShieldAlert, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,6 +33,7 @@ import { NextActionBar } from '../components/NextActionBar';
 import { RepairDetailSkeleton } from '../components/RepairDetailSkeleton';
 import { SendBackBanner } from '../components/SendBackBanner';
 import { IssuesSection } from '../components/IssuesSection';
+import { PhotosCard } from '../components/PhotosCard';
 import { TicketNoteDialog } from '../components/TicketNoteDialog';
 import { DetailsCard, NotesCard, PeopleCard, StatusCard } from '../components/TicketSidePanel';
 import { TicketHeader } from '../components/TicketHeader';
@@ -92,8 +92,6 @@ export function RepairDetailPage() {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [dialog, setDialog] = useState<DialogKind>(null);
-  // Spec 0024, AC-13: null follows the Photos line's own rule; the blocked reason link opens it
-  const [photosOpen, setPhotosOpen] = useState<boolean | null>(null);
   // Spec 0024, AC-18: from 1024px the sidebar sits on the right; below, one column in the phone order
   const wide = useMediaQuery('(min-width: 1024px)');
   const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId, {
@@ -316,12 +314,14 @@ export function RepairDetailPage() {
   const canEditDetails = !readOnly && ticket.can.edit && ticketEditable(ticket);
   const canEditMechanics = !readOnly && ticket.can.assign && ticketEditable(ticket);
 
-  /** AC-13: scroll to Photos, open it and focus its add button (the file picker can't start after the click). */
+  /**
+   * AC-13: scroll to the Photos card and focus its add tile (the file picker can't start after the
+   * click); with no tile (the group is full, or the viewer can't add), its heading.
+   */
   const goToPhotos = () => {
-    flushSync(() => setPhotosOpen(true));
-    const line = document.getElementById(PHOTOS_SECTION_ID);
-    line?.scrollIntoView({ behavior: motion(), block: 'start' });
-    line?.querySelector<HTMLElement>('[data-photo-add]')?.focus({ preventScroll: true });
+    const card = document.getElementById(PHOTOS_SECTION_ID);
+    card?.scrollIntoView({ behavior: motion(), block: 'start' });
+    (card?.querySelector<HTMLElement>('[data-photo-add]') ?? card?.querySelector<HTMLElement>('h2'))?.focus({ preventScroll: true });
   };
 
   const noMechanic =
@@ -415,8 +415,8 @@ export function RepairDetailPage() {
                           }
                         : null
                     }
-                    photos={{ open: photosOpen, onOpenChange: setPhotosOpen, blockedBy: shown.blockedBy }}
                   />
+                  <PhotosCard ticket={ticket} blockedBy={shown.blockedBy} />
                   {usesAi && <AiDiagnosisSection ticket={ticket} />}
                   {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
                   {!wide && people}

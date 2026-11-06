@@ -27,7 +27,7 @@ interface StatusCardProps {
   onPrimary: () => void;
   onSecondary: () => void;
   onCancel: () => void;
-  /** Spec 0024, AC-13: a photo reason links to the Photos line. */
+  /** Spec 0024, AC-13: a photo reason links to the Photos card. */
   onPhotosBlocked: () => void;
   /** Spec 0024, AC-18: `line` is the slim status line on phones and tablets; the fixed bar holds the buttons. */
   variant?: 'card' | 'line';
@@ -248,17 +248,19 @@ function DueLine({ ticket, now }: { ticket: RepairTicket; now: number }) {
   if (!ticket.dueAt || Number.isNaN(Date.parse(ticket.dueAt))) return null;
   const due = isOpen(ticket) ? dueLabel(ticket, now) : null;
   return (
-    <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-foreground">
-      <span className="text-muted-foreground">Due</span>
-      <time dateTime={ticket.dueAt}>{formatShortDate(ticket.dueAt)}</time>
+    <div className="flex flex-col gap-0.5 text-sm">
+      <p className="flex flex-wrap items-center gap-x-1.5 text-foreground">
+        <span className="text-muted-foreground">Due</span>
+        <time dateTime={ticket.dueAt}>{formatShortDate(ticket.dueAt)}</time>
+      </p>
+      {/* AC-17: the due or overdue text on its own line, never joined by a dot */}
       {due && (
-        <span className={cn('inline-flex items-center gap-1.5', due.overdue ? 'font-medium text-destructive' : 'text-muted-foreground')}>
-          <span aria-hidden="true">·</span>
+        <p className={cn('flex items-center gap-1.5', due.overdue ? 'font-medium text-destructive' : 'text-muted-foreground')}>
           {due.overdue && <AlertTriangle role="img" aria-label="Overdue" className="size-3.5 shrink-0" />}
           {due.text}
-        </span>
+        </p>
       )}
-    </p>
+    </div>
   );
 }
 
@@ -295,7 +297,7 @@ export function DetailsCard({ ticket, now, action }: { ticket: RepairTicket; now
         </DetailItem>
         {ticket.accountType && (
           <DetailItem label="Account" className="col-span-2">
-            {ticket.accountType === 'CORPORATE' ? `Corporate${ticket.corporation ? ` · ${ticket.corporation}` : ''}` : 'Online'}
+            {ticket.accountType === 'CORPORATE' ? `Corporate${ticket.corporation ? `, ${ticket.corporation}` : ''}` : 'Online'}
           </DetailItem>
         )}
       </DetailsGroup>

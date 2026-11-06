@@ -72,11 +72,11 @@ export function documentRoomLeft(limits: AttachmentList['limits'], queued: numbe
   return Math.max(0, limits.maxDocuments - limits.documentCount - queued);
 }
 
-/** Spec 0024, AC-13: the Photos line's anchor, for the blocked reason link. */
+/** Spec 0024, AC-13: the Photos card's anchor, for the blocked reason link. */
 export const PHOTOS_SECTION_ID = 'photos';
 
 /**
- * Spec 0024, AC-13: the hint at the end of the Photos line while a photo holds the next move. The
+ * Spec 0024, AC-13: the hint at the top right of the Photos card while a photo holds the next move. The
  * move names one photo at a time, so there is only ever one hint; any other reason gives none.
  */
 export function photoNeededHint(blockedBy: 'beforePhoto' | 'afterPhoto' | null): string | null {
@@ -117,15 +117,37 @@ export interface PhotoGroup {
   max: number;
 }
 
-/** Spec 0018, AC-16: Before then After until work starts, After first once it has. */
-export function photoGroups(list: Pick<AttachmentList, 'items' | 'limits'>, workStarted: boolean): PhotoGroup[] {
-  const order: PhotoGroupKind[] = workStarted ? ['PROOF', 'VEHICLE_PHOTO'] : ['VEHICLE_PHOTO', 'PROOF'];
+/** Spec 0024, AC-13: always Before then After, so the groups never swap when work starts. */
+export function photoGroups(list: Pick<AttachmentList, 'items' | 'limits'>): PhotoGroup[] {
+  const order: PhotoGroupKind[] = ['VEHICLE_PHOTO', 'PROOF'];
   return order.map((kind) => ({
     kind,
     label: PHOTO_GROUP_LABELS[kind],
     photos: list.items.filter((item) => item.kind === kind),
     ...groupLimit(list.limits, kind),
   }));
+}
+
+/** Spec 0024, AC-13: a group shows at most 3 thumbnails; with more, the first 2 and a "+N more" tile. */
+export const GROUP_THUMBS = 3;
+
+export function groupPreview<T>(photos: readonly T[]): { shown: T[]; more: number } {
+  if (photos.length <= GROUP_THUMBS) return { shown: [...photos], more: 0 };
+  const shown = photos.slice(0, GROUP_THUMBS - 1);
+  return { shown, more: photos.length - shown.length };
+}
+
+/**
+ * Spec 0024, AC-13: where the "+N more" tile opens the viewer: the group's third photo in the flat
+ * Before then After list the viewer walks.
+ */
+export function moreViewerIndex(groups: readonly Pick<PhotoGroup, 'kind' | 'photos'>[], kind: PhotoGroupKind): number {
+  let offset = 0;
+  for (const group of groups) {
+    if (group.kind === kind) return offset + GROUP_THUMBS - 1;
+    offset += group.photos.length;
+  }
+  return -1;
 }
 
 /** Photos the group new uploads land in can still take, after the ones already queued (AC-21, spec 0018 AC-3). */
