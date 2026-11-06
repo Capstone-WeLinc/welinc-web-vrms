@@ -87,6 +87,10 @@ describe('dueValue (spec 0024, AC-17)', () => {
   it('reads a later date with the days left', () => {
     expect(value('ASSIGNED', at(2026, 10, 9))).toEqual({ date: 'Nov 9', note: 'in 3 days', overdue: false });
   });
+  it('uses the singular for one day either side', () => {
+    expect(value('IN_PROGRESS', at(2026, 10, 5))).toEqual({ date: 'Nov 5', note: '1 day overdue', overdue: true });
+    expect(value('ASSIGNED', at(2026, 10, 7))).toEqual({ date: 'Nov 7', note: 'in 1 day', overdue: false });
+  });
   it('adds the year only when it differs', () => {
     expect(value('OPEN', at(2027, 0, 5))?.date).toBe('Jan 5, 2027');
   });

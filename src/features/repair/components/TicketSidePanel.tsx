@@ -1,6 +1,6 @@
 import { type ReactNode, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BadgeCheck, Ban, CircleAlert, Link2 } from 'lucide-react';
+import { BadgeCheck, Ban, CircleAlert, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -42,15 +42,18 @@ function MoreActions({ ticketId, cancel, onCancel }: { ticketId: string; cancel:
   const { showToast } = useToast();
   const copyLink = () => {
     const url = `${window.location.origin}/repairs/${ticketId}`;
-    navigator.clipboard.writeText(url).then(
-      () => showToast('Ticket link copied', 'success'),
-      () => showToast('Couldn’t copy the link. Copy it from the address bar.', 'error'),
-    );
+    const failed = () => showToast('Couldn’t copy the link. Copy it from the address bar.', 'error');
+    // The clipboard exists only on https or localhost; elsewhere `navigator.clipboard` is undefined.
+    if (!navigator.clipboard?.writeText) {
+      failed();
+      return;
+    }
+    navigator.clipboard.writeText(url).then(() => showToast('Ticket link copied', 'success'), failed);
   };
   return (
     <MoreMenu label="More actions" triggerClassName="-my-2 -mr-2 size-11 lg:size-8">
       <DropdownMenuItem onSelect={copyLink}>
-        <Link2 aria-hidden="true" />
+        <Copy aria-hidden="true" />
         Copy ticket link
       </DropdownMenuItem>
       {cancel && (
