@@ -1,18 +1,19 @@
 import { type ReactNode, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, BadgeCheck, CircleAlert, MoreVertical } from 'lucide-react';
+import { BadgeCheck, Ban, CircleAlert, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { BadgePill } from '../../../components/shared/BadgePill';
 import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
+import { MoreMenu } from '../../../components/shared/MoreMenu';
 import { PriorityBadge } from '../../../components/shared/PriorityBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
+import { useToast } from '../../../context/toast';
 import { useClamped } from '../../../hooks/useClamped';
-import { dueLine } from '../../../lib/utils/due';
+import { dueValue } from '../../../lib/utils/due';
 import { formatDateTime, formatRelativeTime, formatShortDate } from '../../../lib/utils/format';
 import type { RepairTicket, TicketMove } from '../../../types';
 import { isClosed, type TicketActions } from '../lib/nextAction';
@@ -33,41 +34,45 @@ interface StatusCardProps {
   variant?: 'card' | 'line';
 }
 
-/** Spec 0024, AC-17: Cancel ticket lives here, away from the main action. Hidden with no cancel move. */
-function MoreActions({ cancel, onCancel }: { cancel: TicketMove; onCancel: () => void }) {
+/**
+ * Spec 0024, AC-17: the card's ⋮ menu. Copy ticket link for everyone; Cancel ticket last, after a
+ * divider, only with a cancel move and an editable view.
+ */
+function MoreActions({ ticketId, cancel, onCancel }: { ticketId: string; cancel: TicketMove | null; onCancel: () => void }) {
+  const { showToast } = useToast();
+  const copyLink = () => {
+    const url = `${window.location.origin}/repairs/${ticketId}`;
+    navigator.clipboard.writeText(url).then(
+      () => showToast('Ticket link copied', 'success'),
+      () => showToast('Couldn’t copy the link. Copy it from the address bar.', 'error'),
+    );
+  };
   return (
-    <DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon" className="-my-2 -mr-2 size-11 shrink-0 text-muted-strong lg:size-8" aria-label="More actions">
-              <MoreVertical aria-hidden="true" />
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent>More actions</TooltipContent>
-      </Tooltip>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem variant="destructive" onSelect={onCancel}>
-          {cancel.label}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <MoreMenu label="More actions" triggerClassName="-my-2 -mr-2 size-11 lg:size-8">
+      <DropdownMenuItem onSelect={copyLink}>
+        <Link2 aria-hidden="true" />
+        Copy ticket link
+      </DropdownMenuItem>
+      {cancel && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onSelect={onCancel}>
+            <Ban aria-hidden="true" />
+            {cancel.label}
+          </DropdownMenuItem>
+        </>
+      )}
+    </MoreMenu>
   );
 }
 
-/** Says on hover what a badge is; screen readers hear the same words before it. */
-function HoverLabel({ label, children }: { label: string; children: ReactNode }) {
+/** One label and value row of the Status card. */
+function StatusRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex">
-          <span className="sr-only">{label}: </span>
-          {children}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
+    <div className="flex items-baseline gap-3">
+      <dt className="w-16 shrink-0 text-sm text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-sm text-foreground">{children}</dd>
+    </div>
   );
 }
 
@@ -88,8 +93,8 @@ function BlockedReason({ id, actions, onPhotos }: { id: string; actions: TicketA
 }
 
 /**
- * Spec 0024, AC-17: no heading. One row with the badges and the due line, the ⋮ menu at its right;
- * then the actions: Return to mechanic (outlined) and the primary side by side once the card is 280px
+ * Spec 0024, AC-17: no heading. Label and value rows for status, priority and due, the ⋮ menu at the
+ * top right; then the actions: Return to mechanic (outlined) and the primary side by side once the card is 280px
  * wide, stacked with the primary on top below that, and the blocked reason under them. The phone line
  * (AC-18) has the same row and reason; the fixed bar holds its buttons.
  */
@@ -102,34 +107,44 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
   const lockBadge =
     ticket.can.unlock && isClosed(ticket) ? (
       ticket.isUnlocked ? (
-        <BadgePill className="bg-highlight text-highlight-foreground">Unlocked for editing</BadgePill>
+        <BadgePill className="bg-highlight/25 text-highlight-foreground">Unlocked for editing</BadgePill>
       ) : (
         <BadgePill className="bg-status-cancelled-bg text-status-cancelled-fg">Locked</BadgePill>
       )
     ) : null;
 
-  const due = <DueLine ticket={ticket} now={now} />;
+  const due = dueValue(ticket, now);
+  // AC-17: label and value rows (Status, Priority, Due), the ⋮ at the top right
   const badges = (
-    <div className="flex min-h-9 items-start justify-between gap-2">
-      {/* The due line follows the badges and wraps under them when the row is full; the ⋮ stays right */}
-      <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <HoverLabel label="Ticket status">
-          <StatusBadge status={ticket.status} />
-        </HoverLabel>
+    <div className="flex items-start justify-between gap-2">
+      <dl className="flex min-w-0 flex-col gap-1.5">
+        <StatusRow label="Status">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <StatusBadge status={ticket.status} />
+            <MechanicProblemBadge ticket={ticket} />
+            {lockBadge}
+          </span>
+        </StatusRow>
         {ticket.priority && (
-          <HoverLabel label="Priority">
+          <StatusRow label="Priority">
             <PriorityBadge priority={ticket.priority} />
-          </HoverLabel>
+          </StatusRow>
         )}
-        <MechanicProblemBadge ticket={ticket} />
-        {lockBadge}
-        {due}
-      </div>
-      {!readOnly && cancel && (
-        <span className="flex min-h-9 items-center">
-          <MoreActions cancel={cancel} onCancel={onCancel} />
-        </span>
-      )}
+        {due && ticket.dueAt && (
+          <StatusRow label="Due">
+            <time dateTime={ticket.dueAt} className="block">
+              {due.date}
+            </time>
+            {/* Under the date, never trailing it */}
+            {due.overdue ? (
+              <span className="block text-xs font-medium text-destructive">{due.note ?? 'Past due'}</span>
+            ) : (
+              due.note && <span className="block text-xs text-muted-foreground">{due.note}</span>
+            )}
+          </StatusRow>
+        )}
+      </dl>
+      <MoreActions ticketId={ticket.id} cancel={!readOnly ? (cancel ?? null) : null} onCancel={onCancel} />
     </div>
   );
 
@@ -242,31 +257,6 @@ function DriverValue({ ticket }: { ticket: RepairTicket }) {
         </span>
       )}
     </span>
-  );
-}
-
-/**
- * AC-17: one due line ("Overdue by 2 days, due Nov 4", "Due today", "Due Nov 9, in 2 days"), from
- * `dueLine`, shared with the phone line. Closed and Cancelled show the date alone. No due date, no line.
- */
-function DueLine({ ticket, now }: { ticket: RepairTicket; now: number }) {
-  const due = dueLine(ticket, now);
-  if (!due || !ticket.dueAt) return null;
-  return (
-    <p className={cn('flex flex-wrap items-center gap-x-1.5 text-sm', due.overdue ? 'font-medium text-destructive' : 'text-foreground')}>
-      {/* The overdue icon is the colour exception AC-19 allows */}
-      {due.overdue && <AlertTriangle role="img" aria-label="Overdue" className="size-3.5 shrink-0" />}
-      <span>
-        <span className={due.overdue ? undefined : 'text-muted-foreground'}>{due.label}</span>
-        {due.date && (
-          <>
-            {' '}
-            <time dateTime={ticket.dueAt}>{due.date}</time>
-          </>
-        )}
-        {due.after && <span className="text-muted-foreground">{due.after}</span>}
-      </span>
-    </p>
   );
 }
 

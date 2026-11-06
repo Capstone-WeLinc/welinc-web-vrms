@@ -1,14 +1,15 @@
 import { type ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MoreVertical } from 'lucide-react';
+import { BookOpen, Link2, Pencil, Trash2 } from 'lucide-react';
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { BadgePill } from '../../../components/shared/BadgePill';
+import { MoreMenu } from '../../../components/shared/MoreMenu';
 import { confirm } from '../../../components/shared/confirm/confirm';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { useToast } from '../../../context/toast';
@@ -48,7 +49,7 @@ function linkOptions(entries: EntryOption[]): ComboboxOption[] {
 function Progress({ state, ticked, total }: { state: IssueState; ticked: number; total: number }) {
   let label: ReactNode;
   if (state === 'returned') {
-    label = <BadgePill className="h-5 bg-highlight px-1.5 text-highlight-foreground">Returned</BadgePill>;
+    label = <BadgePill className="h-5 bg-highlight/25 px-1.5 text-highlight-foreground">Returned</BadgePill>;
   } else if (state === 'none') {
     label = <span className="text-muted-foreground">No checklist</span>;
   } else if (state === 'notStarted') {
@@ -322,32 +323,36 @@ export function IssueRow(props: IssueRowProps) {
   // AC-7: the row menu on the header line, beside the fold button and never inside it; with no menu its
   // space stays, so the progress column lines up with the rows that have one (AC-3)
   const menu = hasMenu ? (
-    <DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon" className="size-11 shrink-0 text-muted-strong md:mt-2 md:size-8" aria-label={`More actions for issue ${n}`}>
-              <MoreVertical aria-hidden="true" />
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent>More actions</TooltipContent>
-      </Tooltip>
-      <DropdownMenuContent align="end">
-        {onEdit && <DropdownMenuItem onSelect={onEdit}>Edit issue</DropdownMenuItem>}
-        {canChange && <DropdownMenuItem onSelect={() => setChanging(true)}>Change known fix</DropdownMenuItem>}
-        {entry && knowledgeOn && (
-          <DropdownMenuItem asChild>
-            <Link to={`/knowledge-base/${entry.id}`}>Open known fix</Link>
-          </DropdownMenuItem>
-        )}
-        {onRemove && (
-          <DropdownMenuItem variant="destructive" onSelect={onRemove}>
-            Remove issue
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <MoreMenu label={`More actions for issue ${n}`} triggerClassName="size-11 md:mt-2 md:size-8">
+      {onEdit && (
+        <DropdownMenuItem onSelect={onEdit}>
+          <Pencil aria-hidden="true" />
+          Edit issue
+        </DropdownMenuItem>
+      )}
+      {canChange && (
+        <DropdownMenuItem onSelect={() => setChanging(true)}>
+          <Link2 aria-hidden="true" />
+          Change known fix
+        </DropdownMenuItem>
+      )}
+      {entry && knowledgeOn && (
+        <DropdownMenuItem asChild>
+          {/* Menu text, not link blue */}
+          <Link to={`/knowledge-base/${entry.id}`} className="text-popover-foreground no-underline">
+            <BookOpen aria-hidden="true" />
+            Open known fix
+          </Link>
+        </DropdownMenuItem>
+      )}
+      {onRemove && (onEdit || canChange || (entry && knowledgeOn)) && <DropdownMenuSeparator />}
+      {onRemove && (
+        <DropdownMenuItem variant="destructive" onSelect={onRemove}>
+          <Trash2 aria-hidden="true" />
+          Remove issue
+        </DropdownMenuItem>
+      )}
+    </MoreMenu>
   ) : (
     <span aria-hidden="true" className="size-11 shrink-0 md:size-8" />
   );

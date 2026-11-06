@@ -315,13 +315,17 @@ export function RepairDetailPage() {
   const canEditMechanics = !readOnly && ticket.can.assign && ticketEditable(ticket);
 
   /**
-   * AC-13: scroll to the Photos card and focus its add tile (the file picker can't start after the
+   * AC-13: scroll to the Photos card and focus the needed group's add tile (the file picker can't start after the
    * click); with no tile (the group is full, or the viewer can't add), its heading.
    */
   const goToPhotos = () => {
     const card = document.getElementById(PHOTOS_SECTION_ID);
     card?.scrollIntoView({ behavior: motion(), block: 'start' });
-    (card?.querySelector<HTMLElement>('[data-photo-add]') ?? card?.querySelector<HTMLElement>('h2'))?.focus({ preventScroll: true });
+    (
+      card?.querySelector<HTMLElement>('[data-photo-needed]') ??
+      card?.querySelector<HTMLElement>('[data-photo-add]') ??
+      card?.querySelector<HTMLElement>('h2')
+    )?.focus({ preventScroll: true });
   };
 
   const noMechanic =

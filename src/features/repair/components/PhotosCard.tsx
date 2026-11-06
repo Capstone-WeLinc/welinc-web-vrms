@@ -93,8 +93,9 @@ interface PhotosCardProps {
 /**
  * Spec 0024, AC-13: the ticket's photos as their own card after the Issues card. Before then After,
  * never swapping; each group one row of at most 4 slots (3 thumbnails, or 2 and "+N more", then the
- * add tile in the group new photos land in). The tile and the picker let the server file each photo
- * (spec 0018); a file drop on a zone names its group (AC-21), and a thumbnail drags onto the other group.
+ * add tile in the group new photos land in, and in Before after work started). That tile lets the server
+ * file each photo (spec 0018); Before's late tile and a file drop on a zone name their group (AC-21), and
+ * a thumbnail drags onto the other group.
  */
 export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
   const { showToast } = useToast();
@@ -117,6 +118,10 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
   /** The photo whose move is in flight (spec 0018, AC-9). */
   const [movingId, setMovingId] = useState<string | null>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
+  /** The group the next file pick names: set by Before's late tile, else the server picks (spec 0018). */
+  const pickGroup = useRef<PhotoGroupKind | undefined>(undefined);
+  /** Before's late tile asks once per page view (spec 0024, AC-13). */
+  const lateBeforeOk = useRef(false);
   const sensors = useSensors(
     // 6px before a mouse drag starts, so a click still opens the viewer
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
@@ -144,8 +149,13 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
   /** Room per group, counting only the uploads queued for that group (spec 0024, value sourcing). */
   const roomFor = (kind: PhotoGroupKind) => (list ? photoRoomLeft(list.limits, photoQueue, kind) : 0);
   const fullTextFor = (group: PhotoGroup) => (roomFor(group.kind) === 0 ? groupFullText(group, queuedFor(photoQueue, group.kind)) : null);
-  const targetGroup = groups.find((group) => group.kind === targetKind);
-  const fullText = canAdd && targetGroup ? fullTextFor(targetGroup) : null;
+  /**
+   * AC-13: the group new photos land in has an add tile, and once work has started Before keeps one too:
+   * a late Before photo, uploaded with its group named (AC-21) and marked "Added after work started" (AC-22).
+   */
+  const hasAdd = (kind: PhotoGroupKind) => canAdd && (kind === targetKind || (workStarted && kind === 'VEHICLE_PHOTO'));
+  /** The blocked link focuses the tile of the group the next move waits for. */
+  const neededKind: PhotoGroupKind | null = blockedBy === 'beforePhoto' ? 'VEHICLE_PHOTO' : blockedBy === 'afterPhoto' ? 'PROOF' : null;
   const issueNames = new Map(issues.map((issue, index) => [issue.id, `Issue ${index + 1}: ${stripSystem(issue.description)}`]));
   const hint = photoNeededHint(blockedBy);
   // AC-13: no drop handling for people who can't add; touch screens fire no drag events anyway
@@ -248,7 +258,24 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
   const pick = (el: HTMLInputElement) => {
     const files = Array.from(el.files ?? []);
     el.value = '';
-    if (files.length) addPhotos(files);
+    if (files.length) addPhotos(files, pickGroup.current);
+  };
+
+  /** The add tile: the target group lets the server pick; Before after work started asks first, then names its group. */
+  const openPicker = async (kind: PhotoGroupKind) => {
+    const late = kind !== targetKind;
+    if (late && !lateBeforeOk.current) {
+      const ok = await confirm({
+        title: 'Work has already started',
+        description: 'Before photos you add now will show an “Added after work started” mark.',
+        confirmText: 'Add anyway',
+        tone: 'warning',
+      });
+      if (!ok) return;
+      lateBeforeOk.current = true;
+    }
+    pickGroup.current = late ? kind : undefined;
+    input.current?.click();
   };
 
   // A drag cancelled with Escape or dropped elsewhere never reaches the card's own dragleave
@@ -333,7 +360,9 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
 
   const renderGroup = (group: PhotoGroup) => {
     const { shown, more } = groupPreview(group.photos);
-    const hasTile = canAdd && group.kind === targetKind && !fullText;
+    const fullText = hasAdd(group.kind) ? fullTextFor(group) : null;
+    const hasTile = hasAdd(group.kind) && !fullText;
+    const late = group.kind !== targetKind;
     const word = group.label.toLowerCase();
     return (
       <PhotoGroupDrop
@@ -389,21 +418,22 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
                     <button
                       type="button"
                       data-photo-add
+                      data-photo-needed={group.kind === neededKind ? '' : undefined}
                       aria-label={`Add ${word} photo`}
-                      onClick={() => input.current?.click()}
+                      onClick={() => void openPicker(group.kind)}
                       className={cn(tile, 'border border-dashed border-input text-muted-strong hover:border-primary hover:text-foreground')}
                     >
                       <Plus aria-hidden="true" className="size-5" />
                       Add
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>Add {word} photo, or drop files on this card</TooltipContent>
+                  <TooltipContent>{late ? `Add ${word} photo (work already started)` : `Add ${word} photo, or drop files on this card`}</TooltipContent>
                 </Tooltip>
               </li>
             )}
           </ul>
         )}
-        {canAdd && group.kind === targetKind && fullText && <p className="text-xs text-muted-foreground">{fullText}</p>}
+        {fullText && <p className="text-xs text-muted-foreground">{fullText}</p>}
       </PhotoGroupDrop>
     );
   };
