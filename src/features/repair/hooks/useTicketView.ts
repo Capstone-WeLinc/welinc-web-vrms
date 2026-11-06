@@ -31,16 +31,16 @@ const withHash = (view: TicketView, hash: string, ids: string[]): TicketView => 
 };
 
 /**
- * Spec 0024, AC-4 and AC-5: the open rows and the one Hide done steps switch for one ticket. The
- * stored view wins over the default rule, `#issue-N` opens its row on top, and the 3 second
- * refresh never opens or closes a row (the value is state, never derived from the ticket).
+ * Spec 0024, AC-4 and AC-5: the open rows for one ticket. The stored view wins over the default
+ * rule, `#issue-N` opens its row on top, and the 3 second refresh never opens or closes a row (the
+ * value is state, never derived from the ticket).
  */
 export function useTicketView(ticketId: string, status: RepairStatus, rows: { id: string; state: IssueState }[]) {
   const { hash } = useLocation();
   const ids = rows.map((row) => row.id);
   const [view, setView] = useState<TicketView>(() => {
     const stored = readStored(ticketId);
-    return withHash(stored ? pruneView(stored, ids) : { open: initialOpen(status, rows), hideDone: false }, hash, ids);
+    return withHash(stored ? pruneView(stored, ids) : { open: initialOpen(status, rows) }, hash, ids);
   });
   const [seenHash, setSeenHash] = useState(hash);
   if (hash !== seenHash) {
@@ -67,8 +67,6 @@ export function useTicketView(ticketId: string, status: RepairStatus, rows: { id
 
   return {
     open: shown.open,
-    hideDone: shown.hideDone,
-    setOpen: (open: string[]) => save({ ...shown, open }),
-    setHideDone: (hideDone: boolean) => save({ ...shown, hideDone }),
+    setOpen: (open: string[]) => save({ open }),
   };
 }

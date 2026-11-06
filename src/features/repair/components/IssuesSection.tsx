@@ -1,6 +1,5 @@
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { DetailSection } from '../../../components/shared/DetailSection';
 import { useModuleOn } from '../../../lib/permissions/usePermissions';
 import type { RepairIssue, RepairTicket } from '../../../types';
@@ -8,7 +7,7 @@ import { useTicketFiles } from '../hooks/ticketFiles';
 import { useEntryOptions } from '../hooks/useEntryOptions';
 import { useTicketView } from '../hooks/useTicketView';
 import { useTickOverrides } from '../hooks/useTickOverrides';
-import { issueState, summaryCounts, summaryText, tickedCount } from '../lib/issueRow';
+import { issueState, summaryCounts, summaryText } from '../lib/issueRow';
 import { IssueRow } from './IssueRow';
 
 interface IssuesSectionProps {
@@ -47,9 +46,6 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps
     ticket.status,
     rows.map((row) => ({ id: row.issue.id, state: row.state })),
   );
-  // AC-6: the switch shows once any step is ticked; until then a stored "on" is ignored, not reset
-  const anyTicked = rows.some((row) => tickedCount(row.steps) > 0);
-  const hideDone = anyTicked && view.hideDone;
   return (
     <DetailSection
       title="Issues"
@@ -65,16 +61,8 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps
         <p className="text-sm text-muted-foreground">No issues logged.</p>
       ) : (
         <div className="flex flex-col">
-          {/* AC-6: the ticket's progress at a glance, then the one Hide done steps switch */}
-          <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-3 border-b border-border pb-2">
-            <p className="text-xs text-muted-foreground tabular-nums">{summaryText(summaryCounts(rows))}</p>
-            {anyTicked && (
-              <label className="-mr-2 flex min-h-11 cursor-pointer items-center gap-2 px-2 text-xs text-muted-strong md:min-h-8">
-                <Switch size="sm" checked={hideDone} onCheckedChange={view.setHideDone} />
-                Hide done steps
-              </label>
-            )}
-          </div>
+          {/* AC-6: the ticket's progress at a glance, with no controls */}
+          <p className="border-b border-border pb-2 text-xs text-muted-foreground tabular-nums">{summaryText(summaryCounts(rows))}</p>
           <Accordion type="multiple" value={view.open} onValueChange={view.setOpen} className="flex flex-col divide-y divide-border">
             {rows.map(({ issue, steps, state }, index) => (
               <IssueRow
@@ -88,7 +76,6 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps
                 knowledgeOn={knowledgeOn}
                 canTick={canTick}
                 entries={entries}
-                hideDone={hideDone}
                 onToggle={(step, checked) => void ticks.toggle(issue, step, checked)}
                 onRelinked={() => ticks.clearIssue(issue.id)}
                 onChanged={onChanged}

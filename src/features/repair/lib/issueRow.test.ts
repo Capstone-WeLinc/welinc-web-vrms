@@ -190,21 +190,21 @@ describe('settleOverrides (AC-3)', () => {
 
 describe('stored view (AC-5)', () => {
   it('reads only the checked shape', () => {
-    expect(parseView('{"open":["i1"],"hideDone":true}')).toEqual({ open: ['i1'], hideDone: true });
-    expect(parseView('{"open":[],"hideDone":false}')).toEqual({ open: [], hideDone: false });
-    expect(parseView('{"open":"i1","hideDone":false}')).toBeNull();
-    expect(parseView('{"open":[1],"hideDone":false}')).toBeNull();
-    expect(parseView('{"open":["i1"],"hideDone":"yes"}')).toBeNull();
-    expect(parseView('{"open":["i1"]}')).toBeNull();
+    expect(parseView('{"open":["i1"]}')).toEqual({ open: ['i1'] });
+    expect(parseView('{"open":[]}')).toEqual({ open: [] });
+    expect(parseView('{"open":"i1"}')).toBeNull();
+    expect(parseView('{"open":[1]}')).toBeNull();
+    expect(parseView('{}')).toBeNull();
     expect(parseView('not json')).toBeNull();
     expect(parseView(null)).toBeNull();
   });
-  it('reads the older per issue shape with the switch off', () => {
-    expect(parseView('{"open":["i1"],"hideDone":["i1","i2"]}')).toEqual({ open: ['i1'], hideDone: false });
-    expect(parseView('{"open":["i1"],"hideDone":[]}')).toEqual({ open: ['i1'], hideDone: false });
+  it('reads older shapes, ignoring any hideDone field', () => {
+    expect(parseView('{"open":["i1"],"hideDone":true}')).toEqual({ open: ['i1'] });
+    expect(parseView('{"open":["i1"],"hideDone":["i1","i2"]}')).toEqual({ open: ['i1'] });
+    expect(parseView('{"open":["i1"],"hideDone":"yes"}')).toEqual({ open: ['i1'] });
   });
-  it('drops removed issues, leaves a new issue closed and keeps the switch', () => {
-    expect(pruneView({ open: ['i1', 'gone'], hideDone: true }, ['i1', 'new'])).toEqual({ open: ['i1'], hideDone: true });
+  it('drops removed issues and leaves a new issue closed', () => {
+    expect(pruneView({ open: ['i1', 'gone'] }, ['i1', 'new'])).toEqual({ open: ['i1'] });
   });
   it('keeps the 20 most recent tickets', () => {
     const ids = Array.from({ length: 20 }, (_, n) => `t${n}`);

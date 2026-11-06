@@ -1,7 +1,8 @@
-import { lazy, Suspense, useRef, useState, type DragEvent } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type DragEvent } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { DetailSection } from '../../../components/shared/DetailSection';
 import { confirm } from '../../../components/shared/confirm/confirm';
@@ -54,6 +55,8 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
   const isTouch = useIsTouchDevice();
   const input = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  /** dragenter minus dragleave over the card and its children, so moving over a thumbnail never flickers. */
+  const depth = useRef(0);
   /** Index into `photos` while the viewer is open, else -1 (spec 0017, AC-24). */
   const [viewerIndex, setViewerIndex] = useState(-1);
   const [viewerLoaded, setViewerLoaded] = useState(false);
@@ -82,7 +85,8 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
       : null;
   const issueNames = new Map(issues.map((issue, index) => [issue.id, `Issue ${index + 1}: ${stripSystem(issue.description)}`]));
   const hint = photoNeededHint(blockedBy);
-  const dropEnabled = canAdd && !isTouch && room > 0;
+  // AC-13: no drop handling for people who can't add; touch screens fire no drag events anyway
+  const dropEnabled = canAdd && !isTouch;
 
   /** Queue what fits in the group new photos land in; the queue uploads one at a time (spec 0017, AC-21, AC-23). */
   const addPhotos = (files: File[]) => {
@@ -151,21 +155,49 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
     if (files.length) addPhotos(files);
   };
 
+  // A drag cancelled with Escape or dropped elsewhere never reaches the card's own dragleave
+  useEffect(() => {
+    if (!dragging) return;
+    const reset = () => {
+      depth.current = 0;
+      setDragging(false);
+    };
+    window.addEventListener('dragend', reset);
+    window.addEventListener('drop', reset);
+    return () => {
+      window.removeEventListener('dragend', reset);
+      window.removeEventListener('drop', reset);
+    };
+  }, [dragging]);
+
+  /** AC-13: only a drag that carries files shows the overlay; text and links pass by. */
+  const carriesFiles = (event: DragEvent) => event.dataTransfer.types.includes('Files');
   const dropHandlers = dropEnabled
     ? {
-        onDragOver: (event: DragEvent) => {
-          if (!event.dataTransfer.types.includes('Files')) return;
+        onDragEnter: (event: DragEvent) => {
+          if (!carriesFiles(event)) return;
           event.preventDefault();
+          depth.current += 1;
           setDragging(true);
         },
+        onDragOver: (event: DragEvent) => {
+          if (!carriesFiles(event)) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = room > 0 ? 'copy' : 'none';
+        },
         onDragLeave: (event: DragEvent) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
+          if (!carriesFiles(event)) return;
+          depth.current = Math.max(0, depth.current - 1);
+          if (depth.current === 0) setDragging(false);
         },
         onDrop: (event: DragEvent) => {
+          if (!carriesFiles(event)) return;
           event.preventDefault();
+          depth.current = 0;
           setDragging(false);
+          // A full group adds nothing: the overlay already said so
           const files = Array.from(event.dataTransfer.files);
-          if (files.length) addPhotos(files);
+          if (files.length && room > 0) addPhotos(files);
         },
       }
     : {};
@@ -218,16 +250,22 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
             )}
             {hasTile && (
               <li className="shrink-0">
-                <button
-                  type="button"
-                  data-photo-add
-                  aria-label={`Add ${word} photo`}
-                  onClick={() => input.current?.click()}
-                  className={cn(tile, 'border border-dashed border-input text-muted-strong hover:border-primary hover:text-foreground')}
-                >
-                  <Plus aria-hidden="true" className="size-5" />
-                  Add
-                </button>
+                {/* AC-13: pointer devices learn about dropping from the tile's tooltip */}
+                <Tooltip open={isTouch ? false : undefined}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      data-photo-add
+                      aria-label={`Add ${word} photo`}
+                      onClick={() => input.current?.click()}
+                      className={cn(tile, 'border border-dashed border-input text-muted-strong hover:border-primary hover:text-foreground')}
+                    >
+                      <Plus aria-hidden="true" className="size-5" />
+                      Add
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Add {word} photo, or drop files on this card</TooltipContent>
+                </Tooltip>
               </li>
             )}
           </ul>
@@ -244,7 +282,7 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
       title="Photos"
       id={PHOTOS_SECTION_ID}
       // AC-13: below the sticky header when the blocked link scrolls here, as the issue rows
-      className={cn('@container scroll-mt-24', dragging && 'ring-2 ring-primary ring-offset-2 ring-offset-background')}
+      className={cn('relative @container scroll-mt-24', dragging && 'ring-2 ring-primary ring-offset-2 ring-offset-background')}
       action={hint ? <span className="text-sm font-medium text-warning-text">{hint}</span> : null}
       {...dropHandlers}
     >
@@ -301,8 +339,15 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
         </div>
       )}
 
-      {/* On touch the add tile covers it; a pointer can also drop files anywhere on the card */}
-      {dropEnabled && <p className="-mt-1 text-xs text-muted-foreground">Or drop {target.toLowerCase()} photos anywhere on this card</p>}
+      {/* AC-13: shown only while files are dragged over the card; it never takes focus or pointer events */}
+      {dragging && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-card/95 p-4 text-center text-sm font-medium text-foreground"
+        >
+          {fullText ?? `Drop to add as ${target.toLowerCase()} photos`}
+        </div>
+      )}
 
       {/* The live region stays mounted so the first upload is announced too */}
       <div aria-live="polite">

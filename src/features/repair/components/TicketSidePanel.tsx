@@ -12,7 +12,7 @@ import { MechanicProblemBadge } from '../../../components/shared/MechanicProblem
 import { PriorityBadge } from '../../../components/shared/PriorityBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { useClamped } from '../../../hooks/useClamped';
-import { dueLabel, isOpen } from '../../../lib/utils/due';
+import { dueLine } from '../../../lib/utils/due';
 import { formatDateTime, formatRelativeTime, formatShortDate } from '../../../lib/utils/format';
 import type { RepairTicket, TicketMove } from '../../../types';
 import { isClosed, type TicketActions } from '../lib/nextAction';
@@ -159,8 +159,9 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
               {reason}
             </div>
           )}
+          {/* AC-17: Return to mechanic is borderless, so only the primary carries weight */}
           {secondary && (
-            <Button variant="outline" size="touch" className="w-full lg:h-10 lg:text-sm" onClick={onSecondary}>
+            <Button variant="ghost" size="touch" className="w-full lg:h-10 lg:text-sm" onClick={onSecondary}>
               {secondary.label}
             </Button>
           )}
@@ -241,26 +242,27 @@ function DriverValue({ ticket }: { ticket: RepairTicket }) {
 }
 
 /**
- * AC-17: the due date with its due or overdue text. Due text only means something while the ticket is
- * open (For verification included); Closed and Cancelled show the date alone. No due date, no line.
+ * AC-17: one due line ("Overdue by 2 days, due Nov 4", "Due today", "Due Nov 9, in 2 days"), from
+ * `dueLine`, shared with the phone line. Closed and Cancelled show the date alone. No due date, no line.
  */
 function DueLine({ ticket, now }: { ticket: RepairTicket; now: number }) {
-  if (!ticket.dueAt || Number.isNaN(Date.parse(ticket.dueAt))) return null;
-  const due = isOpen(ticket) ? dueLabel(ticket, now) : null;
+  const due = dueLine(ticket, now);
+  if (!due || !ticket.dueAt) return null;
   return (
-    <div className="flex flex-col gap-0.5 text-sm">
-      <p className="flex flex-wrap items-center gap-x-1.5 text-foreground">
-        <span className="text-muted-foreground">Due</span>
-        <time dateTime={ticket.dueAt}>{formatShortDate(ticket.dueAt)}</time>
-      </p>
-      {/* AC-17: the due or overdue text on its own line, never joined by a dot */}
-      {due && (
-        <p className={cn('flex items-center gap-1.5', due.overdue ? 'font-medium text-destructive' : 'text-muted-foreground')}>
-          {due.overdue && <AlertTriangle role="img" aria-label="Overdue" className="size-3.5 shrink-0" />}
-          {due.text}
-        </p>
-      )}
-    </div>
+    <p className={cn('flex flex-wrap items-center gap-x-1.5 text-sm', due.overdue ? 'font-medium text-destructive' : 'text-foreground')}>
+      {/* The overdue icon is the colour exception AC-19 allows */}
+      {due.overdue && <AlertTriangle role="img" aria-label="Overdue" className="size-3.5 shrink-0" />}
+      <span>
+        <span className={due.overdue ? undefined : 'text-muted-foreground'}>{due.label}</span>
+        {due.date && (
+          <>
+            {' '}
+            <time dateTime={ticket.dueAt}>{due.date}</time>
+          </>
+        )}
+        {due.after && <span className="text-muted-foreground">{due.after}</span>}
+      </span>
+    </p>
   );
 }
 

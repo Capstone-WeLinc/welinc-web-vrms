@@ -211,8 +211,6 @@ export interface IssueRowProps {
   knowledgeOn: boolean;
   canTick: boolean;
   entries: ReturnType<typeof useEntryOptions>;
-  /** AC-6 and AC-9: the one Hide done steps switch on the summary line. */
-  hideDone: boolean;
   onToggle: (step: RepairIssueStep, checked: boolean) => void;
   /** A relinked checklist brings its own ticks. */
   onRelinked: () => void;
@@ -227,7 +225,7 @@ export interface IssueRowProps {
 
 /** Spec 0024, AC-1 to AC-10: one foldable issue. Closed it reads; open it holds the work. */
 export function IssueRow(props: IssueRowProps) {
-  const { ticket, issue, index, steps, state, canLink, knowledgeOn, canTick, entries, hideDone } = props;
+  const { ticket, issue, index, steps, state, canLink, knowledgeOn, canTick, entries } = props;
   const { onToggle, onRelinked, onChanged, onStale, onEdit, onRemove, onEditSteps } = props;
   const { showToast } = useToast();
   const [changing, setChanging] = useState(false);
@@ -296,8 +294,6 @@ export function IssueRow(props: IssueRowProps) {
     </div>
   );
 
-  const shownSteps = hideDone ? steps.filter((s) => s.checkedAt == null) : steps;
-  const hiddenCount = steps.length - shownSteps.length;
   // AC-7: Change known fix only when the issue may be relinked; Open known fix while the module is on
   const canChange = canLink && entry != null;
   const hasMenu = !!(onEdit || onRemove || canChange || (entry && knowledgeOn));
@@ -331,18 +327,12 @@ export function IssueRow(props: IssueRowProps) {
             <p className="sr-only" aria-live="polite">
               {ticked} of {steps.length} steps done
             </p>
-            {hiddenCount > 0 && (
-              <p className="px-0 text-xs text-muted-foreground tabular-nums">
-                {hiddenCount} done {hiddenCount === 1 ? 'step' : 'steps'} hidden
-              </p>
-            )}
-            {shownSteps.length > 0 && (
-              <ol className="-ml-2 flex flex-col">
-                {shownSteps.map((step) => (
-                  <StepRow key={step.id} step={step} enabled={canTick} onToggle={(checked) => onToggle(step, checked)} />
-                ))}
-              </ol>
-            )}
+            {/* AC-9: done steps stay in the list, dimmed */}
+            <ol className="-ml-2 flex flex-col">
+              {steps.map((step) => (
+                <StepRow key={step.id} step={step} enabled={canTick} onToggle={(checked) => onToggle(step, checked)} />
+              ))}
+            </ol>
             {!canTick && ticket.status === 'ASSIGNED' && <p className="text-xs text-muted-foreground">Steps can be ticked once work starts.</p>}
           </div>
         )}

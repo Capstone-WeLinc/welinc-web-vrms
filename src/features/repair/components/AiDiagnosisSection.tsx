@@ -1,8 +1,7 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, CircleCheck, Star, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { FormAlert } from '../../../components/shared/FormAlert';
@@ -12,6 +11,7 @@ import { formatPeso, formatRelativeTime } from '../../../lib/utils/format';
 import type { RepairTicket } from '../../../types';
 import { isClosed } from '../lib/nextAction';
 import { Callout } from '../../../components/shared/Callout';
+import { FoldCard } from './FoldCard';
 import { DetailItem } from '../../../components/shared/DetailSection';
 
 const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
@@ -222,8 +222,6 @@ export function AiDiagnosisSection({ ticket }: { ticket: RepairTicket }) {
   const [latest, setLatest] = useState<Latest | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
-  const headingId = useId();
-  const panelId = useId();
   const closed = isClosed(ticket);
   const hasIssues = (ticket.issues ?? []).length > 0;
   // A result for another ticket or an older attempt means this one is still loading
@@ -287,31 +285,9 @@ export function AiDiagnosisSection({ ticket }: { ticket: RepairTicket }) {
     ) : null;
 
   return (
-    <Card role="region" aria-labelledby={headingId} className="gap-0 px-4 py-2 md:px-5">
-      <div className="flex items-center justify-between gap-2">
-        <h2 id={headingId} className="min-w-0 flex-1 text-base font-semibold text-foreground">
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-controls={panelId}
-            onClick={() => setOpen((v) => !v)}
-            className="flex min-h-11 w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md py-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span>AI diagnosis</span>
-            <span className="flex min-w-0 items-center gap-2 text-sm font-normal">
-              {summary}
-              <ChevronDown
-                aria-hidden="true"
-                className={cn('size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-snappy', open && 'rotate-180')}
-              />
-            </span>
-          </button>
-        </h2>
-        {lineAction}
-      </div>
-      <div id={panelId} hidden={!open} aria-live="polite" className="pt-2 pb-3">
-        {open &&
-          (running ? (
+    <FoldCard title="AI diagnosis" summary={summary} open={open} onOpenChange={setOpen} lineAction={lineAction}>
+      <div aria-live="polite">
+        {running ? (
             <div className="flex flex-col gap-3">
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-4 w-1/2" />
@@ -336,8 +312,8 @@ export function AiDiagnosisSection({ ticket }: { ticket: RepairTicket }) {
             </div>
           ) : loaded?.status === 'ready' ? (
             <p className="text-sm text-muted-foreground">No AI diagnosis was run while this ticket was open.</p>
-          ) : null)}
+          ) : null}
       </div>
-    </Card>
+    </FoldCard>
   );
 }

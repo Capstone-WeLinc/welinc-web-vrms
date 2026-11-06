@@ -52,3 +52,34 @@ export function dueLabel(ticket: DueTicket, now: number): DueLabel {
   if (toTime(ticket.dueAt) === null) return null;
   return { text: dueSoonText(ticket, now), overdue: false };
 }
+
+/**
+ * Spec 0024, AC-17: the one due line on the ticket page. `label` reads before the date, `after`
+ * follows it. Day counts reuse the 24 hour block math above, so a ticket a few hours past due reads
+ * "Due today" while `overdue` is still true (the page shows it in the overdue colour). Closed and
+ * Cancelled get the date alone. The year shows only when it differs from the year of `now`.
+ */
+export type DueLine = { label: string; date: string | null; after: string | null; overdue: boolean };
+
+export function dueDate(value: string, now: number) {
+  const due = new Date(value);
+  const sameYear = due.getFullYear() === new Date(now).getFullYear();
+  return due.toLocaleDateString('en-US', sameYear ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export function dueLine(ticket: DueTicket, now: number): DueLine | null {
+  const due = toTime(ticket.dueAt);
+  if (due === null || !ticket.dueAt) return null;
+  const date = dueDate(ticket.dueAt, now);
+  if (!isOpen(ticket)) return { label: 'Due', date, after: null, overdue: false };
+  if (isOverdue(ticket, now)) {
+    const days = wholeDays(due, now);
+    return days === 0
+      ? { label: 'Due today', date: null, after: null, overdue: true }
+      : { label: `Overdue by ${dayCount(days)}, due`, date, after: null, overdue: true };
+  }
+  const days = wholeDays(now, due);
+  return days === 0
+    ? { label: 'Due today', date: null, after: null, overdue: false }
+    : { label: 'Due', date, after: `, in ${dayCount(days)}`, overdue: false };
+}

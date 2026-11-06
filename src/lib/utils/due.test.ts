@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { dayCount, dueLabel, isOverdue, toTime, wholeDays } from './due';
+import type { RepairTicket } from '../../types';
+import { dayCount, dueLabel, dueLine, isOverdue, toTime, wholeDays } from './due';
 
 // Spec 0002 due rules. Every helper takes `now`, so the tests never touch the clock.
 
@@ -67,5 +68,33 @@ describe('dueLabel', () => {
 
   it('still labels a finished ticket by its date but never as overdue', () => {
     expect(dueLabel({ status: 'CLOSED', dueAt: at(-DAY) }, now)?.overdue).toBe(false);
+  });
+});
+
+describe('dueLine (spec 0024, AC-17)', () => {
+  const now = new Date(2026, 10, 6, 12, 0).getTime();
+  const at = (y: number, m: number, d: number, h = 12) => new Date(y, m, d, h).toISOString();
+  const line = (status: RepairTicket['status'], dueAt: string | null) => dueLine({ status, dueAt }, now);
+
+  it('reads overdue with the date', () => {
+    expect(line('IN_PROGRESS', at(2026, 10, 4))).toEqual({ label: 'Overdue by 2 days, due', date: 'Nov 4', after: null, overdue: true });
+    expect(line('FOR_VERIFICATION', at(2026, 10, 5))).toMatchObject({ label: 'Overdue by 1 day, due', overdue: true });
+  });
+  it('reads due today, overdue by a few hours still in the overdue colour', () => {
+    expect(line('IN_PROGRESS', at(2026, 10, 6, 9))).toEqual({ label: 'Due today', date: null, after: null, overdue: true });
+    expect(line('IN_PROGRESS', at(2026, 10, 6, 18))).toEqual({ label: 'Due today', date: null, after: null, overdue: false });
+  });
+  it('reads a later date with the days left', () => {
+    expect(line('ASSIGNED', at(2026, 10, 9))).toEqual({ label: 'Due', date: 'Nov 9', after: ', in 3 days', overdue: false });
+  });
+  it('adds the year only when it differs', () => {
+    expect(line('OPEN', at(2027, 0, 5))?.date).toBe('Jan 5, 2027');
+  });
+  it('shows the date alone on Closed and Cancelled', () => {
+    expect(line('CLOSED', at(2026, 10, 4))).toEqual({ label: 'Due', date: 'Nov 4', after: null, overdue: false });
+    expect(line('CANCELLED', at(2026, 10, 4))).toMatchObject({ after: null, overdue: false });
+  });
+  it('has no line without a due date', () => {
+    expect(line('OPEN', null)).toBeNull();
   });
 });

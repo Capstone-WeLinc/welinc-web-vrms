@@ -4,7 +4,7 @@ import { stripSystem } from '../lib/issueRow';
 
 /**
  * Spec 0024, AC-11 (`docs/context/vrms/design.md`, Naming a ticket): the plate leads, then the model,
- * then the main issue; the ticket ID and garage sit below as metadata, the ID never breaking.
+ * then the main issue; the ticket ID sits alone below, never breaking. The garage is in Details (Record).
  */
 export function TicketHeader({ ticket }: { ticket: RepairTicket }) {
   const first = ticket.issues?.[0];
@@ -17,11 +17,7 @@ export function TicketHeader({ ticket }: { ticket: RepairTicket }) {
         </span>
         {first && <span className="line-clamp-1 text-xl font-semibold break-words md:text-2xl">{stripSystem(first.description)}</span>}
       </h1>
-      {/* AC-11: split by space, never a dot */}
-      <p className="flex flex-wrap gap-x-3 text-sm text-muted-foreground">
-        <span className="whitespace-nowrap tabular-nums">{ticket.repairNumber}</span>
-        {ticket.garageLocation && <span>{ticket.garageLocation}</span>}
-      </p>
+      <p className="text-sm whitespace-nowrap text-muted-foreground tabular-nums">{ticket.repairNumber}</p>
     </header>
   );
 }

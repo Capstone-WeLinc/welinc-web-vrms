@@ -3,10 +3,11 @@ import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AuditEventItem } from '../../audit-logs/components/AuditEventItem';
+import { eventText } from '../../audit-logs/lib/auditEvents';
 import { getAuditEvents } from '../../../lib/api/auditApi';
-import { dayKey, formatDayHeading } from '../../../lib/utils/format';
+import { dayKey, formatClockTime, formatDayHeading } from '../../../lib/utils/format';
 import type { AuditEvent } from '../../../types';
-import { DetailSection } from '../../../components/shared/DetailSection';
+import { FoldCard } from './FoldCard';
 
 const PAGE_SIZE = 50;
 
@@ -30,12 +31,15 @@ function byDay(events: AuditEvent[]) {
 const RECENT = 5;
 
 /**
- * The ticket's audit events (spec 0004, AC-23), shown open with the 5 newest (spec 0024, AC-15).
+ * The ticket's audit events (spec 0004, AC-23) as a folded card (spec 0024, AC-15): closed it shows the
+ * newest entry on one line; open it shows the 5 newest, fetched on page load either way.
  * Show all loads the first 50 in their place, then pages on by cursor. The 3 second refresh never
  * reloads it: it loads per ticket only.
  */
 export function ActivitySection({ ticketId }: { ticketId: string }) {
   const [all, setAll] = useState(false);
+  // AC-15: closed on every visit, never remembered
+  const [open, setOpen] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{ key: string; activity: Activity } | null>(null);
   const key = `${ticketId}:${all ? 'all' : 'recent'}:${attempt}`;
@@ -73,17 +77,42 @@ export function ActivitySection({ ticketId }: { ticketId: string }) {
 
   const now = new Date();
   const panelId = `activity-${ticketId}`;
+  const empty = activity.status === 'ready' && activity.events.length === 0;
+  const newest = activity.status === 'ready' ? activity.events[0] : undefined;
+
+  // AC-15: the closed line carries the newest entry as plain text (it sits inside the fold button)
+  let summary;
+  if (activity.status === 'loading') summary = <Skeleton className="inline-block h-4 w-48 align-middle" />;
+  else if (activity.status === 'error') summary = <span className="text-muted-foreground">Couldn’t load activity</span>;
+  else if (!newest) summary = <span className="text-muted-foreground">No activity yet</span>;
+  else
+    summary = (
+      <span className="text-muted-foreground">
+        {eventText(newest)},{' '}
+        <time dateTime={newest.at} className="tabular-nums">
+          {formatDayHeading(newest.at, now)}, {formatClockTime(newest.at)}
+        </time>
+      </span>
+    );
+  const lineAction =
+    activity.status === 'error' ? (
+      <Button variant="ghost" size="sm" className="h-11 px-2 text-muted-strong md:h-8" onClick={() => setAttempt((n) => n + 1)}>
+        Retry
+      </Button>
+    ) : open && canShowAll ? (
+      <Button variant="ghost" size="sm" className="h-11 px-2 text-muted-strong md:h-8" onClick={() => setAll(true)}>
+        Show all
+      </Button>
+    ) : null;
 
   return (
-    <DetailSection
+    <FoldCard
       title="Activity"
-      action={
-        canShowAll ? (
-          <Button variant="ghost" size="sm" className="h-11 px-2 text-muted-strong md:h-8" onClick={() => setAll(true)}>
-            Show all
-          </Button>
-        ) : null
-      }
+      summary={summary}
+      open={open}
+      onOpenChange={setOpen}
+      lineAction={lineAction}
+      foldable={!empty && activity.status !== 'error'}
     >
       <div id={panelId} aria-live="polite">
         {activity.status === 'loading' && (
@@ -99,21 +128,8 @@ export function ActivitySection({ ticketId }: { ticketId: string }) {
             ))}
           </div>
         )}
-        {activity.status === 'error' && (
-          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-destructive sm:flex-row sm:items-center">
-            <span className="inline-flex items-center gap-1.5">
-              <AlertCircle aria-hidden="true" className="size-4" />
-              Couldn’t load activity.
-            </span>
-            <Button variant="outline" size="sm" onClick={() => setAttempt((n) => n + 1)}>
-              Try again
-            </Button>
-          </div>
-        )}
         {activity.status === 'ready' &&
-          (activity.events.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No activity yet</p>
-          ) : (
+          (activity.events.length === 0 ? null : (
             <div className="flex flex-col gap-5">
               {byDay(activity.events).map((day) => {
                 const headingId = `${panelId}-${day.key}`;
@@ -144,6 +160,6 @@ export function ActivitySection({ ticketId }: { ticketId: string }) {
             </div>
           ))}
       </div>
-    </DetailSection>
+    </FoldCard>
   );
 }
