@@ -26,33 +26,23 @@ interface FoldCardProps {
 export function FoldCard({ title, summary, open, onOpenChange, lineAction, foldable = true, panelClassName, children }: FoldCardProps) {
   const headingId = useId();
   const panelId = useId();
+  const toggle = () => onOpenChange(!open);
   const line = (
     <>
       <span className="shrink-0">{title}</span>
-      <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-normal">
-        <span className="min-w-0 truncate">{summary}</span>
-        {foldable && (
-          <ChevronDown
-            aria-hidden="true"
-            className={cn(
-              'size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-snappy motion-reduce:transition-none',
-              open && 'rotate-180',
-            )}
-          />
-        )}
-      </span>
+      <span className="min-w-0 flex-1 truncate text-sm font-normal">{summary}</span>
     </>
   );
   return (
     <Card role="region" aria-labelledby={headingId} className="gap-0 px-4 py-2 md:px-5">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
         <h2 id={headingId} className="min-w-0 flex-1 text-base font-semibold text-foreground">
           {foldable ? (
             <button
               type="button"
               aria-expanded={open}
               aria-controls={panelId}
-              onClick={() => onOpenChange(!open)}
+              onClick={toggle}
               className="flex min-h-11 w-full min-w-0 items-center gap-x-2 rounded-md py-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {line}
@@ -62,6 +52,14 @@ export function FoldCard({ title, summary, open, onOpenChange, lineAction, folda
           )}
         </h2>
         {lineAction}
+        {/* The chevron sits at the far right like the issue rows; the heading button above is the control */}
+        {foldable && (
+          <button type="button" tabIndex={-1} aria-hidden="true" onClick={toggle} className="flex size-11 shrink-0 items-center justify-center md:size-8">
+            <ChevronDown
+              className={cn('size-4 text-muted-foreground transition-transform duration-200 ease-snappy motion-reduce:transition-none', open && 'rotate-180')}
+            />
+          </button>
+        )}
       </div>
       {foldable && (
         <div id={panelId} hidden={!open} className={cn('pt-2 pb-3', panelClassName)}>
