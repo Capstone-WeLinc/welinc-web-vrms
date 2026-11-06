@@ -13,6 +13,8 @@ type ResponsiveDialogProps = {
   footer?: ReactNode;
   /** Focus goes here on close when it is mounted, instead of back to the opener. */
   finalFocusRef?: RefObject<HTMLElement | null>;
+  /** Call `preventDefault` on the event to keep the dialog open, for example while a drag runs. */
+  onEscapeKeyDown?: (event: KeyboardEvent) => void;
 };
 
 /** A centered dialog from 768px up, a bottom sheet on phones. Same props either way. */
@@ -24,11 +26,13 @@ export function ResponsiveDialog({
   children,
   footer,
   finalFocusRef,
+  onEscapeKeyDown,
 }: ResponsiveDialogProps) {
   const isMobile = useIsMobile();
   // Controlled without a trigger, so remember who opened it and hand focus back on close.
   const openerRef = useRef<HTMLElement | null>(null);
   const focusProps = {
+    onEscapeKeyDown,
     onOpenAutoFocus: () => {
       openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     },

@@ -4,8 +4,10 @@ import {
   canEditChecklist,
   checklistChanged,
   checklistPayload,
+  dragSpeech,
   normalizeStepText,
   relinkLossMessage,
+  stepKeyAction,
   stepRowError,
   stepTag,
   tickedLoss,
@@ -91,5 +93,44 @@ describe('tags and the relink prompt (AC-13, AC-14)', () => {
       '1 ticked step will be cleared. 2 steps added or reworded on this ticket will be lost.',
     );
     expect(relinkLossMessage([step(1, { origin: 'ADDED' })])).toBe('1 step added or reworded on this ticket will be lost.');
+  });
+});
+
+describe('typing shortcuts (AC-4b)', () => {
+  const key = (over: Partial<Parameters<typeof stepKeyAction>[0]>) =>
+    stepKeyAction({ key: 'Enter', value: 'Bleed the brakes', repeat: false, composing: false, count: 3, ...over });
+
+  it('adds a step below on Enter in a step with text', () => {
+    expect(key({})).toBe('add');
+  });
+
+  it('only stops the new line on Enter in an empty or blank step, or at 20 rows', () => {
+    expect(key({ value: '' })).toBe('block');
+    expect(key({ value: '   ' })).toBe('block');
+    expect(key({ count: 20 })).toBe('block');
+  });
+
+  it('removes a step on Backspace only when its raw value is empty and the key is not held', () => {
+    expect(key({ key: 'Backspace', value: '' })).toBe('remove');
+    expect(key({ key: 'Backspace', value: ' ' })).toBeNull();
+    expect(key({ key: 'Backspace', value: '', repeat: true })).toBeNull();
+  });
+
+  it('ignores both keys while an input method is composing', () => {
+    expect(key({ composing: true })).toBeNull();
+    expect(key({ key: 'Backspace', value: '', composing: true })).toBeNull();
+  });
+
+  it('lets other keys through', () => {
+    expect(key({ key: 'a' })).toBeNull();
+  });
+});
+
+describe('drag sentences (AC-4a)', () => {
+  it('speaks the start, over, drop and cancel positions', () => {
+    expect(dragSpeech.pickedUp(2)).toBe('Picked up step 2.');
+    expect(dragSpeech.over(2, 4)).toBe('Step 2 is now at position 4.');
+    expect(dragSpeech.dropped(2, 4)).toBe('Step 2 dropped at position 4.');
+    expect(dragSpeech.cancelled(2)).toBe('Moving cancelled. Step 2 is back at position 2.');
   });
 });

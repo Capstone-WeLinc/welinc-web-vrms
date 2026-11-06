@@ -111,3 +111,40 @@ export function relinkLossMessage(latest: RepairIssueStep[]): string | null {
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(' ') : null;
 }
+
+/** A key press in a step field, as far as the typing shortcuts care (AC-4b). */
+export type StepKey = {
+  key: string;
+  /** The field's raw value, never trimmed. */
+  value: string;
+  repeat: boolean;
+  /** `nativeEvent.isComposing`, or `keyCode` 229 for Safari. */
+  composing: boolean;
+  /** Rows in the dialog now, empty ones included. */
+  count: number;
+};
+
+/**
+ * AC-4b: what Enter or Backspace does in a step field. `add` puts an empty step below, `remove`
+ * deletes this empty step, `block` only stops the new line, null lets the key through.
+ */
+export function stepKeyAction({ key, value, repeat, composing, count }: StepKey): 'add' | 'remove' | 'block' | null {
+  if (composing) return null;
+  if (key === 'Enter') return normalizeStepText(value) !== '' && count < STEPS_MAX ? 'add' : 'block';
+  if (key === 'Backspace' && value.length === 0 && !repeat) return 'remove';
+  return null;
+}
+
+/** AC-4a: read when a drag handle gets focus. */
+export const DRAG_INSTRUCTIONS = 'To reorder, press Space, use the arrow keys to move, then Space to drop. Escape cancels.';
+
+/**
+ * AC-4a: the spoken sentences. `n` is the row's place when the drag began, `m` the place of the
+ * row it is over; both count from 1 and include empty rows.
+ */
+export const dragSpeech = {
+  pickedUp: (n: number) => `Picked up step ${n}.`,
+  over: (n: number, m: number) => `Step ${n} is now at position ${m}.`,
+  dropped: (n: number, m: number) => `Step ${n} dropped at position ${m}.`,
+  cancelled: (n: number) => `Moving cancelled. Step ${n} is back at position ${n}.`,
+};
