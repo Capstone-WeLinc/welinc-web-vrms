@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { BadgePill } from '../../../components/shared/BadgePill';
 import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
@@ -36,17 +37,37 @@ interface StatusCardProps {
 function MoreActions({ cancel, onCancel }: { cancel: TicketMove; onCancel: () => void }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" variant="ghost" size="icon" className="-my-2 -mr-2 size-11 shrink-0 text-muted-strong lg:size-8" aria-label="More actions">
-          <MoreVertical aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="-my-2 -mr-2 size-11 shrink-0 text-muted-strong lg:size-8" aria-label="More actions">
+              <MoreVertical aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>More actions</TooltipContent>
+      </Tooltip>
       <DropdownMenuContent align="end">
         <DropdownMenuItem variant="destructive" onSelect={onCancel}>
           {cancel.label}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** Says on hover what a badge is; screen readers hear the same words before it. */
+function HoverLabel({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <span className="sr-only">{label}: </span>
+          {children}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -89,8 +110,14 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
   const badges = (
     <div className="flex min-h-9 items-center justify-between gap-2">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <StatusBadge status={ticket.status} />
-        {ticket.priority && <PriorityBadge priority={ticket.priority} />}
+        <HoverLabel label="Ticket status">
+          <StatusBadge status={ticket.status} />
+        </HoverLabel>
+        {ticket.priority && (
+          <HoverLabel label="Priority">
+            <PriorityBadge priority={ticket.priority} />
+          </HoverLabel>
+        )}
         <MechanicProblemBadge ticket={ticket} />
         {lockBadge}
       </div>

@@ -340,7 +340,7 @@ export function IssueRow(props: IssueRowProps) {
               </p>
             )}
             {shownSteps.length > 0 && (
-              <ol className="-mx-2 flex flex-col">
+              <ol className="-ml-2 flex flex-col">
                 {shownSteps.map((step) => (
                   <StepRow key={step.id} step={step} enabled={canTick} onToggle={(checked) => onToggle(step, checked)} />
                 ))}
@@ -352,7 +352,7 @@ export function IssueRow(props: IssueRowProps) {
 
         {/* AC-7: one quiet Edit steps, with the issue's other actions in the row menu on the right */}
         {hasActions && (
-          <div className="-mx-2 flex items-center gap-1">
+          <div className="-ml-2 flex items-center gap-1">
             {onEditSteps && (
               <Button type="button" variant="ghost" size="sm" className={quiet} aria-label={steps.length ? `Edit steps for issue ${n}` : `Add steps to issue ${n}`} onClick={onEditSteps}>
                 {steps.length ? 'Edit steps' : 'Add steps'}
@@ -360,11 +360,16 @@ export function IssueRow(props: IssueRowProps) {
             )}
             {hasMenu && (
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="ghost" size="icon" className="ml-auto size-11 shrink-0 text-muted-strong md:size-8" aria-label={`More actions for issue ${n}`}>
-                    <MoreVertical aria-hidden="true" />
-                  </Button>
-                </DropdownMenuTrigger>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="ghost" size="icon" className="ml-auto size-11 shrink-0 text-muted-strong md:size-8" aria-label={`More actions for issue ${n}`}>
+                        <MoreVertical aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>More actions</TooltipContent>
+                </Tooltip>
                 <DropdownMenuContent align="end">
                   {onEdit && <DropdownMenuItem onSelect={onEdit}>Edit issue</DropdownMenuItem>}
                   {canChange && <DropdownMenuItem onSelect={() => setChanging(true)}>Change known fix</DropdownMenuItem>}
