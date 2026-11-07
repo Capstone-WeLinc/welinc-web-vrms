@@ -8,9 +8,12 @@ import {
   isWaiting,
   mechanicWorkList,
   pipelineCounts,
+  signOffNames,
   spendFor,
+  timeInStatus,
   verificationQueue,
   waitingText,
+  waitTone,
 } from './attention';
 
 // Spec 0002 dashboard rules in the spec 0010 statuses (AC-16, AC-4a).
@@ -152,7 +155,7 @@ describe('verificationQueue', () => {
       id,
       status: 'FOR_VERIFICATION',
       statusChangedAt,
-      can: { work: false, administer: false, verify: true, editCosts: false, unlock: false, assign: false, edit: false },
+      can: { work: false, administer: false, verify: true, editCosts: false, unlock: false, assign: false, edit: false, editChecklist: false },
       ...over,
     });
 
@@ -188,5 +191,53 @@ describe('waitingText', () => {
 
   it('says the wait is unknown when the date cannot be read', () => {
     expect(waitingText(ticket({ statusChangedAt: 'not a date' }), base)).toBe('Waiting time unknown');
+  });
+});
+
+// Spec 0022, AC-12: the chip's time in status, on the same thresholds as waitingText
+describe('timeInStatus', () => {
+  const since = '2026-10-10T00:00:00.000Z';
+  const base = Date.parse(since);
+  const MIN = 60_000;
+
+  it('reads under an hour, hours, then days', () => {
+    expect(timeInStatus(since, base + 59 * MIN)).toBe('under an hour');
+    expect(timeInStatus(since, base + 3 * 60 * MIN)).toBe('3 h');
+    expect(timeInStatus(since, base + 24 * 60 * MIN)).toBe('1 day');
+    expect(timeInStatus(since, base + 4 * 24 * 60 * MIN)).toBe('4 days');
+  });
+
+  it('says time unknown for a missing or unreadable date', () => {
+    expect(timeInStatus(undefined, base)).toBe('time unknown');
+    expect(timeInStatus('not a date', base)).toBe('time unknown');
+  });
+});
+
+describe('signOffNames', () => {
+  it('names two, then a count, or says No mechanic', () => {
+    expect(signOffNames([])).toBe('No mechanic');
+    expect(signOffNames([{ id: '1', name: 'Ana' }, { id: '2', name: 'Ben' }])).toBe('Ana, Ben');
+    expect(
+      signOffNames([
+        { id: '1', name: 'Ana' },
+        { id: '2', name: 'Ben' },
+        { id: '3', name: 'Cy' },
+      ]),
+    ).toBe('Ana, Ben +1 more');
+  });
+});
+
+describe('waitTone', () => {
+  const HOUR = 60 * 60 * 1000;
+  it('is fresh under a day, stale from 24 h, late from 48 h', () => {
+    expect(waitTone(at(-23 * HOUR), now)).toBe('fresh');
+    expect(waitTone(at(-24 * HOUR), now)).toBe('stale');
+    expect(waitTone(at(-47 * HOUR), now)).toBe('stale');
+    expect(waitTone(at(-48 * HOUR), now)).toBe('late');
+  });
+
+  it('never alarms on a missing or unreadable date', () => {
+    expect(waitTone(null, now)).toBe('fresh');
+    expect(waitTone('not a date', now)).toBe('fresh');
   });
 });

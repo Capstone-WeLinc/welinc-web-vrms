@@ -36,6 +36,7 @@ function issue(base: RepairIssue | undefined, i: number, over: Partial<RepairIss
     categoryId: base?.categoryId ?? null,
     categoryName: 'Brakes',
     knowledgeEntry: null,
+    checklistVersion: 0,
     steps: [],
     resolutionNote: null,
     hoursSpent: null,

@@ -12,6 +12,12 @@ export type WorkState = (typeof WORK_FILTERS)[number];
 
 export const WORK_LABELS: Record<WorkState, string> = { occupied: 'Occupied', free: 'Free' };
 
+export const WORK_STATE_CLASSES: Record<WorkState, string> = {
+  // Occupied wears In progress's color, since that is what makes someone occupied
+  occupied: 'bg-status-in-progress-bg text-status-in-progress-fg',
+  free: 'bg-status-completed-bg text-status-completed-fg',
+};
+
 /** Workload rows keyed by welinc-auth user id. */
 export function workloadMap(rows: readonly MechanicWorkload[]) {
   return new Map(rows.map((row) => [row.authUserId, row]));

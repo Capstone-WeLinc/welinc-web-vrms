@@ -9,6 +9,8 @@ import {
   ListX,
   ListChecks,
   ListRestart,
+  ArrowUpDown,
+  ListMinus,
   Lock,
   PencilLine,
   LockOpen,
@@ -101,6 +103,11 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   LOCKED: { icon: Lock, tone: 'bg-muted text-muted-strong' },
   STEP_CHECKED: { icon: ListChecks, tone: 'bg-success/10 text-success' },
   STEP_UNCHECKED: { icon: ListRestart, tone: 'bg-muted text-muted-strong' },
+  // Spec 0023, AC-10
+  STEP_ADDED: { icon: ListPlus, tone: 'bg-primary/10 text-primary' },
+  STEP_REMOVED: { icon: ListMinus, tone: 'bg-muted text-muted-strong' },
+  STEP_EDITED: { icon: PencilLine, tone: 'bg-primary/10 text-primary' },
+  STEP_MOVED: { icon: ArrowUpDown, tone: 'bg-primary/10 text-primary' },
 };
 
 export function eventStyle(type: string): EventStyle {
@@ -228,6 +235,27 @@ export function ticketTextLines(event: Pick<AuditEvent, 'changes'>): string[] {
   const reason = changeOf(event, 'cancellationReason');
   if (reason) lines.push(`Cancel reason: ${reason.before ?? 'None'} → ${reason.after ?? 'None'}`);
   return lines;
+}
+
+/**
+ * Spec 0023, AC-10: the muted line under a checklist edit: "3. Torque the caliper bolts" for an
+ * added or removed step, "Old → new" for a reworded one, "Step 5 → step 2" for a moved one.
+ */
+export function checklistEditLine(event: Pick<AuditEvent, 'type' | 'changes'>): string | null {
+  const position = changeOf(event, 'position');
+  const text = changeOf(event, 'text');
+  switch (event.type) {
+    case 'STEP_ADDED':
+      return position?.after && text?.after ? `${position.after}. ${text.after}` : null;
+    case 'STEP_REMOVED':
+      return position?.before && text?.before ? `${position.before}. ${text.before}` : null;
+    case 'STEP_EDITED':
+      return text ? `${text.before ?? ''} → ${text.after ?? ''}` : null;
+    case 'STEP_MOVED':
+      return position?.before && position.after ? `Step ${position.before} → step ${position.after}` : null;
+    default:
+      return null;
+  }
 }
 
 /** Spec 0021, AC-15: the ticked or unticked step, "2. Check brake fluid". */

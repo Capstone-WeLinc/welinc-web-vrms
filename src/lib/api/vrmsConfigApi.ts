@@ -105,6 +105,25 @@ export async function getMechanicWorkload(): Promise<MechanicWorkload[]> {
   return response.data;
 }
 
+/** A roster person's VRMS role; null until their next sign in or Admin sync fills it (spec 0022, AC-4). */
+export type RosterRole = 'MECHANIC' | 'CHIEF_MECHANIC';
+
+/** One person on the Chief dashboard's Team section (spec 0022, AC-2). */
+export interface MechanicRosterRow extends MechanicWorkload {
+  /** The mechanics.id that ticket assignments use: the Team join key, never the name. */
+  mechanicId: string;
+  name: string;
+  email: string | null;
+  role: RosterRole | null;
+  isActive: boolean;
+}
+
+/** Every active roster person, plus inactive ones still holding open tickets (mechanics.view or users.manage). */
+export async function getMechanicRoster(options: { quiet?: boolean } = {}): Promise<MechanicRosterRow[]> {
+  const response = await api.get<MechanicRosterRow[]>('/vrms/mechanics/roster', { quiet: options.quiet });
+  return response.data;
+}
+
 export interface MechanicOpenTicket {
   id: string;
   repairNumber: string;

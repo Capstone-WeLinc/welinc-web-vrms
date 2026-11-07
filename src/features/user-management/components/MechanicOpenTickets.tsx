@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { confirm } from '../../../components/shared/confirm/confirm';
 import { PlateChip } from '../../../components/shared/PlateChip';
@@ -21,9 +22,12 @@ import { ReassignDialog } from './ReassignDialog';
 type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: OpenTicketsData };
 
 interface MechanicOpenTicketsProps {
-  user: ManagedUser;
+  /** The person whose tickets these are: their welinc-auth id and name (the Users page or the Team section). */
+  user: Pick<ManagedUser, 'id' | 'name'>;
   /** After an unassign or reassign lands, so the page's Work column catches up. */
   onChanged: () => void;
+  /** The section's spacing; the Team dialog drops the divider the Users page dialog needs. */
+  className?: string;
 }
 
 /** What Unassign does to the ticket, in words, before the Admin confirms. */
@@ -60,7 +64,7 @@ function CoWorkers({ names }: { names: string[] }) {
  * Reassign. Both go through PUT /vrms/repairs/:id/assignments, which runs the status moves, the
  * verifier block, the audit rows and the stale check (spec 0019).
  */
-export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProps) {
+export function MechanicOpenTickets({ user, onChanged, className = 'mt-5 border-t border-border pt-4' }: MechanicOpenTicketsProps) {
   const { showToast } = useToast();
   const canAssign = useCan('ticket.assign');
   const [state, setState] = useState<LoadState>({ status: 'loading' });
@@ -131,7 +135,7 @@ export function MechanicOpenTickets({ user, onChanged }: MechanicOpenTicketsProp
   };
 
   return (
-    <section aria-labelledby="open-tickets-heading" className="mt-5 flex flex-col gap-2 border-t border-border pt-4">
+    <section aria-labelledby="open-tickets-heading" className={cn('flex flex-col gap-2', className)}>
       <h3
         id="open-tickets-heading"
         ref={headingRef}

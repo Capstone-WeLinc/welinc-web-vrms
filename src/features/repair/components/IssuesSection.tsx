@@ -1,6 +1,6 @@
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Clock, MessageSquarePlus, Pencil, Plus, Trash2, Unlink } from 'lucide-react';
+import { BookOpen, Clock, ListChecks, ListPlus, MessageSquarePlus, Pencil, Plus, Trash2, Unlink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,6 +20,7 @@ import { formatDateTime, formatHours } from '../../../lib/utils/format';
 import type { RepairIssue, RepairIssueStep, RepairTicket } from '../../../types';
 import { useEntryOptions } from '../hooks/useEntryOptions';
 import { hasSavedResolution } from '../lib/resolutionForm';
+import { relinkLossMessage, STEP_TAG_TOOLTIP, stepTag } from '../lib/checklist';
 import { SuggestDialog } from '../../knowledge-base/components/SuggestDialog';
 import { useModuleOn } from '../../../lib/permissions/usePermissions';
 import { moveAttachment, removeAttachment, type Attachment } from '../../../lib/api/attachmentsApi';
@@ -37,6 +38,8 @@ interface IssuesSectionProps {
   onChanged: (ticket: RepairTicket) => void;
   /** A 409: the page says so and loads the latest ticket. */
   onStale: () => void;
+  /** Spec 0023, AC-2 and AC-4: opens Edit steps for an issue; null when the caller can't edit steps now. */
+  onEditSteps?: ((issue: RepairIssue) => void) | null;
   /** Spec 0019, AC-14 to AC-16: Add issue, and each issue's Edit and Remove; null when the caller can't edit. */
   edit?: {
     onAdd: () => void;
@@ -74,17 +77,33 @@ function StepRow({ step, enabled, onToggle }: { step: RepairIssueStep; enabled: 
       </span>
     </label>
   );
-  if (!checked) return <li className="flex">{label}</li>;
+  const tag = stepTag(step);
+  // Spec 0023, AC-13: where the plan left the known fix, beside the step
+  const tagged = (row: ReactNode) =>
+    tag ? (
+      <li className="flex items-center gap-1">
+        {row}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span tabIndex={0} className="shrink-0 rounded-sm px-1 text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {tag}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{STEP_TAG_TOOLTIP[tag]}</TooltipContent>
+        </Tooltip>
+      </li>
+    ) : (
+      <li className="flex">{row}</li>
+    );
+  if (!checked) return tagged(label);
   // Who ticked it and when, on hover and on focus (AC-28).
-  return (
-    <li className="flex">
-      <Tooltip>
-        <TooltipTrigger asChild>{label}</TooltipTrigger>
-        <TooltipContent>
-          Ticked by {step.checkedByEmail} · {formatDateTime(step.checkedAt!)}
-        </TooltipContent>
-      </Tooltip>
-    </li>
+  return tagged(
+    <Tooltip>
+      <TooltipTrigger asChild>{label}</TooltipTrigger>
+      <TooltipContent>
+        Ticked by {step.checkedByEmail} · {formatDateTime(step.checkedAt!)}
+      </TooltipContent>
+    </Tooltip>,
   );
 }
 
@@ -102,12 +121,20 @@ interface IssueBlockProps {
   /** Spec 0019, AC-20: the issue's Edit and Remove, when the caller may edit this ticket. */
   onEdit?: () => void;
   onRemove?: () => void;
+  /** Spec 0023, AC-4: Edit steps or Add steps, when the caller may edit this checklist now. */
+  onEditSteps?: () => void;
 }
 
-function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entries, onChanged, onStale, onEdit, onRemove }: IssueBlockProps) {
+function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entries, onChanged, onStale, onEdit, onRemove, onEditSteps }: IssueBlockProps) {
   const { showToast } = useToast();
   // Ticks show at once; a failed save puts the row back (AC-28).
   const [overrides, setOverrides] = useState<Record<string, Pick<RepairIssueStep, 'checkedAt' | 'checkedByEmail'>>>({});
+  // Spec 0023: a saved or replaced checklist brings its own ticks, so the local ones are dropped
+  const [seenVersion, setSeenVersion] = useState(issue.checklistVersion);
+  if (seenVersion !== issue.checklistVersion) {
+    setSeenVersion(issue.checklistVersion);
+    setOverrides({});
+  }
   const [changing, setChanging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
@@ -128,16 +155,20 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
     }
   };
 
-  /** Link, relink or remove (null). Asks first when ticked steps would be cleared (AC-29). */
+  /**
+   * Link, relink or remove (null). Asks first when ticked steps would be cleared (AC-29), or steps
+   * added or reworded on this ticket would be lost (spec 0023, AC-14).
+   */
   const link = async (entryId: string | null) => {
     if (entry && entryId === entry.id) {
       setChanging(false);
       return;
     }
-    if (done > 0) {
+    const loss = relinkLossMessage(steps);
+    if (loss) {
       const ok = await confirm({
         title: 'Replace the checklist?',
-        description: `${done} ticked ${done === 1 ? 'step' : 'steps'} will be cleared.`,
+        description: loss,
         confirmText: entryId ? 'Replace' : 'Remove link',
         tone: 'destructive',
       });
@@ -160,6 +191,53 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
       setSaving(false);
     }
   };
+
+  const n = index + 1;
+  // Spec 0023, AC-4 and AC-13: the steps, their count and Edit steps, or Add steps when there are none
+  const checklist =
+    steps.length > 0 ? (
+      <div className="flex flex-col gap-1">
+        <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
+          {done} of {steps.length} steps done
+        </p>
+        <ol className="-mx-2 flex flex-col">
+          {steps.map((step) => (
+            <StepRow key={step.id} step={step} enabled={canTick} onToggle={(checked) => void toggle(step, checked)} />
+          ))}
+        </ol>
+        {!canTick && ticket.status === 'ASSIGNED' && <p className="text-xs text-muted-foreground">Steps can be ticked once work starts.</p>}
+        {onEditSteps && (
+          <Button type="button" variant="outline" size="sm" className="mt-1 self-start" aria-label={`Edit steps for issue ${n}`} onClick={onEditSteps}>
+            <Pencil aria-hidden="true" />
+            Edit steps
+          </Button>
+        )}
+      </div>
+    ) : null;
+  const addSteps =
+    steps.length === 0 && onEditSteps ? (
+      <Button type="button" variant="outline" size="sm" className="self-start" aria-label={`Add steps to issue ${n}`} onClick={onEditSteps}>
+        <ListPlus aria-hidden="true" />
+        Add steps
+      </Button>
+    ) : null;
+
+  // Any reader can propose a library entry from a problem with no known fix (AC-35)
+  const suggest = knowledgeOn ? (
+    <>
+      <Button type="button" variant="link" size="sm" className="h-auto min-h-11 max-w-full self-start px-0 text-left whitespace-normal md:min-h-0" onClick={() => setSuggesting(true)}>
+        <MessageSquarePlus aria-hidden="true" />
+        Suggest an entry
+      </Button>
+      <SuggestDialog
+        open={suggesting}
+        onOpenChange={setSuggesting}
+        kind="NEW_ENTRY"
+        repairIssueId={issue.id}
+        initialBody={issue.description.replace(/^\[[^\]]*\]\s*/, '')}
+      />
+    </>
+  ) : null;
 
   const picker = (
     <div className="flex flex-col gap-1.5">
@@ -266,21 +344,8 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
             </Callout>
           )}
 
-          {steps.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
-                {done} of {steps.length} steps done
-              </p>
-              <ol className="-mx-2 flex flex-col">
-                {steps.map((step) => (
-                  <StepRow key={step.id} step={step} enabled={canTick} onToggle={(checked) => void toggle(step, checked)} />
-                ))}
-              </ol>
-              {!canTick && ticket.status === 'ASSIGNED' && (
-                <p className="text-xs text-muted-foreground">Steps can be ticked once work starts.</p>
-              )}
-            </div>
-          )}
+          {checklist}
+          {addSteps}
 
           {entry.parts.length > 0 && (
             <div className="flex flex-col gap-1.5">
@@ -304,21 +369,22 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
             </p>
           )}
         </section>
-      ) : knowledgeOn ? (
+      ) : steps.length > 0 ? (
+        // Spec 0023, AC-4: an issue with no known fix can carry its own checklist
+        <section aria-label={`Checklist for issue ${n}`} className="flex flex-col gap-3 rounded-lg border border-border bg-background p-3 md:p-4">
+          <div className="flex items-center gap-2">
+            <ListChecks aria-hidden="true" className="size-4 shrink-0 text-primary" />
+            <span className="text-xs font-medium tracking-wide text-muted-strong uppercase">Checklist</span>
+          </div>
+          {checklist}
+          {knowledgeOn && canLink && picker}
+          {suggest}
+        </section>
+      ) : addSteps || knowledgeOn ? (
         <div className="flex flex-col gap-2">
-          {canLink && picker}
-          {/* Any reader can propose a library entry from a problem with no known fix (AC-35). */}
-          <Button type="button" variant="link" size="sm" className="h-auto min-h-11 max-w-full self-start px-0 text-left whitespace-normal md:min-h-0" onClick={() => setSuggesting(true)}>
-            <MessageSquarePlus aria-hidden="true" />
-            Suggest an entry
-          </Button>
-          <SuggestDialog
-            open={suggesting}
-            onOpenChange={setSuggesting}
-            kind="NEW_ENTRY"
-            repairIssueId={issue.id}
-            initialBody={issue.description.replace(/^\[[^\]]*\]\s*/, '')}
-          />
+          {addSteps}
+          {knowledgeOn && canLink && picker}
+          {suggest}
         </div>
       ) : null}
 
@@ -349,7 +415,7 @@ function IssueBlock({ ticket, issue, index, canLink, knowledgeOn, canTick, entri
 }
 
 /** One block per issue with its known fix, checklist and "What fixed it" (spec 0007, AC-27 to AC-31). */
-export function IssuesSection({ ticket, canWork, onChanged, onStale, edit }: IssuesSectionProps) {
+export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps, edit }: IssuesSectionProps) {
   const issues = ticket.issues ?? [];
   const knowledgeOn = useModuleOn('knowledge');
   const canLink = knowledgeOn && canWork && (ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS');
@@ -510,6 +576,7 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale, edit }: Iss
               onChanged={onChanged}
               onStale={onStale}
               onEdit={edit ? () => edit.onEdit(issue) : undefined}
+              onEditSteps={onEditSteps ? () => onEditSteps(issue) : undefined}
               // AC-17: a ticket always keeps one issue, so the last one has no Remove
               onRemove={
                 edit && issues.length > 1

@@ -3,7 +3,7 @@ import { confirm } from '../../../components/shared/confirm/confirm';
 import type { RepairTicket } from '../../../types';
 
 /** Which edit dialog is open on the detail page (spec 0019, AC-20). */
-export type EditKind = 'details' | 'mechanics' | 'addIssue' | 'editIssue' | 'removeIssue';
+export type EditKind = 'details' | 'mechanics' | 'addIssue' | 'editIssue' | 'removeIssue' | 'checklist';
 
 type Session = {
   kind: EditKind;

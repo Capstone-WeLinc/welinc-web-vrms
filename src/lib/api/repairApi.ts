@@ -117,6 +117,16 @@ export async function linkIssueKnowledge(
 }
 
 /** Tick or untick one known fix step; the ticket's updatedAt stays (spec 0007, AC-28). */
+/** Spec 0023, AC-6: an issue's full checklist in order; an id for a kept step, none for a new one. */
+export async function saveIssueChecklist(
+  repairId: string,
+  issueId: string,
+  payload: { checklistVersion: number; steps: { id?: string; text: string }[] },
+): Promise<RepairTicket> {
+  const response = await api.put<RepairTicket>(`/vrms/repairs/${repairId}/issues/${issueId}/steps`, payload);
+  return response.data;
+}
+
 export async function checkIssueStep(repairId: string, issueId: string, stepId: string, checked: boolean): Promise<RepairIssueStep> {
   const response = await api.patch<RepairIssueStep>(`/vrms/repairs/${repairId}/issues/${issueId}/steps/${stepId}`, { checked });
   return response.data;
