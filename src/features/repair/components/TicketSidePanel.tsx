@@ -1,116 +1,262 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle } from 'lucide-react';
+import { BadgeCheck, Ban, CircleAlert, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { BadgePill } from '../../../components/shared/BadgePill';
 import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
+import { MoreMenu } from '../../../components/shared/MoreMenu';
+import { PriorityBadge } from '../../../components/shared/PriorityBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
-import { dueLabel, isOpen } from '../../../lib/utils/due';
+import { useToast } from '../../../context/toast';
+import { useClamped } from '../../../hooks/useClamped';
+import { dueValue } from '../../../lib/utils/due';
 import { formatDateTime, formatRelativeTime, formatShortDate } from '../../../lib/utils/format';
-import type { RepairTicket } from '../../../types';
+import type { RepairTicket, TicketMove } from '../../../types';
 import { isClosed, type TicketActions } from '../lib/nextAction';
 import { DetailItem, DetailSection } from '../../../components/shared/DetailSection';
 
 interface StatusCardProps {
   ticket: RepairTicket;
+  /** The time of the last fetch, for the due and overdue text. */
+  now: number;
   readOnly: boolean;
   actions: TicketActions;
   onPrimary: () => void;
   onSecondary: () => void;
   onCancel: () => void;
+  /** Spec 0024, AC-13: a photo reason links to the Photos card. */
+  onPhotosBlocked: () => void;
+  /** Spec 0024, AC-18: `line` is the slim status line on phones and tablets; the fixed bar holds the buttons. */
+  variant?: 'card' | 'line';
 }
 
-/** Spec 0014, AC-15: the primary move and Return to mechanic side by side, Cancel under them. */
-export function StatusCard({ ticket, readOnly, actions, onPrimary, onSecondary, onCancel }: StatusCardProps) {
+/**
+ * Spec 0024, AC-17: the card's ⋮ menu. Copy ticket link for everyone; Cancel ticket last, after a
+ * divider, only with a cancel move and an editable view.
+ */
+function MoreActions({ ticketId, cancel, onCancel }: { ticketId: string; cancel: TicketMove | null; onCancel: () => void }) {
+  const { showToast } = useToast();
+  const copyLink = () => {
+    const url = `${window.location.origin}/repairs/${ticketId}`;
+    const failed = () => showToast('Couldn’t copy the link. Copy it from the address bar.', 'error');
+    // The clipboard exists only on https or localhost; elsewhere `navigator.clipboard` is undefined.
+    if (!navigator.clipboard?.writeText) {
+      failed();
+      return;
+    }
+    navigator.clipboard.writeText(url).then(() => showToast('Ticket link copied', 'success'), failed);
+  };
+  return (
+    <MoreMenu label="More actions" triggerClassName="-my-2 -mr-2 size-11 lg:size-8">
+      <DropdownMenuItem onSelect={copyLink}>
+        <Copy aria-hidden="true" />
+        Copy ticket link
+      </DropdownMenuItem>
+      {cancel && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onSelect={onCancel}>
+            <Ban aria-hidden="true" />
+            {cancel.label}
+          </DropdownMenuItem>
+        </>
+      )}
+    </MoreMenu>
+  );
+}
+
+/** One label and value row of the Status card. */
+function StatusRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-3">
+      <dt className="w-16 shrink-0 text-sm text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-sm text-foreground">{children}</dd>
+    </div>
+  );
+}
+
+/** Why the forward move waits. Only the two photo reasons become a link (AC-13); costs and uploads stay text. */
+function BlockedReason({ id, actions, onPhotos }: { id: string; actions: TicketActions; onPhotos: () => void }) {
+  if (!actions.blocked) return null;
+  return (
+    <p id={id} className="text-sm text-muted-foreground">
+      {actions.blockedBy ? (
+        <Button type="button" variant="link" className="h-auto min-h-11 p-0 text-left whitespace-normal lg:min-h-0" onClick={onPhotos}>
+          {actions.blocked}
+        </Button>
+      ) : (
+        actions.blocked
+      )}
+    </p>
+  );
+}
+
+/**
+ * Spec 0024, AC-17: no heading. Label and value rows for status, priority and due, the ⋮ menu at the
+ * top right; then the actions: Return to mechanic (outlined) and the primary side by side once the card is 280px
+ * wide, stacked with the primary on top below that, and the blocked reason under them. The phone line
+ * (AC-18) has the same row and reason; the fixed bar holds its buttons.
+ */
+export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecondary, onCancel, onPhotosBlocked, variant = 'card' }: StatusCardProps) {
   const { primary, secondary, cancel } = actions;
   const hasButton = !!(primary || secondary || cancel);
+  const line = variant === 'line';
+  const blockedId = line ? 'primary-blocked-line' : 'primary-blocked';
   // Only someone who may unlock sees the lock state (spec 0011, AC-12a)
   const lockBadge =
     ticket.can.unlock && isClosed(ticket) ? (
       ticket.isUnlocked ? (
-        <BadgePill className="bg-highlight text-highlight-foreground">Unlocked for editing</BadgePill>
+        <BadgePill className="bg-highlight/25 text-highlight-foreground">Unlocked for editing</BadgePill>
       ) : (
         <BadgePill className="bg-status-cancelled-bg text-status-cancelled-fg">Locked</BadgePill>
       )
     ) : null;
 
-  return (
-    <DetailSection title="Status">
-      <div className="flex flex-wrap items-center gap-2">
-        <StatusBadge status={ticket.status} />
-        <MechanicProblemBadge ticket={ticket} />
-        {lockBadge}
-      </div>
-      {readOnly ? (
-        <div className="flex flex-col items-start gap-1 text-sm text-muted-foreground">
-          <p>View only</p>
-          {hasButton && (
-            <Button asChild variant="link" className="h-auto px-0">
-              <Link to={`/repairs/${ticket.id}`}>Open editable view</Link>
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {actions.note && <p className="text-sm text-muted-foreground">{actions.note}</p>}
-          {actions.blocked && (
-            <p id="primary-blocked" className="text-sm text-muted-foreground">
-              {actions.blocked}
-            </p>
-          )}
-          {(primary || secondary) && (
-            // Below lg the fixed bar carries the primary and Return to mechanic, so the card hides its copy (one
-            // button per action for a screen reader). Without a primary the bar has nothing, so it stays.
-            // One column under 300px, where two side by side overflow the card (about 400% zoom).
-            <div className={cn(primary ? 'hidden lg:grid' : 'grid', 'gap-2', primary && secondary && 'min-[300px]:grid-cols-2')}>
-              {primary && (
-                <>
-                  <Button
-                    size="touch"
-                    className="w-full lg:h-10 lg:text-sm"
-                    onClick={onPrimary}
-                    disabled={!!actions.blocked}
-                    aria-describedby={actions.blocked ? 'primary-blocked' : undefined}
-                  >
-                    {primary.kind === 'move' ? primary.move.label : primary.label}
-                  </Button>
-                </>
-              )}
-              {secondary && (
-                <Button variant="outline" size="touch" className="w-full lg:h-10 lg:text-sm" onClick={onSecondary}>
-                  {secondary.label}
-                </Button>
-              )}
-            </div>
-          )}
-          {cancel && (
+  const due = dueValue(ticket, now);
+  // AC-17: label and value rows (Status, Priority, Due), the ⋮ at the top right
+  const badges = (
+    <div className="flex items-start justify-between gap-2">
+      <dl className="flex min-w-0 flex-col gap-1.5">
+        <StatusRow label="Status">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <StatusBadge status={ticket.status} />
+            <MechanicProblemBadge ticket={ticket} />
+            {lockBadge}
+          </span>
+        </StatusRow>
+        {ticket.priority && (
+          <StatusRow label="Priority">
+            <PriorityBadge priority={ticket.priority} />
+          </StatusRow>
+        )}
+        {due && ticket.dueAt && (
+          <StatusRow label="Due">
+            <time dateTime={ticket.dueAt} className="block">
+              {due.date}
+            </time>
+            {/* Under the date, never trailing it */}
+            {due.overdue ? (
+              <span className="block text-xs font-medium text-destructive">{due.note ?? 'Past due'}</span>
+            ) : (
+              due.note && <span className="block text-xs text-muted-foreground">{due.note}</span>
+            )}
+          </StatusRow>
+        )}
+      </dl>
+      <MoreActions ticketId={ticket.id} cancel={!readOnly ? (cancel ?? null) : null} onCancel={onCancel} />
+    </div>
+  );
+
+  const reason = <BlockedReason id={blockedId} actions={actions} onPhotos={onPhotosBlocked} />;
+
+  const body = readOnly ? (
+    <div className="flex flex-col items-start gap-1 text-sm text-muted-foreground">
+      <p>View only</p>
+      {hasButton && (
+        <Button asChild variant="link" className="h-auto px-0">
+          <Link to={`/repairs/${ticket.id}`}>Open editable view</Link>
+        </Button>
+      )}
+    </div>
+  ) : (
+    <div className="flex flex-col gap-2">
+      {actions.note && <p className="text-sm text-muted-foreground">{actions.note}</p>}
+      {/* The line leaves the primary and Return to mechanic to the fixed bar, so its reason stands alone;
+          without a primary the bar has nothing, so Return stays. */}
+      {line && reason}
+      {(line ? !primary && secondary : primary || secondary) && (
+        // AC-17: the primary first, so it sits on top when stacked; side by side it moves right, equal widths
+        <div className="flex flex-col gap-2 @[280px]:flex-row-reverse">
+          {primary && !line && (
             <Button
-              variant="outline"
               size="touch"
-              className="w-full border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive lg:h-10 lg:text-sm"
-              onClick={onCancel}
+              className="w-full min-w-0 flex-1 lg:h-10 lg:text-sm"
+              onClick={onPrimary}
+              disabled={!!actions.blocked}
+              aria-describedby={actions.blocked ? blockedId : undefined}
             >
-              {cancel.label}
+              {primary.kind === 'move' ? primary.move.label : primary.label}
+            </Button>
+          )}
+          {secondary && (
+            <Button variant="outline" size="touch" className="w-full min-w-0 flex-1 lg:h-10 lg:text-sm" onClick={onSecondary}>
+              {secondary.label}
             </Button>
           )}
         </div>
+      )}
+      {/* The reason is helper text under the buttons */}
+      {!line && reason}
+    </div>
+  );
+
+  if (line) {
+    return (
+      <section aria-label="Status" className="flex flex-col gap-2 border-b border-border pb-3">
+        {badges}
+        {body}
+      </section>
+    );
+  }
+  return (
+    // A container, so the buttons pair up by the card's own width, not the screen's (AC-17)
+    <Card role="region" aria-label="Status" className="@container gap-3 p-4 md:p-5">
+      {badges}
+      {body}
+    </Card>
+  );
+}
+
+/**
+ * Spec 0024, AC-16: the latest remark and the cancellation reason, as a 3 line preview with Show
+ * more only when cut off. No card when both are empty.
+ */
+export function NotesCard({ ticket }: { ticket: RepairTicket }) {
+  const [expanded, setExpanded] = useState(false);
+  const { ref: reasonRef, clamped: reasonClamped } = useClamped<HTMLDivElement>();
+  const { ref: remarkRef, clamped: remarkClamped } = useClamped<HTMLDivElement>();
+  if (!ticket.cancellationReason && !ticket.remarks) return null;
+  const clamp = expanded ? 'whitespace-pre-line' : 'line-clamp-3 whitespace-pre-line';
+  return (
+    <DetailSection title="Notes">
+      <dl className="flex flex-col gap-3">
+        {ticket.cancellationReason && (
+          <DetailItem label="Cancellation reason">
+            <div ref={reasonRef} className={clamp}>
+              {ticket.cancellationReason}
+            </div>
+          </DetailItem>
+        )}
+        {ticket.remarks && (
+          <DetailItem label="Latest remark">
+            <div ref={remarkRef} className={clamp}>
+              {ticket.remarks}
+            </div>
+          </DetailItem>
+        )}
+      </dl>
+      {(expanded || reasonClamped || remarkClamped) && (
+        <Button type="button" variant="link" size="sm" className="-mt-2 h-auto min-h-11 self-start px-0 lg:min-h-0" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
+          {expanded ? 'Show less' : 'Show more'}
+        </Button>
       )}
     </DetailSection>
   );
 }
 
-function DueValue({ ticket, now }: { ticket: RepairTicket; now: number }) {
-  if (!ticket.dueAt || Number.isNaN(Date.parse(ticket.dueAt))) return <>—</>;
-  // Due text only means something while the ticket is open.
-  const due = isOpen(ticket) ? dueLabel(ticket, now) : null;
+function DriverValue({ ticket }: { ticket: RepairTicket }) {
   return (
-    <span className="flex flex-col">
-      <time dateTime={ticket.dueAt}>{formatShortDate(ticket.dueAt)}</time>
-      {due && (
-        <span className={cn('inline-flex items-center gap-1.5 text-xs', due.overdue ? 'font-medium text-destructive' : 'text-muted-foreground')}>
-          {due.overdue && <AlertTriangle role="img" aria-label="Overdue" className="size-3.5 shrink-0" />}
-          {due.text}
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      {ticket.driverName}
+      {/* Sent with the cost record only (ticket.costs.view) */}
+      {ticket.driverIsVerified != null && (
+        <span className={cn('inline-flex items-center gap-1 text-xs font-medium', ticket.driverIsVerified ? 'text-success' : 'text-muted-foreground')}>
+          {ticket.driverIsVerified ? <BadgeCheck aria-hidden="true" className="size-3.5" /> : <CircleAlert aria-hidden="true" className="size-3.5" />}
+          {ticket.driverIsVerified ? 'Verified' : 'Not verified'}
         </span>
       )}
     </span>
@@ -121,14 +267,49 @@ function DateValue({ value }: { value: string | null | undefined }) {
   return value ? <time dateTime={value}>{formatShortDate(value)}</time> : <>—</>;
 }
 
-export function DetailsCard({ ticket, now }: { ticket: RepairTicket; now: number }) {
+function DetailsGroup({ title, children }: { title: string; children: ReactNode }) {
+  const id = useId();
   return (
-    <DetailSection title="Details">
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <DetailItem label="Due date">
-          <DueValue ticket={ticket} now={now} />
+    <section aria-labelledby={id} className="flex flex-col gap-3">
+      <h3 id={id} className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        {title}
+      </h3>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">{children}</dl>
+    </section>
+  );
+}
+
+/**
+ * Spec 0024, AC-16: the ticket's details under two small headings, Vehicle and Record. Plate and model
+ * show here as well as in the title (your call, 2026-11-07); priority and due are in the Status card. The details Edit dialog fixes the vehicle
+ * part (spec 0019, AC-20), so its Edit button comes in as `action`.
+ */
+export function DetailsCard({ ticket, now, action }: { ticket: RepairTicket; now: number; action?: ReactNode }) {
+  return (
+    <DetailSection title="Details" action={action}>
+      <DetailsGroup title="Vehicle">
+        {/* Shown here too, though the title has them, so Details holds the whole vehicle record */}
+        <DetailItem label="Plate">
+          <span className="whitespace-nowrap">{ticket.vehiclePlate}</span>
         </DetailItem>
-        <DetailItem label="Garage">{ticket.garageLocation ?? '—'}</DetailItem>
+        <DetailItem label="Model">{ticket.vehicleModel || '—'}</DetailItem>
+        <DetailItem label="Odometer" className="col-span-2">
+          {ticket.odometerReading != null ? <span className="tabular-nums">{ticket.odometerReading.toLocaleString('en-US')} km</span> : '—'}
+        </DetailItem>
+        <DetailItem label="Driver" className="col-span-2">
+          <DriverValue ticket={ticket} />
+        </DetailItem>
+        {ticket.accountType && (
+          <DetailItem label="Account" className="col-span-2">
+            {ticket.accountType === 'CORPORATE' ? `Corporate${ticket.corporation ? `, ${ticket.corporation}` : ''}` : 'Online'}
+          </DetailItem>
+        )}
+      </DetailsGroup>
+      <Separator />
+      <DetailsGroup title="Record">
+        <DetailItem label="Garage" className="col-span-2">
+          {ticket.garageLocation ?? '—'}
+        </DetailItem>
         <DetailItem label="Created">
           <DateValue value={ticket.createdAt} />
         </DetailItem>
@@ -138,18 +319,18 @@ export function DetailsCard({ ticket, now }: { ticket: RepairTicket; now: number
         {/* Spec 0019, AC-19: the last edit after create */}
         {ticket.editedAt && (
           <DetailItem label="Last edit" className="col-span-2">
-              <time dateTime={ticket.editedAt} title={formatDateTime(ticket.editedAt)}>
-                Edited {formatRelativeTime(ticket.editedAt, new Date(now))}
-              </time>
-              {ticket.editedByName && <> by {ticket.editedByName}</>}
+            <time dateTime={ticket.editedAt} title={formatDateTime(ticket.editedAt)}>
+              Edited {formatRelativeTime(ticket.editedAt, new Date(now))}
+            </time>
+            {ticket.editedByName && <> by {ticket.editedByName}</>}
           </DetailItem>
         )}
-        {isClosed(ticket) && (
+        {ticket.closedAt && (
           <DetailItem label="Closed">
             <DateValue value={ticket.closedAt} />
           </DetailItem>
         )}
-      </dl>
+      </DetailsGroup>
     </DetailSection>
   );
 }

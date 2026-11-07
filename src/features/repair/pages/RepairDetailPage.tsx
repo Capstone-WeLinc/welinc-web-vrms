@@ -21,6 +21,7 @@ import {
   type EditDetailsPayload,
 } from '../../../lib/api/repairApi';
 import { useHasTabBar } from '../../../components/layout/useNavSections';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import type { IssueResolution, RepairIssue, RepairStatus, RepairTicket } from '../../../types';
 import { ActivitySection } from '../components/ActivitySection';
@@ -32,9 +33,10 @@ import { NextActionBar } from '../components/NextActionBar';
 import { RepairDetailSkeleton } from '../components/RepairDetailSkeleton';
 import { SendBackBanner } from '../components/SendBackBanner';
 import { IssuesSection } from '../components/IssuesSection';
-import { NotesSection, VehicleSection } from '../components/TicketMainSections';
+import { PhotosCard } from '../components/PhotosCard';
 import { TicketNoteDialog } from '../components/TicketNoteDialog';
-import { DetailsCard, PeopleCard, StatusCard } from '../components/TicketSidePanel';
+import { DetailsCard, NotesCard, PeopleCard, StatusCard } from '../components/TicketSidePanel';
+import { TicketHeader } from '../components/TicketHeader';
 import { DocumentsCard } from '../components/DocumentsCard';
 import { EditDetailsDialog } from '../components/edit/EditDetailsDialog';
 import { IssueEditDialog, type IssueSave } from '../components/edit/IssueEditDialog';
@@ -45,7 +47,7 @@ import { TicketFilesProvider } from '../components/TicketFilesProvider';
 import { useEditSession } from '../hooks/useEditSession';
 import { useRepairTicket } from '../hooks/useRepairTicket';
 import { editNeedsReason, issueRemovalSummary, ticketEditable } from '../lib/ticketEdits';
-import { photosInFlight } from '../lib/photoUpload';
+import { photosInFlight, PHOTOS_SECTION_ID } from '../lib/photoUpload';
 import {
   canWorkTicket,
   COSTS_SECTION_ID,
@@ -66,9 +68,11 @@ function backLink(ticket: RepairTicket | null, from: unknown) {
   return { to: listUrl, label: 'Back to repairs' };
 }
 
+const motion = (): ScrollBehavior => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+
 function scrollToCosts() {
   const section = document.getElementById(COSTS_SECTION_ID);
-  section?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  section?.scrollIntoView({ behavior: motion() });
   section?.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
 }
 
@@ -88,6 +92,8 @@ export function RepairDetailPage() {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [dialog, setDialog] = useState<DialogKind>(null);
+  // Spec 0024, AC-18: from 1024px the sidebar sits on the right; below, one column in the phone order
+  const wide = useMediaQuery('(min-width: 1024px)');
   const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId, {
     // The status dialogs are keyed on the ticket's version, so a refetch would clear a typed note
     paused: dialog !== null,
@@ -308,6 +314,20 @@ export function RepairDetailPage() {
   const canEditDetails = !readOnly && ticket.can.edit && ticketEditable(ticket);
   const canEditMechanics = !readOnly && ticket.can.assign && ticketEditable(ticket);
 
+  /**
+   * AC-13: scroll to the Photos card and focus the needed group's add tile (the file picker can't start after the
+   * click); with no tile (the group is full, or the viewer can't add), its heading.
+   */
+  const goToPhotos = () => {
+    const card = document.getElementById(PHOTOS_SECTION_ID);
+    card?.scrollIntoView({ behavior: motion(), block: 'start' });
+    (
+      card?.querySelector<HTMLElement>('[data-photo-needed]') ??
+      card?.querySelector<HTMLElement>('[data-photo-add]') ??
+      card?.querySelector<HTMLElement>('h2')
+    )?.focus({ preventScroll: true });
+  };
+
   const noMechanic =
     ticket.can.administer && (moveTo === 'IN_PROGRESS' || moveTo === 'FOR_VERIFICATION') && (ticket.mechanics ?? []).length === 0;
   const noCosts = seesCosts && moveTo === 'CLOSED' && !hasCosts(ticket);
@@ -316,7 +336,7 @@ export function RepairDetailPage() {
     // Keyed by ticket, so a link to another ticket (similar repairs) starts every section fresh.
     <div key={ticket.id} className={barLabel ? (barSecondary ? 'pb-36 md:pb-20 lg:pb-0' : 'pb-20 lg:pb-0') : undefined}>
       <BackLink to={back.to} label={back.label} />
-      <PageHeader title={rep} subtitle={ticket.vehicleModel ? `${ticket.vehiclePlate} · ${ticket.vehicleModel}` : ticket.vehiclePlate} icon={Wrench} />
+      <TicketHeader ticket={ticket} />
       {ticket.lastRejection && <SendBackBanner key={ticket.lastRejection.at} rejection={ticket.lastRejection} now={loadedAt} />}
 
       {/* Spec 0017: one file list and one upload queue for the photos and the Documents card. Spec 0018: a
@@ -324,45 +344,64 @@ export function RepairDetailPage() {
       <TicketFilesProvider ticketId={ticket.id} onFilesChanged={reload}>
         {({ queue }) => {
           const shown = photosInFlight(queue.items) ? ticketActions(ticket, holdsVerify, true) : actions;
+          const status = (variant: 'card' | 'line') => (
+            <StatusCard
+              ticket={ticket}
+              now={loadedAt}
+              readOnly={readOnly}
+              actions={shown}
+              variant={variant}
+              onPrimary={() => setDialog('primary')}
+              onSecondary={() => setDialog('secondary')}
+              onCancel={() => setDialog('cancel')}
+              onPhotosBlocked={goToPhotos}
+            />
+          );
+          const notes = <NotesCard ticket={ticket} />;
+          const people = (
+            <PeopleCard
+              ticket={ticket}
+              action={
+                canEditMechanics ? (
+                  <Button variant="outline" size="sm" aria-label="Edit mechanics" onClick={() => edits.open('mechanics', ticket)}>
+                    Edit
+                  </Button>
+                ) : null
+              }
+            />
+          );
+          const details = (
+            <DetailsCard
+              ticket={ticket}
+              now={loadedAt}
+              action={
+                canEditDetails ? (
+                  <Button variant="outline" size="sm" aria-label="Edit vehicle and driver" onClick={() => edits.open('details', ticket)}>
+                    Edit
+                  </Button>
+                ) : null
+              }
+            />
+          );
+          // Spec 0017, AC-27: receipts and other documents are cost paperwork
+          const documents = seesCosts ? <DocumentsCard /> : null;
           return (
             <>
+              {/* The main column keeps its place in the tree at every width, so a resize never resets the issue rows */}
               <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
-                <aside aria-label="Ticket summary" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20 lg:col-start-3 lg:row-start-1">
-                  <StatusCard
-                    ticket={ticket}
-                    readOnly={readOnly}
-                    actions={shown}
-                    onPrimary={() => setDialog('primary')}
-                    onSecondary={() => setDialog('secondary')}
-                    onCancel={() => setDialog('cancel')}
-                  />
-                  <DetailsCard ticket={ticket} now={loadedAt} />
-                  <PeopleCard
-                    ticket={ticket}
-                    action={
-                      canEditMechanics ? (
-                        <Button variant="outline" size="sm" aria-label="Edit mechanics" onClick={() => edits.open('mechanics', ticket)}>
-                          Edit
-                        </Button>
-                      ) : null
-                    }
-                  />
-                  {/* Spec 0017, AC-27: receipts and other documents are cost paperwork */}
-                  {seesCosts && <DocumentsCard />}
-                </aside>
+                {wide && (
+                  <aside aria-label="Ticket summary" className="sticky top-20 col-start-3 row-start-1 flex min-w-0 flex-col gap-4">
+                    {status('card')}
+                    {notes}
+                    {people}
+                    {details}
+                    {documents}
+                  </aside>
+                )}
 
                 <div className="flex min-w-0 flex-col gap-4 lg:col-span-2 lg:col-start-1 lg:row-start-1">
-                  <NotesSection ticket={ticket} />
-                  <VehicleSection
-                    ticket={ticket}
-                    action={
-                      canEditDetails ? (
-                        <Button variant="outline" size="sm" aria-label="Edit vehicle and driver" onClick={() => edits.open('details', ticket)}>
-                          Edit
-                        </Button>
-                      ) : null
-                    }
-                  />
+                  {!wide && status('line')}
+                  {!wide && notes}
                   <IssuesSection
                     ticket={ticket}
                     canWork={!readOnly && canWorkTicket(ticket)}
@@ -381,8 +420,12 @@ export function RepairDetailPage() {
                         : null
                     }
                   />
+                  <PhotosCard ticket={ticket} blockedBy={shown.blockedBy} />
                   {usesAi && <AiDiagnosisSection ticket={ticket} />}
                   {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
+                  {!wide && people}
+                  {!wide && details}
+                  {!wide && documents}
                   {seesActivity && <ActivitySection ticketId={ticket.id} />}
                 </div>
               </div>

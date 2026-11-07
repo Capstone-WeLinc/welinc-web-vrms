@@ -3,7 +3,8 @@ export type ConfirmOptions = {
   description?: string;
   confirmText?: string; // default 'Confirm'
   cancelText?: string; // default 'Cancel'
-  tone?: 'default' | 'destructive';
+  /** `warning` adds a soft amber icon beside the title; the confirm button keeps the default style. */
+  tone?: 'default' | 'destructive' | 'warning';
   /** Radio choices shown under the description; the first is selected. Used by confirmChoice(). */
   choices?: { value: string; label: string }[];
 };

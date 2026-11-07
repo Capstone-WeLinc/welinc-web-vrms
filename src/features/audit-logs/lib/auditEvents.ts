@@ -117,8 +117,59 @@ export function eventStyle(type: string): EventStyle {
 }
 
 /** The actor's name, else their email; null means "no actor" wording. */
-export function actorLabel(event: AuditEvent) {
+export function actorLabel(event: Pick<AuditEvent, 'actor'>) {
   return event.actor?.name || event.actor?.email || null;
+}
+
+/**
+ * The wording of each event type, shared by the sentence in `AuditEventItem` and the one line text
+ * the ticket page's folded Activity card shows (spec 0024, AC-15). `verb` and `tail` go around the
+ * ticket with an actor; `passive` is the text before and after the ticket without one.
+ */
+export type EventPhrase = { verb: string; tail?: string; passive: [string, string] };
+
+const EVENT_PHRASES: Record<string, EventPhrase> = {
+  CREATED: { verb: 'created', passive: ['', ' was created'] },
+  STATUS_CHANGE: { verb: 'changed the status of', passive: ['The status of ', ' was changed'] },
+  COST_UPDATE: { verb: 'updated the costs of', passive: ['The costs of ', ' were updated'] },
+  UNLOCK: { verb: 'unlocked', passive: ['', ' was unlocked'] },
+  GARAGE_CHANGE: { verb: 'moved', tail: ' to a different garage', passive: ['', ' was moved to a different garage'] },
+  KNOWLEDGE_LINK: { verb: 'changed a known fix on', passive: ['A known fix on ', ' was changed'] },
+  MECHANIC_ASSIGNED: { verb: 'assigned a mechanic to', passive: ['A mechanic was assigned to ', ''] },
+  MECHANIC_UNASSIGNED: { verb: 'removed a mechanic from', passive: ['A mechanic was removed from ', ''] },
+  ATTACHMENT_ADDED: { verb: 'added a file to', passive: ['A file was added to ', ''] },
+  ATTACHMENT_REMOVED: { verb: 'removed a file from', passive: ['A file was removed from ', ''] },
+  ATTACHMENT_MOVED: { verb: 'moved a photo on', passive: ['A photo was moved on ', ''] },
+  // Spec 0019, AC-19b
+  TICKET_EDITED: { verb: 'edited', passive: ['', ' was edited'] },
+  ISSUE_ADDED: { verb: 'added an issue to', passive: ['An issue was added to ', ''] },
+  ISSUE_EDITED: { verb: 'edited an issue on', passive: ['An issue on ', ' was edited'] },
+  ISSUE_REMOVED: { verb: 'removed an issue from', passive: ['An issue was removed from ', ''] },
+  // Spec 0021, AC-15
+  LOCKED: { verb: 'locked', tail: ' again', passive: ['', ' was locked again'] },
+  STEP_CHECKED: { verb: 'ticked a step on', passive: ['A step was ticked on ', ''] },
+  STEP_UNCHECKED: { verb: 'unticked a step on', passive: ['A step was unticked on ', ''] },
+  // Spec 0023, AC-10
+  STEP_ADDED: { verb: 'added a step to', passive: ['A step was added to ', ''] },
+  STEP_REMOVED: { verb: 'removed a step from', passive: ['A step was removed from ', ''] },
+  STEP_EDITED: { verb: 'reworded a step on', passive: ['A step was reworded on ', ''] },
+  STEP_MOVED: { verb: 'moved a step on', passive: ['A step was moved on ', ''] },
+};
+
+/** The type's wording; an unknown type reads as its raw name. */
+export function eventPhrase(type: string): EventPhrase {
+  const own = Object.prototype.hasOwnProperty.call(EVENT_PHRASES, type);
+  return (own && EVENT_PHRASES[type]) || { verb: `${type} on`, passive: [`${type} on `, ''] };
+}
+
+/** Spec 0024, AC-15: the event as plain text, the ticket named "this ticket" ("Victor Ramos updated the costs of this ticket"). */
+export function eventText(event: Pick<AuditEvent, 'type' | 'actor'>): string {
+  const phrase = eventPhrase(event.type);
+  const name = actorLabel(event);
+  if (name) return `${name} ${phrase.verb} this ticket${phrase.tail ?? ''}`;
+  const [before, after] = phrase.passive;
+  const text = `${before}this ticket${after}`;
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /** The change to one field, or undefined when the event didn't change it. */

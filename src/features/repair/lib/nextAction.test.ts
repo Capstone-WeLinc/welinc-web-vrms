@@ -18,7 +18,7 @@ const CANCEL: TicketMove = { to: 'CANCELLED', label: 'Cancel ticket', kind: 'can
 describe('ticketActions', () => {
   it('makes the forward move primary and Cancel its own action', () => {
     const actions = ticketActions(ticket({ status: 'ASSIGNED', can: ADMIN, moves: [START, CANCEL] }));
-    expect(actions).toEqual({ primary: { kind: 'move', move: START }, secondary: null, cancel: CANCEL, note: null, blocked: null });
+    expect(actions).toEqual({ primary: { kind: 'move', move: START }, secondary: null, cancel: CANCEL, note: null, blocked: null, blockedBy: null });
     expect(primaryTarget(actions)).toBe('IN_PROGRESS');
   });
 
@@ -35,6 +35,7 @@ describe('ticketActions', () => {
       cancel: null,
       note: 'Waiting for verification.',
       blocked: null,
+      blockedBy: null,
     });
   });
 
@@ -165,5 +166,24 @@ describe('photo rules on the primary move (spec 0018, AC-4 to AC-6, AC-20)', () 
   it('holds Start work while photos are still uploading, and nothing else', () => {
     expect(ticketActions(ticket({ status: 'ASSIGNED', can: WORKER, moves: [START] }), false, true).blocked).toBe(PHOTOS_UPLOADING_REASON);
     expect(ticketActions(ticket({ status: 'IN_PROGRESS', can: WORKER, moves: [SEND] }), false, true).blocked).toBeNull();
+  });
+});
+
+describe('the blocked reason link (spec 0024, AC-13)', () => {
+  const SEND: TicketMove = { to: 'FOR_VERIFICATION', label: 'Send for verification', kind: 'forward', needs: null };
+
+  it('passes the photo the move waits for along with its text', () => {
+    expect(ticketActions(ticket({ status: 'ASSIGNED', can: WORKER, moves: [{ ...START, blockedBy: 'beforePhoto' }] })).blockedBy).toBe('beforePhoto');
+    expect(ticketActions(ticket({ status: 'IN_PROGRESS', can: WORKER, moves: [{ ...SEND, blockedBy: 'afterPhoto' }] })).blockedBy).toBe('afterPhoto');
+  });
+
+  it('leaves costs, uploading and finished tickets without one', () => {
+    const close = ticketActions(ticket({ status: 'FOR_VERIFICATION', can: ADMIN, moves: [{ ...VERIFY, needs: 'costs' }] }));
+    expect(close.blocked).not.toBeNull();
+    expect(close.blockedBy).toBeNull();
+    const uploading = ticketActions(ticket({ status: 'ASSIGNED', can: WORKER, moves: [{ ...START, blockedBy: 'beforePhoto' }] }), false, true);
+    expect(uploading.blocked).toBe(PHOTOS_UPLOADING_REASON);
+    expect(uploading.blockedBy).toBeNull();
+    expect(ticketActions(ticket({ status: 'CLOSED' })).blockedBy).toBeNull();
   });
 });

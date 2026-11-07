@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, useSyncExternalStore } from 'react';
 import { useLocation } from 'react-router-dom';
+import { TriangleAlert } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,10 +45,23 @@ function ConfirmDialog({ request }: { request: ConfirmRequest }) {
           if (opener?.isConnected) opener.focus();
         }}
       >
-        <AlertDialogHeader>
-          <AlertDialogTitle>{options.title}</AlertDialogTitle>
-          {options.description && <AlertDialogDescription>{options.description}</AlertDialogDescription>}
-        </AlertDialogHeader>
+        {options.tone === 'warning' ? (
+          // A soft amber icon beside the words: a heads-up, not an alarm
+          <div className="flex items-start gap-4">
+            <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight/20 text-warning-text">
+              <TriangleAlert className="size-5" />
+            </span>
+            <AlertDialogHeader className="text-left">
+              <AlertDialogTitle>{options.title}</AlertDialogTitle>
+              {options.description && <AlertDialogDescription>{options.description}</AlertDialogDescription>}
+            </AlertDialogHeader>
+          </div>
+        ) : (
+          <AlertDialogHeader>
+            <AlertDialogTitle>{options.title}</AlertDialogTitle>
+            {options.description && <AlertDialogDescription>{options.description}</AlertDialogDescription>}
+          </AlertDialogHeader>
+        )}
         {options.choices && (
           <fieldset className="flex flex-col gap-2">
             <legend className="sr-only">{options.title}</legend>

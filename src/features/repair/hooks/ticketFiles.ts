@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react';
 import type { usePhotoUploadQueue } from './usePhotoUploadQueue';
 import type { useTicketAttachments } from './useTicketAttachments';
 
-/** One ticket's files and its one upload queue, shared by the photo strips and the Documents card (spec 0017). */
+/** One ticket's files and its one upload queue, shared by the Photos card and the Documents card (spec 0017). */
 export interface TicketFiles {
   ticketId: string;
   attachments: ReturnType<typeof useTicketAttachments>;

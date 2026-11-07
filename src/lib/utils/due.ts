@@ -52,3 +52,30 @@ export function dueLabel(ticket: DueTicket, now: number): DueLabel {
   if (toTime(ticket.dueAt) === null) return null;
   return { text: dueSoonText(ticket, now), overdue: false };
 }
+
+/** "Nov 4", with the year only when it differs from the year of `now`, in the browser's timezone. */
+export function dueDate(value: string, now: number) {
+  const due = new Date(value);
+  const sameYear = due.getFullYear() === new Date(now).getFullYear();
+  return due.toLocaleDateString('en-US', sameYear ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/**
+ * Spec 0024, AC-17: the Status card's Due row: the date ("Today" within the same 24 hour block), then a short note,
+ * "4 days overdue" or "in 2 days". Closed and Cancelled get the date alone. Day counts reuse the 24 hour
+ * block math above, so a ticket a few hours past due reads "Today" while `overdue` is still true.
+ */
+export type DueValue = { date: string; note: string | null; overdue: boolean };
+
+export function dueValue(ticket: DueTicket, now: number): DueValue | null {
+  const due = toTime(ticket.dueAt);
+  if (due === null || !ticket.dueAt) return null;
+  const date = dueDate(ticket.dueAt, now);
+  if (!isOpen(ticket)) return { date, note: null, overdue: false };
+  if (isOverdue(ticket, now)) {
+    const days = wholeDays(due, now);
+    return days === 0 ? { date: 'Today', note: null, overdue: true } : { date, note: `${dayCount(days)} overdue`, overdue: true };
+  }
+  const days = wholeDays(now, due);
+  return days === 0 ? { date: 'Today', note: null, overdue: false } : { date, note: `in ${dayCount(days)}`, overdue: false };
+}

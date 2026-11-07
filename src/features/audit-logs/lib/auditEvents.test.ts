@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AuditChange } from '../../../types';
 import {
+  eventText,
   attachmentLine,
   eventStyle,
   issueEventLines,
@@ -182,5 +183,21 @@ describe('issueEventLines', () => {
     expect(
       issueEventLines({ type: 'ISSUE_REMOVED', changes: [c('issue', '[Brakes] A', null), c('resolutionNote', 'Bled the lines', null)] }),
     ).toEqual(['[Brakes] A', 'What fixed it: Bled the lines']);
+  });
+});
+
+describe('eventText (spec 0024, AC-15)', () => {
+  const actor = { id: 'u1', name: 'Victor Ramos', email: 'v@welinc.com', role: 'ADMIN' };
+  it('names the actor and calls the ticket "this ticket"', () => {
+    expect(eventText({ type: 'COST_UPDATE', actor })).toBe('Victor Ramos updated the costs of this ticket');
+    expect(eventText({ type: 'GARAGE_CHANGE', actor })).toBe('Victor Ramos moved this ticket to a different garage');
+  });
+  it('falls back to the email, then to the passive wording, capitalised', () => {
+    expect(eventText({ type: 'CREATED', actor: { ...actor, name: '' } })).toBe('v@welinc.com created this ticket');
+    expect(eventText({ type: 'CREATED', actor: null })).toBe('This ticket was created');
+    expect(eventText({ type: 'STEP_CHECKED', actor: null })).toBe('A step was ticked on this ticket');
+  });
+  it('reads an unknown type by its name', () => {
+    expect(eventText({ type: 'SOMETHING_NEW', actor })).toBe('Victor Ramos SOMETHING_NEW on this ticket');
   });
 });
