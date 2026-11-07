@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { dayCount, dueLabel, isOverdue, toTime, wholeDays } from './due';
+import type { RepairTicket } from '../../types';
+import { dayCount, dueLabel, dueValue, isOverdue, toTime, wholeDays } from './due';
 
 // Spec 0002 due rules. Every helper takes `now`, so the tests never touch the clock.
 
@@ -67,5 +68,37 @@ describe('dueLabel', () => {
 
   it('still labels a finished ticket by its date but never as overdue', () => {
     expect(dueLabel({ status: 'CLOSED', dueAt: at(-DAY) }, now)?.overdue).toBe(false);
+  });
+});
+
+describe('dueValue (spec 0024, AC-17)', () => {
+  const now = new Date(2026, 10, 6, 12, 0).getTime();
+  const at = (y: number, m: number, d: number, h = 12) => new Date(y, m, d, h).toISOString();
+  const value = (status: RepairTicket['status'], dueAt: string | null) => dueValue({ status, dueAt }, now);
+
+  it('reads overdue as days overdue under the date', () => {
+    expect(value('IN_PROGRESS', at(2026, 10, 4))).toEqual({ date: 'Nov 4', note: '2 days overdue', overdue: true });
+    expect(value('FOR_VERIFICATION', at(2026, 10, 5))).toEqual({ date: 'Nov 5', note: '1 day overdue', overdue: true });
+  });
+  it('reads Today within the same 24 hours, a few hours past due still overdue', () => {
+    expect(value('IN_PROGRESS', at(2026, 10, 6, 9))).toEqual({ date: 'Today', note: null, overdue: true });
+    expect(value('IN_PROGRESS', at(2026, 10, 6, 18))).toEqual({ date: 'Today', note: null, overdue: false });
+  });
+  it('reads a later date with the days left', () => {
+    expect(value('ASSIGNED', at(2026, 10, 9))).toEqual({ date: 'Nov 9', note: 'in 3 days', overdue: false });
+  });
+  it('uses the singular for one day either side', () => {
+    expect(value('IN_PROGRESS', at(2026, 10, 5))).toEqual({ date: 'Nov 5', note: '1 day overdue', overdue: true });
+    expect(value('ASSIGNED', at(2026, 10, 7))).toEqual({ date: 'Nov 7', note: 'in 1 day', overdue: false });
+  });
+  it('adds the year only when it differs', () => {
+    expect(value('OPEN', at(2027, 0, 5))?.date).toBe('Jan 5, 2027');
+  });
+  it('shows the date alone on Closed and Cancelled', () => {
+    expect(value('CLOSED', at(2026, 10, 4))).toEqual({ date: 'Nov 4', note: null, overdue: false });
+    expect(value('CANCELLED', at(2026, 10, 4))).toEqual({ date: 'Nov 4', note: null, overdue: false });
+  });
+  it('has no value without a due date', () => {
+    expect(value('OPEN', null)).toBeNull();
   });
 });

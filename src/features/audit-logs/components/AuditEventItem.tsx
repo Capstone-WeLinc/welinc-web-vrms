@@ -8,6 +8,7 @@ import { formatClockTime, formatDateTime, getInitials } from '../../../lib/utils
 import type { AuditEvent } from '../../../types';
 import {
   actorLabel,
+  eventPhrase,
   attachmentLine,
   changeOf,
   costDetailLine,
@@ -71,65 +72,16 @@ function Sentence({ event, showTicket }: { event: AuditEvent; showTicket: boolea
     </>
   );
 
-  switch (event.type) {
-    case 'CREATED':
-      return who ? withActor('created') : <>{rep} was created</>;
-    case 'STATUS_CHANGE':
-      return who ? withActor('changed the status of') : <>The status of {rep} was changed</>;
-    case 'COST_UPDATE':
-      return who ? withActor('updated the costs of') : <>The costs of {rep} were updated</>;
-    case 'UNLOCK':
-      return who ? withActor('unlocked') : <>{rep} was unlocked</>;
-    case 'GARAGE_CHANGE':
-      return who ? withActor('moved', ' to a different garage') : <>{rep} was moved to a different garage</>;
-    case 'KNOWLEDGE_LINK':
-      return who ? withActor('changed a known fix on') : <>A known fix on {rep} was changed</>;
-    case 'MECHANIC_ASSIGNED':
-      return who ? withActor('assigned a mechanic to') : <>A mechanic was assigned to {rep}</>;
-    case 'MECHANIC_UNASSIGNED':
-      return who ? withActor('removed a mechanic from') : <>A mechanic was removed from {rep}</>;
-    case 'ATTACHMENT_ADDED':
-      return who ? withActor('added a file to') : <>A file was added to {rep}</>;
-    case 'ATTACHMENT_REMOVED':
-      return who ? withActor('removed a file from') : <>A file was removed from {rep}</>;
-    case 'ATTACHMENT_MOVED':
-      return who ? withActor('moved a photo on') : <>A photo was moved on {rep}</>;
-    // Spec 0019, AC-19b
-    case 'TICKET_EDITED':
-      return who ? withActor('edited') : <>{rep} was edited</>;
-    case 'ISSUE_ADDED':
-      return who ? withActor('added an issue to') : <>An issue was added to {rep}</>;
-    case 'ISSUE_EDITED':
-      return who ? withActor('edited an issue on') : <>An issue on {rep} was edited</>;
-    case 'ISSUE_REMOVED':
-      return who ? withActor('removed an issue from') : <>An issue was removed from {rep}</>;
-    // Spec 0021, AC-15
-    case 'LOCKED':
-      return who ? withActor('locked', ' again') : <>{rep} was locked again</>;
-    case 'STEP_CHECKED':
-      return who ? withActor('ticked a step on') : <>A step was ticked on {rep}</>;
-    case 'STEP_UNCHECKED':
-      return who ? withActor('unticked a step on') : <>A step was unticked on {rep}</>;
-    // Spec 0023, AC-10
-    case 'STEP_ADDED':
-      return who ? withActor('added a step to') : <>A step was added to {rep}</>;
-    case 'STEP_REMOVED':
-      return who ? withActor('removed a step from') : <>A step was removed from {rep}</>;
-    case 'STEP_EDITED':
-      return who ? withActor('reworded a step on') : <>A step was reworded on {rep}</>;
-    case 'STEP_MOVED':
-      return who ? withActor('moved a step on') : <>A step was moved on {rep}</>;
-    default:
-      return who ? (
-        <>
-          {who} {event.type} on {rep}
-        </>
-      ) : (
-        <>
-          {event.type} on {rep}
-        </>
-      );
-  }
+  const phrase = eventPhrase(event.type);
+  if (who) return withActor(phrase.verb, phrase.tail);
+  const [before, after] = phrase.passive;
+  return (
+    <>
+      {before}
+      {rep}
+      {after}
+    </>
+  );
 }
 
 /** The before and after of the event's changes under the sentence, when the type has one. */

@@ -32,7 +32,7 @@ function RepairNumberCell({ row }: { row: RepairHistoryRow }) {
       {/* Beside the outcome badge on a 375px card the number wraps once, at a hyphen. */}
       <span className="text-sm">{row.repairNumber}</span>
       {row.isUnlocked ? (
-        <BadgePill className="bg-highlight text-highlight-foreground">Unlocked</BadgePill>
+        <BadgePill className="bg-highlight/25 text-highlight-foreground">Unlocked</BadgePill>
       ) : (
         <Lock role="img" aria-label="Locked" className="size-4 text-muted-foreground" />
       )}

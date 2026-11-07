@@ -1,3 +1,4 @@
+import { stripSystem } from '../lib/issueRow';
 import { Controller, useWatch, type Control } from 'react-hook-form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormField } from '@/components/ui/field';
@@ -18,7 +19,7 @@ export function ResolutionFields({ control, issues }: { control: Control<NoteFor
         return (
           <div key={issue.id} className="flex flex-col gap-3 rounded-lg border border-border p-3">
             <p className="text-sm font-medium break-words text-foreground">
-              <span className="text-muted-foreground tabular-nums">{index + 1}.</span> {issue.description}
+              <span className="text-muted-foreground tabular-nums">{index + 1}.</span> {stripSystem(issue.description)}
             </p>
             {linked && (
               <Controller

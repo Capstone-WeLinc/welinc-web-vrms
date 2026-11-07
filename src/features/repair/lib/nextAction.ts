@@ -20,6 +20,8 @@ export interface TicketActions {
   note: string | null;
   /** Why the primary button is disabled, or null when it works (spec 0015, AC-5; spec 0018, AC-4 to AC-6, AC-20). */
   blocked: string | null;
+  /** Spec 0024, AC-13: the photo the forward move waits for, so the reason can link to Photos. */
+  blockedBy: 'beforePhoto' | 'afterPhoto' | null;
 }
 
 export function isClosed(ticket: Pick<RepairTicket, 'status'>) {
@@ -27,7 +29,7 @@ export function isClosed(ticket: Pick<RepairTicket, 'status'>) {
 }
 
 function finishedActions(ticket: RepairTicket): TicketActions {
-  const none = { secondary: null, cancel: null, blocked: null };
+  const none = { secondary: null, cancel: null, blocked: null, blockedBy: null };
   // Unlock stays on its own flag (AC-13)
   if (!ticket.can.unlock) return { ...none, primary: null, note: 'This ticket is closed.' };
   return ticket.isUnlocked
@@ -86,6 +88,8 @@ export function ticketActions(ticket: RepairTicket, holdsVerify = false, photosU
     cancel: moves.find((m) => m.kind === 'cancel') ?? null,
     note: forward || assign ? null : openNote(ticket, moves, holdsVerify),
     blocked: blockedReason(ticket, forward, photosUploading),
+    // The uploading reason wins over a photo rule (blockedReason), so it never links
+    blockedBy: photosUploading && forward?.to === 'IN_PROGRESS' ? null : (forward?.blockedBy ?? null),
   };
 }
 
