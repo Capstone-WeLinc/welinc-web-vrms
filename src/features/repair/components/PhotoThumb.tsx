@@ -30,6 +30,7 @@ export function PhotoThumb({ photo, groupLabel, onOpen, onRemove, onLinkError, d
   const fullName = photoAlt(photo, groupLabel);
   // 0: fine, 1: refetched once, 2: still failing (spec 0017, AC-26)
   const [errors, setErrors] = useState(0);
+  const [tipOpen, setTipOpen] = useState(false);
   const { setNodeRef, setActivatorNodeRef, listeners, attributes, isDragging } = useDraggable({
     id: photo.id,
     disabled: !photo.canMove,
@@ -47,7 +48,8 @@ export function PhotoThumb({ photo, groupLabel, onOpen, onRemove, onLinkError, d
 
   return (
     <li ref={setNodeRef} data-photo-id={photo.id} className={cn('relative w-18 shrink-0', isDragging && 'opacity-40')}>
-      <Tooltip open={marks.length > 0 && !dragActive ? undefined : false}>
+      {/* Always controlled: flipping `open` between undefined and false when a drag starts made React warn */}
+      <Tooltip open={marks.length > 0 && !dragActive && tipOpen} onOpenChange={setTipOpen}>
         <TooltipTrigger asChild>
           <button
             ref={setActivatorNodeRef}
