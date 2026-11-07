@@ -45,58 +45,82 @@ function linkOptions(entries: EntryOption[]): ComboboxOption[] {
   }));
 }
 
-/** AC-3: the progress text with its slim bar, in the row's right column. */
-function Progress({ state, ticked, total }: { state: IssueState; ticked: number; total: number }) {
-  let label: ReactNode;
+interface ProgressProps {
+  state: IssueState;
+  ticked: number;
+  total: number;
+}
+
+/** AC-3: the progress words, the same on phones (line 2) and from 768px (the right column). */
+function ProgressLabel({ state, ticked, total }: ProgressProps) {
   if (state === 'returned') {
-    label = <BadgePill className="h-5 bg-highlight/25 px-1.5 text-highlight-foreground">Returned</BadgePill>;
-  } else if (state === 'none') {
-    label = <span className="text-muted-foreground">No checklist</span>;
-  } else if (state === 'notStarted') {
-    label = <span className="text-muted-foreground">Not started</span>;
-  } else if (state === 'done') {
-    label = <span className="font-medium text-success">Done</span>;
-  } else {
-    label = (
-      <span className="text-foreground tabular-nums">
-        {ticked} of {total}
-      </span>
-    );
+    return <BadgePill className="h-5 bg-highlight/25 px-1.5 text-highlight-foreground">Returned</BadgePill>;
   }
-  const bar = state !== 'returned' && state !== 'none';
+  if (state === 'none') return <span className="text-muted-foreground">No checklist</span>;
+  if (state === 'notStarted') return <span className="text-muted-foreground">Not started</span>;
+  if (state === 'done') return <span className="font-medium text-success">Done</span>;
   return (
-    // AC-3: a fixed column, so the state words line up on every row
-    <span className="flex w-24 shrink-0 flex-col items-end gap-1.5 pt-0.5 text-right text-xs">
-      {label}
-      {bar && (
-        <span aria-hidden="true" className="h-1 w-full overflow-hidden rounded-full bg-muted">
-          <span
-            className={cn('block h-full rounded-full', state === 'done' ? 'bg-success' : 'bg-status-in-progress-fg')}
-            style={{ width: `${total ? (ticked / total) * 100 : 0}%` }}
-          />
-        </span>
-      )}
+    <span className="text-foreground tabular-nums">
+      {ticked} of {total}
     </span>
   );
 }
 
+/** AC-3: the 4px bar, left out (no height) for Returned and No checklist. */
+function ProgressBar({ state, ticked, total, className }: ProgressProps & { className?: string }) {
+  if (state === 'returned' || state === 'none') return null;
+  return (
+    <span aria-hidden="true" className={cn('block h-1 w-full overflow-hidden rounded-full bg-muted', className)}>
+      <span
+        className={cn('block h-full rounded-full', state === 'done' ? 'bg-success' : 'bg-status-in-progress-fg')}
+        style={{ width: `${total ? (ticked / total) * 100 : 0}%` }}
+      />
+    </span>
+  );
+}
+
+/** AC-3: from 768px, a fixed right column so the state words line up on every row; hidden on phones. */
+function ProgressColumn(props: ProgressProps) {
+  return (
+    <span className="hidden w-24 shrink-0 flex-col items-end gap-1.5 pt-0.5 text-right text-xs md:flex">
+      <ProgressLabel {...props} />
+      <ProgressBar {...props} />
+    </span>
+  );
+}
+
+/** AC-3: below 768px the progress label is the first part of line 2 (hidden from 768px). */
+function PhoneProgress(props: ProgressProps) {
+  return (
+    <>
+      <span className="shrink-0 md:hidden">
+        <ProgressLabel {...props} />
+      </span>{' '}
+    </>
+  );
+}
+
 /**
- * AC-2: line 2 of a closed row, plain text only (the header is one button). Its parts are split by
- * space alone (`gap-3`, AC-19: never a dot). One line: the note or the known fix name gives way and
- * ends in an ellipsis, the short parts keep their width.
+ * AC-2: line 2 of a row, plain text only (the header is one button). Its parts are split by space
+ * alone (`gap-3`, AC-19: never a dot). Below 768px it starts with the progress (AC-3) and may wrap,
+ * each part moving down whole; from 768px it is one line where the note or the known fix name gives
+ * way and ends in an ellipsis, the short parts keep their width.
  */
-function RowMeta({ issue, state, status }: { issue: RepairIssue; state: IssueState; status: RepairTicket['status'] }) {
+function RowMeta({ issue, state, status, progress }: { issue: RepairIssue; state: IssueState; status: RepairTicket['status']; progress: ProgressProps }) {
   const resolution = resolutionLine(issue);
-  const line = 'flex min-w-0 items-center gap-3 overflow-hidden text-xs whitespace-nowrap text-muted-foreground';
+  const line =
+    'flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground md:flex-nowrap md:gap-3 md:overflow-hidden md:whitespace-nowrap';
   if (resolution) {
     // AC-2: closed, What fixed it and the hours; open, the category line, since the resolution block shows below (AC-7)
     return (
       <>
         <span className={cn(line, 'group-data-[state=open]/trigger:hidden')}>
-          {resolution.text && <span className="min-w-0 truncate text-foreground/80">{resolution.text}</span>}
+          <PhoneProgress {...progress} />
+          {resolution.text && <span className="max-w-full min-w-0 truncate text-foreground/80">{resolution.text}</span>}
           {resolution.hours && <span className="shrink-0 tabular-nums">{resolution.hours}</span>}
         </span>
         <span className={cn(line, 'hidden group-data-[state=open]/trigger:flex')}>
+          <PhoneProgress {...progress} />
           <FixParts issue={issue} />
         </span>
       </>
@@ -104,6 +128,7 @@ function RowMeta({ issue, state, status }: { issue: RepairIssue; state: IssueSta
   }
   return (
     <span className={line}>
+      <PhoneProgress {...progress} />
       <FixParts issue={issue} />
       {needsResolution(issue, state, status) && <span className="shrink-0">Needs what fixed it</span>}
     </span>
@@ -115,9 +140,10 @@ function FixParts({ issue }: { issue: RepairIssue }) {
   const entry = issue.knowledgeEntry;
   return (
     <>
-      {issue.categoryName && <span className="shrink-0">{issue.categoryName}</span>}
+      {/* Phones: a category wider than the line ends in an ellipsis; from 768px it keeps its width as before */}
+      {issue.categoryName && <span className="max-w-full min-w-0 truncate md:shrink-0">{issue.categoryName}</span>}
       {entry ? (
-        <span className="flex min-w-0 items-center gap-1.5">
+        <span className="flex max-w-full min-w-0 items-center gap-1.5">
           <span className="min-w-0 truncate">Known fix: {entry.name}</span>
           {entry.status !== 'ACTIVE' && (
             <span className="shrink-0">
@@ -255,6 +281,7 @@ export function IssueRow(props: IssueRowProps) {
   // AC-12: a repeated root cause shows once on the row; Suggest keeps the text as stored, prefix off
   const shown = issueDisplayText(text);
   const ticked = tickedCount(steps);
+  const progress: ProgressProps = { state, ticked, total: steps.length };
   const n = index + 1;
   const safety = safetyNote(issue);
 
@@ -369,10 +396,12 @@ export function IssueRow(props: IssueRowProps) {
               <span className="sr-only">Issue {n}: </span>
               {shown}
             </span>
-            <RowMeta issue={issue} state={state} status={ticket.status} />
+            <RowMeta issue={issue} state={state} status={ticket.status} progress={progress} />
+            {/* AC-3: on phones the bar is a strip under the whole of line 2, even when it wraps */}
+            <ProgressBar {...progress} className="mt-1 md:hidden" />
           </span>
         </span>
-        <Progress state={state} ticked={ticked} total={steps.length} />
+        <ProgressColumn {...progress} />
       </AccordionTrigger>
 
       {/* AC-7: the safety note, the checklist, the step actions, then the resolution */}
