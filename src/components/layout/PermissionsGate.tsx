@@ -5,8 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '../shared/EmptyState';
 import { ErrorState } from '../shared/ErrorState';
 import { usePermissions } from '../../lib/permissions/usePermissions';
-import { signOut } from '../../lib/session/session';
-
+import { signOutFlow } from '../../lib/session/signOutFlow';
 
 /**
  * Spec 0011, AC-23: no guarded item shows before the first permissions answer. Loading shows
@@ -37,10 +36,7 @@ export function PermissionsGate({ children }: { children: ReactNode }) {
           title="No VRMS access"
           description="Your account has no permissions in VRMS. Ask an admin to give you a VRMS role."
           action={
-            <Button
-              variant="outline"
-              onClick={signOut}
-            >
+            <Button variant="outline" onClick={() => void signOutFlow({ ask: false })}>
               Sign out
             </Button>
           }

@@ -1,6 +1,5 @@
 import { useAuthStore } from '../../store/authStore';
-import { signOut as endSession } from '../../lib/session/session';
-import { confirm } from '../shared/confirm/confirm';
+import { signOutFlow } from '../../lib/session/signOutFlow';
 
 const VMMS_URL = import.meta.env.VITE_VMMS_URL || 'http://localhost:8002';
 const SUBSYSTEMS = ['VRMS', 'VMMS', 'BMS'];
@@ -21,15 +20,7 @@ export function useShellActions() {
     window.location.href = VMMS_URL;
   };
 
-  const signOut = async () => {
-    const confirmed = await confirm({
-      title: 'Sign out?',
-      description: 'Are you sure you want to sign out of WeLinc VRMS?',
-      confirmText: 'Sign out',
-    });
-    if (!confirmed) return;
-    endSession();
-  };
+  const signOut = () => signOutFlow({ ask: true });
 
   return { canSwitchToVmms, switchToVmms, signOut };
 }

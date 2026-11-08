@@ -18,6 +18,7 @@ import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
 import { Toaster } from './components/ui/sonner';
 import { ConfirmProvider } from './components/shared/confirm/ConfirmProvider';
+import { IdleWarningDialog } from './components/session/IdleWarningDialog';
 import { TooltipProvider } from './components/ui/tooltip';
 import { PermissionsProvider } from './lib/permissions/PermissionsProvider';
 import { CenteredPage, PermissionsGate, ShellSkeleton } from './components/layout/PermissionsGate';
@@ -83,6 +84,7 @@ function App() {
     <TooltipProvider delayDuration={300}>
       <Toaster />
       <ConfirmProvider />
+      <IdleWarningDialog />
       <Routes>
         {DevUiPage && (
           <Route

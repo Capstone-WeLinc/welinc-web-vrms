@@ -15,6 +15,13 @@ interface AuthState {
   user: User | null;
   /** `booting` until the first refresh answers; `unavailable` when welinc-auth can't be reached. */
   status: 'booting' | 'ready' | 'unavailable';
+  /** A background refresh couldn't reach the server; the current token is still in use (AC-25). */
+  reconnecting: boolean;
+  /**
+   * The open idle warning (AC-23): the cutoff it counts down to, and whether Stay signed in
+   * found the session can't be extended (its 12 hour limit). Null when no warning is open.
+   */
+  idleWarning: { cutoff: number; cannotExtend: boolean; busy: boolean } | null;
 }
 
 export const useAuthStore = create<AuthState>()(() => ({
@@ -23,4 +30,6 @@ export const useAuthStore = create<AuthState>()(() => ({
   sessionExpiresAt: null,
   user: null,
   status: 'booting',
+  reconnecting: false,
+  idleWarning: null,
 }));
