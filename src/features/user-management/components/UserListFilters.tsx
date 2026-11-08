@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { ACCOUNT_STATUSES } from '../lib/accountStatus';
 import { WORK_FILTERS, WORK_LABELS } from '../lib/workload';
+import type { VrmsRoles } from '../hooks/useVrmsRoles';
 import { hasActiveFilters, SEARCH_MAX_LENGTH, USERS_SEARCH_ID, type UserFilterValues } from '../lib/userFilters';
 
 interface UserListFiltersProps {
@@ -14,13 +15,16 @@ interface UserListFiltersProps {
   onSearchTextChange: (text: string) => void;
   onChange: (patch: Partial<UserFilterValues>) => void;
   onClear: () => void;
+  /** The VRMS roles from welinc-auth's catalog, in display order (spec 0004, AC-20). */
+  roles: VrmsRoles;
 }
 
 const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
-const ROLE_LABELS = { ADMIN: 'Admin', CHIEF_MECHANIC: 'Chief mechanic', MECHANIC: 'Mechanic' } as const;
 
-export function UserListFilters({ value, searchText, onSearchTextChange, onChange, onClear }: UserListFiltersProps) {
+export function UserListFilters({ value, searchText, onSearchTextChange, onChange, onClear, roles }: UserListFiltersProps) {
   const filtered = hasActiveFilters(value) || searchText.trim() !== '';
+  // A role from the URL that the catalog doesn't list still shows, by its code, so it can be cleared
+  const unknownRole = value.role !== 'all' && roles.status === 'ready' && !roles.roles.some((role) => role.code === value.role);
 
   return (
     <div role="search" aria-label="Filter users" className="mb-4 grid grid-cols-2 gap-3 lg:flex lg:flex-wrap lg:items-end">
@@ -46,18 +50,19 @@ export function UserListFilters({ value, searchText, onSearchTextChange, onChang
         <Label htmlFor="users-role" className={LABEL}>
           Role
         </Label>
-        <Select value={value.role} onValueChange={(role) => onChange({ role: role as UserFilterValues['role'] })}>
+        <Select value={value.role} onValueChange={(role) => onChange({ role })} disabled={roles.status !== 'ready'}>
           <SelectTrigger id="users-role" className="w-full lg:w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
               <SelectItem value="all">All roles</SelectItem>
-              {(Object.keys(ROLE_LABELS) as (keyof typeof ROLE_LABELS)[]).map((role) => (
-                <SelectItem key={role} value={role}>
-                  {ROLE_LABELS[role]}
+              {roles.roles.map((role) => (
+                <SelectItem key={role.code} value={role.code}>
+                  {role.name}
                 </SelectItem>
               ))}
+              {unknownRole && <SelectItem value={value.role}>{value.role}</SelectItem>}
             </SelectGroup>
           </SelectContent>
         </Select>

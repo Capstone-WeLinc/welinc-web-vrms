@@ -6,10 +6,6 @@ import type { ManagedUser, UserRole } from '../../../types';
 export const ACCOUNT_STATUSES = ['LOCKED', 'SETUP_PENDING', 'ACTIVE', 'INACTIVE'] as const;
 export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
 
-/** The roles this page can set. */
-export const EDITABLE_ROLES = ['ADMIN', 'CHIEF_MECHANIC', 'MECHANIC'] as const;
-export type EditableRole = (typeof EDITABLE_ROLES)[number];
-
 type StatusFields = Pick<ManagedUser, 'isActive' | 'isLocked' | 'emailVerified'>;
 
 /** The first that applies: Inactive, Locked, Setup pending, Active. */
@@ -47,12 +43,12 @@ export function onMechanicRoster(user: Pick<ManagedUser, 'roles'>): boolean {
   return vrmsRoles(user).some((role) => role === 'MECHANIC' || role === 'CHIEF_MECHANIC');
 }
 
-export function isEditableRole(role: string): role is EditableRole {
-  return (EDITABLE_ROLES as readonly string[]).includes(role);
-}
-
-/** True when the role control would drop something: more than one VRMS role, or one this page can't set. */
-export function hasUneditableRoles(user: Pick<ManagedUser, 'roles'>) {
+/**
+ * True when the role control would drop something: more than one VRMS role, or one the catalog
+ * doesn't list (`editable`, the VRMS role codes from `GET /auth/systems`). Neither can happen once
+ * welinc-auth enforces the catalog (spec 0004, AC-8, AC-10); this stays as a fallback lock.
+ */
+export function hasUneditableRoles(user: Pick<ManagedUser, 'roles'>, editable: readonly string[]) {
   const roles = vrmsRoles(user);
-  return roles.length > 1 || (roles.length === 1 && !isEditableRole(roles[0]));
+  return roles.length > 1 || (roles.length === 1 && !editable.includes(roles[0]));
 }

@@ -1,9 +1,15 @@
 import api from './axios';
-import { CreateUserPayload, ManagedUser, SystemType, UpdateUserPayload } from '../../types';
+import { CreateUserPayload, ManagedUser, SystemType, SystemView, UpdateUserPayload } from '../../types';
 
 export async function getCurrentUser(): Promise<ManagedUser> {
   const response = await api.get<ManagedUser>('/auth/me');
   return response.data;
+}
+
+/** Every system's roles in display order; public and cached for a minute (spec 0004, AC-16). */
+export async function getSystems(): Promise<SystemView[]> {
+  const response = await api.get<{ systems: SystemView[] }>('/auth/systems');
+  return response.data.systems;
 }
 
 export async function getUsers(system: SystemType = 'VRMS'): Promise<ManagedUser[]> {

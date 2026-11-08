@@ -1,6 +1,23 @@
 export type UserRole = 'ADMIN' | 'MECHANIC' | 'CHIEF_MECHANIC' | 'CUSTOMER_SUPPORT' | 'OPERATIONS';
 export type SystemType = 'VRMS' | 'VMMS' | 'BMS' | 'SHARED';
 
+/** One role in a system's catalog, from `GET /auth/systems` (spec 0004, AC-16). */
+export interface CatalogRole {
+  code: string;
+  name: string;
+  description: string;
+  isSystemAdmin: boolean;
+}
+
+/** One system from `GET /auth/systems`, roles in display order (spec 0004, AC-16). */
+export interface SystemView {
+  code: Exclude<SystemType, 'SHARED'>;
+  name: string;
+  webAddress: string | null;
+  maxRolesPerUser: number | null;
+  roles: CatalogRole[];
+}
+
 export interface UserRoleAssignment {
   role: UserRole;
   system: SystemType;
