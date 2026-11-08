@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { confirm } from '../../../components/shared/confirm/confirm';
 import { FormAlert } from '../../../components/shared/FormAlert';
@@ -17,6 +18,7 @@ import { askAboutOpenWork, releaseAfterLeaving } from '../lib/openWorkFlow';
 import { systemsText } from '../lib/openWorkCopy';
 import { ExistingAccountPicker } from './ExistingAccountPicker';
 import { MechanicOpenTickets } from './MechanicOpenTickets';
+import type { VrmsRoles } from '../hooks/useVrmsRoles';
 import { userFormSchema, type UserFormOutput, type UserFormValues } from '../lib/userFormSchema';
 
 export type SaveOutcome = 'created' | 'updated' | 'created-mail-failed' | 'attached';
@@ -37,13 +39,12 @@ interface UserFormDialogProps {
   onSaved: (user: ManagedUser, outcome: SaveOutcome) => void;
   /** A mechanic's tickets changed from the Open tickets section (feature 57). */
   onWorkChanged: () => void;
+  /** The VRMS roles from welinc-auth's catalog, loaded once by the page (spec 0004, AC-20). */
+  roles: VrmsRoles;
 }
 
-const ROLE_OPTIONS = [
-  { value: 'ADMIN', label: 'Admin' },
-  { value: 'CHIEF_MECHANIC', label: 'Chief mechanic' },
-  { value: 'MECHANIC', label: 'Mechanic' },
-] as const;
+/** Shown in place of a usable role picker when the catalog request failed (spec 0004, AC-20). */
+export const ROLES_LOAD_ERROR = 'We couldn’t load the roles.';
 
 /** A 5xx or no response at all: welinc-auth may have saved the user before its mail failed (AC-10). */
 function mayHaveSaved(err: unknown) {
@@ -65,14 +66,21 @@ export function UserFormDialog({
   refetch,
   onSaved,
   onWorkChanged,
+  roles,
 }: UserFormDialogProps) {
   const formId = useId();
   const { showToast } = useToast();
   const savedRole = user ? (vrmsRoles(user)[0] ?? '') : 'MECHANIC';
   const isSelf = !!user && user.id === currentUserId;
+  const rolesReady = roles.status === 'ready';
   const roleLockReason = isSelf
     ? 'You can’t change your own role.'
-    : user && hasUneditableRoles(user)
+    : user &&
+        rolesReady &&
+        hasUneditableRoles(
+          user,
+          roles.roles.map((role) => role.code),
+        )
       ? 'This user has a role this page can’t edit yet.'
       : null;
 
@@ -127,7 +135,7 @@ export function UserFormDialog({
     }
   };
 
-  const roleLabel = (role: string) => ROLE_OPTIONS.find((option) => option.value === role)?.label ?? role;
+  const roleLabel = (role: string) => roles.roles.find((option) => option.code === role)?.name ?? role;
 
   /** Adds the VRMS role to an account that already exists; their password and name stay as they are. */
   const attach = async (name: string, email: string, role: string) => {
@@ -247,7 +255,8 @@ export function UserFormDialog({
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (submittingRef.current) return;
+    // No save without the catalog: the role sent must be one welinc-auth lists (spec 0004, AC-20)
+    if (submittingRef.current || !rolesReady) return;
     submittingRef.current = true;
     setSubmitting(true);
     if (!user && mode === 'existing') void saveExisting();
@@ -296,7 +305,14 @@ export function UserFormDialog({
           >
             Cancel
           </Button>
-          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" disabled={submitting} loading={saving}>
+          <Button
+            type="submit"
+            form={formId}
+            size="touch"
+            className="md:h-10 md:text-sm"
+            disabled={submitting || !rolesReady}
+            loading={saving}
+          >
             {user ? 'Save changes' : mode === 'new' ? 'Create user' : 'Add to VRMS'}
           </Button>
         </>
@@ -354,34 +370,48 @@ export function UserFormDialog({
           label="Role"
           required
           description={roleLockReason ?? undefined}
-          render={({ field, controlProps, labelId }) => (
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="touch"
-              id={controlProps.id}
-              aria-labelledby={labelId}
-              aria-describedby={controlProps['aria-describedby']}
-              disabled={!!roleLockReason}
+          render={({ field, controlProps }) => (
+            <Select
               value={field.value}
-              // Radix sends '' when the selected item is pressed again; the role is never empty.
-              onValueChange={(value) => value && field.onChange(value)}
-              className="grid w-full grid-cols-2 sm:flex sm:w-fit"
+              onValueChange={field.onChange}
+              onOpenChange={(open) => !open && field.onBlur()}
+              disabled={!!roleLockReason || !rolesReady}
             >
-              {ROLE_OPTIONS.map((option) => (
-                <ToggleGroupItem
-                  key={option.value}
-                  value={option.value}
-                  ref={option.value === field.value ? field.ref : undefined}
-                  onBlur={field.onBlur}
-                  className="md:h-10 md:text-sm"
-                >
-                  {option.label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
+              <SelectTrigger ref={field.ref} {...controlProps} className="h-11 w-full md:h-10">
+                {/* The trigger shows the name only; each option adds its description below it */}
+                <SelectValue placeholder={roles.status === 'loading' ? 'Loading roles…' : 'Pick a role'}>
+                  {field.value ? roleLabel(field.value) : undefined}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {roles.roles.map((option) => (
+                    <SelectItem key={option.code} value={option.code} className="py-2">
+                      <span className="flex flex-col items-start gap-0.5">
+                        <span>{option.name}</span>
+                        <span className="text-xs text-muted-foreground">{option.description}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                  {/* A locked control keeps a role the catalog doesn't list (the fallback lock) */}
+                  {field.value && rolesReady && !roles.roles.some((option) => option.code === field.value) && (
+                    <SelectItem value={field.value}>{field.value}</SelectItem>
+                  )}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           )}
         />
+        {roles.status === 'error' && (
+          <FormAlert
+            message={ROLES_LOAD_ERROR}
+            action={
+              <Button type="button" variant="outline" size="sm" onClick={roles.retry}>
+                Retry
+              </Button>
+            }
+          />
+        )}
         {formError && <FormAlert message={formError} />}
       </form>
       {user && onMechanicRoster(user) && <MechanicOpenTickets user={user} onChanged={onWorkChanged} />}

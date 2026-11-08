@@ -17,6 +17,7 @@ import { usersColumns } from '../components/usersColumns';
 import { useUserActions } from '../hooks/useUserActions';
 import { useUserFilters } from '../hooks/useUserFilters';
 import { useUsers } from '../hooks/useUsers';
+import { useVrmsRoles } from '../hooks/useVrmsRoles';
 import { useWorkload } from '../hooks/useWorkload';
 import { workStateOf } from '../lib/workload';
 import { syncAfterSave } from '../lib/mechanicSync';
@@ -89,6 +90,9 @@ export function UsersPage() {
     closeDialog();
   };
 
+  // Spec 0004, AC-20: the role picker and the filter read welinc-auth's catalog, one request
+  const roles = useVrmsRoles();
+
   // Feature 57: Occupied or Free and open counts for each mechanic
   const { workload, reload: reloadWorkload } = useWorkload(list.users);
 
@@ -158,6 +162,7 @@ export function UsersPage() {
         onSearchTextChange={setSearchText}
         onChange={setFilters}
         onClear={clearFilters}
+        roles={roles}
       />
 
       <DataTable
@@ -190,6 +195,7 @@ export function UsersPage() {
         refetch={list.refetch}
         onSaved={onSaved}
         onWorkChanged={reloadWorkload}
+        roles={roles}
       />
 
       <UserSessionsDialog

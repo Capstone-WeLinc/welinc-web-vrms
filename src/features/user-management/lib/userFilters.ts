@@ -1,6 +1,6 @@
-import type { ManagedUser } from '../../../types';
+import type { ManagedUser, UserRole } from '../../../types';
 import { WORK_FILTERS, type WorkState } from './workload';
-import { ACCOUNT_STATUSES, EDITABLE_ROLES, getAccountStatus, vrmsRoles, type AccountStatus, type EditableRole } from './accountStatus';
+import { ACCOUNT_STATUSES, getAccountStatus, vrmsRoles, type AccountStatus } from './accountStatus';
 
 // Spec 0006: search, role, status and page live in the URL as ?q=&role=&status=&page= (AC-4),
 // plus ?work=occupied|free for mechanics (feature 57).
@@ -9,7 +9,8 @@ import { ACCOUNT_STATUSES, EDITABLE_ROLES, getAccountStatus, vrmsRoles, type Acc
 export type UserFilterValues = {
   /** The search already written (debounced), not the text still being typed. */
   search: string;
-  role: 'all' | EditableRole;
+  /** A VRMS role code from the catalog (spec 0004, AC-20), checked only for its shape here. */
+  role: 'all' | string;
   status: 'all' | AccountStatus;
   /** Mechanics only: Occupied or Free (feature 57). */
   work: 'all' | WorkState;
@@ -25,8 +26,11 @@ export const SEARCH_MAX_LENGTH = 100;
 /** The search box id; focus falls back here when the row an action started from is gone (AC-9). */
 export const USERS_SEARCH_ID = 'users-search';
 
+/** The shape of a role code (welinc-auth's catalog rule); the catalog itself loads later. */
+const ROLE_CODE = /^[A-Z][A-Z0-9_]{1,39}$/;
+
 function readRole(value: string | null): UserFilterValues['role'] {
-  return EDITABLE_ROLES.find((role) => role === value) ?? 'all';
+  return value && ROLE_CODE.test(value) ? value : 'all';
 }
 
 function readStatus(value: string | null): UserFilterValues['status'] {
@@ -74,7 +78,7 @@ export function hasActiveFilters(filters: UserFilterValues) {
 export function matchesUserFilters(user: ManagedUser, filters: UserFilterValues, workState: WorkState | null = null) {
   const search = filters.search.toLowerCase();
   if (search && !user.name.toLowerCase().includes(search) && !user.email.toLowerCase().includes(search)) return false;
-  if (filters.role !== 'all' && !vrmsRoles(user).includes(filters.role)) return false;
+  if (filters.role !== 'all' && !vrmsRoles(user).includes(filters.role as UserRole)) return false;
   if (filters.status !== 'all' && getAccountStatus(user) !== filters.status) return false;
   if (filters.work !== 'all' && workState !== filters.work) return false;
   return true;
