@@ -20,8 +20,7 @@ import { useUsers } from '../hooks/useUsers';
 import { useVrmsRoles } from '../hooks/useVrmsRoles';
 import { useWorkload } from '../hooks/useWorkload';
 import { workStateOf } from '../lib/workload';
-import { syncAfterSave } from '../lib/mechanicSync';
-import { syncMechanics } from '../../../lib/api/vrmsConfigApi';
+import { refreshAfterSave } from '../lib/mechanicRefresh';
 import { sortUsers } from '../lib/accountStatus';
 import { rowFocusRef } from '../lib/focusReturn';
 import { hasActiveFilters, matchesUserFilters, USERS_PAGE_SIZE } from '../lib/userFilters';
@@ -67,14 +66,9 @@ export function UsersPage() {
     upsertUser: list.upsertUser,
   });
 
-  // Once on open, silently: picks up mechanics added or changed elsewhere (spec 0009, AC-12)
-  useEffect(() => {
-    syncMechanics({ quiet: true }).catch(() => undefined);
-  }, []);
-
   const onSaved = (user: ManagedUser, outcome: SaveOutcome) => {
     list.upsertUser(user);
-    syncAfterSave(showToast);
+    refreshAfterSave(user.id, showToast);
     if (outcome === 'created') showToast(`${user.name} added. A setup code was sent to ${user.email}.`);
     else if (outcome === 'attached') showToast(`${user.name} added to VRMS. They keep their current password.`);
     else if (outcome === 'created-mail-failed')

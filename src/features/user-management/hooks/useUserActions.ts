@@ -9,7 +9,7 @@ import { getAccountStatus } from '../lib/accountStatus';
 import { returnFocusToRow } from '../lib/focusReturn';
 import { askAboutOpenWork, releaseAfterLeaving } from '../lib/openWorkFlow';
 import { sharedBlockNote } from '../lib/openWorkCopy';
-import { syncAfterSave } from '../lib/mechanicSync';
+import { refreshAfterSave } from '../lib/mechanicRefresh';
 
 interface UserActionsOptions {
   currentUserId: string | undefined;
@@ -111,7 +111,7 @@ export function useUserActions({ currentUserId, onEdit, onSessions, runWrite, up
       try {
         upsertUser(await setUserStatus(user.id, true));
         showToast(`${user.name} reactivated.`);
-        syncAfterSave(showToast);
+        refreshAfterSave(user.id, showToast);
       } catch (err) {
         showToast(`Couldn’t reactivate ${user.name}: ${reason(err)}.`, 'error');
       }
@@ -129,7 +129,7 @@ export function useUserActions({ currentUserId, onEdit, onSessions, runWrite, up
       if (release === 'STOP') return;
       try {
         upsertUser(await setUserStatus(user.id, false));
-        syncAfterSave(showToast);
+        refreshAfterSave(user.id, showToast);
       } catch (err) {
         showToast(`Couldn’t deactivate ${user.name}: ${reason(err)}.`, 'error');
         return;

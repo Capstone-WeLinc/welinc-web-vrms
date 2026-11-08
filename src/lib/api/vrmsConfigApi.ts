@@ -42,18 +42,25 @@ export async function getAvailableMechanics(): Promise<MechanicOption[]> {
   return response.data;
 }
 
-export interface MechanicSyncResult {
-  created: number;
-  updated: number;
-  deactivated: number;
+export interface MechanicRefreshResult {
+  /** Null when the person has no mechanic row and nothing to create. */
+  mechanicId: string | null;
+  isActive?: boolean;
 }
 
 /**
- * Brings VRMS's in house mechanics in step with welinc-auth (admins only, spec 0009, AC-11).
- * `quiet` skips the global error toasts, for the silent sync on page open (AC-12).
+ * Brings one person's mechanic row in step with welinc-auth at once (spec 0005, AC-18). The
+ * Users page calls it after each save; `quiet` skips the global error toasts.
  */
-export async function syncMechanics(options: { quiet?: boolean } = {}): Promise<MechanicSyncResult> {
-  const response = await api.post<MechanicSyncResult>('/vrms/mechanics/sync', undefined, { quiet: options.quiet });
+export async function refreshMechanic(
+  authUserId: string,
+  options: { quiet?: boolean } = {},
+): Promise<MechanicRefreshResult> {
+  const response = await api.post<MechanicRefreshResult>(
+    `/vrms/mechanics/${encodeURIComponent(authUserId)}/refresh`,
+    undefined,
+    { quiet: options.quiet },
+  );
   return response.data;
 }
 
