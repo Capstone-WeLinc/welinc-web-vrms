@@ -10,6 +10,7 @@ import { AccountSummary } from '../components/AccountSummary';
 import { ChangePasswordForm } from '../components/ChangePasswordForm';
 import { PersonalDetailsForm } from '../components/PersonalDetailsForm';
 import { ProfileSkeleton } from '../components/ProfileSkeleton';
+import { SignedInDevicesCard } from '../components/SignedInDevicesCard';
 
 type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; user: ManagedUser };
 
@@ -39,7 +40,7 @@ export function ProfilePage() {
 
   return (
     <div>
-      <PageHeader title="My profile" subtitle="Your account details and password." icon={UserIcon} />
+      <PageHeader title="My profile" subtitle="Your account details, password and signed in devices." icon={UserIcon} />
 
       {state.status === 'loading' && <ProfileSkeleton />}
 
@@ -64,6 +65,7 @@ export function ProfilePage() {
             />
             <ChangePasswordForm />
           </div>
+          <SignedInDevicesCard />
         </div>
       )}
     </div>
