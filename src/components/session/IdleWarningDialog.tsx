@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Clock } from 'lucide-react';
 import {
   AlertDialog,
@@ -12,27 +12,33 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAuthStore } from '../../store/authStore';
-import { staySignedIn } from '../../lib/session/session';
+import { keepWorking, staySignedIn } from '../../lib/session/session';
 import { signOutFlow } from '../../lib/session/signOutFlow';
-import { countdown } from '../../lib/session/timing';
+import { useCountdown } from './useCountdown';
 
 /**
  * The idle warning (spec 0003, AC-23): opens a minute before the session's cutoff with a
- * countdown. **Stay signed in** keeps the session; Escape counts as staying too. When the cutoff
- * passes, the session module leaves for the portal with `reason=idle`.
+ * countdown. **Stay signed in** keeps the session; Escape counts as staying too. At the 12 hour
+ * limit nothing can extend it, so the choice is **Keep working** (close this and finish up; a
+ * banner keeps counting) or **Sign out now**. When the cutoff passes, the session module leaves
+ * for the portal with `reason=idle`, or `reason=maxage` at the 12 hour end.
  */
 export function IdleWarningDialog() {
   const warning = useAuthStore((state) => state.idleWarning);
   const stayRef = useRef<HTMLButtonElement>(null);
+  const ending = warning?.cannotExtend ?? false;
   const endsAt = warning
     ? new Date(warning.cutoff).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     : '';
 
   return (
     <AlertDialog
-      open={warning !== null}
+      open={warning !== null && !warning.dismissed}
       onOpenChange={(open) => {
-        if (!open && warning && !warning.cannotExtend) void staySignedIn();
+        if (open || !warning) return;
+        // Escape is the safe choice: stay signed in, or at the 12 hour limit, keep working
+        if (warning.cannotExtend) keepWorking();
+        else void staySignedIn();
       }}
     >
       <AlertDialogContent
@@ -47,12 +53,10 @@ export function IdleWarningDialog() {
           <AlertDialogMedia>
             <Clock aria-hidden="true" />
           </AlertDialogMedia>
-          <AlertDialogTitle>
-            {warning?.cannotExtend ? 'Your session is ending' : 'Are you still there?'}
-          </AlertDialogTitle>
+          <AlertDialogTitle>{ending ? 'Your session is ending' : 'Are you still there?'}</AlertDialogTitle>
           <AlertDialogDescription>
-            {warning?.cannotExtend
-              ? `This session has reached its 12 hour limit and ends at ${endsAt}. Save your work, then sign in again.`
+            {ending
+              ? `This session reaches its 12 hour limit at ${endsAt}. Keep working to save what you have open, then sign in again.`
               : `There has been no activity for a while, so you will be signed out at ${endsAt}.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -64,9 +68,19 @@ export function IdleWarningDialog() {
               void signOutFlow({ ask: false });
             }}
           >
-            Log out
+            {ending ? 'Sign out now' : 'Log out'}
           </AlertDialogCancel>
-          {!warning?.cannotExtend && (
+          {ending ? (
+            <AlertDialogAction
+              ref={stayRef}
+              onClick={(event) => {
+                event.preventDefault();
+                keepWorking();
+              }}
+            >
+              Keep working
+            </AlertDialogAction>
+          ) : (
             <AlertDialogAction
               ref={stayRef}
               disabled={warning?.busy}
@@ -86,12 +100,7 @@ export function IdleWarningDialog() {
 
 /** Ticks once a second while the warning is open; mounted only then, so it starts on time. */
 function Countdown({ cutoff }: { cutoff: number }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const tick = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(tick);
-  }, []);
-  const left = countdown(cutoff - now);
+  const left = useCountdown(cutoff);
   return (
     <p
       role="timer"

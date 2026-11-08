@@ -45,6 +45,7 @@ type RefreshAnswer = {
   accessToken: string;
   expiresIn: number;
   sessionExpiresAt: string;
+  sessionAbsoluteExpiresAt?: string | null;
   user: { id: string; name: string; email: string; roles: UserRoleAssignment[] };
 };
 
@@ -53,6 +54,7 @@ type TokenMessage = {
   accessToken: string;
   expiresAt: number;
   sessionExpiresAt: string;
+  sessionAbsoluteExpiresAt: string | null;
   user: User;
 };
 
@@ -73,8 +75,20 @@ let reconnectAttempt = 0;
 let lastPingAt = 0;
 let listening = false;
 
-const loginUrl = (reason?: 'idle' | 'logout') =>
+const loginUrl = (reason?: 'idle' | 'maxage' | 'logout') =>
   reason ? `${PORTAL_URL}/login?reason=${reason}` : `${PORTAL_URL}/login`;
+/**
+ * True when this cutoff is the session's 12 hour end, not its idle one (AC-23): nothing can
+ * extend it, and the portal says so (`reason=maxage`). A second of slack covers rounding.
+ */
+function isMaxAge(cutoff: number): boolean {
+  const end = Date.parse(useAuthStore.getState().sessionAbsoluteExpiresAt ?? '');
+  return Number.isFinite(end) && cutoff >= end - 1000;
+}
+
+/** Where a tab goes when its session ran out: `maxage` at the 12 hour end, else `idle`. */
+const endedUrl = (cutoff: number) => loginUrl(isMaxAge(cutoff) ? 'maxage' : 'idle');
+
 const noAccessUrl = () => `${PORTAL_URL}/?error=NO_SYSTEM_ACCESS&system=VRMS`;
 
 function toUser(answer: RefreshAnswer['user']): User {
@@ -95,6 +109,7 @@ function apply(message: Omit<TokenMessage, 'type'>) {
     token: message.accessToken,
     expiresAt: message.expiresAt,
     sessionExpiresAt: message.sessionExpiresAt,
+    sessionAbsoluteExpiresAt: message.sessionAbsoluteExpiresAt,
     user: message.user,
     status: 'ready',
     reconnecting: false,
@@ -147,6 +162,7 @@ async function callRefresh(): Promise<RefreshOutcome> {
       accessToken: data.accessToken,
       expiresAt: Date.now() + data.expiresIn * 1000,
       sessionExpiresAt: data.sessionExpiresAt,
+      sessionAbsoluteExpiresAt: data.sessionAbsoluteExpiresAt ?? null,
       user: toUser(data.user),
     };
     apply(message);
@@ -251,13 +267,14 @@ function watchIdle() {
 
 /**
  * The status check: a later cutoff reschedules quietly and closes an open warning; otherwise the
- * warning opens (or stays), and once its cutoff has passed the tab leaves with `reason=idle`.
+ * warning opens (or stays), and once its cutoff has passed the tab leaves with `reason=idle`, or
+ * `reason=maxage` when the cutoff was the 12 hour end.
  */
 async function checkIdle() {
   idleTimer = null;
   const result = await fetchStatus();
   if (leaving) return;
-  if (result.kind === 'ended') return leave(loginUrl('idle'));
+  if (result.kind === 'ended') return leave(endedUrl(useAuthStore.getState().idleWarning?.cutoff ?? Date.now()));
   if (result.kind === 'unavailable') {
     idleTimer = setTimeout(() => void checkIdle(), STATUS_RETRY_MS);
     return;
@@ -270,13 +287,28 @@ async function checkIdle() {
     watchIdle();
     return;
   }
-  if (cutoff <= now) return leave(loginUrl('idle'));
+  if (cutoff <= now) return leave(endedUrl(cutoff));
   const open = useAuthStore.getState().idleWarning;
   useAuthStore.setState({
-    idleWarning: { cutoff, cannotExtend: open?.cannotExtend ?? false, busy: false },
+    idleWarning: {
+      cutoff,
+      // Known from the refresh answer, so the 12 hour warning says so from the start
+      cannotExtend: (open?.cannotExtend ?? false) || isMaxAge(cutoff),
+      busy: false,
+      dismissed: open?.dismissed ?? false,
+    },
   });
   // At the cutoff, ask once more: work elsewhere in the last minute still keeps the session
   idleTimer = setTimeout(() => void checkIdle(), cutoff - now);
+}
+
+/**
+ * **Keep working** on the 12 hour warning (AC-23): nothing can extend the session, so the dialog
+ * just closes and a banner keeps counting down. The tab still leaves at the cutoff.
+ */
+export function keepWorking() {
+  const open = useAuthStore.getState().idleWarning;
+  if (open?.cannotExtend) useAuthStore.setState({ idleWarning: { ...open, dismissed: true } });
 }
 
 /** **Stay signed in** (AC-23): an activity ping, then the status again. */
@@ -285,10 +317,10 @@ export async function staySignedIn() {
   if (!open || open.busy) return;
   useAuthStore.setState({ idleWarning: { ...open, busy: true } });
   const ping = await sendActivity();
-  if (ping === 'ended') return leave(loginUrl('idle'));
+  if (ping === 'ended') return leave(endedUrl(open.cutoff));
   const result = await fetchStatus();
   if (leaving) return;
-  if (result.kind === 'ended') return leave(loginUrl('idle'));
+  if (result.kind === 'ended') return leave(endedUrl(open.cutoff));
   if (result.kind === 'ok' && afterStatus(Date.parse(result.data.sessionExpiresAt), Date.now()) === 'reschedule') {
     useAuthStore.setState({ sessionExpiresAt: result.data.sessionExpiresAt, idleWarning: null });
     channel?.postMessage({ type: 'extended' } satisfies ChannelMessage);
