@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { DataModeToggle } from '../../features/dev-ui/components/DataModeToggle';
+import { ReconnectingBanner } from '../session/ReconnectingBanner';
 import { AppHeader } from './AppHeader';
 import { MobileTabBar } from './MobileTabBar';
 import { Sidebar } from './Sidebar';
@@ -30,6 +31,7 @@ export function DashboardShell() {
         )}
       >
         <AppHeader />
+        <ReconnectingBanner />
         <main
           id="main"
           tabIndex={-1}

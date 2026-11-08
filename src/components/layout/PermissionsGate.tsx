@@ -5,9 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '../shared/EmptyState';
 import { ErrorState } from '../shared/ErrorState';
 import { usePermissions } from '../../lib/permissions/usePermissions';
-import { useAuthStore } from '../../store/authStore';
-
-const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
+import { signOutFlow } from '../../lib/session/signOutFlow';
 
 /**
  * Spec 0011, AC-23: no guarded item shows before the first permissions answer. Loading shows
@@ -15,7 +13,6 @@ const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
  */
 export function PermissionsGate({ children }: { children: ReactNode }) {
   const { status, keys, error, retry } = usePermissions();
-  const logout = useAuthStore((state) => state.logout);
 
   if (status === 'loading') return <ShellSkeleton />;
 
@@ -39,13 +36,7 @@ export function PermissionsGate({ children }: { children: ReactNode }) {
           title="No VRMS access"
           description="Your account has no permissions in VRMS. Ask an admin to give you a VRMS role."
           action={
-            <Button
-              variant="outline"
-              onClick={() => {
-                logout();
-                window.location.href = `${PORTAL_URL}/login?logout=true`;
-              }}
-            >
+            <Button variant="outline" onClick={() => void signOutFlow({ ask: false })}>
               Sign out
             </Button>
           }
@@ -57,7 +48,7 @@ export function PermissionsGate({ children }: { children: ReactNode }) {
   return children;
 }
 
-function CenteredPage({ children }: { children: ReactNode }) {
+export function CenteredPage({ children }: { children: ReactNode }) {
   return (
     <main id="main" className="flex min-h-dvh items-center justify-center bg-background px-4">
       {children}
@@ -66,7 +57,7 @@ function CenteredPage({ children }: { children: ReactNode }) {
 }
 
 /** The shell's outline while the keys load: sidebar, header and a few content blocks. */
-function ShellSkeleton() {
+export function ShellSkeleton() {
   return (
     <div className="min-h-dvh bg-background" aria-busy="true" aria-label="Loading">
       <div className="fixed inset-y-0 left-0 hidden w-64 flex-col gap-3 border-r border-border bg-card p-4 md:flex">

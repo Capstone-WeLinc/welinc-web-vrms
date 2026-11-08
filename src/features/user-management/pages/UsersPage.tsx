@@ -10,6 +10,7 @@ import { useToast } from '../../../context/toast';
 import { useAuthStore } from '../../../store/authStore';
 import type { ManagedUser } from '../../../types';
 import { UserFormDialog, type SaveOutcome } from '../components/UserFormDialog';
+import { UserSessionsDialog } from '../components/UserSessionsDialog';
 import { UserListFilters } from '../components/UserListFilters';
 import { UserStatusTiles } from '../components/UserStatusTiles';
 import { usersColumns } from '../components/usersColumns';
@@ -54,10 +55,13 @@ export function UsersPage() {
 
   const openDialog = (user: ManagedUser | null) => setDialog((current) => ({ open: true, user, session: current.session + 1 }));
   const closeDialog = () => setDialog((current) => ({ ...current, open: false }));
+  const [sessions, setSessions] = useState<DialogState>({ open: false, user: null, session: 0 });
+  const openSessions = (user: ManagedUser) => setSessions((current) => ({ open: true, user, session: current.session + 1 }));
 
   const { rowActions } = useUserActions({
     currentUserId,
     onEdit: openDialog,
+    onSessions: openSessions,
     runWrite: list.runWrite,
     upsertUser: list.upsertUser,
   });
@@ -76,12 +80,11 @@ export function UsersPage() {
       showToast(`${user.name} was added, but the setup email couldn’t be sent. Use Resend setup code.`, 'error');
     else showToast(`${user.name} updated.`);
 
-    // Your own row: keep the header's name and email right, in all three copies (AGENTS.md).
+    // Your own row: keep the header's name and email right (the store is memory only).
     const me = useAuthStore.getState().user;
     if (me && me.id === user.id) {
       const updated = { ...me, name: user.name, email: user.email };
       useAuthStore.setState({ user: updated });
-      localStorage.setItem('welinc_user', JSON.stringify(updated));
     }
     closeDialog();
   };
@@ -98,6 +101,7 @@ export function UsersPage() {
   const shownPage = Math.min(page, lastPage(visible.length, USERS_PAGE_SIZE));
   const pageRows = visible.slice((shownPage - 1) * USERS_PAGE_SIZE, shownPage * USERS_PAGE_SIZE);
 
+  const sessionsFocus = useMemo(() => (sessions.user ? rowFocusRef(sessions.user.id) : newUserButton), [sessions.user]);
   const editFocus = useMemo(() => (dialog.user ? rowFocusRef(dialog.user.id) : newUserButton), [dialog.user]);
 
   const newUser = (
@@ -186,6 +190,14 @@ export function UsersPage() {
         refetch={list.refetch}
         onSaved={onSaved}
         onWorkChanged={reloadWorkload}
+      />
+
+      <UserSessionsDialog
+        key={`sessions-${sessions.session}`}
+        open={sessions.open}
+        onOpenChange={(open) => !open && setSessions((current) => ({ ...current, open: false }))}
+        user={sessions.user}
+        finalFocusRef={sessionsFocus}
       />
     </div>
   );

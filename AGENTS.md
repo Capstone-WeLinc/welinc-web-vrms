@@ -2,21 +2,20 @@
 
 ## Overview
 
-The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 where admins and mechanics manage repair tickets, users, audit logs, analytics and the knowledge base. It talks to the gateway on port 3000 (`/auth/*` and `/vrms/*`, which includes `/vrms/analytics/*` and `/vrms/ai/*`) and usually receives its login token from the SSO portal.
+The VRMS web app: a React 19 + Vite 8 + Tailwind 4 single page app on port 8001 where admins and mechanics manage repair tickets, users, audit logs, analytics and the knowledge base. It talks to the gateway on port 3000 (`/auth/*` and `/vrms/*`, which includes `/vrms/analytics/*` and `/vrms/ai/*`) and signs in through the portal: its backend holds an HttpOnly refresh cookie, and the app keeps only a short lived access token in memory (spec 0003).
 
 ## Key files
 
 | File | Owns |
 |---|---|
-| `src/App.tsx` | All routes, the `RequireAuth` guard and the permission guards (`<Can>` on a key), user sync on mount, cross tab reload on token change |
-| `src/lib/api/axios.ts` | The one axios instance: base URL, `Bearer` token from `localStorage`, sign out and redirect on 401 or an "Account is locked" 403, a toast for the 503, and on any other 403 an event that refetches the permissions plus the one fixed "You no longer have permission to do that." toast |
+| `src/App.tsx` | All routes, the `RequireAuth` guard (the shell outline until the first refresh answers, an error with Retry when the sign in service is down) and the permission guards (`<Can>` on a key). There is no `/login` route |
+| `src/lib/api/axios.ts` | The one axios instance: base URL, a toast for the 503, and on a 403 an event that refetches the permissions plus the one fixed "You no longer have permission to do that." toast. The token and the 401 handling are added by `src/lib/session/session.ts` |
+| `src/lib/session/` | The web session (spec 0003): `session.ts` (`boot()` once per load from `main.tsx`, the refresh under the Web Lock `vrms-refresh` with the `vrms-session` BroadcastChannel, the request interceptor with the in memory token, one refresh and one retry on 401 `TOKEN_EXPIRED`, leaving for `<portal>/login` on `SESSION_ENDED`, `signOut`) and `bootGuard.ts` (the pure boot loop guard, a timestamp in `sessionStorage` under `vrms_boot_attempt`) |
 | `src/lib/api/*Api.ts` | Typed wrappers per backend area: `authApi`, `repairApi`, `vrmsConfigApi`, `analyticsApi`, `aiApi`, `knowledgeApi` |
 | `src/lib/api/errors.ts` | `getApiErrorMessage(err, fallback)` and `getApiErrorStatus(err)` for `catch` blocks. A 403 always reads as the fixed denied text, so a page never shows the server's wording for one |
-| `src/store/authStore.ts` | Zustand auth store (token, user, login, logout), persisted |
-| `src/features/auth/pages/LoginPage.tsx` | SSO handoff (`?token=` from the portal); with no token it redirects to `{VITE_PORTAL_URL}/login`. There is no local login form |
+| `src/store/authStore.ts` | Zustand auth store (token, expiry, session cutoff, user, boot `status`), memory only; `session.ts` is its only token writer |
 | `src/features/user-management/` workload files (`lib/workload.ts`, `hooks/useWorkload.ts`, `components/UserWorkCell.tsx`, `MechanicOpenTickets.tsx`, `ReassignDialog.tsx`) | The Users page workload (feature 57): Occupied or Free from `GET /vrms/mechanics/workload` (a deactivated or locked mechanic gets a dash), the `?work=` filter, and the Open tickets list in the Edit user dialog. Its Unassign and Reassign call `PUT /vrms/repairs/:id/assignments`, so the audit rows, status moves and the 409 stale check stay on the server. The pure rules live in `lib/workload.ts` |
 | `src/features/user-management/lib/mechanicSync.ts` | Calls `POST /vrms/mechanics/sync` after Users page saves and when `/users` or `/repairs/new` opens |
-| `src/components/SessionMonitor.tsx` | 15 minute inactivity logout with a warning modal |
 | `src/components/layout/` | `DashboardShell`, `AppHeader`, `SidebarNav`, `UserMenu`, `MobileNavSheet`, `MobileTabBar`, `PageHeader` |
 | `src/components/shared/`, `src/hooks/` | Widgets used by more than one feature (`GoToPageInput` for every paginated table, `Callout`, `DetailSection`, `FormSection`, `BackLink`, `PlateChip` for naming a truck, `MoreMenu` for every ⋮ menu with its "More actions" tooltip, badges on the one `BadgePill` look: sentence case, soft tint, hairline ring in the text colour) and `confirm()` with a `default`, `destructive` or `warning` tone and shared hooks (`useLeaveGuard` for unsaved forms) |
 | `src/lib/permissions/` | The permission keys (`keys.ts`, mirroring the backend's `catalog.ts`), the CASL ability built from `/vrms/permissions/me` (`PermissionsProvider.tsx`, refetched on focus, every 60 seconds and after a 403), `<Can>`, `useCan()` and `usePermissions()` (spec 0011) |
@@ -66,15 +65,14 @@ npm run build        # typecheck then vite build
 ## Gotchas
 
 - `useRepairTicket`'s `reload` is a new function every render, so it must never sit in an effect's dependency list: it makes the effect refetch forever (this froze the photo viewer's arrow keys on a dead link).
-- The auth token is stored three times: `welinc_token` and `welinc_user` in `localStorage`, plus the Zustand persist key `welinc-auth-storage`. Login, logout and the 401 handler must keep all three in step.
+- Never put a token, the user or a last active stamp in `localStorage` or a URL (spec 0003, AC-19). The access token lives in the memory store only, so a reload costs one refresh before the first API call. The boot clears the old `welinc_token`, `welinc_user`, `welinc_last_active` and `welinc-auth-storage` keys. Calls to `/vrms/session/*` go through `api` with `sessionCall: true` and `withCredentials: true`.
 - There is no dark mode. No component toggles a theme and `index.css` has no `.dark` color rules, so the app is light only.
 - The analytics page never shows sample data: a failed section shows the shared error state with Retry, and CSV and PDF export stay disabled while any section is loading or failed. Peso fields arrive as `null` without `ticket.costs.view`, and the page hides money columns with a note.
 - `src/lib/repairOptions.ts` holds the fixed priority, account type and root cause lists for the repair form. Corporations come from the `corporation` lookup list, and drivers from the server search (`GET /vrms/config/drivers?q=`), never from `localStorage` (spec 0016).
 - shadcn components live in `src/components/ui/` (config in `components.json`). Check there before hand rolling a dialog, select, combobox or table.
-- For quick session timeout tests, set `window.__WELINC_INACTIVITY_LIMIT__ = 30` (seconds) in the browser console.
 - In development only, a "Demo data" pill on every page (mounted in `DashboardShell`; the x folds it to a dot, Alt+Shift+D shows or hides it, an amber dot means a fixture is on; or `?data=worst`) swaps in break-ui's worst case, empty, one and 1,284 row datasets (`src/features/dev-ui/worst-case/`); on `/repairs/new` it also fills the form (`formPrefill.ts`), and saves are refused while a fixture shows. Production builds drop it. The Users page and its workload are covered too (`usersData.ts`).
 - In the local Docker stack, `welinc_vrms_frontend` keeps its own `/app/node_modules` volume, so a package installed on the host is missing there and Vite shows "Failed to resolve import". After adding a dependency, run `docker exec welinc_vrms_frontend npm install`, then `docker restart welinc_vrms_frontend`.
-- Seed logins for local testing are in `welinc-auth/prisma/seeds/users.seed.ts` (for example `vrms.admin@welinc.com`). In portal mode, open `/login?token=<jwt>` to skip the portal.
+- Seed logins for local testing are in `welinc-auth/prisma/seeds/users.seed.ts` (for example `vrms.admin@welinc.com`). Sign in on the portal (`http://localhost:8000`); there is no `?token=` shortcut any more.
 
 ## Agent skills
 
