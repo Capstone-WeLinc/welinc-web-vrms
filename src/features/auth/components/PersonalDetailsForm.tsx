@@ -29,12 +29,11 @@ export function PersonalDetailsForm({ initialValues }: { initialValues: Personal
         contact: values.contact || undefined,
       });
 
-      // Keep the header and the stored session in step with the new name and email.
+      // Keep the header in step with the new name and email (the store is memory only).
       const storeUser = useAuthStore.getState().user;
       if (storeUser) {
         const updated = { ...storeUser, name: updatedUser.name, email: updatedUser.email };
         useAuthStore.setState({ user: updated });
-        localStorage.setItem('welinc_user', JSON.stringify(updated));
       }
 
       reset({ name: updatedUser.name, email: updatedUser.email, contact: updatedUser.contact ?? '' });

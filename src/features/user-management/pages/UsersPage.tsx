@@ -76,12 +76,11 @@ export function UsersPage() {
       showToast(`${user.name} was added, but the setup email couldn’t be sent. Use Resend setup code.`, 'error');
     else showToast(`${user.name} updated.`);
 
-    // Your own row: keep the header's name and email right, in all three copies (AGENTS.md).
+    // Your own row: keep the header's name and email right (the store is memory only).
     const me = useAuthStore.getState().user;
     if (me && me.id === user.id) {
       const updated = { ...me, name: user.name, email: user.email };
       useAuthStore.setState({ user: updated });
-      localStorage.setItem('welinc_user', JSON.stringify(updated));
     }
     closeDialog();
   };

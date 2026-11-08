@@ -10,11 +10,6 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-interface Window {
-  // Dev only override for SessionMonitor, in seconds
-  __WELINC_INACTIVITY_LIMIT__?: number;
-}
-
 declare module '*.css';
 declare module '*.png';
 declare module '*.jpg';

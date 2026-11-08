@@ -1,8 +1,7 @@
-import { lazy, Suspense, useEffect, type ReactElement } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { lazy, Suspense, type ReactElement } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { DashboardPage } from './features/dashboard/pages/DashboardPage';
 import { HistoryPage } from './features/repair/pages/HistoryPage';
-import { LoginPage } from './features/auth/pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { RepairDetailPage } from './features/repair/pages/RepairDetailPage';
 import { RepairFormPage } from './features/repair/pages/RepairFormPage';
@@ -17,14 +16,13 @@ import { KnowledgeLibraryPage } from './features/knowledge-base/pages/KnowledgeL
 import { KnowledgeSuggestionsPage } from './features/knowledge-base/pages/KnowledgeSuggestionsPage';
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
-import type { User } from './types';
-import { getCurrentUser } from './lib/api/authApi';
 import { Toaster } from './components/ui/sonner';
 import { ConfirmProvider } from './components/shared/confirm/ConfirmProvider';
 import { TooltipProvider } from './components/ui/tooltip';
-import SessionMonitor from './components/SessionMonitor';
 import { PermissionsProvider } from './lib/permissions/PermissionsProvider';
-import { PermissionsGate } from './components/layout/PermissionsGate';
+import { CenteredPage, PermissionsGate, ShellSkeleton } from './components/layout/PermissionsGate';
+import { ErrorState } from './components/shared/ErrorState';
+import { boot } from './lib/session/session';
 import { useCan, usePermissions } from './lib/permissions/usePermissions';
 import type { ModuleName, PermissionKey } from './lib/permissions/keys';
 import { ModuleOffPage } from './pages/ModuleOffPage';
@@ -42,15 +40,26 @@ const DevUiPage = import.meta.env.DEV
   ? lazy(() => import('./features/dev-ui/pages/DevUiPage').then((m) => ({ default: m.DevUiPage })))
   : null;
 
+/**
+ * Spec 0003, AC-20: the app shows its shell outline until the first refresh answers. Without a
+ * session the boot itself goes to the login, so there is no local login page.
+ */
 function RequireAuth({ children }: { children: ReactElement }) {
-  const token = useAuthStore((state) => state.token);
-  const location = useLocation();
+  const status = useAuthStore((state) => state.status);
+  const signedIn = useAuthStore((state) => state.token !== null);
 
-  if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  if (status === 'unavailable') {
+    return (
+      <CenteredPage>
+        <ErrorState
+          title="Can't reach the sign in service"
+          message="Check your connection, then try again."
+          onRetry={() => void boot()}
+        />
+      </CenteredPage>
+    );
   }
-
-  return children;
+  return status === 'ready' && signedIn ? children : <ShellSkeleton />;
 }
 
 /**
@@ -70,45 +79,11 @@ const KNOWLEDGE_READ: PermissionKey[] = ['knowledge.view'];
 const KNOWLEDGE_EDIT: PermissionKey[] = ['knowledge.edit'];
 
 function App() {
-  const token = useAuthStore((state) => state.token);
-  const setUser = (user: User) => useAuthStore.setState({ user });
-
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'token' || e.key === 'welinc_token' || e.key === 'accessToken' || e.key === 'welinc_user') {
-        window.location.reload();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  useEffect(() => {
-    if (token) {
-      getCurrentUser()
-        .then((fullUser) => {
-          const currentUser = useAuthStore.getState().user;
-          if (currentUser) {
-            const updated = {
-              ...currentUser,
-              name: fullUser.name || '',
-              email: fullUser.email || currentUser.email,
-            };
-            setUser(updated);
-            localStorage.setItem('welinc_user', JSON.stringify(updated));
-          }
-        })
-        .catch((err) => console.error('Failed to sync user details on mount:', err));
-    }
-  }, [token]);
-
   return (
     <TooltipProvider delayDuration={300}>
       <Toaster />
       <ConfirmProvider />
-      <SessionMonitor />
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
         {DevUiPage && (
           <Route
             path="/dev/ui"

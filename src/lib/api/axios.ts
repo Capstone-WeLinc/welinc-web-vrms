@@ -4,11 +4,8 @@ import { getApiErrorMessage, getDisabledModule, MODULE_OFF_MESSAGE } from './err
 import { DENIED_MESSAGE, FORBIDDEN_EVENT } from '../permissions/keys';
 import { installDataModes } from '../../features/dev-ui/worst-case/install';
 
-const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
 const UNAVAILABLE = 'Sign in service unavailable. Try again in a moment.';
 const UNAVAILABLE_TOAST_GAP_MS = 10_000;
-// Long enough to read the reason before the page leaves
-const SIGN_OUT_DELAY_MS = 2_500;
 
 declare module 'axios' {
   interface AxiosRequestConfig {
@@ -24,35 +21,10 @@ const api = axios.create({
   },
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('welinc_token');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
 let lastUnavailableToast = 0;
-let signingOut = false;
 
-/**
- * Ends the session and leaves for the portal. The portal shows no message of its own, so the
- * reason shows here first. `logout=true` makes the portal drop its copy of the token too, or it
- * would send the person straight back.
- */
-function signOutToPortal(message: string) {
-  if (signingOut) return;
-  signingOut = true;
-  localStorage.removeItem('welinc_token');
-  localStorage.removeItem('welinc_user');
-  localStorage.removeItem('welinc-auth-storage');
-  showToast(message, 'error');
-  setTimeout(() => {
-    window.location.href = `${PORTAL_URL}/login?logout=true`;
-  }, SIGN_OUT_DELAY_MS);
-}
-
-// Spec 0009, AC-6 and AC-26
+// Spec 0009, AC-26. The token, the 401 refresh and retry and the sign out live in
+// src/lib/session/session.ts, which adds its own interceptors to this instance (spec 0003).
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -66,19 +38,13 @@ api.interceptors.response.use(
         lastUnavailableToast = now;
         showToast(getApiErrorMessage(error, UNAVAILABLE), 'error');
       }
-    } else if (status === 401) {
-      signOutToPortal(getApiErrorMessage(error, 'Your session has ended. Sign in again.'));
-    } else if (status === 403) {
-      const message = getApiErrorMessage(error, "You don't have access to that.");
-      if (message.startsWith('Account is locked')) {
-        signOutToPortal(message);
-      } else {
-        // A missing permission: stay signed in and refetch the keys at once. A page that now
-        // needs a key you lost sends you to the dashboard on its own (spec 0011, AC-23, AC-24).
-        window.dispatchEvent(new Event(FORBIDDEN_EVENT));
-        // A switched off module says so instead (spec 0012, AC-11); the refetch then hides it
-        if (!quiet) showToast(getDisabledModule(error) ? MODULE_OFF_MESSAGE : DENIED_MESSAGE, 'error');
-      }
+    } else if (status === 403 && !error.config?.sessionCall) {
+      // A missing permission: stay signed in and refetch the keys at once. A page that now
+      // needs a key you lost sends you to the dashboard on its own (spec 0011, AC-23, AC-24).
+      // A lock no longer signs anyone out (spec 0003, AC-4).
+      window.dispatchEvent(new Event(FORBIDDEN_EVENT));
+      // A switched off module says so instead (spec 0012, AC-11); the refetch then hides it
+      if (!quiet) showToast(getDisabledModule(error) ? MODULE_OFF_MESSAGE : DENIED_MESSAGE, 'error');
     }
     return Promise.reject(error);
   }
