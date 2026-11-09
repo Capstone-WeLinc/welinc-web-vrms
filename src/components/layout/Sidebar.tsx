@@ -1,4 +1,4 @@
-import { ArrowRightLeft, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutGrid, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrandMark } from './BrandMark';
 import { SidebarAction, SidebarNav } from './SidebarNav';
@@ -13,7 +13,7 @@ interface SidebarProps {
 /** Desktop navigation (768px and up): w-64 expanded, w-16 icon only. */
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const sections = useNavSections();
-  const { canSwitchToVmms, switchToVmms, signOut } = useShellActions();
+  const { canSwitchSystem, switchSystem, signOut } = useShellActions();
 
   return (
     <aside
@@ -37,8 +37,8 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
       </div>
 
       <div className={cn('flex shrink-0 flex-col gap-1 border-t border-sidebar-foreground/10 py-3', collapsed ? 'px-2' : 'px-3')}>
-        {canSwitchToVmms && (
-          <SidebarAction icon={ArrowRightLeft} label="Switch to VMMS" onClick={switchToVmms} collapsed={collapsed} />
+        {canSwitchSystem && (
+          <SidebarAction icon={LayoutGrid} label="Switch system" onClick={switchSystem} collapsed={collapsed} />
         )}
         <SidebarAction icon={LogOut} label="Sign out" onClick={signOut} collapsed={collapsed} />
         <SidebarAction

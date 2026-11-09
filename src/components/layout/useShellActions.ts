@@ -1,26 +1,18 @@
 import { useAuthStore } from '../../store/authStore';
 import { signOutFlow } from '../../lib/session/signOutFlow';
+import { canSwitchSystem, switchSystemUrl } from '../../lib/session/switchSystem';
 
-const VMMS_URL = import.meta.env.VITE_VMMS_URL || 'http://localhost:8002';
-const SUBSYSTEMS = ['VRMS', 'VMMS', 'BMS'];
-
-/** Sign out and subsystem switching, shared by the sidebar, the phone sheet and the user menu. */
+/** Sign out and Switch system, shared by the sidebar, the phone sheet and the user menu. */
 export function useShellActions() {
   const user = useAuthStore((state) => state.user);
+  const showSwitchSystem = canSwitchSystem(user);
 
-  const systems = new Set(
-    (user?.roles ?? [])
-      .map((assignment) => assignment.system?.toUpperCase())
-      .filter((system) => system && SUBSYSTEMS.includes(system)),
-  );
-  const canSwitchToVmms = systems.size > 1;
-
-  // No token in a URL (spec 0001 section 13, rule 6). S4 replaces this with Switch system
-  const switchToVmms = () => {
-    window.location.href = VMMS_URL;
+  // Same tab, to the portal launcher; no token in a URL (spec 0007, AC-9)
+  const switchSystem = () => {
+    window.location.assign(switchSystemUrl());
   };
 
   const signOut = () => signOutFlow({ ask: true });
 
-  return { canSwitchToVmms, switchToVmms, signOut };
+  return { canSwitchSystem: showSwitchSystem, switchSystem, signOut };
 }

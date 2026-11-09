@@ -46,7 +46,14 @@ type RefreshAnswer = {
   expiresIn: number;
   sessionExpiresAt: string;
   sessionAbsoluteExpiresAt?: string | null;
-  user: { id: string; name: string; email: string; roles: UserRoleAssignment[] };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    roles: UserRoleAssignment[];
+    /** Missing from an older welinc-auth: counts as none (spec 0007, AC-8). */
+    systems?: string[];
+  };
 };
 
 type TokenMessage = {
@@ -100,6 +107,7 @@ function toUser(answer: RefreshAnswer['user']): User {
     role: (vrms?.role ?? 'MECHANIC') as UserRole,
     system: 'VRMS',
     roles: answer.roles,
+    systems: Array.isArray(answer.systems) ? answer.systems : [],
   };
 }
 
