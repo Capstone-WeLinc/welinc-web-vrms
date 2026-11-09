@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRightLeft, LogOut, Menu, X } from 'lucide-react';
+import { LayoutGrid, LogOut, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { BrandMark } from './BrandMark';
@@ -10,7 +10,7 @@ import { useShellActions } from './useShellActions';
 /** Phone navigation for admins (below 768px): the full sidebar in a sheet. */
 export function MobileNavSheet({ sections }: { sections: NavSection[] }) {
   const [open, setOpen] = useState(false);
-  const { canSwitchToVmms, switchToVmms, signOut } = useShellActions();
+  const { canSwitchSystem, switchSystem, signOut } = useShellActions();
   const close = () => setOpen(false);
 
   return (
@@ -47,7 +47,7 @@ export function MobileNavSheet({ sections }: { sections: NavSection[] }) {
           <SidebarNav sections={sections} onNavigate={close} />
         </div>
         <div className="flex shrink-0 flex-col gap-1 border-t border-sidebar-foreground/10 px-3 py-3 pb-safe">
-          {canSwitchToVmms && <SidebarAction icon={ArrowRightLeft} label="Switch to VMMS" onClick={switchToVmms} />}
+          {canSwitchSystem && <SidebarAction icon={LayoutGrid} label="Switch system" onClick={switchSystem} />}
           <SidebarAction
             icon={LogOut}
             label="Sign out"

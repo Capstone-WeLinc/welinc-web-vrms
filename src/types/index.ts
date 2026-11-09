@@ -30,6 +30,8 @@ export interface User {
   role: UserRole;
   system: SystemType;
   roles?: UserRoleAssignment[];
+  /** Every system the user holds, from welinc-auth (spec 0007, AC-8). */
+  systems: string[];
 }
 
 export interface ManagedUser {

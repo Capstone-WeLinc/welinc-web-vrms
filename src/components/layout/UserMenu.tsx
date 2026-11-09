@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRightLeft, ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
+import { LayoutGrid, ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { RoleBadge } from '../shared/RoleBadge';
 import {
@@ -19,7 +19,7 @@ import { useShellActions } from './useShellActions';
  */
 export function UserMenu() {
   const user = useAuthStore((state) => state.user);
-  const { canSwitchToVmms, switchToVmms, signOut } = useShellActions();
+  const { canSwitchSystem, switchSystem, signOut } = useShellActions();
 
   if (!user) return null;
   const name = user.name || user.email;
@@ -54,10 +54,10 @@ export function UserMenu() {
             Profile
           </Link>
         </DropdownMenuItem>
-        {canSwitchToVmms && (
-          <DropdownMenuItem onSelect={switchToVmms}>
-            <ArrowRightLeft aria-hidden="true" />
-            Switch to VMMS
+        {canSwitchSystem && (
+          <DropdownMenuItem onSelect={switchSystem}>
+            <LayoutGrid aria-hidden="true" />
+            Switch system
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
