@@ -3,6 +3,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# Spec 0010: the deploy passes the hosted addresses; the build refuses missing, http or localhost ones
+ARG VITE_API_BASE_URL
+ARG VITE_PORTAL_URL
 RUN npx vite build
 
 FROM nginx:alpine

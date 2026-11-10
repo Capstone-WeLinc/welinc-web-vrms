@@ -18,8 +18,8 @@ import {
  * ever sees it. Nothing about the session is kept in `localStorage`.
  */
 
-export const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:8000';
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+export const PORTAL_URL = import.meta.env.VITE_PORTAL_URL;
+const API_URL = import.meta.env.VITE_API_BASE_URL;
 const LOCK_NAME = 'vrms-refresh';
 const CHANNEL_NAME = 'vrms-session';
 /** A token good for longer than this is fresh enough to skip a refresh (AC-21). */
