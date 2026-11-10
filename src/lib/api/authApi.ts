@@ -1,9 +1,36 @@
 import api from './axios';
 import { CreateUserPayload, ManagedUser, SystemType, SystemView, UpdateUserPayload } from '../../types';
 
-export async function getCurrentUser(): Promise<ManagedUser> {
-  const response = await api.get<ManagedUser>('/auth/me');
+/** `/auth/me`: the profile plus the address of a pending email change, or null (suite spec 0009, AC-20). */
+export type CurrentUser = ManagedUser & { pendingEmail: string | null };
+
+export async function getCurrentUser(): Promise<CurrentUser> {
+  const response = await api.get<CurrentUser>('/auth/me');
   return response.data;
+}
+
+/** A started email change (AC-17). `users.email` stays the same until the code is used. */
+export interface PendingEmailChange {
+  pendingEmail: string;
+  expiresAt: string;
+  resendAfter: number;
+}
+
+/** Starts a change of your own email, or resends the code when `newEmail` is the pending one (AC-17, AC-19). */
+export async function startEmailChange(payload: { newEmail: string; currentPassword: string }): Promise<PendingEmailChange> {
+  const response = await api.post<PendingEmailChange>('/auth/profile/email', payload);
+  return response.data;
+}
+
+/** The code sent to the new address; the answer is your profile with the new email (AC-18). */
+export async function verifyEmailChange(code: string): Promise<ManagedUser> {
+  const response = await api.post<ManagedUser>('/auth/profile/email/verify', { code });
+  return response.data;
+}
+
+/** Drops a pending email change; fine when there is none (AC-19). */
+export async function cancelEmailChange(): Promise<void> {
+  await api.delete('/auth/profile/email');
 }
 
 /** Every system's roles in display order; public and cached for a minute (spec 0004, AC-16). */
@@ -19,13 +46,19 @@ export async function getUsers(system: SystemType = 'VRMS'): Promise<ManagedUser
   return response.data;
 }
 
-export async function createUser(payload: CreateUserPayload): Promise<ManagedUser> {
-  const response = await api.post<ManagedUser>('/auth/users', payload);
+/**
+ * An admin save's answer. `setupEmailSent` comes back when a setup code was due: on create, and
+ * on an email change while setup is pending (suite spec 0009, AC-21); false means it wasn't sent.
+ */
+export type SavedUser = ManagedUser & { setupEmailSent?: boolean };
+
+export async function createUser(payload: CreateUserPayload): Promise<SavedUser> {
+  const response = await api.post<SavedUser>('/auth/users', payload);
   return response.data;
 }
 
-export async function updateUser(userId: string, payload: UpdateUserPayload): Promise<ManagedUser> {
-  const response = await api.patch<ManagedUser>(`/auth/users/${userId}`, payload);
+export async function updateUser(userId: string, payload: UpdateUserPayload): Promise<SavedUser> {
+  const response = await api.patch<SavedUser>(`/auth/users/${userId}`, payload);
   return response.data;
 }
 
@@ -45,7 +78,8 @@ export async function unlockUser(userId: string): Promise<ManagedUser> {
   return response.data;
 }
 
-export async function updateOwnProfile(payload: { name?: string; email?: string; contact?: string }): Promise<ManagedUser> {
+/** Name and contact only: your email changes through `startEmailChange` (suite spec 0009, AC-20). */
+export async function updateOwnProfile(payload: { name?: string; contact?: string }): Promise<ManagedUser> {
   const response = await api.patch<ManagedUser>('/auth/profile', payload);
   return response.data;
 }

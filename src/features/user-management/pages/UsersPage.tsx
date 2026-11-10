@@ -9,6 +9,7 @@ import { lastPage } from '../../../components/shared/data-table/types';
 import { useToast } from '../../../context/toast';
 import { useAuthStore } from '../../../store/authStore';
 import type { ManagedUser } from '../../../types';
+import type { SavedUser } from '../../../lib/api/authApi';
 import { UserFormDialog, type SaveOutcome } from '../components/UserFormDialog';
 import { UserSessionsDialog } from '../components/UserSessionsDialog';
 import { UserListFilters } from '../components/UserListFilters';
@@ -66,10 +67,15 @@ export function UsersPage() {
     upsertUser: list.upsertUser,
   });
 
-  const onSaved = (user: ManagedUser, outcome: SaveOutcome) => {
+  const onSaved = (user: SavedUser, outcome: SaveOutcome) => {
     list.upsertUser(user);
     refreshAfterSave(user.id, showToast);
-    if (outcome === 'created') showToast(`${user.name} added. A setup code was sent to ${user.email}.`);
+    if (user.setupEmailSent === false && (outcome === 'created' || outcome === 'updated'))
+      showToast(
+        `${user.name} was ${outcome === 'created' ? 'added' : 'updated'}, but the setup email couldn’t be sent. Use Resend setup code.`,
+        'error',
+      );
+    else if (outcome === 'created') showToast(`${user.name} added. A setup code was sent to ${user.email}.`);
     else if (outcome === 'attached') showToast(`${user.name} added to VRMS. They keep their current password.`);
     else if (outcome === 'created-mail-failed')
       showToast(`${user.name} was added, but the setup email couldn’t be sent. Use Resend setup code.`, 'error');

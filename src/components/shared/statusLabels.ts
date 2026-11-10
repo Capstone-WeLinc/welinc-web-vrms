@@ -22,6 +22,7 @@ export const STATUS_LABELS: Record<string, string> = {
   INACTIVE: 'Inactive',
   LOCKED: 'Locked',
   SETUP_PENDING: 'Setup pending',
+  EMAIL_NOT_VERIFIED: 'Email not verified',
   DRAFT: 'Draft',
 };
 

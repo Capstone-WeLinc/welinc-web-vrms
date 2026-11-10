@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -109,6 +109,10 @@ export function UserFormDialog({
   // Set once welinc-auth says the email is not ours to change (spec 0011, AC-28).
   const [emailLocked, setEmailLocked] = useState(false);
   const otherSystems = user?.otherSystems ?? [];
+  // Suite spec 0009, AC-21, AC-29: your own email changes from My profile, with a code
+  const emailReadOnly = emailLocked || isSelf;
+  const typedEmail = useWatch({ control, name: 'email' });
+  const emailChanging = !!user && typedEmail.trim().toLowerCase() !== user.email.trim().toLowerCase();
 
   const finish = () => {
     submittingRef.current = false;
@@ -175,9 +179,9 @@ export function UserFormDialog({
     if (user && email !== savedEmail) {
       const ok = await confirm({
         title: 'Change their sign in email?',
-        description: `${name} will sign in with ${email} from now on. ${user.email} will stop working.${
-          isSelf ? ' Use the new address the next time you sign in.' : ''
-        }${otherSystems.length ? ` This changes their sign in for ${systemsText(otherSystems)} too.` : ''}`,
+        description: `${name} will sign in with ${email} from now on. ${user.email} will stop working. They'll confirm the new address at their next sign in, and we'll tell the old one.${
+          otherSystems.length ? ` This changes their sign in for ${systemsText(otherSystems)} too.` : ''
+        }`,
         confirmText: 'Change email',
         cancelText: 'Keep editing',
       });
@@ -357,9 +361,17 @@ export function UserFormDialog({
               name="email"
               label="Email"
               required
-              description={emailLocked ? 'This account is an admin in another system. Send a reset code instead.' : 'This is their sign in.'}
+              description={
+                emailLocked
+                  ? 'This account is an admin in another system. Send a reset code instead.'
+                  : isSelf
+                    ? 'Change your own email from My profile.'
+                    : emailChanging
+                      ? "They'll confirm the new address at their next sign in, and we'll tell the old one."
+                      : 'This is their sign in.'
+              }
               render={({ field, controlProps }) => (
-                <Input {...field} {...controlProps} type="email" autoComplete="off" spellCheck={false} readOnly={emailLocked} />
+                <Input {...field} {...controlProps} type="email" autoComplete="off" spellCheck={false} readOnly={emailReadOnly} />
               )}
             />
           </>

@@ -96,6 +96,7 @@ function user(profile: Profile, i: number): ManagedUser {
     name: profile.name,
     email: profile.email,
     emailVerified: profile.emailVerified ?? true,
+    passwordSet: true,
     isActive: profile.isActive ?? true,
     isLocked: profile.isLocked ?? false,
     lockedAt: profile.isLocked ? new Date(Date.now() - 3 * 86_400_000).toISOString() : null,

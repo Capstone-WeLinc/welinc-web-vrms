@@ -3,7 +3,8 @@ import { User as UserIcon } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { useAuthStore } from '../../../store/authStore';
-import { getCurrentUser } from '../../../lib/api/authApi';
+import { getCurrentUser, type CurrentUser } from '../../../lib/api/authApi';
+import { useToast } from '../../../context/toast';
 import { getApiErrorMessage } from '../../../lib/api/errors';
 import type { ManagedUser } from '../../../types';
 import { AccountSummary } from '../components/AccountSummary';
@@ -12,7 +13,7 @@ import { PersonalDetailsForm } from '../components/PersonalDetailsForm';
 import { ProfileSkeleton } from '../components/ProfileSkeleton';
 import { SignedInDevicesCard } from '../components/SignedInDevicesCard';
 
-type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; user: ManagedUser };
+type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; user: CurrentUser };
 
 export function ProfilePage() {
   const storeUser = useAuthStore((state) => state.user);
@@ -32,6 +33,22 @@ export function ProfilePage() {
       cancelled = true;
     };
   }, [attempt]);
+
+  const { showToast } = useToast();
+
+  const setPending = (pendingEmail: string | null) =>
+    setState((current) => (current.status === 'ready' ? { ...current, user: { ...current.user, pendingEmail } } : current));
+
+  // Suite spec 0009, AC-27: the new email is live; read /auth/me again so the profile and the
+  // shell show it (the store is memory only)
+  const emailChanged = (changed: ManagedUser) => {
+    showToast(`Your email is now ${changed.email}.`, 'success');
+    const storeUser = useAuthStore.getState().user;
+    if (storeUser) useAuthStore.setState({ user: { ...storeUser, email: changed.email } });
+    getCurrentUser()
+      .then((user) => setState({ status: 'ready', user }))
+      .catch(() => setState((current) => (current.status === 'ready' ? { ...current, user: { ...current.user, ...changed, pendingEmail: null } } : current)));
+  };
 
   const retry = () => {
     setState({ status: 'loading' });
@@ -59,9 +76,11 @@ export function ProfilePage() {
             <PersonalDetailsForm
               initialValues={{
                 name: state.user.name ?? '',
-                email: state.user.email ?? '',
                 contact: state.user.contact ?? '',
               }}
+              email={{ address: state.user.email, verified: state.user.emailVerified, pending: state.user.pendingEmail }}
+              onPendingEmailChange={setPending}
+              onEmailChanged={emailChanged}
             />
             <ChangePasswordForm />
           </div>

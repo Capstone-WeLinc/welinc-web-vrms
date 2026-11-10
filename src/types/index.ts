@@ -39,6 +39,8 @@ export interface ManagedUser {
   name: string;
   email: string;
   emailVerified: boolean;
+  /** False until a setup or reset code was used (suite spec 0009, AC-22). */
+  passwordSet: boolean;
   isActive: boolean;
   isLocked: boolean;
   lockedAt: string | null;
@@ -53,7 +55,6 @@ export interface ManagedUser {
 export interface CreateUserPayload {
   name: string;
   email: string;
-  password?: string;
   isActive?: boolean;
   roleAssignments: UserRoleAssignment[];
   /** Spec 0011, AC-30: add the roles to the existing WeLinc account with this email. */
@@ -63,7 +64,6 @@ export interface CreateUserPayload {
 export interface UpdateUserPayload {
   name?: string;
   email?: string;
-  password?: string;
   isActive?: boolean;
   roleAssignments?: UserRoleAssignment[];
 }
