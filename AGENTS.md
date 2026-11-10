@@ -42,13 +42,15 @@ npm install
 npm run dev          # Vite on 8001
 npm run lint         # ESLint 9 flat config (eslint.config.js)
 npm run typecheck    # tsc --noEmit with the root tsconfig.json
-npm run build        # typecheck then vite build
+npm run build        # typecheck then the production build; needs real https VITE_* values (CI, hosting)
+npm run build:local  # typecheck then build with the committed .env.development (use this on your machine)
 ```
 
 `npm run test` runs Vitest (node environment, `src/**/*.test.ts`) on pure logic only: no jsdom, no component tests. Shared fixtures live in `src/test/`.
 
 ## Conventions
 
+- `VITE_API_BASE_URL` and `VITE_PORTAL_URL` are checked by `env.schema.ts`, run from `vite.config.ts` before dev and every build (spec 0010): missing or malformed stops it, and a production build also refuses `http` and `localhost`. App code reads `import.meta.env.VITE_...` with no `||` fallback (`no-localhost-fallback.test.ts` fails on a local address outside comments). A new `VITE_*` name goes in `env.schema.ts`, `.env.example`, `.env.development` and `src/vite-env.d.ts` (the drift test checks the first three), plus `env:` in `ci.yml` and an `ARG` in `Dockerfile.prod`.
 - Code is grouped by feature: `src/features/<feature>/{pages,components,hooks}`. Shared layout and widgets live in `src/components/`, API wrappers in `src/lib/api/`.
 - Every backend call goes through the axios instance (via a wrapper in `src/lib/api/`), so it carries the token and the 401 handling. Don't use raw `fetch`.
 - In `catch` blocks, leave the error untyped and read it with `getApiErrorMessage`; no `err: any`.
