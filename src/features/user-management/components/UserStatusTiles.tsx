@@ -1,4 +1,4 @@
-import { Lock, MailWarning, UserCheck, UserX, type LucideIcon } from 'lucide-react';
+import { Lock, MailQuestion, MailWarning, UserCheck, UserX, type LucideIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiCard } from '../../../components/shared/KpiCard';
 import { statusLabel } from '../../../components/shared/statusLabels';
@@ -9,6 +9,7 @@ import { ACCOUNT_STATUSES, getAccountStatus, type AccountStatus } from '../lib/a
 const TILES: Record<AccountStatus, { icon: LucideIcon; tone: 'default' | 'success' | 'destructive' | 'highlight' }> = {
   LOCKED: { icon: Lock, tone: 'destructive' },
   SETUP_PENDING: { icon: MailWarning, tone: 'highlight' },
+  EMAIL_NOT_VERIFIED: { icon: MailQuestion, tone: 'highlight' },
   ACTIVE: { icon: UserCheck, tone: 'success' },
   INACTIVE: { icon: UserX, tone: 'default' },
 };

@@ -1,11 +1,26 @@
 import { z } from 'zod';
 import { validatePassword } from './passwordRules';
 
+/** No email: it changes through the Change email dialog, with a code (suite spec 0009, AC-20). */
 export const personalDetailsSchema = z.object({
   name: z.string().trim().min(1, 'Enter your full name.'),
-  email: z.string().trim().min(1, 'Enter your email address.').email('Enter a valid email address.'),
   contact: z.string().trim(),
 });
+
+/** Suite spec 0009, AC-17: the first step of changing your own email. */
+export const emailChangeSchema = z.object({
+  newEmail: z.string().trim().min(1, 'Enter your new email address.').email('Enter a valid email address.'),
+  currentPassword: z.string().min(1, 'Enter your current password.'),
+});
+
+export type EmailChangeValues = z.infer<typeof emailChangeSchema>;
+
+/** AC-18: the code sent to the new address. */
+export const emailCodeSchema = z.object({
+  code: z.string().regex(/^\d{6}$/, 'Enter the 6 digit code.'),
+});
+
+export type EmailCodeValues = z.infer<typeof emailCodeSchema>;
 
 export type PersonalDetailsValues = z.infer<typeof personalDetailsSchema>;
 

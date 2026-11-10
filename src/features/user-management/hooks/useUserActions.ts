@@ -43,11 +43,15 @@ export function useUserActions({ currentUserId, onEdit, onSessions, runWrite, up
   const sendCode = (user: ManagedUser, kind: 'reset' | 'setup') =>
     run(user, async () => {
       const setup = kind === 'setup';
+      // Suite spec 0009, AC-29: a reset also confirms an unconfirmed email
+      const unverified = !setup && !user.emailVerified;
       const ok = await confirm({
         title: setup ? `Resend ${user.name}’s setup code?` : `Send ${user.name} a reset code?`,
         description: setup
-          ? `We’ll email a new code to ${user.email}. It works for 10 minutes.`
-          : `We’ll email a code to ${user.email}. It works for 10 minutes and lets them choose a new password from the sign in page. Their current password keeps working until then.`,
+          ? `We’ll email a new code to ${user.email}. It works for 1 hour.`
+          : unverified
+            ? `We’ll email a code to ${user.email}. Using it sets a new password and confirms their email. They'll also get a code when they next sign in.`
+            : `We’ll email a code to ${user.email}. It works for 10 minutes and lets them choose a new password from the sign in page. Their current password keeps working until then.`,
         confirmText: 'Send code',
       });
       if (!ok) return;
@@ -101,7 +105,7 @@ export function useUserActions({ currentUserId, onEdit, onSessions, runWrite, up
     run(user, async () => {
       // From the raw fields, not the derived status, which reads Inactive for all of them.
       const parts = [
-        user.emailVerified
+        user.passwordSet
           ? 'They can sign in again with their current password.'
           : 'They still need to set a password. Send them a setup code after reactivating.',
       ];
@@ -142,7 +146,9 @@ export function useUserActions({ currentUserId, onEdit, onSessions, runWrite, up
   const rowActions = (user: ManagedUser): RowAction[] => {
     const status = getAccountStatus(user);
     const actions: RowAction[] = [{ label: 'Edit', onSelect: () => onEdit(user) }];
-    if (status === 'ACTIVE') actions.push({ label: 'Send reset code', onSelect: () => sendCode(user, 'reset') });
+    if (status === 'ACTIVE' || status === 'EMAIL_NOT_VERIFIED') {
+      actions.push({ label: 'Send reset code', onSelect: () => sendCode(user, 'reset') });
+    }
     if (status === 'SETUP_PENDING') actions.push({ label: 'Resend setup code', onSelect: () => sendCode(user, 'setup') });
     if (status === 'LOCKED') {
       actions.push({ label: 'Unlock and send reset code', onSelect: () => unlockAndSend(user) });

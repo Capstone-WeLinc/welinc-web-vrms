@@ -2,7 +2,7 @@ import { BadgePill } from './BadgePill';
 import { statusLabel } from './statusLabels';
 
 interface StatusBadgeProps {
-  /** A RepairStatus, a VehicleStatus, a user account status (ACTIVE, INACTIVE, LOCKED, SETUP_PENDING), or a knowledge entry status (DRAFT). */
+  /** A RepairStatus, a VehicleStatus, a user account status (ACTIVE, INACTIVE, LOCKED, SETUP_PENDING, EMAIL_NOT_VERIFIED), or a knowledge entry status (DRAFT). */
   status: string;
 }
 
@@ -19,6 +19,7 @@ const STATUS_CLASSES: Record<string, string> = {
   ON_HOLD: PENDING,
   PENDING_APPROVAL: PENDING,
   SETUP_PENDING: PENDING,
+  EMAIL_NOT_VERIFIED: PENDING,
   DRAFT: PENDING,
   IN_PROGRESS,
   OUTSOURCED: IN_PROGRESS,
