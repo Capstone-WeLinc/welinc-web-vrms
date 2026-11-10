@@ -190,17 +190,16 @@ export function costTotalLine(event: AuditEvent) {
   return total ? `${moneyMove(total)} total` : null;
 }
 
-/** "Parts ₱3,000 → ₱3,500 · Labor ₱1,000 → ₱1,700 · Lump sum": only the parts that changed. */
-export function costDetailLine(event: AuditEvent) {
+/** One line per part that changed: "Parts ₱3,000 → ₱3,500", "Labor ₱1,000 → ₱1,700", "Lump sum". No separators (spec 0024, AC-19). */
+export function costDetailLines(event: AuditEvent): string[] {
   const parts = changeOf(event, 'partsCost');
   const labor = changeOf(event, 'laborCost');
   const lumpSum = changeOf(event, 'isLumpSum');
-  const bits = [
+  return [
     parts && `Parts ${moneyMove(parts)}`,
     labor && `Labor ${moneyMove(labor)}`,
     lumpSum && (lumpSum.after === 'true' ? 'Lump sum' : 'Itemized'),
-  ].filter(Boolean);
-  return bits.length ? bits.join(' · ') : null;
+  ].filter((line): line is string => Boolean(line));
 }
 
 /** Spec 0018, AC-18: the photo kinds read as their group, whatever label the row was written with. */

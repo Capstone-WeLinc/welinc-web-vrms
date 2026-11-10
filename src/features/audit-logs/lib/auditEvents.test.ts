@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AuditChange } from '../../../types';
 import {
+  costDetailLines,
   eventText,
   attachmentLine,
   eventStyle,
@@ -199,5 +200,24 @@ describe('eventText (spec 0024, AC-15)', () => {
   });
   it('reads an unknown type by its name', () => {
     expect(eventText({ type: 'SOMETHING_NEW', actor })).toBe('Victor Ramos SOMETHING_NEW on this ticket');
+  });
+});
+
+// Spec 0024, AC-19: the Activity card's cost detail has no dot separator, one line per change
+describe('costDetailLines', () => {
+  it('gives one line for each part that changed, in order', () => {
+    expect(
+      costDetailLines({
+        changes: [
+          { field: 'partsCost', before: '3000.00', after: '3500.00' },
+          { field: 'laborCost', before: '1000.00', after: '1700.00' },
+          { field: 'isLumpSum', before: 'false', after: 'true' },
+        ],
+      } as never),
+    ).toEqual(['Parts ₱3,000 → ₱3,500', 'Labor ₱1,000 → ₱1,700', 'Lump sum']);
+  });
+
+  it('gives nothing when no cost part changed', () => {
+    expect(costDetailLines({ changes: [{ field: 'totalCost', before: '1', after: '2' }] } as never)).toEqual([]);
   });
 });

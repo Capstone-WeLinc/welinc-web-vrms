@@ -11,7 +11,7 @@ import {
   eventPhrase,
   attachmentLine,
   changeOf,
-  costDetailLine,
+  costDetailLines,
   costTotalLine,
   eventStyle,
   checklistEditLine,
@@ -104,12 +104,16 @@ function Change({ event }: { event: AuditEvent }) {
   }
   if (event.type === 'COST_UPDATE') {
     const total = costTotalLine(event);
-    const detail = costDetailLine(event);
-    if (!total && !detail) return null;
+    const detail = costDetailLines(event);
+    if (!total && detail.length === 0) return null;
     return (
       <div className="flex flex-col gap-0.5 tabular-nums">
         {total && <p className="text-sm font-medium text-foreground">{total}</p>}
-        {detail && <p className="text-xs text-muted-foreground">{detail}</p>}
+        {detail.map((line) => (
+          <p key={line} className="text-xs text-muted-foreground">
+            {line}
+          </p>
+        ))}
       </div>
     );
   }
