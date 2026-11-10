@@ -26,4 +26,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm test
+      # Spec 0010: a production build needs real https addresses; these only satisfy the check
       - run: npm run build
+        env:
+          VITE_API_BASE_URL: https://api.ci.example.test
+          VITE_PORTAL_URL: https://portal.ci.example.test
