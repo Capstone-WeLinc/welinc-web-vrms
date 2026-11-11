@@ -1,5 +1,6 @@
 import type { Column } from '../../../components/shared/data-table/types';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
+import { BadgePill } from '../../../components/shared/BadgePill';
 import { formatShortDate } from '../../../lib/utils/format';
 import type { MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
@@ -21,7 +22,18 @@ export function usersColumns(
 
   const rest: Column<ManagedUser>[] = [
     { id: 'role', header: 'Role', mobile: 'field', cell: (user) => <UserRoleCell user={user} /> },
-    { id: 'status', header: 'Status', mobile: 'badge', cell: (user) => <StatusBadge status={getAccountStatus(user)} /> },
+    {
+      id: 'status',
+      header: 'Status',
+      mobile: 'badge',
+      cell: (user) => (
+        <span className="flex flex-wrap gap-1">
+          <StatusBadge status={getAccountStatus(user)} />
+          {/* Suite spec 0012, AC-23: they asked to delete their account */}
+          {user.pendingDeletion && <BadgePill className="bg-destructive/10 text-destructive">Pending deletion</BadgePill>}
+        </span>
+      ),
+    },
     { id: 'work', header: 'Work', mobile: 'field', cell: (user) => <UserWorkCell user={user} workload={workload} /> },
     {
       id: 'added',

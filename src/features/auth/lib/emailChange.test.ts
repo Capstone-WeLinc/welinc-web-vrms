@@ -10,12 +10,17 @@ function failure(status: number, data: unknown) {
 }
 
 describe('emailChangeFailure', () => {
-  it('puts a wrong password under the password field', () => {
-    expect(emailChangeFailure(failure(400, { message: 'Current password is incorrect' }))).toEqual({
+  // Suite spec 0012, AC-2: the shared recheck answers WRONG_PASSWORD with the tries left
+  it('puts a wrong password under the password field with the tries left', () => {
+    expect(emailChangeFailure(failure(400, { code: 'WRONG_PASSWORD', attemptsLeft: 2 }))).toEqual({
       kind: 'field',
       field: 'currentPassword',
-      message: 'That password isn’t right.',
+      message: 'That password isn’t right. 2 tries left before your account locks.',
     });
+  });
+
+  it('says a lock above the buttons', () => {
+    expect(emailChangeFailure(failure(403, { code: 'ACCOUNT_LOCKED' }))).toMatchObject({ kind: 'form' });
   });
 
   it.each([

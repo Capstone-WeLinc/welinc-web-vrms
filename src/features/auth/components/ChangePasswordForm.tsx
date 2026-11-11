@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { changeOwnPassword } from '../../../lib/api/authApi';
 import { getApiErrorMessage } from '../../../lib/api/errors';
+import { passwordCheckFailure } from '../lib/passwordCheck';
 import { useToast } from '../../../context/toast';
 import { FormAlert } from '../../../components/shared/FormAlert';
 import { PasswordInput } from '../../../components/shared/PasswordInput';
@@ -16,7 +17,7 @@ const EMPTY: ChangePasswordValues = { currentPassword: '', newPassword: '', conf
 export function ChangePasswordForm() {
   const { showToast } = useToast();
   const [error, setError] = useState<string | null>(null);
-  const { control, handleSubmit, reset, formState: { isSubmitting } } = useForm<ChangePasswordValues>({
+  const { control, handleSubmit, reset, setError: setFieldError, formState: { isSubmitting } } = useForm<ChangePasswordValues>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: EMPTY,
   });
@@ -28,7 +29,10 @@ export function ChangePasswordForm() {
       reset(EMPTY);
       showToast('Your password is changed.', 'success');
     } catch (err) {
-      setError(getApiErrorMessage(err, 'We couldn’t change your password. Try again.'));
+      // Suite spec 0012, AC-2: a wrong current password shows under its field with the tries left
+      const password = passwordCheckFailure(err);
+      if (password?.kind === 'wrong') setFieldError('currentPassword', { message: password.message }, { shouldFocus: true });
+      else setError(password?.message ?? getApiErrorMessage(err, 'We couldn’t change your password. Try again.'));
     }
   };
 
