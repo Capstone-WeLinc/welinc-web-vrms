@@ -12,6 +12,7 @@ import type { ManagedUser } from '../../../types';
 import type { SavedUser } from '../../../lib/api/authApi';
 import { UserFormDialog, type SaveOutcome } from '../components/UserFormDialog';
 import { UserSessionsDialog } from '../components/UserSessionsDialog';
+import { UserActivityDialog } from '../components/UserActivityDialog';
 import { UserListFilters } from '../components/UserListFilters';
 import { UserStatusTiles } from '../components/UserStatusTiles';
 import { usersColumns } from '../components/usersColumns';
@@ -58,11 +59,14 @@ export function UsersPage() {
   const closeDialog = () => setDialog((current) => ({ ...current, open: false }));
   const [sessions, setSessions] = useState<DialogState>({ open: false, user: null, session: 0 });
   const openSessions = (user: ManagedUser) => setSessions((current) => ({ open: true, user, session: current.session + 1 }));
+  const [activity, setActivity] = useState<DialogState>({ open: false, user: null, session: 0 });
+  const openActivity = (user: ManagedUser) => setActivity((current) => ({ open: true, user, session: current.session + 1 }));
 
   const { rowActions } = useUserActions({
     currentUserId,
     onEdit: openDialog,
     onSessions: openSessions,
+    onActivity: openActivity,
     runWrite: list.runWrite,
     upsertUser: list.upsertUser,
   });
@@ -106,6 +110,7 @@ export function UsersPage() {
   const pageRows = visible.slice((shownPage - 1) * USERS_PAGE_SIZE, shownPage * USERS_PAGE_SIZE);
 
   const sessionsFocus = useMemo(() => (sessions.user ? rowFocusRef(sessions.user.id) : newUserButton), [sessions.user]);
+  const activityFocus = useMemo(() => (activity.user ? rowFocusRef(activity.user.id) : newUserButton), [activity.user]);
   const editFocus = useMemo(() => (dialog.user ? rowFocusRef(dialog.user.id) : newUserButton), [dialog.user]);
 
   const newUser = (
@@ -204,6 +209,14 @@ export function UsersPage() {
         onOpenChange={(open) => !open && setSessions((current) => ({ ...current, open: false }))}
         user={sessions.user}
         finalFocusRef={sessionsFocus}
+      />
+
+      <UserActivityDialog
+        key={`activity-${activity.session}`}
+        open={activity.open}
+        onOpenChange={(open) => !open && setActivity((current) => ({ ...current, open: false }))}
+        user={activity.user}
+        finalFocusRef={activityFocus}
       />
     </div>
   );

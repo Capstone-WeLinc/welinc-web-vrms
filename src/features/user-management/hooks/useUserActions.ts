@@ -16,6 +16,8 @@ interface UserActionsOptions {
   onEdit: (user: ManagedUser) => void;
   /** Opens the user's sessions dialog (spec 0003, AC-35). */
   onSessions: (user: ManagedUser) => void;
+  /** Opens the user's activity dialog (spec 0011, AC-20). */
+  onActivity: (user: ManagedUser) => void;
   runWrite: <T>(write: () => Promise<T>) => Promise<T>;
   upsertUser: (user: ManagedUser) => void;
 }
@@ -26,7 +28,7 @@ function reason(err: unknown) {
 }
 
 /** Each row's actions menu and the confirm, call and toast behind every item (spec 0006, AC-9, AC-15 to AC-21, spec 0011, AC-35). */
-export function useUserActions({ currentUserId, onEdit, onSessions, runWrite, upsertUser }: UserActionsOptions) {
+export function useUserActions({ currentUserId, onEdit, onSessions, onActivity, runWrite, upsertUser }: UserActionsOptions) {
   const { showToast } = useToast();
   // Rows with an action between its confirm and its last response; their other actions do nothing.
   const busy = useRef(new Set<string>());
@@ -154,6 +156,8 @@ export function useUserActions({ currentUserId, onEdit, onSessions, runWrite, up
       actions.push({ label: 'Unlock and send reset code', onSelect: () => unlockAndSend(user) });
       actions.push({ label: 'Unlock', onSelect: () => unlock(user) });
     }
+    // Your own row too (spec 0011, AC-20)
+    actions.push({ label: 'Activity', onSelect: () => onActivity(user) });
     // Not your own: you end your devices from your profile (spec 0003, AC-35)
     if (user.id !== currentUserId) actions.push({ label: 'Sessions', onSelect: () => onSessions(user) });
     if (status === 'INACTIVE') actions.push({ label: 'Reactivate', onSelect: () => reactivate(user) });

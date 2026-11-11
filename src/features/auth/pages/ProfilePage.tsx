@@ -12,6 +12,7 @@ import { ChangePasswordForm } from '../components/ChangePasswordForm';
 import { PersonalDetailsForm } from '../components/PersonalDetailsForm';
 import { ProfileSkeleton } from '../components/ProfileSkeleton';
 import { SignedInDevicesCard } from '../components/SignedInDevicesCard';
+import { RecentActivityCard } from '../components/RecentActivityCard';
 
 type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; user: CurrentUser };
 
@@ -85,6 +86,7 @@ export function ProfilePage() {
             <ChangePasswordForm />
           </div>
           <SignedInDevicesCard />
+          <RecentActivityCard />
         </div>
       )}
     </div>
