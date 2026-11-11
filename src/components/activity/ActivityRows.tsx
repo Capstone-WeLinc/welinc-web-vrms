@@ -29,6 +29,8 @@ interface ActivityRowsProps {
 /** Account events grouped by Manila day (spec 0011, AC-19, AC-20). */
 export function ActivityRows({ events, labels, viewer }: ActivityRowsProps) {
   const days = groupByDay(events);
+  // AC-18: DB-IP Lite is CC BY 4.0, so any screen that shows a place credits it
+  const showsPlace = events.some((e) => !e.localNetwork && (e.country || e.network));
   return (
     <div className="flex flex-col gap-4">
       {days.map((day) => (
@@ -41,6 +43,14 @@ export function ActivityRows({ events, labels, viewer }: ActivityRowsProps) {
           </ul>
         </section>
       ))}
+      {showsPlace && (
+        <p className="text-xs text-muted-foreground">
+          Places are approximate.{' '}
+          <a href="https://db-ip.com" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
+            IP data by DB-IP
+          </a>
+        </p>
+      )}
     </div>
   );
 }
