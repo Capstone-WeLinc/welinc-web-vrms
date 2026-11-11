@@ -153,17 +153,6 @@ export async function getMechanicOpenTickets(authUserId: string): Promise<Mechan
   return response.data;
 }
 
-export interface ReleaseResult {
-  released: number;
-  reopened: number;
-}
-
-/** Ends the person's assignments after they left VRMS (users.manage, spec 0011, AC-33). */
-export async function releaseTickets(authUserId: string, reason: 'DEACTIVATED' | 'ROLE_REMOVED'): Promise<ReleaseResult> {
-  const response = await api.post<ReleaseResult>(`/vrms/mechanics/${authUserId}/release-tickets`, { reason }, { quiet: true });
-  return response.data;
-}
-
 export interface VehicleSummary {
   id: string;
   plateNumber: string;

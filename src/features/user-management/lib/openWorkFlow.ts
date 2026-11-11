@@ -1,16 +1,13 @@
-import { toast } from 'sonner';
-import { confirm, confirmChoice } from '../../../components/shared/confirm/confirm';
-import type { ToastType } from '../../../context/toast';
-import { getApiErrorMessage } from '../../../lib/api/errors';
-import { getOpenWork, releaseTickets, type OpenWork } from '../../../lib/api/vrmsConfigApi';
+import { confirm } from '../../../components/shared/confirm/confirm';
+import { getOpenWork, type OpenWork } from '../../../lib/api/vrmsConfigApi';
 import type { ManagedUser } from '../../../types';
 import { onMechanicRoster } from './accountStatus';
-import { openWorkSummary, RELEASE_CHOICES, ticketCount } from './openWorkCopy';
+import { openWorkSummary, ticketCount } from './openWorkCopy';
 
-// Spec 0011, AC-35: what happens to a person's open tickets when they leave VRMS. It never blocks:
-// the Admin picks "Move them back to the queue" (default) or "Keep them assigned".
+// Spec 0011, AC-35: what happens to a person's open tickets when they leave VRMS. It never blocks.
 
-export type Release = 'RELEASE' | 'KEEP' | 'STOP';
+/** 'GO' saves the change; 'STOP' means the Admin backed out. */
+export type Release = 'GO' | 'STOP';
 
 async function readOpenWork(user: ManagedUser): Promise<OpenWork | null | 'stop'> {
   try {
@@ -38,43 +35,27 @@ interface AskOptions {
   alwaysConfirm: boolean;
 }
 
-/** Checks open work, then asks. 'STOP' means the Admin backed out. */
+/**
+ * Checks open work, then asks once. Suite spec 0012, AC-24: VRMS takes the tickets off a person
+ * who leaves on its own (within about 30 seconds), so there is no choice to make, only what will
+ * happen to say.
+ */
 export async function askAboutOpenWork(user: ManagedUser, options: AskOptions): Promise<Release> {
   const work = await readOpenWork(user);
   if (work === 'stop') return 'STOP';
   const { title, confirmText, tone } = options;
 
   if (work && work.total > 0) {
-    const choice = await confirmChoice({
+    const ok = await confirm({
       title,
-      description: `${options.description} ${user.name} has ${ticketCount(work.total)} (${openWorkSummary(work.byStatus)}). What should happen to them?`,
+      description: `${options.description} ${user.name} has ${ticketCount(work.total)} (${openWorkSummary(work.byStatus)}). They go back to the queue for the Chief Mechanic to assign again.`,
       confirmText,
       tone,
-      choices: RELEASE_CHOICES,
     });
-    if (!choice) return 'STOP';
-    return choice === 'KEEP' ? 'KEEP' : 'RELEASE';
+    return ok ? 'GO' : 'STOP';
   }
 
-  if (!options.alwaysConfirm) return 'KEEP';
+  if (!options.alwaysConfirm) return 'GO';
   const ok = await confirm({ title, description: options.description, confirmText, tone });
-  return ok ? 'KEEP' : 'STOP';
-}
-
-/** Moves their tickets back to the queue once welinc-auth has the change; a failure offers Retry. */
-export async function releaseAfterLeaving(
-  user: ManagedUser,
-  reason: 'DEACTIVATED' | 'ROLE_REMOVED',
-  showToast: (message: string, type?: ToastType) => void,
-  done: string,
-): Promise<void> {
-  try {
-    const result = await releaseTickets(user.id, reason);
-    const moved = result.released === 0 ? '' : ` ${ticketCount(result.released).replace('open ', '')} taken off them.`;
-    showToast(`${done}${moved}`);
-  } catch (err) {
-    toast.error(`${done} But their tickets couldn’t be moved: ${getApiErrorMessage(err, 'check your connection')}`.replace(/\.$/, '.'), {
-      action: { label: 'Retry', onClick: () => void releaseAfterLeaving(user, reason, showToast, done) },
-    });
-  }
+  return ok ? 'GO' : 'STOP';
 }
