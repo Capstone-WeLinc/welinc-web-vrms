@@ -11,12 +11,14 @@ import { dueLabel } from '../../../lib/utils/due';
 import type { RepairTicket } from '../../../types';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useMechanicRoster } from '../hooks/useMechanicRoster';
+import { useReleasedTickets } from '../hooks/useReleasedTickets';
 import { mechanicWorkList, signOffNames, timeInStatus, verificationQueue, waitTone } from '../lib/attention';
 import { buildTeam, type TeamSummary } from '../lib/team';
 import { DashboardPanel, PanelEmpty } from './DashboardPanel';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { DashboardTicketRow, TicketRowList } from './DashboardTicketRow';
 import { LastUpdated } from './LastUpdated';
+import { ReleasedNotice } from './ReleasedNotice';
 import { TeamSection } from './TeamSection';
 import { TruncationNote } from './TruncationNote';
 
@@ -124,6 +126,7 @@ export function ChiefDashboard() {
     includeHistory: false,
   });
   const roster = useMechanicRoster(seesTeam);
+  const released = useReleasedTickets(seesTeam);
 
   const derived = useMemo(() => {
     const queue = verificationQueue(active);
@@ -179,6 +182,8 @@ export function ChiefDashboard() {
               <FloorLine summary={team?.summary} extra={extra} />
             </div>
           </section>
+
+          <ReleasedNotice rows={released} now={fetchedAt} />
 
           <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-5">
             <div className="flex min-w-0 flex-col gap-6 xl:col-span-2">

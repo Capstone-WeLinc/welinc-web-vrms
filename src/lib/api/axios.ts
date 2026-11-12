@@ -1,10 +1,13 @@
 import axios from 'axios';
 import { showToast } from '../../context/toast';
-import { getApiErrorMessage, getDisabledModule, MODULE_OFF_MESSAGE } from './errors';
+import { toast } from 'sonner';
+import { ADMIN_CODE_MESSAGE, getApiErrorMessage, getDisabledModule, isAdminCodeRequired, MODULE_OFF_MESSAGE } from './errors';
 import { DENIED_MESSAGE, FORBIDDEN_EVENT } from '../permissions/keys';
 import { installDataModes } from '../../features/dev-ui/worst-case/install';
 
 const UNAVAILABLE = 'Sign in service unavailable. Try again in a moment.';
+// Read here, not from session.ts, which imports this module
+const PORTAL_URL = import.meta.env.VITE_PORTAL_URL;
 const UNAVAILABLE_TOAST_GAP_MS = 10_000;
 
 declare module 'axios' {
@@ -37,6 +40,18 @@ api.interceptors.response.use(
       if (now - lastUnavailableToast >= UNAVAILABLE_TOAST_GAP_MS) {
         lastUnavailableToast = now;
         showToast(getApiErrorMessage(error, UNAVAILABLE), 'error');
+      }
+    } else if (isAdminCodeRequired(error)) {
+      // Suite spec 0013, AC-31: not a missing permission, so no refetch of the keys. The code is
+      // confirmed in the portal's Admin section; its step up then works for this session at once.
+      if (!quiet) {
+        toast.error(ADMIN_CODE_MESSAGE, {
+          id: 'admin-code-required',
+          action: {
+            label: 'Open the portal',
+            onClick: () => window.open(`${PORTAL_URL.replace(/\/+$/, '')}/admin`, '_blank', 'noopener'),
+          },
+        });
       }
     } else if (status === 403 && !error.config?.sessionCall) {
       // A missing permission: stay signed in and refetch the keys at once. A page that now

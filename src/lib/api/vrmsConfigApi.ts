@@ -42,28 +42,6 @@ export async function getAvailableMechanics(): Promise<MechanicOption[]> {
   return response.data;
 }
 
-export interface MechanicRefreshResult {
-  /** Null when the person has no mechanic row and nothing to create. */
-  mechanicId: string | null;
-  isActive?: boolean;
-}
-
-/**
- * Brings one person's mechanic row in step with welinc-auth at once (spec 0005, AC-18). The
- * Users page calls it after each save; `quiet` skips the global error toasts.
- */
-export async function refreshMechanic(
-  authUserId: string,
-  options: { quiet?: boolean } = {},
-): Promise<MechanicRefreshResult> {
-  const response = await api.post<MechanicRefreshResult>(
-    `/vrms/mechanics/${encodeURIComponent(authUserId)}/refresh`,
-    undefined,
-    { quiet: options.quiet },
-  );
-  return response.data;
-}
-
 export interface DriverOption {
   id: string;
   name: string;
@@ -94,19 +72,13 @@ export interface OpenWork {
   byStatus: Record<string, number>;
 }
 
-/** What a person still holds in VRMS (users.manage, spec 0011, AC-32). */
-export async function getOpenWork(authUserId: string): Promise<OpenWork> {
-  const response = await api.get<OpenWork>(`/vrms/mechanics/${authUserId}/open-work`);
-  return response.data;
-}
-
 export interface MechanicWorkload extends OpenWork {
   authUserId: string;
   /** At least one open ticket is In Progress (feature 57, the same rule as the picker's `busy`). */
   occupied: boolean;
 }
 
-/** Every mechanic's open work, for the Users page (users.manage, feature 57). */
+/** Every mechanic's open work, for the Users page (team.manage, feature 57). */
 export async function getMechanicWorkload(): Promise<MechanicWorkload[]> {
   const response = await api.get<MechanicWorkload[]>('/vrms/mechanics/workload', { quiet: true });
   return response.data;
@@ -125,9 +97,33 @@ export interface MechanicRosterRow extends MechanicWorkload {
   isActive: boolean;
 }
 
-/** Every active roster person, plus inactive ones still holding open tickets (mechanics.view or users.manage). */
+/** Every active roster person, plus inactive ones still holding open tickets (mechanics.view or team.manage). */
 export async function getMechanicRoster(options: { quiet?: boolean } = {}): Promise<MechanicRosterRow[]> {
   const response = await api.get<MechanicRosterRow[]>('/vrms/mechanics/roster', { quiet: options.quiet });
+  return response.data;
+}
+
+/** Why the directory feed released a ticket: the person was deleted, deactivated, or lost their VRMS role. */
+export type LeaveReason = 'DELETED' | 'DEACTIVATED' | 'ROLE_REMOVED';
+
+/** One ticket the directory feed released in the last 7 days, newest first (suite spec 0013, AC-32). */
+export interface ReleasedTicket {
+  /** The audit row id; a ticket released from two people appears twice. */
+  id: string;
+  ticketId: string;
+  repairNumber: string;
+  /** The ticket's status now. */
+  repairStatus: RepairStatus;
+  plateNumber: string;
+  /** The name the release recorded; "Deleted user" after an erasure. */
+  person: string | null;
+  reason: LeaveReason | null;
+  releasedAt: string;
+}
+
+/** Tickets released because their mechanic left VRMS (mechanics.view or team.manage). */
+export async function getReleasedTickets(): Promise<ReleasedTicket[]> {
+  const response = await api.get<ReleasedTicket[]>('/vrms/mechanics/released', { quiet: true });
   return response.data;
 }
 
@@ -147,7 +143,7 @@ export interface MechanicOpenTickets {
   tickets: MechanicOpenTicket[];
 }
 
-/** The person's open tickets with every mechanic on each (users.manage, feature 57). */
+/** The person's open tickets with every mechanic on each (team.manage, feature 57). */
 export async function getMechanicOpenTickets(authUserId: string): Promise<MechanicOpenTickets> {
   const response = await api.get<MechanicOpenTickets>(`/vrms/mechanics/${authUserId}/open-tickets`, { quiet: true });
   return response.data;

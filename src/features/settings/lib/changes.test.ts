@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { HistoryChange } from '../../../lib/api/settingsApi';
-import type { PermissionMatrix } from '../../../lib/api/permissionsApi';
 import type { Setting } from '../../../lib/api/settingsApi';
-import { actorLabel, changeSides, changeWhat, fromPermissionChange, isLongNote, pendingGrants, removesAny, reviewGrants, unitsByKey } from './changes';
+import { actorLabel, changeSides, changeWhat, isLongNote, unitsByKey } from './changes';
 import { formatAmount } from './thresholds';
 
-// Spec 0012, AC-26 and AC-24
+// Spec 0012, AC-26. Permission rows left this history with suite spec 0013 (AC-30).
 
 const row = (over: Partial<HistoryChange>): HistoryChange => ({
   id: '1',
@@ -31,9 +30,9 @@ describe('changeSides', () => {
   it('shows a module as On or Off', () => {
     expect(changeSides(row({ before: true, after: false }))).toEqual({ before: 'On', after: 'Off' });
   });
-  it('shows Added and Removed for a null permission side', () => {
-    expect(changeSides(row({ kind: 'permission', before: null, after: true }))).toEqual({ before: 'Added', after: 'Allowed' });
-    expect(changeSides(row({ kind: 'permission', before: true, after: null }))).toEqual({ before: 'Allowed', after: 'Removed' });
+  it('shows Added and Removed for a null side', () => {
+    expect(changeSides(row({ before: null, after: 4 }))).toEqual({ before: 'Added', after: '4' });
+    expect(changeSides(row({ before: 4, after: null }))).toEqual({ before: '4', after: 'Removed' });
   });
   it('formats numbers and adds the unit when known', () => {
     expect(changeSides(row({ before: 365, after: 1095 }), 'days')).toEqual({ before: '365 days', after: '1,095 days' });
@@ -70,81 +69,9 @@ describe('actorLabel and changeWhat', () => {
     expect(actorLabel(null)).toBe('System');
     expect(actorLabel({ name: null, email: 'a@b.c' })).toBe('a@b.c');
   });
-  it('adds the role for a permission row', () => {
-    expect(changeWhat(row({ roleLabel: 'Mechanic', label: 'Edit entries' }))).toBe('Edit entries for Mechanic');
-  });
   it('reads a key gone from the catalog as removed', () => {
-    expect(changeWhat(row({ kind: 'permission', key: 'ticket.legacy', label: 'ticket.legacy', roleLabel: 'Mechanic' }))).toBe(
-      'Removed permission (ticket.legacy) for Mechanic',
-    );
     expect(changeWhat(row({ key: 'old.value', label: 'old.value' }))).toBe('Removed setting (old.value)');
-  });
-});
-
-const matrix: PermissionMatrix = {
-  version: 1,
-  roles: [{ role: 'ADMIN', label: 'Admin' }, { role: 'MECHANIC', label: 'Mechanic' }],
-  groups: [
-    {
-      name: 'Tickets',
-      keys: [
-        { key: 'a', label: 'A', description: '', module: null, grants: { ADMIN: { allowed: true, locked: true }, MECHANIC: { allowed: false, locked: false } } },
-      ],
-    },
-  ],
-};
-
-describe('pendingGrants', () => {
-  it('keeps only real differences and never a locked cell', () => {
-    expect(pendingGrants(matrix, { 'MECHANIC|a': true, 'ADMIN|a': false })).toEqual([{ role: 'MECHANIC', permission: 'a', allowed: true }]);
-    expect(pendingGrants(matrix, { 'MECHANIC|a': false })).toEqual([]);
-  });
-});
-
-describe('fromPermissionChange', () => {
-  it('labels from the matrix and falls back to the raw names', () => {
-    const base = { id: '1', before: null, after: true, actorName: null, actorEmail: null, note: null, createdAt: 'x' };
-    expect(fromPermissionChange({ ...base, role: 'MECHANIC', permission: 'a' }, matrix)).toMatchObject({ label: 'A', roleLabel: 'Mechanic', actor: null });
-    expect(fromPermissionChange({ ...base, role: 'X', permission: 'z' }, null)).toMatchObject({ label: 'z', roleLabel: 'X' });
-  });
-});
-
-describe('reviewGrants and removesAny', () => {
-  const wide: PermissionMatrix = {
-    version: 1,
-    roles: [{ role: 'ADMIN', label: 'Admin' }, { role: 'CHIEF_MECHANIC', label: 'Chief Mechanic' }, { role: 'MECHANIC', label: 'Mechanic' }],
-    groups: [
-      {
-        name: 'Tickets',
-        keys: [
-          { key: 'a', label: 'See every ticket', description: '', module: null, grants: {} },
-          { key: 'b', label: 'Encode costs', description: '', module: null, grants: {} },
-        ],
-      },
-    ],
-  };
-
-  it('lists each role once, in matrix order, with its gains and losses split', () => {
-    const changes = [
-      { role: 'MECHANIC', permission: 'a', allowed: false },
-      { role: 'CHIEF_MECHANIC', permission: 'b', allowed: true },
-      { role: 'CHIEF_MECHANIC', permission: 'a', allowed: false },
-    ];
-    expect(reviewGrants(wide, changes)).toEqual([
-      { role: 'Chief Mechanic', gains: ['Encode costs'], losses: ['See every ticket'] },
-      { role: 'Mechanic', gains: [], losses: ['See every ticket'] },
-    ]);
-  });
-
-  it('skips a role with no changes and names an unknown key by itself', () => {
-    expect(reviewGrants(wide, [])).toEqual([]);
-    expect(reviewGrants(wide, [{ role: 'ADMIN', permission: 'gone', allowed: true }])).toEqual([{ role: 'Admin', gains: ['gone'], losses: [] }]);
-  });
-
-  it('asks for a reason only when a right is taken away', () => {
-    expect(removesAny([])).toBe(false);
-    expect(removesAny([{ role: 'MECHANIC', permission: 'a', allowed: true }])).toBe(false);
-    expect(removesAny([{ role: 'MECHANIC', permission: 'a', allowed: true }, { role: 'MECHANIC', permission: 'b', allowed: false }])).toBe(true);
+    expect(changeWhat(row({ label: 'Repairs before typical time and cost' }))).toBe('Repairs before typical time and cost');
   });
 });
 

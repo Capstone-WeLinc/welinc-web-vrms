@@ -4,8 +4,24 @@ import { DENIED_MESSAGE, type ModuleName } from '../permissions/keys';
 // Spec 0012, AC-11: what a 403 MODULE_DISABLED reads as, for every role
 export const MODULE_OFF_MESSAGE = 'This module is turned off by your Admin.';
 
+/**
+ * Suite spec 0013, AC-31: welinc-auth wants this admin's sign in confirmed with the emailed code
+ * first. That happens in the portal, so the message says where to go.
+ */
+export const ADMIN_CODE_MESSAGE = 'Confirm your sign in in the portal, then try again.';
+
+/** True for a 403 ADMIN_CODE_REQUIRED from welinc-auth (suite spec 0013, AC-6). */
+export function isAdminCodeRequired(err: unknown): boolean {
+  return (
+    isAxiosError<{ code?: string }>(err) &&
+    err.response?.status === 403 &&
+    err.response.data?.code === 'ADMIN_CODE_REQUIRED'
+  );
+}
+
 // Pull the backend's `message` out of an axios error, falling back when there is none
 export function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (isAdminCodeRequired(err)) return ADMIN_CODE_MESSAGE;
   if (isAxiosError<{ message?: string | string[] }>(err)) {
     const message = err.response?.data?.message;
     // A 403 reads the same everywhere, whatever the body says (spec 0011, AC-24). A locked

@@ -15,7 +15,8 @@ import { ChangeList } from './ChangeList';
 const FILTERS: { value: HistoryKind; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'setting', label: 'Settings' },
-  { value: 'permission', label: 'Permissions' },
+  // Suite spec 0013, AC-30: permission changes are in the portal's Permissions view now
+  { value: 'lookup', label: 'Lookup lists' },
 ];
 
 type Load = { kind: HistoryKind; attempt: number };
@@ -25,7 +26,7 @@ type More = Load & { loading: boolean; error: string | null };
 
 const sameLoad = (a: Load | null, b: Load) => a !== null && a.kind === b.kind && a.attempt === b.attempt;
 
-/** Spec 0012, AC-26: setting and permission changes merged, newest first, 20 per page. */
+/** Spec 0012, AC-26: setting and lookup changes merged, newest first, 20 per page. */
 export function HistorySection() {
   const [kind, setKind] = useState<HistoryKind>('all');
   const [attempt, setAttempt] = useState(0);
@@ -81,7 +82,7 @@ export function HistorySection() {
   } else if ('error' in current) {
     body = <ErrorState title="Couldn’t load the change history." message={current.error} onRetry={() => setAttempt((n) => n + 1)} retryText="Retry" />;
   } else if (current.rows.length === 0) {
-    body = <EmptyState title="No changes yet." description="Settings and permission changes show here." icon={History} />;
+    body = <EmptyState title="No changes yet." description="Setting and lookup list changes show here." icon={History} />;
   } else {
     body = (
       <>

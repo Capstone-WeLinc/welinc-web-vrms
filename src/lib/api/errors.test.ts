@@ -6,7 +6,7 @@ vi.mock('sonner', () => sonner);
 
 import { showToast } from '../../context/toast';
 import { DENIED_MESSAGE, DENIED_TOAST_MS } from '../permissions/keys';
-import { getApiErrorMessage, getDisabledModule, getDriverExists, getInvalidTransition } from './errors';
+import { ADMIN_CODE_MESSAGE, getApiErrorMessage, getDisabledModule, getDriverExists, getInvalidTransition, isAdminCodeRequired } from './errors';
 
 function httpError(status: number, message: string | string[], code?: string) {
   const response = { status, data: { message, code } } as AxiosResponse;
@@ -125,5 +125,20 @@ describe('telling a driver conflict from a stale ticket', () => {
   it('does not take a stale ticket 409 for a driver conflict', () => {
     expect(getDriverExists(httpError(409, 'This ticket has been updated by another user.'))).toBeNull();
     expect(getDriverExists(httpError(409, 'stale', 'STALE_TICKET'))).toBeNull();
+  });
+});
+
+// Suite spec 0013, AC-31
+describe('a 403 ADMIN_CODE_REQUIRED', () => {
+  it('says to confirm the sign in in the portal instead of the denied text', () => {
+    const err = httpError(403, 'Confirm this sign in with the code we email you first', 'ADMIN_CODE_REQUIRED');
+    expect(isAdminCodeRequired(err)).toBe(true);
+    expect(getApiErrorMessage(err, 'fallback')).toBe(ADMIN_CODE_MESSAGE);
+  });
+
+  it('leaves other 403s as a permission denial', () => {
+    const err = httpError(403, 'Nope', 'WRONG_AUDIENCE');
+    expect(isAdminCodeRequired(err)).toBe(false);
+    expect(getApiErrorMessage(err, 'fallback')).toBe(DENIED_MESSAGE);
   });
 });

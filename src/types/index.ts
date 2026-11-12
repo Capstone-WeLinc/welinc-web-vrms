@@ -54,22 +54,6 @@ export interface ManagedUser {
   pendingDeletion?: boolean;
 }
 
-export interface CreateUserPayload {
-  name: string;
-  email: string;
-  isActive?: boolean;
-  roleAssignments: UserRoleAssignment[];
-  /** Spec 0011, AC-30: add the roles to the existing WeLinc account with this email. */
-  attachExisting?: boolean;
-}
-
-export interface UpdateUserPayload {
-  name?: string;
-  email?: string;
-  isActive?: boolean;
-  roleAssignments?: UserRoleAssignment[];
-}
-
 /** Spec 0010. Open is every status except CLOSED and CANCELLED (lib/repairStatus.ts). */
 export type RepairStatus =
   | 'OPEN'

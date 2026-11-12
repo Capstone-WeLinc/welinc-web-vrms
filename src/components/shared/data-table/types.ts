@@ -22,6 +22,8 @@ export type RowAction = {
   hint?: string;
   /** Makes the item a link to this app path instead of calling onSelect. */
   href?: string;
+  /** Makes the item a link to another app (the portal), opened in a new tab. */
+  externalHref?: string;
 };
 
 export type PaginationState = {

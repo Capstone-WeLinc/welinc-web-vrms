@@ -9,7 +9,7 @@ const paths = (can: (key: PermissionKey) => boolean) => allowedSections(can).map
 
 describe('SETTINGS_SECTIONS', () => {
   it('lists the six sections in the spec order, each at its own path (AC-21)', () => {
-    expect(SETTINGS_SECTIONS.map((s) => s.path)).toEqual(['modules', 'thresholds', 'roles', 'lookups', 'vehicles', 'history']);
+    expect(SETTINGS_SECTIONS.map((s) => s.path)).toEqual(['modules', 'thresholds', 'lookups', 'vehicles', 'history']);
   });
 
   it('gives every section a label and a description, and no path twice', () => {
@@ -26,7 +26,6 @@ describe('SETTINGS_SECTIONS', () => {
     expect(keyOf).toEqual({
       modules: 'settings.manage',
       thresholds: 'settings.manage',
-      roles: 'permissions.manage',
       lookups: 'lookups.manage',
       vehicles: 'vehicle.manage',
       history: 'settings.manage',
@@ -36,10 +35,9 @@ describe('SETTINGS_SECTIONS', () => {
 
 describe('allowedSections', () => {
   it('shows an Admin every section', () => {
-    expect(paths(holding('settings.manage', 'permissions.manage', 'lookups.manage', 'vehicle.manage'))).toEqual([
+    expect(paths(holding('settings.manage', 'lookups.manage', 'vehicle.manage'))).toEqual([
       'modules',
       'thresholds',
-      'roles',
       'lookups',
       'vehicles',
       'history',
@@ -63,13 +61,13 @@ describe('allowedSections', () => {
     ]);
   });
 
-  it('hides Roles and permissions from a holder of settings.manage alone', () => {
-    expect(paths(holding('settings.manage'))).not.toContain('roles');
+  it('has no Roles and permissions section: the matrix is edited in the portal (suite spec 0013, AC-30)', () => {
+    expect(SETTINGS_SECTIONS.map((s) => s.path)).not.toContain('roles');
   });
 });
 
 describe('SETTINGS_KEYS', () => {
-  it('is the four keys that show the Settings nav item, each once (AC-21)', () => {
-    expect([...SETTINGS_KEYS].sort()).toEqual(['lookups.manage', 'permissions.manage', 'settings.manage', 'vehicle.manage']);
+  it('is the three keys that show the Settings nav item, each once (AC-21)', () => {
+    expect([...SETTINGS_KEYS].sort()).toEqual(['lookups.manage', 'settings.manage', 'vehicle.manage']);
   });
 });

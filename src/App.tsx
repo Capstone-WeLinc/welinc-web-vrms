@@ -30,7 +30,6 @@ import { ModuleOffPage } from './pages/ModuleOffPage';
 import { RequireSection, SettingsIndex, SettingsPage } from './features/settings/pages/SettingsPage';
 import { ModulesSection } from './features/settings/components/ModulesSection';
 import { ThresholdsSection } from './features/settings/components/ThresholdsSection';
-import { RolesSection } from './features/settings/components/RolesSection';
 import { LookupsSection } from './features/settings/components/LookupsSection';
 import { VehiclesSection } from './features/settings/components/VehiclesSection';
 import { HistorySection } from './features/settings/components/HistorySection';
@@ -146,7 +145,7 @@ function App() {
           <Route
             path="users"
             element={
-              <RequirePermission keys={['users.manage']}>
+              <RequirePermission keys={['team.manage']}>
                 <UsersPage />
               </RequirePermission>
             }
@@ -230,14 +229,6 @@ function App() {
               element={
                 <RequireSection permission="settings.manage">
                   <ThresholdsSection />
-                </RequireSection>
-              }
-            />
-            <Route
-              path="roles"
-              element={
-                <RequireSection permission="permissions.manage">
-                  <RolesSection />
                 </RequireSection>
               }
             />
