@@ -103,6 +103,30 @@ export async function getMechanicRoster(options: { quiet?: boolean } = {}): Prom
   return response.data;
 }
 
+/** Why the directory feed released a ticket: the person was deleted, deactivated, or lost their VRMS role. */
+export type LeaveReason = 'DELETED' | 'DEACTIVATED' | 'ROLE_REMOVED';
+
+/** One ticket the directory feed released in the last 7 days, newest first (suite spec 0013, AC-32). */
+export interface ReleasedTicket {
+  /** The audit row id; a ticket released from two people appears twice. */
+  id: string;
+  ticketId: string;
+  repairNumber: string;
+  /** The ticket's status now. */
+  repairStatus: RepairStatus;
+  plateNumber: string;
+  /** The name the release recorded; "Deleted user" after an erasure. */
+  person: string | null;
+  reason: LeaveReason | null;
+  releasedAt: string;
+}
+
+/** Tickets released because their mechanic left VRMS (mechanics.view or users.manage). */
+export async function getReleasedTickets(): Promise<ReleasedTicket[]> {
+  const response = await api.get<ReleasedTicket[]>('/vrms/mechanics/released', { quiet: true });
+  return response.data;
+}
+
 export interface MechanicOpenTicket {
   id: string;
   repairNumber: string;
