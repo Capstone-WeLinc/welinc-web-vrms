@@ -50,6 +50,8 @@ export interface ManagedUser {
   /** Names of the other systems this account holds a role in (spec 0011, AC-26); empty when none. */
   otherSystems?: SystemType[];
   contact?: string | null;
+  /** Suite spec 0012, AC-9: the person asked to delete their account (list rows only). */
+  pendingDeletion?: boolean;
 }
 
 export interface CreateUserPayload {

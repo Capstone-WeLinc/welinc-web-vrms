@@ -13,6 +13,7 @@ import { PersonalDetailsForm } from '../components/PersonalDetailsForm';
 import { ProfileSkeleton } from '../components/ProfileSkeleton';
 import { SignedInDevicesCard } from '../components/SignedInDevicesCard';
 import { RecentActivityCard } from '../components/RecentActivityCard';
+import { DeleteAccountCard } from '../components/DeleteAccountCard';
 
 type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; user: CurrentUser };
 
@@ -87,6 +88,7 @@ export function ProfilePage() {
           </div>
           <SignedInDevicesCard />
           <RecentActivityCard />
+          <DeleteAccountCard />
         </div>
       )}
     </div>

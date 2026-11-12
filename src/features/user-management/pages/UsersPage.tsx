@@ -15,6 +15,9 @@ import { UserSessionsDialog } from '../components/UserSessionsDialog';
 import { UserActivityDialog } from '../components/UserActivityDialog';
 import { UserListFilters } from '../components/UserListFilters';
 import { UserStatusTiles } from '../components/UserStatusTiles';
+import { DeletionRequestsPanel } from '../components/DeletionRequestsPanel';
+import { useDeletionRequests } from '../hooks/useDeletionRequests';
+import { pendingChipLabel, pendingCountLabel } from '../lib/deletionRequests';
 import { usersColumns } from '../components/usersColumns';
 import { useUserActions } from '../hooks/useUserActions';
 import { useUserFilters } from '../hooks/useUserFilters';
@@ -94,6 +97,12 @@ export function UsersPage() {
     closeDialog();
   };
 
+  // Suite spec 0012, AC-23: the Deletion requests chip swaps the list for its view
+  const [showDeletions, setShowDeletions] = useState(false);
+  const deletions = useDeletionRequests();
+  const pendingRows = deletions.pending.status === 'ready' ? deletions.pending.rows.length : 0;
+  const pendingMore = deletions.pending.status === 'ready' && deletions.pending.nextCursor !== null;
+
   // Spec 0004, AC-20: the role picker and the filter read welinc-auth's catalog, one request
   const roles = useVrmsRoles();
 
@@ -152,7 +161,31 @@ export function UsersPage() {
         action={newUser}
       />
 
-      {list.status !== 'error' && (
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          aria-pressed={showDeletions}
+          aria-label={pendingChipLabel(pendingRows, pendingMore)}
+          onClick={() => setShowDeletions((on) => !on)}
+          className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+            showDeletions ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground hover:bg-accent'
+          }`}
+        >
+          Deletion requests
+          {pendingRows > 0 && (
+            <span
+              aria-hidden="true"
+              className={`rounded-full px-1.5 text-xs tabular-nums ${showDeletions ? 'bg-primary-foreground text-primary' : 'bg-destructive text-primary-foreground'}`}
+            >
+              {pendingCountLabel(pendingRows, pendingMore)}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {showDeletions && <DeletionRequestsPanel lists={deletions} onUsersChanged={() => void list.refetch()} />}
+
+      {!showDeletions && list.status !== 'error' && (
         <UserStatusTiles
           users={list.users}
           loading={list.status === 'loading'}
@@ -161,16 +194,16 @@ export function UsersPage() {
         />
       )}
 
-      <UserListFilters
+      {!showDeletions && <UserListFilters
         value={filters}
         searchText={searchText}
         onSearchTextChange={setSearchText}
         onChange={setFilters}
         onClear={clearFilters}
         roles={roles}
-      />
+      />}
 
-      <DataTable
+      {!showDeletions && <DataTable
         columns={usersColumns(currentUserId, isMobile, workload)}
         rows={pageRows}
         getRowId={(user) => user.id}
@@ -187,7 +220,7 @@ export function UsersPage() {
             : undefined
         }
         empty={empty}
-      />
+      />}
 
       <UserFormDialog
         key={dialog.session}

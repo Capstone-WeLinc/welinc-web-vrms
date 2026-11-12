@@ -1,4 +1,5 @@
 import { isAxiosError } from 'axios';
+import { passwordCheckFailure } from './passwordCheck';
 
 // Suite spec 0009, AC-27: where each failure of changing your own email shows.
 
@@ -15,6 +16,10 @@ export const CHANGE_EXPIRED_MESSAGE = 'That code expired. Start again to get a n
 type Body = { code?: string; message?: string | string[]; attemptsLeft?: number };
 
 export function emailChangeFailure(err: unknown): EmailChangeFailure {
+  // Suite spec 0012, AC-2: the shared password recheck and its lockout
+  const password = passwordCheckFailure(err);
+  if (password?.kind === 'wrong') return { kind: 'field', field: 'currentPassword', message: password.message };
+  if (password?.kind === 'locked') return { kind: 'form', message: password.message };
   const response = isAxiosError<Body>(err) ? err.response : undefined;
   const body = response?.data;
   const message = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
@@ -33,9 +38,6 @@ export function emailChangeFailure(err: unknown): EmailChangeFailure {
       return { kind: 'form', message: 'We couldn’t send your code. Try again in a minute.' };
     case 'CODE_SEND_LIMIT':
       return { kind: 'form', message: message ?? 'Too many codes sent. Try again later.' };
-  }
-  if (response?.status === 400 && message === 'Current password is incorrect') {
-    return { kind: 'field', field: 'currentPassword', message: 'That password isn’t right.' };
   }
   if (response?.status === 400 && message && /email domain/i.test(message)) {
     return { kind: 'field', field: 'newEmail', message: 'That email’s domain can’t receive mail. Check the address.' };

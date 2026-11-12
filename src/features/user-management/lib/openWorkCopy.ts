@@ -25,8 +25,3 @@ export function sharedBlockNote(otherSystems: readonly SystemType[] | undefined)
 export function ticketCount(total: number) {
   return total === 1 ? '1 open ticket' : `${total} open tickets`;
 }
-
-export const RELEASE_CHOICES = [
-  { value: 'RELEASE', label: 'Move them back to the queue' },
-  { value: 'KEEP', label: 'Keep them assigned' },
-];

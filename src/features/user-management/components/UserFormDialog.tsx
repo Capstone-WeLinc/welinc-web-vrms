@@ -14,7 +14,7 @@ import { createUser, updateUser, type LookupAccount } from '../../../lib/api/aut
 import { getAccountExists, getApiErrorMessage, getApiErrorStatus } from '../../../lib/api/errors';
 import type { ManagedUser, UpdateUserPayload, UserRole } from '../../../types';
 import { hasUneditableRoles, onMechanicRoster, vrmsRoles } from '../lib/accountStatus';
-import { askAboutOpenWork, releaseAfterLeaving } from '../lib/openWorkFlow';
+import { askAboutOpenWork } from '../lib/openWorkFlow';
 import { systemsText } from '../lib/openWorkCopy';
 import { ExistingAccountPicker } from './ExistingAccountPicker';
 import { MechanicOpenTickets } from './MechanicOpenTickets';
@@ -194,9 +194,8 @@ export function UserFormDialog({
     // Leaving the mechanic roles for another one ends their hold on tickets, so ask about them first
     const leavingMechanic =
       !!user && !roleLockReason && onMechanicRoster(user) && role !== savedRole && role !== 'MECHANIC' && role !== 'CHIEF_MECHANIC';
-    let release: 'RELEASE' | 'KEEP' | 'STOP' = 'KEEP';
     if (user && leavingMechanic) {
-      release = await askAboutOpenWork(user, {
+      const release = await askAboutOpenWork(user, {
         title: `Change ${name}’s role?`,
         description: 'They’ll lose their mechanic role.',
         confirmText: 'Change role',
@@ -219,7 +218,6 @@ export function UserFormDialog({
         const saved = await runWrite(() => updateUser(user.id, payload));
         finish();
         onSaved(saved, 'updated');
-        if (release === 'RELEASE') void releaseAfterLeaving(user, 'ROLE_REMOVED', showToast, 'Role changed.');
       } else {
         // No password and no isActive, so welinc-auth emails the setup code.
         const saved = await runWrite(() => createUser({ name, email, roleAssignments }));

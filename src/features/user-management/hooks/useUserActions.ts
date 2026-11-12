@@ -7,7 +7,7 @@ import { getApiErrorMessage } from '../../../lib/api/errors';
 import type { ManagedUser } from '../../../types';
 import { getAccountStatus } from '../lib/accountStatus';
 import { returnFocusToRow } from '../lib/focusReturn';
-import { askAboutOpenWork, releaseAfterLeaving } from '../lib/openWorkFlow';
+import { askAboutOpenWork } from '../lib/openWorkFlow';
 import { sharedBlockNote } from '../lib/openWorkCopy';
 import { refreshAfterSave } from '../lib/mechanicRefresh';
 
@@ -140,9 +140,8 @@ export function useUserActions({ currentUserId, onEdit, onSessions, onActivity, 
         showToast(`Couldn’t deactivate ${user.name}: ${reason(err)}.`, 'error');
         return;
       }
-      const done = `${user.name} deactivated.`;
-      if (release === 'RELEASE') await releaseAfterLeaving(user, 'DEACTIVATED', showToast, done);
-      else showToast(done);
+      // Suite spec 0012, AC-24: VRMS takes their open tickets off them on its own
+      showToast(`${user.name} deactivated.`);
     });
 
   const rowActions = (user: ManagedUser): RowAction[] => {
