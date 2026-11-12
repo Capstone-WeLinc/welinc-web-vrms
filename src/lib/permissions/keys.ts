@@ -31,6 +31,8 @@ export type PermissionKey =
   | 'knowledge.suggest'
   | 'knowledge.edit'
   | 'users.manage'
+  // Suite spec 0013, AC-31: the Users page as a team and work view
+  | 'team.manage'
   | 'permissions.manage'
   | 'settings.manage'
   | 'lookups.manage';

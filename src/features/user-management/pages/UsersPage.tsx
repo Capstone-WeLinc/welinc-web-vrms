@@ -1,44 +1,39 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SearchX, UserPlus, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ExternalLink, SearchX, UserPlus, Users } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { cn } from '@/lib/utils';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { confirmStore } from '../../../components/shared/confirm/confirm';
 import { DataTable } from '../../../components/shared/data-table/DataTable';
-import { lastPage } from '../../../components/shared/data-table/types';
-import { useToast } from '../../../context/toast';
+import { lastPage, type RowAction } from '../../../components/shared/data-table/types';
 import { useAuthStore } from '../../../store/authStore';
 import type { ManagedUser } from '../../../types';
-import type { SavedUser } from '../../../lib/api/authApi';
-import { UserFormDialog, type SaveOutcome } from '../components/UserFormDialog';
-import { UserSessionsDialog } from '../components/UserSessionsDialog';
-import { UserActivityDialog } from '../components/UserActivityDialog';
+import { TeamPersonDialog } from '../components/TeamPersonDialog';
 import { UserListFilters } from '../components/UserListFilters';
 import { UserStatusTiles } from '../components/UserStatusTiles';
-import { DeletionRequestsPanel } from '../components/DeletionRequestsPanel';
-import { useDeletionRequests } from '../hooks/useDeletionRequests';
-import { pendingChipLabel, pendingCountLabel } from '../lib/deletionRequests';
 import { usersColumns } from '../components/usersColumns';
-import { useUserActions } from '../hooks/useUserActions';
 import { useUserFilters } from '../hooks/useUserFilters';
 import { useUsers } from '../hooks/useUsers';
 import { useVrmsRoles } from '../hooks/useVrmsRoles';
 import { useWorkload } from '../hooks/useWorkload';
 import { workStateOf } from '../lib/workload';
-import { refreshAfterSave } from '../lib/mechanicRefresh';
-import { sortUsers } from '../lib/accountStatus';
+import { onMechanicRoster, sortUsers } from '../lib/accountStatus';
 import { rowFocusRef } from '../lib/focusReturn';
+import { addUserUrl, manageAccountUrl } from '../lib/portalLinks';
 import { hasActiveFilters, matchesUserFilters, USERS_PAGE_SIZE } from '../lib/userFilters';
 
-/** The open dialog: New user, or Edit with the row as it was when the dialog opened. */
+/** The open person dialog, with the row as it was when it opened. */
 type DialogState = { open: boolean; user: ManagedUser | null; session: number };
 
-/** users.manage, in App.tsx and on the server (spec 0006, spec 0011). */
+/**
+ * The VRMS team and their work (suite spec 0013, AC-31), behind `team.manage` in App.tsx and on
+ * the server. Account changes moved to the portal's Admin section: each row's Manage account and
+ * Add user open it in a new tab, and the list refetches when this tab is shown again.
+ */
 export function UsersPage() {
   const currentUserId = useAuthStore((state) => state.user?.id);
   const isMobile = useIsMobile();
-  const { showToast } = useToast();
-  const newUserButton = useRef<HTMLButtonElement>(null);
   const [dialog, setDialog] = useState<DialogState>({ open: false, user: null, session: 0 });
   // Read by callbacks that run outside render: the debounced search and a refetch.
   const dialogRef = useRef(dialog);
@@ -50,60 +45,17 @@ export function UsersPage() {
     () => dialogRef.current.open || confirmStore.getCurrent() !== null,
   );
 
-  // A refetch that drops the row being edited closes its dialog (AC-11).
+  // A refetch that drops the open person closes their dialog (spec 0006, AC-11).
   const list = useUsers((users) => {
-    const { open, user: editing } = dialogRef.current;
-    if (!open || !editing || users.some((user) => user.id === editing.id)) return;
-    showToast(`${editing.name} is no longer in the list.`, 'info');
+    const { open, user } = dialogRef.current;
+    if (!open || !user || users.some((u) => u.id === user.id)) return;
     setDialog((current) => ({ ...current, open: false }));
   });
 
-  const openDialog = (user: ManagedUser | null) => setDialog((current) => ({ open: true, user, session: current.session + 1 }));
+  const openDialog = (user: ManagedUser) => setDialog((current) => ({ open: true, user, session: current.session + 1 }));
   const closeDialog = () => setDialog((current) => ({ ...current, open: false }));
-  const [sessions, setSessions] = useState<DialogState>({ open: false, user: null, session: 0 });
-  const openSessions = (user: ManagedUser) => setSessions((current) => ({ open: true, user, session: current.session + 1 }));
-  const [activity, setActivity] = useState<DialogState>({ open: false, user: null, session: 0 });
-  const openActivity = (user: ManagedUser) => setActivity((current) => ({ open: true, user, session: current.session + 1 }));
 
-  const { rowActions } = useUserActions({
-    currentUserId,
-    onEdit: openDialog,
-    onSessions: openSessions,
-    onActivity: openActivity,
-    runWrite: list.runWrite,
-    upsertUser: list.upsertUser,
-  });
-
-  const onSaved = (user: SavedUser, outcome: SaveOutcome) => {
-    list.upsertUser(user);
-    refreshAfterSave(user.id, showToast);
-    if (user.setupEmailSent === false && (outcome === 'created' || outcome === 'updated'))
-      showToast(
-        `${user.name} was ${outcome === 'created' ? 'added' : 'updated'}, but the setup email couldn’t be sent. Use Resend setup code.`,
-        'error',
-      );
-    else if (outcome === 'created') showToast(`${user.name} added. A setup code was sent to ${user.email}.`);
-    else if (outcome === 'attached') showToast(`${user.name} added to VRMS. They keep their current password.`);
-    else if (outcome === 'created-mail-failed')
-      showToast(`${user.name} was added, but the setup email couldn’t be sent. Use Resend setup code.`, 'error');
-    else showToast(`${user.name} updated.`);
-
-    // Your own row: keep the header's name and email right (the store is memory only).
-    const me = useAuthStore.getState().user;
-    if (me && me.id === user.id) {
-      const updated = { ...me, name: user.name, email: user.email };
-      useAuthStore.setState({ user: updated });
-    }
-    closeDialog();
-  };
-
-  // Suite spec 0012, AC-23: the Deletion requests chip swaps the list for its view
-  const [showDeletions, setShowDeletions] = useState(false);
-  const deletions = useDeletionRequests();
-  const pendingRows = deletions.pending.status === 'ready' ? deletions.pending.rows.length : 0;
-  const pendingMore = deletions.pending.status === 'ready' && deletions.pending.nextCursor !== null;
-
-  // Spec 0004, AC-20: the role picker and the filter read welinc-auth's catalog, one request
+  // Spec 0004, AC-20: the role filter reads welinc-auth's catalog, one request
   const roles = useVrmsRoles();
 
   // Feature 57: Occupied or Free and open counts for each mechanic
@@ -118,15 +70,25 @@ export function UsersPage() {
   const shownPage = Math.min(page, lastPage(visible.length, USERS_PAGE_SIZE));
   const pageRows = visible.slice((shownPage - 1) * USERS_PAGE_SIZE, shownPage * USERS_PAGE_SIZE);
 
-  const sessionsFocus = useMemo(() => (sessions.user ? rowFocusRef(sessions.user.id) : newUserButton), [sessions.user]);
-  const activityFocus = useMemo(() => (activity.user ? rowFocusRef(activity.user.id) : newUserButton), [activity.user]);
-  const editFocus = useMemo(() => (dialog.user ? rowFocusRef(dialog.user.id) : newUserButton), [dialog.user]);
+  const dialogFocus = useMemo(() => (dialog.user ? rowFocusRef(dialog.user.id) : undefined), [dialog.user]);
 
-  const newUser = (
-    <Button ref={newUserButton} onClick={() => openDialog(null)}>
+  const rowActions = (user: ManagedUser): RowAction[] => [
+    ...(onMechanicRoster(user) ? [{ label: 'Open tickets', onSelect: () => openDialog(user) }] : []),
+    { label: 'Manage account', hint: 'Opens the portal', externalHref: manageAccountUrl(user.id) },
+  ];
+
+  const addUser = (
+    <a
+      href={addUserUrl()}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(buttonVariants(), 'w-full md:w-auto')}
+    >
       <UserPlus aria-hidden="true" />
-      New user
-    </Button>
+      Add user
+      <ExternalLink aria-hidden="true" />
+      <span className="sr-only"> (opens the portal in a new tab)</span>
+    </a>
   );
 
   const empty = hasActiveFilters(filters)
@@ -142,50 +104,21 @@ export function UsersPage() {
       }
     : {
         title: 'No users yet',
-        description: 'Add the first admin or mechanic.',
+        description: 'Add the first admin or mechanic in the portal.',
         icon: Users,
-        action: (
-          <Button onClick={() => openDialog(null)}>
-            <UserPlus aria-hidden="true" />
-            New user
-          </Button>
-        ),
+        action: addUser,
       };
 
   return (
     <div>
       <PageHeader
         title="Users"
-        subtitle="Manage who can sign in to VRMS and what they can do."
+        subtitle="Your VRMS team and their open work. Account changes happen in the portal."
         icon={Users}
-        action={newUser}
+        action={addUser}
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          aria-pressed={showDeletions}
-          aria-label={pendingChipLabel(pendingRows, pendingMore)}
-          onClick={() => setShowDeletions((on) => !on)}
-          className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-            showDeletions ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground hover:bg-accent'
-          }`}
-        >
-          Deletion requests
-          {pendingRows > 0 && (
-            <span
-              aria-hidden="true"
-              className={`rounded-full px-1.5 text-xs tabular-nums ${showDeletions ? 'bg-primary-foreground text-primary' : 'bg-destructive text-primary-foreground'}`}
-            >
-              {pendingCountLabel(pendingRows, pendingMore)}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {showDeletions && <DeletionRequestsPanel lists={deletions} onUsersChanged={() => void list.refetch()} />}
-
-      {!showDeletions && list.status !== 'error' && (
+      {list.status !== 'error' && (
         <UserStatusTiles
           users={list.users}
           loading={list.status === 'loading'}
@@ -194,16 +127,16 @@ export function UsersPage() {
         />
       )}
 
-      {!showDeletions && <UserListFilters
+      <UserListFilters
         value={filters}
         searchText={searchText}
         onSearchTextChange={setSearchText}
         onChange={setFilters}
         onClear={clearFilters}
         roles={roles}
-      />}
+      />
 
-      {!showDeletions && <DataTable
+      <DataTable
         columns={usersColumns(currentUserId, isMobile, workload)}
         rows={pageRows}
         getRowId={(user) => user.id}
@@ -220,36 +153,15 @@ export function UsersPage() {
             : undefined
         }
         empty={empty}
-      />}
+      />
 
-      <UserFormDialog
+      <TeamPersonDialog
         key={dialog.session}
         open={dialog.open}
         onOpenChange={(open) => !open && closeDialog()}
         user={dialog.user}
-        currentUserId={currentUserId}
-        finalFocusRef={editFocus}
-        runWrite={list.runWrite}
-        refetch={list.refetch}
-        onSaved={onSaved}
+        finalFocusRef={dialogFocus}
         onWorkChanged={reloadWorkload}
-        roles={roles}
-      />
-
-      <UserSessionsDialog
-        key={`sessions-${sessions.session}`}
-        open={sessions.open}
-        onOpenChange={(open) => !open && setSessions((current) => ({ ...current, open: false }))}
-        user={sessions.user}
-        finalFocusRef={sessionsFocus}
-      />
-
-      <UserActivityDialog
-        key={`activity-${activity.session}`}
-        open={activity.open}
-        onOpenChange={(open) => !open && setActivity((current) => ({ ...current, open: false }))}
-        user={activity.user}
-        finalFocusRef={activityFocus}
       />
     </div>
   );

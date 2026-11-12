@@ -42,28 +42,6 @@ export async function getAvailableMechanics(): Promise<MechanicOption[]> {
   return response.data;
 }
 
-export interface MechanicRefreshResult {
-  /** Null when the person has no mechanic row and nothing to create. */
-  mechanicId: string | null;
-  isActive?: boolean;
-}
-
-/**
- * Brings one person's mechanic row in step with welinc-auth at once (spec 0005, AC-18). The
- * Users page calls it after each save; `quiet` skips the global error toasts.
- */
-export async function refreshMechanic(
-  authUserId: string,
-  options: { quiet?: boolean } = {},
-): Promise<MechanicRefreshResult> {
-  const response = await api.post<MechanicRefreshResult>(
-    `/vrms/mechanics/${encodeURIComponent(authUserId)}/refresh`,
-    undefined,
-    { quiet: options.quiet },
-  );
-  return response.data;
-}
-
 export interface DriverOption {
   id: string;
   name: string;
@@ -92,12 +70,6 @@ export interface OpenWork {
   total: number;
   /** Every open status as a key, zeros included. */
   byStatus: Record<string, number>;
-}
-
-/** What a person still holds in VRMS (users.manage, spec 0011, AC-32). */
-export async function getOpenWork(authUserId: string): Promise<OpenWork> {
-  const response = await api.get<OpenWork>(`/vrms/mechanics/${authUserId}/open-work`);
-  return response.data;
 }
 
 export interface MechanicWorkload extends OpenWork {

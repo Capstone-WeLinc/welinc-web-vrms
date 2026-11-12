@@ -51,6 +51,16 @@ function RowActionsMenu({ actions, touch, label, rowId }: RowActionsMenuProps) {
             ) : (
               action.label
             );
+            if (action.externalHref) {
+              return (
+                <DropdownMenuItem key={action.label} asChild>
+                  <a href={action.externalHref} target="_blank" rel="noopener noreferrer">
+                    {text}
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                </DropdownMenuItem>
+              );
+            }
             return action.href ? (
               <DropdownMenuItem key={action.label} asChild>
                 <Link to={action.href}>{text}</Link>

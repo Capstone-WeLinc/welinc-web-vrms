@@ -28,14 +28,3 @@ export async function endMySession(sid: string): Promise<void> {
   await api.delete(`/auth/me/sessions/${sid}`);
 }
 
-/** A user's live sessions (admin of a system the user holds). */
-export async function listUserSessions(userId: string): Promise<SessionView[]> {
-  const response = await api.get<{ sessions: SessionView[] }>(`/auth/users/${userId}/sessions`);
-  return response.data.sessions;
-}
-
-/** Ends every live session of a user; answers how many ended. */
-export async function endAllUserSessions(userId: string): Promise<number> {
-  const response = await api.delete<{ ended: number }>(`/auth/users/${userId}/sessions`);
-  return response.data.ended;
-}

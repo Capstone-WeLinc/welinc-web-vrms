@@ -18,6 +18,7 @@ const ADMIN: PermissionKey[] = [
   'knowledge.suggest',
   'knowledge.edit',
   'users.manage',
+  'team.manage',
   'permissions.manage',
   'settings.manage',
   'lookups.manage',

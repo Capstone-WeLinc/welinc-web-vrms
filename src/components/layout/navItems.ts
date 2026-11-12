@@ -71,7 +71,7 @@ export function getNavSections(can: (key: PermissionKey) => boolean): NavSection
     {
       title: 'Administration',
       items: present([
-        can('users.manage') && { to: '/users', label: 'Users', icon: Users },
+        can('team.manage') && { to: '/users', label: 'Users', icon: Users },
         can('audit.view') && { to: '/audit-logs', label: 'Audit logs', icon: ClipboardList },
         // Spec 0012, AC-21: with the key of any one section
         SETTINGS_KEYS.some(can) && { to: '/settings', label: 'Settings', icon: Settings },

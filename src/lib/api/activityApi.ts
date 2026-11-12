@@ -75,8 +75,3 @@ export function getActivityCatalog(now = Date.now()): Promise<ActivityCatalog> {
   return value;
 }
 
-/** One person's events for an admin of this system: tagged with VRMS or account wide (AC-12). */
-export async function getUserActivity(userId: string, query: ActivityQuery = {}): Promise<ActivityPage> {
-  const response = await api.get<ActivityPage>(`/auth/users/${userId}/activity`, { params: params(query) });
-  return response.data;
-}

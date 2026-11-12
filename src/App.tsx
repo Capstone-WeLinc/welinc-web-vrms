@@ -146,7 +146,7 @@ function App() {
           <Route
             path="users"
             element={
-              <RequirePermission keys={['users.manage']}>
+              <RequirePermission keys={['team.manage']}>
                 <UsersPage />
               </RequirePermission>
             }
