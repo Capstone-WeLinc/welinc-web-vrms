@@ -78,7 +78,7 @@ export interface MechanicWorkload extends OpenWork {
   occupied: boolean;
 }
 
-/** Every mechanic's open work, for the Users page (users.manage, feature 57). */
+/** Every mechanic's open work, for the Users page (team.manage, feature 57). */
 export async function getMechanicWorkload(): Promise<MechanicWorkload[]> {
   const response = await api.get<MechanicWorkload[]>('/vrms/mechanics/workload', { quiet: true });
   return response.data;
@@ -97,7 +97,7 @@ export interface MechanicRosterRow extends MechanicWorkload {
   isActive: boolean;
 }
 
-/** Every active roster person, plus inactive ones still holding open tickets (mechanics.view or users.manage). */
+/** Every active roster person, plus inactive ones still holding open tickets (mechanics.view or team.manage). */
 export async function getMechanicRoster(options: { quiet?: boolean } = {}): Promise<MechanicRosterRow[]> {
   const response = await api.get<MechanicRosterRow[]>('/vrms/mechanics/roster', { quiet: options.quiet });
   return response.data;
@@ -121,7 +121,7 @@ export interface ReleasedTicket {
   releasedAt: string;
 }
 
-/** Tickets released because their mechanic left VRMS (mechanics.view or users.manage). */
+/** Tickets released because their mechanic left VRMS (mechanics.view or team.manage). */
 export async function getReleasedTickets(): Promise<ReleasedTicket[]> {
   const response = await api.get<ReleasedTicket[]>('/vrms/mechanics/released', { quiet: true });
   return response.data;
@@ -143,7 +143,7 @@ export interface MechanicOpenTickets {
   tickets: MechanicOpenTicket[];
 }
 
-/** The person's open tickets with every mechanic on each (users.manage, feature 57). */
+/** The person's open tickets with every mechanic on each (team.manage, feature 57). */
 export async function getMechanicOpenTickets(authUserId: string): Promise<MechanicOpenTickets> {
   const response = await api.get<MechanicOpenTickets>(`/vrms/mechanics/${authUserId}/open-tickets`, { quiet: true });
   return response.data;

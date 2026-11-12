@@ -50,15 +50,18 @@ export async function updateSettings(body: UpdateSettings): Promise<SettingsView
   return response.data;
 }
 
-/** One row of the merged history of setting and permission changes (spec 0012, AC-26). */
+/**
+ * One row of the merged history of setting and lookup changes (spec 0012, AC-26). Permission
+ * changes are in the portal since suite spec 0013 (AC-30).
+ */
 export interface HistoryChange {
   id: string;
-  kind: 'setting' | 'permission' | 'lookup';
+  kind: 'setting' | 'lookup';
   key: string;
   label: string;
-  /** Set for a permission row. */
+  /** Always null since permission rows left this history. */
   roleLabel: string | null;
-  /** The value on each side; null on a permission row means added or removed. */
+  /** The value on each side. */
   before: number | boolean | string | { name: string; isActive: boolean } | null;
   after: number | boolean | string | { name: string; isActive: boolean } | null;
   action: 'SET' | 'RESET' | 'CREATE' | 'RENAME' | 'DEACTIVATE' | 'REACTIVATE' | null;
@@ -67,7 +70,7 @@ export interface HistoryChange {
   createdAt: string;
 }
 
-export type HistoryKind = 'all' | 'setting' | 'permission' | 'lookup';
+export type HistoryKind = 'all' | 'setting' | 'lookup';
 
 /**
  * Newest first, 20 per page by default. Needs settings.manage. `keys` keeps only those keys'

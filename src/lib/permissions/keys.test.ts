@@ -13,7 +13,7 @@ describe('buildAbility', () => {
   it('denies every key it was not given', () => {
     const ability = buildAbility(['ticket.view']);
 
-    expect(ability.can('users.manage', 'Permission')).toBe(false);
+    expect(ability.can('team.manage', 'Permission')).toBe(false);
     expect(ability.can('analytics.view', 'Permission')).toBe(false);
   });
 

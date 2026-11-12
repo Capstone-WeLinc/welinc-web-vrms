@@ -9,6 +9,11 @@ export function manageAccountUrl(userId: string): string {
   return `${base()}/admin/people/${encodeURIComponent(userId)}?system=VRMS`;
 }
 
+/** The portal's Permissions view for VRMS (suite spec 0013, AC-30). */
+export function permissionsUrl(): string {
+  return `${base()}/admin/permissions?system=VRMS`;
+}
+
 /** The portal's Add person form with VRMS picked. */
 export function addUserUrl(): string {
   return `${base()}/admin/people/new?system=VRMS`;

@@ -30,10 +30,9 @@ export type PermissionKey =
   | 'knowledge.view'
   | 'knowledge.suggest'
   | 'knowledge.edit'
-  | 'users.manage'
-  // Suite spec 0013, AC-31: the Users page as a team and work view
+  // Suite spec 0013, AC-30, AC-31: the Users page as a team and work view. users.manage and
+  // permissions.manage left with account and matrix editing (now in the portal)
   | 'team.manage'
-  | 'permissions.manage'
   | 'settings.manage'
   | 'lookups.manage';
 

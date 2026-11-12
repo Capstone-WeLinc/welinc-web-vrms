@@ -1,4 +1,4 @@
-import { History, ListTree, Power, ShieldCheck, SlidersHorizontal, Truck, type LucideIcon } from 'lucide-react';
+import { History, ListTree, Power, SlidersHorizontal, Truck, type LucideIcon } from 'lucide-react';
 import type { PermissionKey } from '../../../lib/permissions/keys';
 
 export interface SettingsSection {
@@ -10,7 +10,8 @@ export interface SettingsSection {
   permission: PermissionKey;
 }
 
-// Spec 0012, AC-21, in order.
+// Spec 0012, AC-21, in order. Roles and permissions left with suite spec 0013 (AC-30): the matrix
+// is edited in the portal, and SettingsSectionNav links there instead.
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     path: 'modules',
@@ -25,13 +26,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     description: 'The numbers behind repeat vehicles, typical times and suggestions.',
     icon: SlidersHorizontal,
     permission: 'settings.manage',
-  },
-  {
-    path: 'roles',
-    label: 'Roles and permissions',
-    description: 'What each role may do.',
-    icon: ShieldCheck,
-    permission: 'permissions.manage',
   },
   {
     path: 'lookups',
@@ -50,7 +44,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     path: 'history',
     label: 'Change history',
-    description: 'Who changed which setting or permission, and why.',
+    description: 'Who changed which setting or list, and why.',
     icon: History,
     permission: 'settings.manage',
   },

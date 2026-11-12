@@ -17,9 +17,7 @@ const ADMIN: PermissionKey[] = [
   'knowledge.view',
   'knowledge.suggest',
   'knowledge.edit',
-  'users.manage',
   'team.manage',
-  'permissions.manage',
   'settings.manage',
   'lookups.manage',
   'ai.use',
@@ -47,10 +45,10 @@ describe('getNavSections', () => {
     ]);
   });
 
-  it('shows Settings to anyone holding one of its three keys (spec 0012, AC-21)', () => {
+  it('shows Settings to anyone holding one of its section keys (spec 0012, AC-21)', () => {
     expect(paths(CHIEF)).not.toContain('/settings');
     expect(paths([...CHIEF, 'lookups.manage'])).toContain('/settings');
-    expect(paths([...CHIEF, 'permissions.manage'])).toContain('/settings');
+    expect(paths([...CHIEF, 'vehicle.manage'])).toContain('/settings');
   });
 
   it('gives a mechanic their own repairs and the knowledge base, nothing to administer', () => {

@@ -1,5 +1,5 @@
 import type { IssueCategory } from '../../../lib/api/knowledgeApi';
-import type { MyPermissions, PermissionChange } from '../../../lib/api/permissionsApi';
+import type { MyPermissions } from '../../../lib/api/permissionsApi';
 import type { HistoryChange, Setting, SettingsView } from '../../../lib/api/settingsApi';
 import type { DataMode } from './dataMode';
 import { dashboardTickets } from './dashboardData';
@@ -7,7 +7,7 @@ import { decoratedTicket } from './ticketData';
 
 // Development only (break-ui): the Settings hub's datasets. Each takes the real response and
 // changes only what a real admin, actor or catalog could produce. Limits: actor name 100 and
-// email 255 (setting_changes, permission_changes), note 500 (NOTE_MAX), category name 50 and
+// email 255 (setting_changes), note 500 (NOTE_MAX), category name 50 and
 // description 200 (issue_categories). Catalog labels are code, so their worst case is the
 // longest real label or a believable next entry. Fixtures are built on call, never at module
 // level, so production drops this file.
@@ -130,32 +130,29 @@ const worstHistory = (): HistoryChange[] => [
   settingRow('w2', { key: 'module.ai', label: 'AI', before: true, after: false, action: 'SET', actor: EMAIL_ONLY, note: 'Gemini quota ran out', createdAt: minutesAgo(3) }),
   {
     id: 'w3',
-    kind: 'permission',
-    key: 'ticket.administer',
-    label: 'Move any ticket to any valid status, including close and cancel',
-    roleLabel: 'Chief Mechanic',
-    before: null,
-    after: true,
-    action: null,
+    kind: 'lookup',
+    key: 'lookup.corporation',
+    label: 'Corporations: Northern Luzon Refrigerated Freight and Cold Chain Logistics Corporation',
+    roleLabel: null,
+    before: { name: 'NL Refrigerated Freight', isActive: true },
+    after: { name: 'Northern Luzon Refrigerated Freight and Cold Chain Logistics Corporation', isActive: true },
+    action: 'RENAME',
     actor: null,
     note: null,
     createdAt: '2026-12-31T23:30:00-08:00',
   },
   settingRow('w4', { key: 'knowledge.group_min_size', label: 'Smallest suggested group', before: 3, after: 2, action: 'SET', actor: SHORT_NAME, note: ODD_NOTE, createdAt: minutesAgo(60 * 24 * 12) }),
   settingRow('w5', { key: 'knowledge.min_samples', label: 'Repairs before typical time and cost', before: 20, after: 3, action: 'RESET', actor: DIACRITICS, note: '', createdAt: minutesAgo(60 * 24 * 400) }),
-  {
-    id: 'w6',
-    kind: 'permission',
-    key: 'ticket.costs.encode_legacy',
-    label: 'ticket.costs.encode_legacy',
-    roleLabel: 'Mechanic',
-    before: true,
+  settingRow('w6', {
+    key: 'knowledge.legacy_window_days',
+    label: 'knowledge.legacy_window_days',
+    before: 30,
     after: null,
-    action: null,
+    action: 'SET',
     actor: { name: 'Christopher Alexander Montgomery III', email: null },
     note: 'Key removed from the catalog',
     createdAt: '1970-01-01T00:00:00.000Z',
-  },
+  }),
   settingRow('w7', { key: 'costs.approval_limit', label: 'Cost that needs a Chief Mechanic', before: 25000, after: 999999, action: 'SET', actor: LONG_NAME, note: null, createdAt: minutesAgo(60 * 30) }),
   settingRow('w8', { key: 'module.knowledge', label: 'Knowledge base', before: false, after: true, action: 'SET', actor: { name: '  Sam   Lee ', email: null }, note: 'Back on', createdAt: minutesAgo(60 * 50) }),
 ];
@@ -211,26 +208,7 @@ function settingChanges(mode: DataMode, params: Record<string, unknown>) {
   return { data: rows.slice(start, end), nextCursor: end < rows.length ? String(end) : null };
 }
 
-// ---------- GET /vrms/permissions/changes and /vrms/permissions/me (the matrix stays real: its three roles are fixed) ----------
-
-function permissionRow(id: string, partial: Omit<PermissionChange, 'id'>): PermissionChange {
-  return { id, ...partial };
-}
-
-const worstPermissionChanges = (): PermissionChange[] => [
-  permissionRow('p1', { role: 'CHIEF_MECHANIC', permission: 'ticket.administer', before: false, after: true, actorName: LONG_NAME.name, actorEmail: LONG_NAME.email, note: LONG_NOTE, createdAt: minutesAgo(1) }),
-  permissionRow('p2', { role: 'MECHANIC', permission: 'ticket.costs.view', before: true, after: false, actorName: null, actorEmail: EMAIL_ONLY.email, note: null, createdAt: minutesAgo(45) }),
-  permissionRow('p3', { role: 'MECHANIC', permission: 'ticket.costs.encode_legacy', before: true, after: null, actorName: null, actorEmail: null, note: null, createdAt: minutesAgo(60 * 24 * 3) }),
-  permissionRow('p4', { role: 'MECHANIC', permission: 'knowledge.suggest', before: null, after: true, actorName: 'Jo', actorEmail: null, note: ODD_NOTE, createdAt: minutesAgo(60 * 24 * 40) }),
-  permissionRow('p5', { role: 'CHIEF_MECHANIC', permission: 'ticket.view_all', before: false, after: true, actorName: DIACRITICS.name, actorEmail: DIACRITICS.email, note: 'Needed for the weekend shift', createdAt: minutesAgo(60 * 24 * 90) }),
-];
-
-function permissionChanges(mode: DataMode, params: Record<string, unknown>) {
-  const limit = Number(params.limit ?? 5);
-  if (mode === 'empty') return { data: [], nextCursor: null };
-  if (mode === 'one') return { data: worstPermissionChanges().slice(1, 2), nextCursor: null };
-  return { data: worstPermissionChanges().slice(0, limit), nextCursor: mode === 'huge' ? String(limit) : null };
-}
+// /vrms/permissions/me stays real (its three roles are fixed); matrix history is in the portal now
 
 // ---------- GET /vrms/knowledge/categories ----------
 
@@ -290,8 +268,6 @@ export function madeUpData(mode: DataMode, url: string, params: Record<string, u
   switch (url.split('?')[0]) {
     case '/vrms/settings/changes':
       return settingChanges(mode, params);
-    case '/vrms/permissions/changes':
-      return permissionChanges(mode, params);
     case '/vrms/knowledge/categories':
       return categories(mode);
     default:
