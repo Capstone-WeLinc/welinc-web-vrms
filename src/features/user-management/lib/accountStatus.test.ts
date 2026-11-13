@@ -1,49 +1,51 @@
 import { describe, expect, it } from 'vitest';
-import type { ManagedUser } from '../../../types';
-import { getAccountStatus, sortUsers } from './accountStatus';
+import type { TeamMember } from '../../../types';
+import { getAccountStatus, isTemporaryRole, sortUsers } from './accountStatus';
 
-// covers: suite spec 0009 AC-29 (Setup pending from passwordSet, the new Email not verified, the sort)
+// covers: suite spec 0014 task 13a (Active, Inactive and Deleted from VRMS's directory copy, the sort,
+// temporary roles)
 
-const base = { isActive: true, isLocked: false, emailVerified: true, passwordSet: true };
+const base = { isActive: true, deleted: false };
 
 describe('getAccountStatus', () => {
-  it('reads Setup pending from passwordSet, not emailVerified', () => {
-    expect(getAccountStatus({ ...base, passwordSet: false, emailVerified: false })).toBe('SETUP_PENDING');
-    expect(getAccountStatus({ ...base, passwordSet: false, emailVerified: true })).toBe('SETUP_PENDING');
-  });
-
-  it('is Email not verified when there is a password but the address is not confirmed', () => {
-    expect(getAccountStatus({ ...base, emailVerified: false })).toBe('EMAIL_NOT_VERIFIED');
-  });
-
-  it('lets Inactive, then Locked, win over both', () => {
-    expect(getAccountStatus({ ...base, isActive: false, passwordSet: false })).toBe('INACTIVE');
-    expect(getAccountStatus({ ...base, isLocked: true, emailVerified: false })).toBe('LOCKED');
+  it('is Active, Inactive or Deleted', () => {
     expect(getAccountStatus(base)).toBe('ACTIVE');
+    expect(getAccountStatus({ ...base, isActive: false })).toBe('INACTIVE');
+    expect(getAccountStatus({ ...base, deleted: true })).toBe('DELETED');
+  });
+
+  it('lets Deleted win over Inactive', () => {
+    expect(getAccountStatus({ isActive: false, deleted: true })).toBe('DELETED');
   });
 });
 
 describe('sortUsers', () => {
-  const user = (name: string, fields: Partial<typeof base>): ManagedUser => ({
+  const user = (name: string, fields: Partial<typeof base>): TeamMember => ({
     id: name,
     name,
     email: `${name}@welinc.com`,
-    lockedAt: null,
-    createdAt: '',
-    updatedAt: '',
+    picture: null,
     roles: [],
+    temporaryRoles: [],
     ...base,
     ...fields,
   });
 
-  it('puts Email not verified after Setup pending and keeps Inactive last', () => {
+  it('puts Active first, then Inactive, then Deleted, each by name', () => {
     const sorted = sortUsers([
-      user('active', {}),
+      user('gone', { deleted: true }),
       user('inactive', { isActive: false }),
-      user('unverified', { emailVerified: false }),
-      user('pending', { passwordSet: false }),
-      user('locked', { isLocked: true }),
+      user('beta', {}),
+      user('alpha', {}),
     ]);
-    expect(sorted.map((u) => u.name)).toEqual(['locked', 'pending', 'unverified', 'active', 'inactive']);
+    expect(sorted.map((u) => u.name)).toEqual(['alpha', 'beta', 'inactive', 'gone']);
+  });
+});
+
+describe('isTemporaryRole', () => {
+  it('is true only for a role from a temporary grant', () => {
+    const person = { temporaryRoles: ['ADMIN'] } as Pick<TeamMember, 'temporaryRoles'>;
+    expect(isTemporaryRole(person, 'ADMIN')).toBe(true);
+    expect(isTemporaryRole(person, 'MECHANIC')).toBe(false);
   });
 });

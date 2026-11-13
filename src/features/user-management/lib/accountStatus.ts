@@ -1,24 +1,19 @@
-import type { ManagedUser, UserRole } from '../../../types';
+import type { TeamMember, UserRole } from '../../../types';
 
-// Spec 0006: one derived account status per user (AC-2), never stored. The order is the
-// sort rank (AC-5): what stops someone from working comes first. Suite spec 0009, AC-29 adds
-// Email not verified after Setup pending; Inactive stays last (decided 2026-11-11).
+// Spec 0006: one derived account status per user (AC-2), never stored, and the order is the sort
+// rank (AC-5). Suite spec 0014 (task 13a): the page reads VRMS's directory copy, which knows only
+// Active, Inactive and Deleted; Locked, Setup pending and Email not verified live on the portal's
+// person page, behind Manage account.
 
-export const ACCOUNT_STATUSES = ['LOCKED', 'SETUP_PENDING', 'EMAIL_NOT_VERIFIED', 'ACTIVE', 'INACTIVE'] as const;
+export const ACCOUNT_STATUSES = ['ACTIVE', 'INACTIVE', 'DELETED'] as const;
 export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
 
-type StatusFields = Pick<ManagedUser, 'isActive' | 'isLocked' | 'emailVerified' | 'passwordSet'>;
+type StatusFields = Pick<TeamMember, 'isActive' | 'deleted'>;
 
-/**
- * The first that applies: Inactive, Locked, Setup pending (no password yet), Email not verified
- * (a password, but the address isn't confirmed: an admin changed it, or it was never checked),
- * Active (suite spec 0009, AC-29).
- */
+/** Deleted (in the grace period) first, then Inactive, else Active. */
 export function getAccountStatus(user: StatusFields): AccountStatus {
+  if (user.deleted) return 'DELETED';
   if (!user.isActive) return 'INACTIVE';
-  if (user.isLocked) return 'LOCKED';
-  if (!user.passwordSet) return 'SETUP_PENDING';
-  if (!user.emailVerified) return 'EMAIL_NOT_VERIFIED';
   return 'ACTIVE';
 }
 
@@ -27,7 +22,7 @@ export function statusRank(status: AccountStatus) {
 }
 
 /** Status rank, then name ignoring case and accents, then email. */
-export function sortUsers(users: ManagedUser[]) {
+export function sortUsers(users: TeamMember[]) {
   return [...users].sort(
     (a, b) =>
       statusRank(getAccountStatus(a)) - statusRank(getAccountStatus(b)) ||
@@ -37,15 +32,20 @@ export function sortUsers(users: ManagedUser[]) {
 }
 
 /** The user's VRMS roles, in the order the server sent them. */
-export function vrmsRoles(user: Pick<ManagedUser, 'roles'>): UserRole[] {
+export function vrmsRoles(user: Pick<TeamMember, 'roles'>): UserRole[] {
   return user.roles.filter((assignment) => assignment.system === 'VRMS').map((assignment) => assignment.role);
+}
+
+/** True when the person holds this VRMS role only through a temporary grant. */
+export function isTemporaryRole(user: Pick<TeamMember, 'temporaryRoles'>, role: UserRole): boolean {
+  return user.temporaryRoles.includes(role);
 }
 
 /**
  * True when the account is on the mechanic roster (a mechanic or chief mechanic in VRMS). This
  * describes the managed account, not what the signed in user may do.
  */
-export function onMechanicRoster(user: Pick<ManagedUser, 'roles'>): boolean {
+export function onMechanicRoster(user: Pick<TeamMember, 'roles'>): boolean {
   return vrmsRoles(user).some((role) => role === 'MECHANIC' || role === 'CHIEF_MECHANIC');
 }
 
@@ -54,7 +54,7 @@ export function onMechanicRoster(user: Pick<ManagedUser, 'roles'>): boolean {
  * doesn't list (`editable`, the VRMS role codes from `GET /auth/systems`). Neither can happen once
  * welinc-auth enforces the catalog (spec 0004, AC-8, AC-10); this stays as a fallback lock.
  */
-export function hasUneditableRoles(user: Pick<ManagedUser, 'roles'>, editable: readonly string[]) {
+export function hasUneditableRoles(user: Pick<TeamMember, 'roles'>, editable: readonly string[]) {
   const roles = vrmsRoles(user);
   return roles.length > 1 || (roles.length === 1 && !editable.includes(roles[0]));
 }

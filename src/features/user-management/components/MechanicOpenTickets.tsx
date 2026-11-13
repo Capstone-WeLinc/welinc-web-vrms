@@ -15,7 +15,7 @@ import {
   type MechanicOption,
 } from '../../../lib/api/vrmsConfigApi';
 import { useCan } from '../../../lib/permissions/usePermissions';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 import { coworkerSplit, namesSummary, swapMechanic, TICKETS_SHOWN, visibleTickets, withoutMechanic } from '../lib/workload';
 import { ReassignDialog } from './ReassignDialog';
 
@@ -23,7 +23,7 @@ type LoadState = { status: 'loading' } | { status: 'error'; message: string } | 
 
 interface MechanicOpenTicketsProps {
   /** The person whose tickets these are: their welinc-auth id and name (the Users page or the Team section). */
-  user: Pick<ManagedUser, 'id' | 'name'>;
+  user: Pick<TeamMember, 'id' | 'name'>;
   /** After an unassign or reassign lands, so the page's Work column catches up. */
   onChanged: () => void;
   /** The section's spacing; the Team dialog drops the divider the Users page dialog needs. */

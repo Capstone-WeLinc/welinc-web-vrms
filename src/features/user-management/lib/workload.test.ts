@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { MechanicOption, MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 import { DEFAULT_USER_FILTERS, hasActiveFilters, matchesUserFilters, readUserListState, writeUserListState } from './userFilters';
 import { reassignCandidates, swapMechanic, withoutMechanic, workloadMap, workloadSummary, workStateOf, namesSummary, visibleTickets, TICKETS_SHOWN, coworkerSplit } from './workload';
 
 // Feature 57: Occupied or Free, the counts, the filter in the URL, and what Unassign and Reassign send.
 
-function person(id: string, role: string): ManagedUser {
+function person(id: string, role: string): TeamMember {
   return {
     id,
     name: id,
@@ -15,7 +15,7 @@ function person(id: string, role: string): ManagedUser {
     isLocked: false,
     emailVerified: true,
     roles: [{ role, system: 'VRMS' }],
-  } as unknown as ManagedUser;
+  } as unknown as TeamMember;
 }
 
 const zero = { OPEN: 0, ASSIGNED: 0, IN_PROGRESS: 0, ON_HOLD: 0, FOR_VERIFICATION: 0, OUTSOURCED: 0, PENDING_APPROVAL: 0 };
@@ -97,12 +97,12 @@ describe('Unassign and Reassign payloads', () => {
 
 describe('workStateOf edge cases', () => {
   it('reads a person who holds a mechanic role next to another role as a mechanic', () => {
-    const both = { ...person('both', 'ADMIN'), roles: [{ role: 'ADMIN', system: 'VRMS' }, { role: 'MECHANIC', system: 'VRMS' }] } as unknown as ManagedUser;
+    const both = { ...person('both', 'ADMIN'), roles: [{ role: 'ADMIN', system: 'VRMS' }, { role: 'MECHANIC', system: 'VRMS' }] } as unknown as TeamMember;
     expect(workStateOf(both, workload)).toBe('free');
   });
 
   it('ignores a mechanic role held in another system', () => {
-    const elsewhere = { ...person('vmms', 'MECHANIC'), roles: [{ role: 'MECHANIC', system: 'VMMS' }] } as unknown as ManagedUser;
+    const elsewhere = { ...person('vmms', 'MECHANIC'), roles: [{ role: 'MECHANIC', system: 'VMMS' }] } as unknown as TeamMember;
     expect(workStateOf(elsewhere, workload)).toBeNull();
   });
 
@@ -113,22 +113,17 @@ describe('workStateOf edge cases', () => {
 
 describe('workStateOf for accounts that cannot work', () => {
   it('shows nothing for a deactivated mechanic who still holds tickets', () => {
-    const left = { ...person('busy', 'MECHANIC'), isActive: false } as unknown as ManagedUser;
+    const left = { ...person('busy', 'MECHANIC'), isActive: false } as unknown as TeamMember;
     expect(workStateOf(left, workload)).toBeNull();
   });
 
-  it('shows nothing for a locked mechanic', () => {
-    const locked = { ...person('busy', 'MECHANIC'), isLocked: true } as unknown as ManagedUser;
-    expect(workStateOf(locked, workload)).toBeNull();
-  });
-
-  it('still shows a mechanic who has not finished setting up', () => {
-    const pending = { ...person('idle', 'MECHANIC'), emailVerified: false } as unknown as ManagedUser;
-    expect(workStateOf(pending, workload)).toBe('free');
+  it('shows nothing for a deleted mechanic in the grace period', () => {
+    const deleted = { ...person('busy', 'MECHANIC'), deleted: true } as unknown as TeamMember;
+    expect(workStateOf(deleted, workload)).toBeNull();
   });
 
   it('keeps a deactivated mechanic out of both work filters', () => {
-    const left = { ...person('busy', 'MECHANIC'), isActive: false } as unknown as ManagedUser;
+    const left = { ...person('busy', 'MECHANIC'), isActive: false } as unknown as TeamMember;
     const state = workStateOf(left, workload);
     expect(matchesUserFilters(left, { ...DEFAULT_USER_FILTERS, work: 'occupied' }, state)).toBe(false);
     expect(matchesUserFilters(left, { ...DEFAULT_USER_FILTERS, work: 'free' }, state)).toBe(false);

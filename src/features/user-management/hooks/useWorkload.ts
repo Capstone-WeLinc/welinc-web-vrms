@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getMechanicWorkload, type MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 import { workloadMap } from '../lib/workload';
 
 /**
@@ -9,7 +9,7 @@ import { workloadMap } from '../lib/workload';
  * reassign. A failure keeps the last good counts; before any, the map is null and the Work
  * column shows a dash.
  */
-export function useWorkload(users: readonly ManagedUser[]) {
+export function useWorkload(users: readonly TeamMember[]) {
   const [workload, setWorkload] = useState<ReadonlyMap<string, MechanicWorkload> | null>(null);
   const [attempt, setAttempt] = useState(0);
   const hasUsers = users.length > 0;

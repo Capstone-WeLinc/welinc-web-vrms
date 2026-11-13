@@ -1,9 +1,7 @@
 import type { Column } from '../../../components/shared/data-table/types';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
-import { BadgePill } from '../../../components/shared/BadgePill';
-import { formatShortDate } from '../../../lib/utils/format';
 import type { MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 import { getAccountStatus } from '../lib/accountStatus';
 import { UserNameCell, UserRoleCell } from './UserCells';
 import { UserWorkCell } from './UserWorkCell';
@@ -17,32 +15,18 @@ export function usersColumns(
   currentUserId: string | undefined,
   isMobile: boolean,
   workload: ReadonlyMap<string, MechanicWorkload> | null,
-): Column<ManagedUser>[] {
-  const name = (user: ManagedUser) => <UserNameCell user={user} isSelf={user.id === currentUserId} />;
+): Column<TeamMember>[] {
+  const name = (user: TeamMember) => <UserNameCell user={user} isSelf={user.id === currentUserId} />;
 
-  const rest: Column<ManagedUser>[] = [
+  const rest: Column<TeamMember>[] = [
     { id: 'role', header: 'Role', mobile: 'field', cell: (user) => <UserRoleCell user={user} /> },
     {
       id: 'status',
       header: 'Status',
       mobile: 'badge',
-      cell: (user) => (
-        <span className="flex flex-wrap gap-1">
-          <StatusBadge status={getAccountStatus(user)} />
-          {/* Suite spec 0012, AC-23: they asked to delete their account */}
-          {user.pendingDeletion && <BadgePill className="bg-destructive/10 text-destructive">Pending deletion</BadgePill>}
-        </span>
-      ),
+      cell: (user) => <StatusBadge status={getAccountStatus(user)} />,
     },
     { id: 'work', header: 'Work', mobile: 'field', cell: (user) => <UserWorkCell user={user} workload={workload} /> },
-    {
-      id: 'added',
-      header: 'Added',
-      mobile: 'hidden',
-      cell: (user) => <time dateTime={user.createdAt} className="whitespace-nowrap">
-          {formatShortDate(user.createdAt)}
-        </time>,
-    },
   ];
 
   if (isMobile) {

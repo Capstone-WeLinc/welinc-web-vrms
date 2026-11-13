@@ -20,9 +20,7 @@ export const STATUS_LABELS: Record<string, string> = {
   // Account and knowledge entry statuses
   ACTIVE: 'Active',
   INACTIVE: 'Inactive',
-  LOCKED: 'Locked',
-  SETUP_PENDING: 'Setup pending',
-  EMAIL_NOT_VERIFIED: 'Email not verified',
+  DELETED: 'Deleted',
   DRAFT: 'Draft',
 };
 

@@ -47,11 +47,26 @@ export interface ManagedUser {
   createdAt: string;
   updatedAt: string;
   roles: UserRoleAssignment[];
-  /** Names of the other systems this account holds a role in (spec 0011, AC-26); empty when none. */
-  otherSystems?: SystemType[];
   contact?: string | null;
-  /** Suite spec 0012, AC-9: the person asked to delete their account (list rows only). */
-  pendingDeletion?: boolean;
+}
+
+/**
+ * One person on the Users page: VRMS's copy of welinc-auth's directory, from `GET /vrms/people`
+ * (suite spec 0014, task 13a). Everyone holding a VRMS role, permanent or temporary; an erased
+ * person is never listed. Lock, setup and email state live on the portal's person page.
+ */
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  /** welinc-auth's stored picture path, relative to the gateway, or null. */
+  picture: string | null;
+  roles: UserRoleAssignment[];
+  /** The VRMS role codes held through a temporary grant (a subset of `roles`). */
+  temporaryRoles: UserRole[];
+  isActive: boolean;
+  /** Deleted at welinc-auth and in the grace period: restorable from the portal. */
+  deleted: boolean;
 }
 
 /** Spec 0010. Open is every status except CLOSED and CANCELLED (lib/repairStatus.ts). */
