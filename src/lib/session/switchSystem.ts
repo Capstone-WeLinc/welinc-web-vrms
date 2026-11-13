@@ -1,9 +1,14 @@
 import type { User } from '../../types';
 import { PORTAL_URL } from './session';
 
-/** Switch system shows only with two or more systems (spec 0007, AC-9). */
-export function canSwitchSystem(user: Pick<User, 'systems'> | null): boolean {
-  return (user?.systems?.length ?? 0) >= 2;
+/**
+ * Switch system shows with two or more systems, or for a VRMS Admin, whose launcher holds the
+ * Admin card even with one system (spec 0007, AC-9 and AC-14). A suite admin's temporary Admin
+ * grant counts, so they can get back to the portal to end it.
+ */
+export function canSwitchSystem(user: Pick<User, 'systems' | 'role'> | null): boolean {
+  if (!user) return false;
+  return (user.systems?.length ?? 0) >= 2 || user.role === 'ADMIN';
 }
 
 /** The portal launcher, with VRMS tagged "You're here" (AC-9, AC-16). */
