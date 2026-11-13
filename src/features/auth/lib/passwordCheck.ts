@@ -20,7 +20,7 @@ export function passwordCheckFailure(err: unknown): PasswordCheckFailure | null 
     const left = body.attemptsLeft ?? 0;
     return {
       kind: 'wrong',
-      message: `That password isn’t right. ${left} ${left === 1 ? 'try' : 'tries'} left before a 15 minute lock.`,
+      message: `Incorrect password. ${left} ${left === 1 ? 'try' : 'tries'} left before your account locks for 15 minutes.`,
     };
   }
   if (body?.code === 'ACCOUNT_LOCKED') return { kind: 'locked', message: LOCKED_MESSAGE };

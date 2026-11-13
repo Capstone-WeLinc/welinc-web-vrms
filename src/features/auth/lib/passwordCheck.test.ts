@@ -13,7 +13,7 @@ describe('passwordCheckFailure', () => {
   it('counts down the tries left on a wrong password', () => {
     expect(passwordCheckFailure(failure(400, { code: 'WRONG_PASSWORD', attemptsLeft: 4 }))).toEqual({
       kind: 'wrong',
-      message: 'That password isn’t right. 4 tries left before a 15 minute lock.',
+      message: 'Incorrect password. 4 tries left before your account locks for 15 minutes.',
     });
   });
 
