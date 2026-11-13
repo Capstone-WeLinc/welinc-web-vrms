@@ -1,4 +1,4 @@
-import type { ManagedUser, UserRole } from '../../../types';
+import type { TeamMember, UserRole } from '../../../types';
 import { WORK_FILTERS, type WorkState } from './workload';
 import { ACCOUNT_STATUSES, getAccountStatus, vrmsRoles, type AccountStatus } from './accountStatus';
 
@@ -75,7 +75,7 @@ export function hasActiveFilters(filters: UserFilterValues) {
  * holds. `workState` is the user's Occupied or Free (null when not a mechanic or not loaded), so a
  * work filter shows only mechanics.
  */
-export function matchesUserFilters(user: ManagedUser, filters: UserFilterValues, workState: WorkState | null = null) {
+export function matchesUserFilters(user: TeamMember, filters: UserFilterValues, workState: WorkState | null = null) {
   const search = filters.search.toLowerCase();
   if (search && !user.name.toLowerCase().includes(search) && !user.email.toLowerCase().includes(search)) return false;
   if (filters.role !== 'all' && !vrmsRoles(user).includes(filters.role as UserRole)) return false;

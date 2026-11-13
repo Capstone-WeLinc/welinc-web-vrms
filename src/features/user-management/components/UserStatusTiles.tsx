@@ -1,22 +1,20 @@
-import { Lock, MailQuestion, MailWarning, UserCheck, UserX, type LucideIcon } from 'lucide-react';
+import { UserCheck, UserMinus, UserX, type LucideIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiCard } from '../../../components/shared/KpiCard';
 import { statusLabel } from '../../../components/shared/statusLabels';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 import { ACCOUNT_STATUSES, getAccountStatus, type AccountStatus } from '../lib/accountStatus';
 
 // No context line: the visible text must match the tile's name, "{caption}, {count}".
 const TILES: Record<AccountStatus, { icon: LucideIcon; tone: 'default' | 'success' | 'destructive' | 'highlight' }> = {
-  LOCKED: { icon: Lock, tone: 'destructive' },
-  SETUP_PENDING: { icon: MailWarning, tone: 'highlight' },
-  EMAIL_NOT_VERIFIED: { icon: MailQuestion, tone: 'highlight' },
   ACTIVE: { icon: UserCheck, tone: 'success' },
   INACTIVE: { icon: UserX, tone: 'default' },
+  DELETED: { icon: UserMinus, tone: 'destructive' },
 };
 
 interface UserStatusTilesProps {
   /** Every loaded user, not the filtered set. */
-  users: ManagedUser[];
+  users: TeamMember[];
   loading: boolean;
   selected: AccountStatus | 'all';
   /** Called with the pressed tile's status; the page clears the filter when it is already selected. */
@@ -32,7 +30,7 @@ export function UserStatusTiles({ users, loading, selected, onSelect }: UserStat
   }
 
   return (
-    <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
       {ACCOUNT_STATUSES.map((status) =>
         loading ? (
           <Skeleton key={status} className="h-24 rounded-xl" />

@@ -1,5 +1,5 @@
 import type { MechanicOption, MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 import { sortMechanics } from '../../repair/lib/mechanicOrder';
 import { getAccountStatus, onMechanicRoster } from './accountStatus';
 import { openWorkSummary } from './openWorkCopy';
@@ -25,14 +25,14 @@ export function workloadMap(rows: readonly MechanicWorkload[]) {
 
 /**
  * Occupied or Free for a person on the mechanic roster, or null: not a mechanic, the workload has
- * not loaded, or the account is deactivated or locked (Free would say they can take work, and they
+ * not loaded, or the account is deactivated or deleted (Free would say they can take work, and they
  * cannot; their open tickets still show in the dialog so an Admin can move them). A mechanic with
  * no row yet (never synced) holds no tickets, so is Free.
  */
-export function workStateOf(user: ManagedUser, workload: ReadonlyMap<string, MechanicWorkload> | null): WorkState | null {
+export function workStateOf(user: TeamMember, workload: ReadonlyMap<string, MechanicWorkload> | null): WorkState | null {
   if (!workload || !onMechanicRoster(user)) return null;
   const account = getAccountStatus(user);
-  if (account === 'INACTIVE' || account === 'LOCKED') return null;
+  if (account !== 'ACTIVE') return null;
   return workload.get(user.id)?.occupied ? 'occupied' : 'free';
 }
 

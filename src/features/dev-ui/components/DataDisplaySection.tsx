@@ -11,7 +11,7 @@ import { RoleBadge } from '@/components/shared/RoleBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Row, Section } from './ShowcaseLayout';
 
-const STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'FOR_VERIFICATION', 'CLOSED', 'CANCELLED', 'ACTIVE', 'SETUP_PENDING', 'INACTIVE', 'LOCKED', 'ON_HOLD'];
+const STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'FOR_VERIFICATION', 'CLOSED', 'CANCELLED', 'ACTIVE', 'INACTIVE', 'DELETED', 'ON_HOLD'];
 const PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'URGENT'];
 const ROLES = ['ADMIN', 'CHIEF_MECHANIC', 'MECHANIC', 'OPERATIONS', 'CUSTOMER_SUPPORT', 'DRIVER', 'AUDITOR'];
 

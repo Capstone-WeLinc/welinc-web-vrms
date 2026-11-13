@@ -1,5 +1,5 @@
 import type { MechanicOpenTicket, MechanicOpenTickets, MechanicOption, MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
-import type { ManagedUser, RepairStatus, UserRole } from '../../../types';
+import type { TeamMember, RepairStatus, UserRole } from '../../../types';
 import type { DataMode } from './dataMode';
 
 // Development only (break-ui): the Users page with the mechanic workload (feature 57): the user
@@ -40,8 +40,9 @@ type Profile = {
   /** Tickets by status, in the order given. */
   tickets?: Partial<Record<RepairStatus, number>>;
   isActive?: boolean;
-  isLocked?: boolean;
-  emailVerified?: boolean;
+  deleted?: boolean;
+  /** Every role comes from a temporary grant. */
+  temporary?: boolean;
   /** How many other mechanics share each ticket: 0 is alone, 11 is the whole crowd. */
   sharedWith?: number;
   plate?: string;
@@ -62,8 +63,8 @@ const WORST: Profile[] = [
   { name: '  Sam   Lee ', email: 'sam.lee@example.com', tickets: { ON_HOLD: 1 } },
   // The email used as the name; a deactivated account that still holds tickets
   { name: EMAIL_AS_NAME, email: EMAIL_AS_NAME, isActive: false, tickets: { ASSIGNED: 3 }, sharedWith: 1 },
-  { name: 'Christopher Alexander Montgomery III', email: 'chris.montgomery@example.com', isLocked: true, tickets: { OUTSOURCED: 1, PENDING_APPROVAL: 1 } },
-  { name: 'Ólafur Darri Ólafsson', email: 'olafur@example.com', emailVerified: false },
+  { name: 'Christopher Alexander Montgomery III', email: 'chris.montgomery@example.com', deleted: true, tickets: { OUTSOURCED: 1, PENDING_APPROVAL: 1 } },
+  { name: 'Ólafur Darri Ólafsson', email: 'olafur@example.com', temporary: true },
   // Not a mechanic, and one person who is both
   { name: 'Seán O’Brien-Ó Súilleabháin', email: 'sean@example.com', roles: ['ADMIN'] },
   { name: 'María José de la Cruz y Fernández', email: 'maria.jose@example.com', roles: ['ADMIN', 'MECHANIC'], tickets: { IN_PROGRESS: 1, ASSIGNED: 1 } },
@@ -89,20 +90,17 @@ const pad = (n: number, width = 2) => String(n).padStart(width, '0');
 const userId = (i: number) => `fixture-u-${pad(i, 4)}`;
 const mechanicId = (i: number) => `fixture-m-${pad(i, 4)}`;
 
-function user(profile: Profile, i: number): ManagedUser {
+function user(profile: Profile, i: number): TeamMember {
   const mechanic = profile.roles ?? ['MECHANIC'];
   return {
     id: userId(i),
     name: profile.name,
     email: profile.email,
-    emailVerified: profile.emailVerified ?? true,
-    passwordSet: true,
+    picture: null,
     isActive: profile.isActive ?? true,
-    isLocked: profile.isLocked ?? false,
-    lockedAt: profile.isLocked ? new Date(Date.now() - 3 * 86_400_000).toISOString() : null,
-    createdAt: new Date(Date.now() - (40 + (i % 30)) * 86_400_000).toISOString(),
-    updatedAt: new Date().toISOString(),
+    deleted: profile.deleted ?? false,
     roles: mechanic.map((role) => ({ role, system: 'VRMS' as const })),
+    temporaryRoles: profile.temporary ? mechanic : [],
   };
 }
 
@@ -160,11 +158,11 @@ function pickerOf(profiles: Profile[], mode: DataMode): MechanicOption[] {
 }
 
 /** The Users page, its workload and the Reassign dialog's list; undefined for any other request. */
-export function madeUpUsers(mode: DataMode, url: string, params: Record<string, unknown>): unknown {
+export function madeUpUsers(mode: DataMode, url: string): unknown {
   if (mode === 'demo') return undefined;
   const profiles = profilesFor(mode);
 
-  if (url === '/auth/users' && params.system === 'VRMS') return profiles.map(user);
+  if (url === '/vrms/people') return profiles.map(user);
   if (url === '/vrms/mechanics/workload') return profiles.map(workloadOf);
   if (url === '/vrms/mechanics/available') return pickerOf(profiles, mode);
 
@@ -178,8 +176,8 @@ export function madeUpUsers(mode: DataMode, url: string, params: Record<string, 
   return undefined;
 }
 
-/** Saves would send fixture ids to the live auth service, so the Users page stays read only. */
+/** Saves would send fixture ids to the live API, so the Users page stays read only. */
 export function isUsersWrite(method: string | undefined, url: string | undefined) {
   if (!method || method.toLowerCase() === 'get' || !url) return false;
-  return /^\/auth\/users|^\/vrms\/mechanics\/[^/]+\/release-tickets/.test(url);
+  return /^\/vrms\/mechanics\/[^/]+\/release-tickets/.test(url);
 }

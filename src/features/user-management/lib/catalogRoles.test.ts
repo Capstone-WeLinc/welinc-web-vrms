@@ -1,21 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { hasUneditableRoles } from './accountStatus';
 import { matchesUserFilters, readUserListState } from './userFilters';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 
 // Spec 0004, AC-20: the role filter and the fallback lock follow welinc-auth's catalog, not a
 // fixed list in the web app.
 
 const CATALOG = ['ADMIN', 'CHIEF_MECHANIC', 'MECHANIC'];
 
-function user(roles: { role: string; system: 'VRMS' | 'VMMS' }[]): Pick<ManagedUser, 'roles' | 'name' | 'email' | 'isActive' | 'isLocked' | 'emailVerified'> {
+function user(roles: { role: string; system: 'VRMS' | 'VMMS' }[]): TeamMember {
   return {
+    id: 'pedro',
     name: 'Pedro',
     email: 'pedro@welinc.com',
+    picture: null,
     isActive: true,
-    isLocked: false,
-    emailVerified: true,
-    roles: roles as ManagedUser['roles'],
+    deleted: false,
+    roles: roles as TeamMember['roles'],
+    temporaryRoles: [],
   };
 }
 
@@ -30,8 +32,8 @@ describe('role filter from the URL', () => {
 
   it('matches only the VRMS role', () => {
     const filters = { search: '', role: 'MECHANIC', status: 'all', work: 'all' } as const;
-    expect(matchesUserFilters(user([{ role: 'MECHANIC', system: 'VRMS' }]) as ManagedUser, filters)).toBe(true);
-    expect(matchesUserFilters(user([{ role: 'MECHANIC', system: 'VMMS' }]) as ManagedUser, filters)).toBe(false);
+    expect(matchesUserFilters(user([{ role: 'MECHANIC', system: 'VRMS' }]), filters)).toBe(true);
+    expect(matchesUserFilters(user([{ role: 'MECHANIC', system: 'VMMS' }]), filters)).toBe(false);
   });
 });
 

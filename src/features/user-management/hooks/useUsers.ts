@@ -1,29 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../../../context/toast';
-import { getUsers } from '../../../lib/api/authApi';
+import { getTeam } from '../../../lib/api/vrmsConfigApi';
 import { getApiErrorMessage } from '../../../lib/api/errors';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 
 type ListState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; users: ManagedUser[] };
+  | { status: 'ready'; users: TeamMember[] };
 
 /** first: shows its failure in place of the list. background: keeps the rows, toasts once per run of failures. quiet: keeps the rows, says nothing. */
 type LoadMode = 'first' | 'background' | 'quiet';
 
 /**
- * Every VRMS user (spec 0006, AC-8). Refetches quietly when the tab becomes visible again.
- * Each request is numbered and only the latest may land, and `runWrite` pauses background
- * refetches and drops any already in flight, so a refetch never overwrites a row an action
- * just replaced. `onRefresh` hears every list that lands after the first.
+ * Every VRMS person (spec 0006, AC-8), from VRMS's directory copy (`GET /vrms/people`, suite spec
+ * 0014, task 13a). Refetches quietly when the tab becomes visible again. Each request is numbered
+ * and only the latest may land. `onRefresh` hears every list that lands after the first.
  */
-export function useUsers(onRefresh?: (users: ManagedUser[]) => void) {
+export function useUsers(onRefresh?: (users: TeamMember[]) => void) {
   const { showToast } = useToast();
   const [state, setState] = useState<ListState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const latest = useRef(0);
-  const writes = useRef(0);
   const hasRows = useRef(false);
   const refreshFailed = useRef(false);
   const onRefreshRef = useRef(onRefresh);
@@ -33,7 +31,7 @@ export function useUsers(onRefresh?: (users: ManagedUser[]) => void) {
 
   // Lands one numbered result; anything older than the latest request is dropped.
   const land = useCallback(
-    (id: number, mode: LoadMode, result: { users: ManagedUser[] } | { err: unknown }): ManagedUser[] | null => {
+    (id: number, mode: LoadMode, result: { users: TeamMember[] } | { err: unknown }): TeamMember[] | null => {
       if (id !== latest.current) return null;
       if ('users' in result) {
         const first = !hasRows.current;
@@ -57,7 +55,7 @@ export function useUsers(onRefresh?: (users: ManagedUser[]) => void) {
   const load = useCallback(
     (mode: LoadMode) => {
       const id = ++latest.current;
-      return getUsers('VRMS').then(
+      return getTeam().then(
         (users) => land(id, mode, { users }),
         (err: unknown) => land(id, mode, { err }),
       );
@@ -67,7 +65,7 @@ export function useUsers(onRefresh?: (users: ManagedUser[]) => void) {
 
   useEffect(() => {
     const onVisibility = () => {
-      if (!document.hidden && writes.current === 0) void load('background');
+      if (!document.hidden) void load('background');
     };
     void load('first');
     document.addEventListener('visibilitychange', onVisibility);
@@ -83,27 +81,6 @@ export function useUsers(onRefresh?: (users: ManagedUser[]) => void) {
     setAttempt((n) => n + 1);
   };
 
-  /** Runs a row action or a save. While it runs, no list result may land. */
-  const runWrite = useCallback(async <T,>(write: () => Promise<T>): Promise<T> => {
-    writes.current += 1;
-    latest.current += 1;
-    try {
-      return await write();
-    } finally {
-      writes.current -= 1;
-    }
-  }, []);
-
-  /** Puts the server's copy of a user in the list: replaces it, or adds it when new. */
-  const upsertUser = useCallback((user: ManagedUser) => {
-    setState((current) => {
-      if (current.status !== 'ready') return current;
-      const exists = current.users.some((item) => item.id === user.id);
-      const users = exists ? current.users.map((item) => (item.id === user.id ? user : item)) : [...current.users, user];
-      return { status: 'ready', users };
-    });
-  }, []);
-
   return {
     status: state.status,
     users: state.status === 'ready' ? state.users : [],
@@ -111,7 +88,5 @@ export function useUsers(onRefresh?: (users: ManagedUser[]) => void) {
     retry,
     /** Refetches now, keeping the rows on failure; resolves the new list, or null when it failed or was overtaken. */
     refetch: useCallback(() => load('quiet'), [load]),
-    runWrite,
-    upsertUser,
   };
 }

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { onMechanicRoster, vrmsRoles } from './accountStatus';
 import { DEFAULT_USER_FILTERS, hasActiveFilters, readUserListState, writeUserListState } from './userFilters';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 
 // Spec 0004, AC-20: the role filter lives in the URL as a catalog role code, so a role added to
 // welinc-auth's catalog filters and survives a reload with no web change.
 
 function roles(list: { role: string; system: 'VRMS' | 'VMMS' | 'BMS' }[]) {
-  return { roles: list as ManagedUser['roles'] };
+  return { roles: list as TeamMember['roles'] };
 }
 
 describe('role filter in the URL', () => {

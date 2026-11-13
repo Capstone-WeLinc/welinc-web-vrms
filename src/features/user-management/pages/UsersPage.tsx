@@ -8,7 +8,7 @@ import { confirmStore } from '../../../components/shared/confirm/confirm';
 import { DataTable } from '../../../components/shared/data-table/DataTable';
 import { lastPage, type RowAction } from '../../../components/shared/data-table/types';
 import { useAuthStore } from '../../../store/authStore';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 import { TeamPersonDialog } from '../components/TeamPersonDialog';
 import { UserListFilters } from '../components/UserListFilters';
 import { UserStatusTiles } from '../components/UserStatusTiles';
@@ -24,7 +24,7 @@ import { addUserUrl, manageAccountUrl } from '../lib/portalLinks';
 import { hasActiveFilters, matchesUserFilters, USERS_PAGE_SIZE } from '../lib/userFilters';
 
 /** The open person dialog, with the row as it was when it opened. */
-type DialogState = { open: boolean; user: ManagedUser | null; session: number };
+type DialogState = { open: boolean; user: TeamMember | null; session: number };
 
 /**
  * The VRMS team and their work (suite spec 0013, AC-31), behind `team.manage` in App.tsx and on
@@ -52,7 +52,7 @@ export function UsersPage() {
     setDialog((current) => ({ ...current, open: false }));
   });
 
-  const openDialog = (user: ManagedUser) => setDialog((current) => ({ open: true, user, session: current.session + 1 }));
+  const openDialog = (user: TeamMember) => setDialog((current) => ({ open: true, user, session: current.session + 1 }));
   const closeDialog = () => setDialog((current) => ({ ...current, open: false }));
 
   // Spec 0004, AC-20: the role filter reads welinc-auth's catalog, one request
@@ -72,7 +72,7 @@ export function UsersPage() {
 
   const dialogFocus = useMemo(() => (dialog.user ? rowFocusRef(dialog.user.id) : undefined), [dialog.user]);
 
-  const rowActions = (user: ManagedUser): RowAction[] => [
+  const rowActions = (user: TeamMember): RowAction[] => [
     ...(onMechanicRoster(user) ? [{ label: 'Open tickets', onSelect: () => openDialog(user) }] : []),
     { label: 'Manage account', hint: 'Opens the portal', externalHref: manageAccountUrl(user.id) },
   ];

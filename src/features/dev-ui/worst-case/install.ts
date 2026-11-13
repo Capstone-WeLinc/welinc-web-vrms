@@ -24,7 +24,7 @@ export function installDataModes(api: AxiosInstance) {
     }
     if (config.method?.toLowerCase() === 'get') {
       const data =
-        madeUpUsers(mode, config.url, config.params ?? {}) ??
+        madeUpUsers(mode, config.url) ??
         madeUpAttachments(mode, config.url) ??
         madeUpHistory(mode, config.url, config.params ?? {}) ??
         madeUpFormData(mode, config.url, config.params ?? {}) ??

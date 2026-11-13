@@ -39,13 +39,6 @@ export async function getSystems(): Promise<SystemView[]> {
   return response.data.systems;
 }
 
-export async function getUsers(system: SystemType = 'VRMS'): Promise<ManagedUser[]> {
-  const response = await api.get<ManagedUser[]>('/auth/users', {
-    params: { system },
-  });
-  return response.data;
-}
-
 /** Name and contact only: your email changes through `startEmailChange` (suite spec 0009, AC-20). */
 export async function updateOwnProfile(payload: { name?: string; contact?: string }): Promise<ManagedUser> {
   const response = await api.patch<ManagedUser>('/auth/profile', payload);

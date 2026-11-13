@@ -4,7 +4,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ResponsiveDialog } from '../../../components/shared/ResponsiveDialog';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 import { getAccountStatus, onMechanicRoster } from '../lib/accountStatus';
 import { manageAccountUrl } from '../lib/portalLinks';
 import { MechanicOpenTickets } from './MechanicOpenTickets';
@@ -13,7 +13,7 @@ import { UserRoleCell } from './UserCells';
 interface TeamPersonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  user: ManagedUser | null;
+  user: TeamMember | null;
   finalFocusRef?: RefObject<HTMLElement | null>;
   /** After an unassign or reassign lands, so the Work column catches up. */
   onWorkChanged: () => void;

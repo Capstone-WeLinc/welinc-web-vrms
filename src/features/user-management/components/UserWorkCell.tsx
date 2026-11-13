@@ -1,10 +1,10 @@
 import { BadgePill } from '../../../components/shared/BadgePill';
 import type { MechanicWorkload } from '../../../lib/api/vrmsConfigApi';
-import type { ManagedUser } from '../../../types';
+import type { TeamMember } from '../../../types';
 import { WORK_LABELS, WORK_STATE_CLASSES, workloadSummary, workStateOf } from '../lib/workload';
 
 /** Occupied or Free, with the open counts by status below (feature 57). A dash for non mechanics. */
-export function UserWorkCell({ user, workload }: { user: ManagedUser; workload: ReadonlyMap<string, MechanicWorkload> | null }) {
+export function UserWorkCell({ user, workload }: { user: TeamMember; workload: ReadonlyMap<string, MechanicWorkload> | null }) {
   const state = workStateOf(user, workload);
   if (!state)
     return (

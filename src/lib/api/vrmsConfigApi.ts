@@ -1,5 +1,11 @@
 import api from './axios';
-import type { RepairStatus } from '../../types';
+import type { RepairStatus, TeamMember } from '../../types';
+
+/** The Users page list (suite spec 0014, task 13a): every VRMS person, behind `team.manage`. */
+export async function getTeam(): Promise<TeamMember[]> {
+  const response = await api.get<TeamMember[]>('/vrms/people');
+  return response.data;
+}
 
 export interface GarageOption {
   id: string;
