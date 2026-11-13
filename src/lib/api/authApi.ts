@@ -40,7 +40,7 @@ export async function getSystems(): Promise<SystemView[]> {
 }
 
 export async function getUsers(system: SystemType = 'VRMS'): Promise<ManagedUser[]> {
-  const response = await api.get<ManagedUser[]>('/auth/users', {
+  const response = await api.get<ManagedUser[]>('/auth/users', { // check-system: allow AC-33 pending
     params: { system },
   });
   return response.data;

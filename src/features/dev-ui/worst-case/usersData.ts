@@ -164,7 +164,7 @@ export function madeUpUsers(mode: DataMode, url: string, params: Record<string, 
   if (mode === 'demo') return undefined;
   const profiles = profilesFor(mode);
 
-  if (url === '/auth/users' && params.system === 'VRMS') return profiles.map(user);
+  if (url === '/auth/users' && params.system === 'VRMS') return profiles.map(user); // check-system: allow AC-33 pending
   if (url === '/vrms/mechanics/workload') return profiles.map(workloadOf);
   if (url === '/vrms/mechanics/available') return pickerOf(profiles, mode);
 
