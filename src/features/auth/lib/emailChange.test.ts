@@ -15,7 +15,7 @@ describe('emailChangeFailure', () => {
     expect(emailChangeFailure(failure(400, { code: 'WRONG_PASSWORD', attemptsLeft: 2 }))).toEqual({
       kind: 'field',
       field: 'currentPassword',
-      message: 'That password isn’t right. 2 tries left before your account locks.',
+      message: 'Incorrect password. 2 tries left before your account locks for 15 minutes.',
     });
   });
 
