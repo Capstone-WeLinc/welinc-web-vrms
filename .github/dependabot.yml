@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Weekly version updates into development. Minor and patch bumps come as one pull request;
+  # a major bump comes on its own so its breaking changes get looked at.
+  # Security updates still come as soon as an alert opens.
+  - package-ecosystem: npm
+    directory: /
+    target-branch: development
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  # Keeps actions/checkout and actions/setup-node current in ci.yml
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: development
+    schedule:
+      interval: weekly
