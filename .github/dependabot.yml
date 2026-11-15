@@ -1,8 +1,6 @@
 version: 2
 updates:
-  # Weekly version updates into development. Minor and patch bumps come as one pull request;
-  # a major bump comes on its own so its breaking changes get looked at.
-  # Security updates still come as soon as an alert opens.
+  # Weekly version updates into development. Security updates still come as soon as an alert opens.
   - package-ecosystem: npm
     directory: /
     target-branch: development
@@ -10,8 +8,19 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      # NestJS packages must move together (each @nestjs/* peers on the others), so one pull
+      # request for all of them, a major version included. A group is matched before the next one.
+      nestjs:
+        patterns: ["@nestjs/*"]
+      # Minor and patch bumps of everything else come as one pull request; a major bump comes
+      # on its own so its breaking changes get looked at. To skip a major you don't want yet,
+      # comment "@dependabot ignore this major version" on its pull request.
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # The types follow the Node version we run (24, from .nvmrc), not the newest Node
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   # Keeps actions/checkout and actions/setup-node current in ci.yml
   - package-ecosystem: github-actions
     directory: /
