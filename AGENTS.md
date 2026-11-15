@@ -40,7 +40,7 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 SPA where admins and mechanic
 ```bash
 npm install
 npm run dev          # Vite on 8001
-npm run lint         # ESLint 9 flat config (eslint.config.js)
+npm run lint         # ESLint 10 flat config (eslint.config.js)
 npm run typecheck    # tsc --noEmit with the root tsconfig.json
 npm run build        # typecheck then the production build; needs real https VITE_* values (CI, hosting)
 npm run build:local  # typecheck then build with the committed .env.development (use this on your machine)
