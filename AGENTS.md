@@ -33,6 +33,7 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 SPA where admins and mechanic
 | `src/features/knowledge-base/` | Library, entry, editor and suggestions pages over `/vrms/knowledge`; categories are managed in Settings, Lookup lists |
 | `src/context/toast.ts` | `showToast()` and the `useToast()` hook over sonner; the `<Toaster />` is mounted in `App.tsx` (there is no toast provider) |
 | `src/lib/repairStatus.ts` | The one definition of open and finished ticket statuses (mirrors the backend's `ticket-statuses.ts`); screens read it, never a list of their own |
+| `src/lib/monitoring/`, `src/components/monitoring/` | VRMS spec 0025, Sentry (off with no `VITE_SENTRY_DSN`): `sentry.ts` (init from `main.tsx`, user context set in `session.ts`), `filters.ts` (what may be reported, the per page cap), `chunkReload.ts` (one silent reload when a lazy file vanished after a deploy), `CrashBoundary` and `CrashScreen` (one around the app, one around the page in `DashboardShell`). The `/debug/sentry` test page exists only in builds made with `VITE_SENTRY_TEST_ROUTES=true` |
 | `src/features/analytics/` | Analytics page split into `hooks/`, `components/` (one per tab), `utils.ts`, `export.ts` (CSV and PDF) |
 
 ## Commands
@@ -64,6 +65,7 @@ npm run build:local  # typecheck then build with the committed .env.development 
 - Motion uses the theme curves `ease-snappy` (dialogs, popups) and `ease-drawer` (sheets) from `index.css`. The lint config bans arbitrary values such as `ease-[cubic-bezier(...)]`, so add a token instead.
 - The mechanic pickers (Assign, new ticket, Reassign) share `mechanicDescription` and `sharedNames` in `features/repair/lib/mechanicOrder.ts`: a row shows only the open count, its email is the hover `title`, and the email shows inline only when two mechanics share a name. The shared `Combobox` takes an optional `title` per option.
 - Drag and drop uses `@dnd-kit/core` and `@dnd-kit/sortable` (classic API) only. Start a drag from a handle (`setActivatorNodeRef`, `touch-none`), always add the `KeyboardSensor` with spoken `announcements`, and inside a dialog render the `DragOverlay` through `createPortal` to `document.body` (the dialog's transform would offset it) and hold Escape with `ResponsiveDialog`'s `onEscapeKeyDown` while a drag runs.
+- Render crashes are reported only by `CrashBoundary` (spec 0025). Don't use Sentry's own `ErrorBoundary` (it would report each crash twice), and never report an API error from the browser: the server reports its own, and `filters.ts` drops anything axios raised. For a local test, put the `VITE_SENTRY_*` values in `.env.development.local`, never in the committed `.env.development`.
 - Files that export components export only components (fast refresh). Put hooks, constants and helpers in their own `.ts` file.
 
 ## Gotchas
