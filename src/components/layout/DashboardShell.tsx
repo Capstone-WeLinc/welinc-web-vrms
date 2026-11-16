@@ -1,4 +1,5 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
+import { CrashBoundary } from '../monitoring/CrashBoundary';
 import { cn } from '@/lib/utils';
 import { DataModeToggle } from '../../features/dev-ui/components/DataModeToggle';
 import { ReconnectingBanner } from '../session/ReconnectingBanner';
@@ -14,6 +15,7 @@ export function DashboardShell() {
   const { collapsed, toggle } = useSidebarCollapsed();
   // design.md: a bottom tab bar on phones when the nav fits in it, else the sheet menu
   const hasTabBar = usesTabBar(sections);
+  const { pathname } = useLocation();
 
   return (
     <div className="min-h-dvh bg-background">
@@ -37,7 +39,10 @@ export function DashboardShell() {
           tabIndex={-1}
           className={cn('w-full flex-1 px-4 py-6 outline-none md:px-8 xl:px-12', hasTabBar && 'pb-24 md:pb-6')}
         >
-          <Outlet />
+          {/* Spec 0025, AC-7: a page crash keeps the shell; a new page clears it */}
+          <CrashBoundary key={pathname} variant="page">
+            <Outlet />
+          </CrashBoundary>
         </main>
       </div>
       {hasTabBar && <MobileTabBar items={getMobileTabs(sections)} />}
