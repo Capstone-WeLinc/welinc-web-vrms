@@ -11,6 +11,7 @@ import {
   STATUS_RETRY_MS,
   statusCheckDelayMs,
 } from './timing';
+import { setMonitoringUser } from '../monitoring/sentry';
 
 /**
  * The VRMS web session (spec 0001 section 7, spec 0003 AC-19 to AC-25). The access token lives in
@@ -112,6 +113,8 @@ function toUser(answer: RefreshAnswer['user']): User {
 }
 
 function apply(message: Omit<TokenMessage, 'type'>) {
+  // Spec 0025: the id and VRMS role names from the answer itself, for this tab's error reports
+  setMonitoringUser(message.user);
   reconnectAttempt = 0;
   useAuthStore.setState({
     token: message.accessToken,
@@ -140,6 +143,7 @@ function clearTimers() {
 function leave(url: string, message?: string) {
   if (leaving) return;
   leaving = true;
+  setMonitoringUser(null);
   clearTimers();
   useAuthStore.setState({ token: null, expiresAt: null, idleWarning: null, reconnecting: false });
   if (message) showToast(message, 'error');

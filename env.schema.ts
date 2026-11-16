@@ -8,13 +8,26 @@ import { z } from 'zod';
 // Empty or blank strings count as missing.
 const blank = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
 const required = z.preprocess(blank, z.string({ error: 'is required' }).trim());
-const url = required.pipe(z.url({ protocol: /^https?$/, error: 'must be an http or https URL' }));
+const httpUrl = z.url({ protocol: /^https?$/, error: 'must be an http or https URL' });
+const url = required.pipe(httpUrl);
+const optional = <T extends z.ZodType>(s: T) => z.preprocess(blank, s.optional());
 
 export const envSchema = z.object({
   /** The gateway the browser calls (the API lives under /vrms/). */
   VITE_API_BASE_URL: url,
   /** The SSO portal: sign in, sign out and Switch system go there. */
   VITE_PORTAL_URL: url,
+
+  // Error monitoring (VRMS spec 0025): all optional; a blank DSN means off (AC-14)
+  /** The vrms-web project's DSN. Public by design: it can only send events. */
+  VITE_SENTRY_DSN: optional(httpUrl),
+  VITE_SENTRY_ENVIRONMENT: optional(z.enum(['staging', 'production'], { error: 'must be staging or production' })),
+  /** The commit SHA, set by the deploy job. */
+  VITE_SENTRY_RELEASE: optional(z.string().trim()),
+  /** The gateway route browser reports go through (AC-4): <api>/monitoring/vrms-web. */
+  VITE_SENTRY_TUNNEL: optional(httpUrl),
+  /** true only in the staging build: the /debug/sentry test page (AC-16). */
+  VITE_SENTRY_TEST_ROUTES: optional(z.enum(['true', 'false'], { error: 'must be true or false' })),
 });
 
 export type ClientEnv = z.infer<typeof envSchema>;

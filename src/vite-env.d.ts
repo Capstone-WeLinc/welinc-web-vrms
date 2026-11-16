@@ -4,6 +4,12 @@
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string;
   readonly VITE_PORTAL_URL: string;
+  // Optional, error monitoring (spec 0025); blank means off
+  readonly VITE_SENTRY_DSN?: string;
+  readonly VITE_SENTRY_ENVIRONMENT?: string;
+  readonly VITE_SENTRY_RELEASE?: string;
+  readonly VITE_SENTRY_TUNNEL?: string;
+  readonly VITE_SENTRY_TEST_ROUTES?: string;
 }
 
 interface ImportMeta {

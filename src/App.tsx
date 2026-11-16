@@ -40,6 +40,13 @@ const DevUiPage = import.meta.env.DEV
   ? lazy(() => import('./features/dev-ui/pages/DevUiPage').then((m) => ({ default: m.DevUiPage })))
   : null;
 
+// Spec 0025, AC-16: only in builds made with VITE_SENTRY_TEST_ROUTES=true (staging); a build time
+// constant, so every other build leaves the page out entirely.
+const SentryTestPage =
+  import.meta.env.VITE_SENTRY_TEST_ROUTES === 'true'
+    ? lazy(() => import('./features/monitoring/pages/SentryTestPage').then((m) => ({ default: m.SentryTestPage })))
+    : null;
+
 /**
  * Spec 0003, AC-20: the app shows its shell outline until the first refresh answers. Without a
  * session the boot itself goes to the login, so there is no local login page.
@@ -108,6 +115,18 @@ function App() {
           }
         >
           <Route index element={<DashboardPage />} />
+          {SentryTestPage && (
+            <Route
+              path="debug/sentry"
+              element={
+                <RequirePermission keys={['settings.manage']}>
+                  <Suspense fallback={null}>
+                    <SentryTestPage />
+                  </Suspense>
+                </RequirePermission>
+              }
+            />
+          )}
           <Route path="dashboard" element={<DashboardPage />} />
           <Route
             path="repairs"
