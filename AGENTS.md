@@ -70,6 +70,7 @@ npm run build:local  # typecheck then build with the committed .env.development 
 
 ## Gotchas
 
+- dnd-kit fires `onDragOver` at pickup with the picked up item itself as `over`, so an `onDragOver` announcement that speaks on every call replaces "Picked up …" before a screen reader reads it. Speak it only when `over` changes (`overTracker` in `features/repair/lib/checklist.ts`).
 - `useRepairTicket`'s `reload` is a new function every render, so it must never sit in an effect's dependency list: it makes the effect refetch forever.
 - Never put a token, the user or a last active stamp in `localStorage` or a URL (suite spec 0003, AC-19). The access token lives in the memory store only, so a reload costs one refresh before the first API call. The boot clears the old `welinc_token`, `welinc_user`, `welinc_last_active` and `welinc-auth-storage` keys. Calls to `/vrms/session/*` go through `api` with `sessionCall: true` and `withCredentials: true`.
 - The analytics page never shows sample data: a failed section shows the shared error state with Retry, and CSV and PDF export stay disabled while any section is loading or failed. Peso fields arrive as `null` without `ticket.costs.view`, and the page hides money columns with a note.
