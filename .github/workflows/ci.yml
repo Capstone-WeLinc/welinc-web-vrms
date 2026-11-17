@@ -1,16 +1,24 @@
 name: CI
 
+# Pull requests run it here. Pushes to development run it inside deploy.yml instead (the deploy
+# guard, VRMS spec 0008 AC-22), on exactly the commit being deployed, so it never runs twice.
 on:
   pull_request:
     branches: [development]
-  push:
-    branches: [development]
+  workflow_call:
+    inputs:
+      ref:
+        description: The full commit SHA to check (deploy.yml passes the commit it deploys)
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
 
+# A called run carries the caller's workflow name and event, so it never shares a group with a PR run
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -19,6 +27,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
