@@ -35,6 +35,7 @@ import {
   type ChecklistRow,
   DRAG_INSTRUCTIONS,
   dragSpeech,
+  overTracker,
   STEP_TAG_TOOLTIP,
   STEP_TEXT_MAX,
   stepKeyAction,
@@ -78,6 +79,7 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   /** The dragged row's place when the drag began, counted from 1 (AC-4a). */
   const startRef = useRef(0);
+  const overRef = useRef(overTracker());
   const opened = new Map(issue.steps.map((s) => [s.id, s]));
   const {
     control,
@@ -150,6 +152,7 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
 
   const onDragStart = ({ active }: DragStartEvent) => {
     startRef.current = indexOf(active.id) + 1;
+    overRef.current.begin(active.id);
     setActiveId(active.id);
   };
 
@@ -170,7 +173,8 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
 
   const announcements: Announcements = {
     onDragStart: ({ active }) => dragSpeech.pickedUp(indexOf(active.id) + 1),
-    onDragOver: ({ over }) => (over ? dragSpeech.over(startRef.current, indexOf(over.id) + 1) : undefined),
+    onDragOver: ({ over }) =>
+      over && overRef.current.changed(over.id) ? dragSpeech.over(startRef.current, indexOf(over.id) + 1) : undefined,
     onDragEnd: ({ over }) =>
       over ? dragSpeech.dropped(startRef.current, indexOf(over.id) + 1) : dragSpeech.cancelled(startRef.current),
     onDragCancel: () => dragSpeech.cancelled(startRef.current),

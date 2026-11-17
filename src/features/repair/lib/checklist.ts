@@ -148,3 +148,24 @@ export const dragSpeech = {
   dropped: (n: number, m: number) => `Step ${n} dropped at position ${m}.`,
   cancelled: (n: number) => `Moving cancelled. Step ${n} is back at position ${n}.`,
 };
+
+/**
+ * AC-4a: "Step n is now at position m." is spoken only when the `over` row changes. dnd-kit fires
+ * `onDragOver` at pickup with the picked up row as `over`, which would otherwise replace "Picked up
+ * step n." in the live region at once.
+ */
+export function overTracker() {
+  let last: string | number | null = null;
+  return {
+    /** A drag began on this row. */
+    begin(id: string | number) {
+      last = id;
+    },
+    /** True when `id` is a different row than the last one announced. */
+    changed(id: string | number) {
+      if (id === last) return false;
+      last = id;
+      return true;
+    },
+  };
+}
