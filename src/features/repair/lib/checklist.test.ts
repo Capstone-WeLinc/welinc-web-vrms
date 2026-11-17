@@ -5,6 +5,7 @@ import {
   checklistChanged,
   checklistPayload,
   dragSpeech,
+  overTracker,
   normalizeStepText,
   relinkLossMessage,
   stepKeyAction,
@@ -132,5 +133,30 @@ describe('drag sentences (AC-4a)', () => {
     expect(dragSpeech.over(2, 4)).toBe('Step 2 is now at position 4.');
     expect(dragSpeech.dropped(2, 4)).toBe('Step 2 dropped at position 4.');
     expect(dragSpeech.cancelled(2)).toBe('Moving cancelled. Step 2 is back at position 2.');
+  });
+});
+
+describe('over tracker (AC-4a)', () => {
+  it('stays quiet while the pointer is still over the row that was picked up', () => {
+    const t = overTracker();
+    t.begin('a');
+    // dnd-kit fires onDragOver at pickup with the row itself as `over`
+    expect(t.changed('a')).toBe(false);
+  });
+
+  it('speaks only when the over row changes, including back to the start row', () => {
+    const t = overTracker();
+    t.begin('a');
+    expect(t.changed('b')).toBe(true);
+    expect(t.changed('b')).toBe(false);
+    expect(t.changed('a')).toBe(true);
+  });
+
+  it('forgets the last row at the next pickup', () => {
+    const t = overTracker();
+    t.begin('a');
+    t.changed('b');
+    t.begin('c');
+    expect(t.changed('c')).toBe(false);
   });
 });
