@@ -1,0 +1,198 @@
+name: Deploy
+
+# VRMS spec 0008, CD for a frontend. The same file runs in welinc-web-vrms and welinc-web-portal;
+# the names come from repo variables that infra/scripts/set-repo-variables.sh writes. A web app
+# has no image, so production rebuilds the same commit staging tested, with production's values.
+#
+#   Staging:    every push to development.
+#   Production: Actions > Deploy > Run workflow, on main. With no sha it promotes: main moves
+#               (fast forward only) to the newest development commit staging deployed, then that
+#               commit deploys. With a sha it rolls back to that older main commit and moves nothing.
+#
+# Every run passes this repo's CI on the exact commit first (the deploy guard, AC-22); a red
+# check means no Azure login and no change. Nobody pushes to main by hand.
+on:
+  push:
+    branches: [development]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Rollback only: an older main commit (all 40 characters). Leave empty to promote what staging runs.'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# Deploys of one environment queue and never overlap a migration
+concurrency:
+  group: deploy-${{ github.repository }}-${{ github.event_name == 'push' && 'staging' || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  # Which environment and which commit. The trigger decides the environment, nothing else.
+  target:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      environment: ${{ steps.pick.outputs.environment }}
+      sha: ${{ steps.pick.outputs.sha }}
+      promote: ${{ steps.pick.outputs.promote }}
+    steps:
+      - id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          HEAD_SHA: ${{ github.sha }}
+          INPUT_SHA: ${{ inputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          out() { printf '%s=%s\n' "$1" "$2" >> "$GITHUB_OUTPUT"; }
+          if [ "$EVENT" = push ]; then
+            out environment staging; out sha "$HEAD_SHA"; out promote false
+            exit 0
+          fi
+          if [ "$REF" != refs/heads/main ]; then
+            echo "::error::Production runs only from main: pick 'Use workflow from: main'."
+            exit 1
+          fi
+          if [ -n "$INPUT_SHA" ]; then
+            if ! [[ "$INPUT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::sha must be a full commit id: 40 characters, 0 to 9 and a to f."
+              exit 1
+            fi
+            out environment production; out sha "$INPUT_SHA"; out promote false
+            exit 0
+          fi
+          target="$(gh run list -R "$REPO" --workflow deploy.yml --branch development --event push \
+            --status success --limit 1 --json headSha -q '.[0].headSha // ""')"
+          if [ -z "$target" ]; then
+            echo "::error::No successful staging deploy yet, so there is nothing to promote."
+            exit 1
+          fi
+          echo "Promoting $target, the newest commit staging deployed."
+          out environment production; out sha "$target"; out promote true
+
+  # The only job that can write: moves main forward to the commit staging deployed. A plain push
+  # fails when main holds a commit development doesn't, and then nothing deploys. A push made with
+  # the workflow token starts no other workflow.
+  promote:
+    needs: target
+    if: needs.target.outputs.promote == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - env:
+          SHA: ${{ needs.target.outputs.sha }}
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$SHA" origin/development \
+            || { echo "::error::$SHA is not on development."; exit 1; }
+          git push origin "$SHA:refs/heads/main"
+
+  # The deploy guard (AC-22): this repo's own CI on exactly the commit being deployed
+  ci:
+    needs: [target, promote]
+    if: ${{ !cancelled() && needs.target.result == 'success' && (needs.promote.result == 'success' || needs.promote.result == 'skipped') }}
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.target.outputs.sha }}
+
+  deploy:
+    needs: [target, ci]
+    if: ${{ !cancelled() && needs.ci.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ENVIRONMENT: ${{ needs.target.outputs.environment }}
+      SHA: ${{ needs.target.outputs.sha }}
+      RG: ${{ needs.target.outputs.environment == 'staging' && vars.RESOURCE_GROUP_STAGING || vars.RESOURCE_GROUP_PROD }}
+      SWA: ${{ needs.target.outputs.environment == 'staging' && vars.STATIC_WEB_APP_STAGING || vars.STATIC_WEB_APP_PROD }}
+      API_URL: ${{ needs.target.outputs.environment == 'staging' && vars.STAGING_API_URL || vars.PROD_API_URL }}
+      PORTAL_URL: ${{ needs.target.outputs.environment == 'staging' && vars.STAGING_PORTAL_URL || vars.PROD_PORTAL_URL }}
+      VRMS_URL: ${{ needs.target.outputs.environment == 'staging' && vars.STAGING_VRMS_URL || vars.PROD_VRMS_URL }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Production only deploys a commit that is on main and development
+        if: env.ENVIRONMENT == 'production'
+        run: |
+          set -euo pipefail
+          git fetch -q origin main development
+          for b in main development; do
+            git merge-base --is-ancestor "$SHA" "origin/$b" \
+              || { echo "::error::$SHA is not on $b."; exit 1; }
+          done
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      # Spec 0010: a plain build refuses missing, http or localhost values. VITE_* values ship to
+      # the browser, so only public addresses go here.
+      - name: Build with this environment's addresses
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ env.API_URL }}
+          VITE_PORTAL_URL: ${{ env.PORTAL_URL }}
+
+      # A short lived OpenID Connect pass, no stored password (AC-11)
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.ENVIRONMENT == 'staging' && vars.AZURE_CLIENT_ID_STAGING || vars.AZURE_CLIENT_ID_PROD }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Read at run time, never stored in GitHub
+      - name: Static Web App deployment token
+        id: swa
+        run: |
+          set -euo pipefail
+          token="$(az staticwebapp secrets list -n "$SWA" -g "$RG" --query properties.apiKey -o tsv)"
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ steps.swa.outputs.token }}
+          action: upload
+          app_location: dist
+          skip_app_build: true
+          skip_api_build: true
+
+      # AC-9: every health route (each checks its database) and both web apps, for up to 3 minutes
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          urls=("$API_URL/health" "$API_URL/auth/health" "$API_URL/vrms/health" "$PORTAL_URL/" "$VRMS_URL/")
+          deadline=$((SECONDS + 180))
+          for url in "${urls[@]}"; do
+            until code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$url")" && [ "$code" = 200 ]; do
+              if [ "$SECONDS" -ge "$deadline" ]; then
+                echo "::error::$url answered ${code:-nothing}, not 200."
+                exit 1
+              fi
+              sleep 10
+            done
+            echo "ok  $url"
+          done
