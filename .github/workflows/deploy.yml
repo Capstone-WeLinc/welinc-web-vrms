@@ -159,13 +159,32 @@ jobs:
           cache: npm
       - run: npm ci
 
+      # Spec 0025: the release is the commit actually checked out (not github.sha, which is wrong
+      # for a production run given a sha), the same name the backend images carry
+      - name: Release name
+        run: echo "VITE_SENTRY_RELEASE=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
       # Spec 0010: a plain build refuses missing, http or localhost values. VITE_* values ship to
-      # the browser, so only public addresses go here.
+      # the browser, so only public addresses and the public DSN go here; the upload token is
+      # read by vite.config.ts only. VITE_SENTRY_TEST_ROUTES stays unset: staging is the demo
+      # (spec 0008 AC-24), so the test page is never in a hosted build.
       - name: Build with this environment's addresses
         run: npm run build
         env:
           VITE_API_BASE_URL: ${{ env.API_URL }}
           VITE_PORTAL_URL: ${{ env.PORTAL_URL }}
+          VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN_VRMS_WEB }}
+          VITE_SENTRY_ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          VITE_SENTRY_TUNNEL: ${{ vars.SENTRY_DSN_VRMS_WEB != '' && format('{0}/monitoring/vrms-web', env.API_URL) || '' }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+
+      # Spec 0025, AC-17: no map is ever deployed, whether or not the upload ran
+      - name: Remove source maps
+        run: |
+          find dist -name '*.map' -delete
+          if find dist -name '*.map' | grep -q .; then echo "::error::A source map is still in dist."; exit 1; fi
 
       # A short lived OpenID Connect pass, no stored password (AC-11)
       - uses: azure/login@v2
@@ -207,3 +226,9 @@ jobs:
             done
             echo "ok  $url"
           done
+          # Spec 0025, AC-17: the deployed site serves no map (the asset fallback answers 404)
+          js="$(curl -s --max-time 15 "$VRMS_URL/" | grep -o '/assets/[^"]*\.js' | head -1)"
+          [ -n "$js" ] || { echo "::error::No script found on $VRMS_URL/."; exit 1; }
+          code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$VRMS_URL$js.map")"
+          [ "$code" = 404 ] || { echo "::error::$VRMS_URL$js.map answered $code, not 404."; exit 1; }
+          echo "ok  $VRMS_URL$js.map is 404"
