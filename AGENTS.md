@@ -47,7 +47,7 @@ npm run build        # typecheck then the production build; needs real https VIT
 npm run build:local  # typecheck then build with the committed .env.development (use this on your machine)
 ```
 
-`npm run test` runs Vitest (node environment, `src/**/*.test.ts`) on pure logic only: no jsdom, no component tests. Shared fixtures live in `src/test/`.
+`npm run test` runs Vitest (node environment, `src/**/*.test.ts`): there is no jsdom or Testing Library, so a component is tested by rendering it to markup with `renderToStaticMarkup` (wrap anything with a `Link` in `MemoryRouter`), and a class component through its methods (`src/components/monitoring/*.test.ts`). Clicks and focus can't be tested here. Shared fixtures live in `src/test/`.
 
 ## Conventions
 
