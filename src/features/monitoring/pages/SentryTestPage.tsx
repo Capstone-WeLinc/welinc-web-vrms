@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bug } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 
@@ -16,7 +16,7 @@ export function SentryTestPage() {
   const [crash, setCrash] = useState(false);
   return (
     <div>
-      <PageHeader icon={Bug} title="Error monitoring test" subtitle="Crashes this page on purpose to check the crash screen and the Sentry report." />
+      <PageHeader title="Error monitoring test" context="Crashes this page on purpose to check the crash screen and the Sentry report." />
       <Button variant="destructive" onClick={() => setCrash(true)}>
         Crash this page
       </Button>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { User as UserIcon } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { useAuthStore } from '../../../store/authStore';
@@ -59,7 +58,7 @@ export function ProfilePage() {
 
   return (
     <div>
-      <PageHeader title="My profile" subtitle="Your account details, password and signed in devices." icon={UserIcon} />
+      <PageHeader title="My profile" context="Your account details, password and signed in devices." />
 
       {state.status === 'loading' && <ProfileSkeleton />}
 

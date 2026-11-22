@@ -7,7 +7,8 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { KpiCard } from '@/components/shared/KpiCard';
 import { PriorityBadge } from '@/components/shared/PriorityBadge';
-import { RoleBadge } from '@/components/shared/RoleBadge';
+import { RoleChip } from '@/components/ui/role-chip';
+import { roleLabel } from '@/lib/roles';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Row, Section } from './ShowcaseLayout';
 
@@ -29,7 +30,7 @@ export function DataDisplaySection() {
         {PRIORITIES.map((priority) => <PriorityBadge key={priority} priority={priority} />)}
       </Row>
       <Row label="Role badge">
-        {ROLES.map((role) => <RoleBadge key={role} role={role} />)}
+        {ROLES.map((role) => <RoleChip key={role}>{roleLabel(role)}</RoleChip>)}
       </Row>
 
       <Row label="KPI card">

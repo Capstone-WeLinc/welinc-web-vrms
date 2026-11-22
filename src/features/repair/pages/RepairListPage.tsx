@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ClipboardList, Plus, SearchX, Wrench } from 'lucide-react';
+import { AlertTriangle, ClipboardList, Plus, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -177,8 +177,7 @@ export function RepairListPage() {
     <div>
       <PageHeader
         title="Repair tickets"
-        subtitle={seesAll ? 'Open repair tickets across every garage.' : 'Open repair tickets assigned to you.'}
-        icon={Wrench}
+        context={seesAll ? 'Open repair tickets across every garage.' : 'Open repair tickets assigned to you.'}
         action={canCreate ? newTicket : undefined}
       />
 

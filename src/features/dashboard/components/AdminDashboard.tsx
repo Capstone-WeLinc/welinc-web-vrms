@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { AlertTriangle, CheckCircle2, ClipboardList, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
+import { useCan } from '../../../lib/permissions/usePermissions';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { useAuthStore } from '../../../store/authStore';
@@ -25,6 +26,7 @@ const ATTENTION_LIMIT = 8;
 
 export function AdminDashboard() {
   const user = useAuthStore((state) => state.user);
+  const canVerify = useCan('ticket.verify');
   const { active, history, fetchedAt, state, errorMessage, refreshFailed, truncated, retry } = useDashboardData({
     includeHistory: true,
   });
@@ -33,10 +35,11 @@ export function AdminDashboard() {
     const all = [...active, ...history];
     const overdue = active.filter((t) => isOverdue(t, fetchedAt)).length;
     const tiles: AttentionTile[] = [
-      { caption: 'Open', value: active.length, icon: ClipboardList },
-      { caption: 'Overdue', value: overdue, icon: AlertTriangle, tone: overdue > 0 ? 'destructive' : 'default' },
-      { caption: 'Waiting for sign off', value: active.filter(isWaiting).length, icon: ShieldCheck },
-      { caption: 'Done this month', value: closedThisMonth(history, fetchedAt), icon: CheckCircle2, tone: 'success' },
+      { caption: 'Open', value: active.length, href: '/repairs' },
+      { caption: 'Overdue', value: overdue, href: '/repairs?overdue=1' },
+      // Hot for the roles that sign off (docs/context/vrms/design.md, Hot counts)
+      { caption: 'Waiting for sign off', value: active.filter(isWaiting).length, href: '/repairs?status=FOR_VERIFICATION', hot: canVerify },
+      { caption: 'Done this month', value: closedThisMonth(history, fetchedAt), href: '/history' },
     ];
     return {
       all,
@@ -44,14 +47,13 @@ export function AdminDashboard() {
       attention: attentionList(active, fetchedAt, ATTENTION_LIMIT),
       pipeline: pipelineCounts(active, history, fetchedAt),
     };
-  }, [active, history, fetchedAt]);
+  }, [active, history, fetchedAt, canVerify]);
 
   return (
     <div>
       <PageHeader
         title="Dashboard"
-        subtitle={`${greeting(user?.name)} Here's what needs your attention.`}
-        icon={LayoutDashboard}
+        context={`${greeting(user?.name)} Here's what needs your attention.`}
       />
 
       {state === 'loading' && <DashboardSkeleton admin />}

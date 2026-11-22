@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
-import { RoleBadge } from '../../../components/shared/RoleBadge';
+import { RoleChip } from '@/components/ui/role-chip';
+import { roleLabel } from '@/lib/roles';
 import type { TeamMember } from '../../../types';
 import { isTemporaryRole, vrmsRoles } from '../lib/accountStatus';
 
@@ -28,7 +29,7 @@ export function UserRoleCell({ user }: { user: TeamMember }) {
   const temporary = roles.some((role) => isTemporaryRole(user, role));
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
-      <RoleBadge role={first} />
+      <RoleChip>{roleLabel(first)}</RoleChip>
       {rest.length > 0 && (
         <Badge variant="outline" className="tabular-nums">
           +{rest.length}

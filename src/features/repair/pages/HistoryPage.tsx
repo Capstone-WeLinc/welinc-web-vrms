@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, History, Lock } from 'lucide-react';
+import { Archive, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -160,7 +160,7 @@ export function HistoryPage() {
 
   return (
     <div>
-      <PageHeader title="Repair history" subtitle="Finished repairs, closed and cancelled." icon={History} />
+      <PageHeader title="Repair history" context="Finished repairs, closed and cancelled." />
 
       <HistoryFilters
         value={filters}

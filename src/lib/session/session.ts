@@ -12,6 +12,7 @@ import {
   statusCheckDelayMs,
 } from './timing';
 import { setMonitoringUser } from '../monitoring/sentry';
+import { clearUserDrafts } from '../drafts/drafts';
 
 /**
  * The VRMS web session (spec 0001 section 7, spec 0003 AC-19 to AC-25). The access token lives in
@@ -433,6 +434,9 @@ export async function signOut(): Promise<'ok' | 'failed'> {
   } catch {
     return 'failed';
   }
+  // Suite spec 0016, Saving and drafts: signing out clears all of this user's drafts
+  const userId = useAuthStore.getState().user?.id;
+  if (userId) clearUserDrafts(userId);
   channel?.postMessage({ type: 'logout' } satisfies ChannelMessage);
   leave(loginUrl('logout'));
   return 'ok';

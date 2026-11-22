@@ -98,18 +98,6 @@
   --status-cancelled-bg: #f1f5f9;
   --status-cancelled-fg: #475569;
 
-  --role-admin-bg: #1a1f6e;
-  --role-admin-fg: #ffffff;
-  --role-chief-mechanic-bg: #e8b800;
-  --role-chief-mechanic-fg: #0f172a;
-  --role-mechanic-bg: #d1fae5;
-  --role-mechanic-fg: #065f46;
-  --role-operations-bg: #e8e9f1;
-  --role-operations-fg: #1a1f6e;
-  --role-customer-support-bg: #e0f2fe;
-  --role-customer-support-fg: #075985;
-  --role-driver-bg: #f1f5f9;
-  --role-driver-fg: #334155;
 }
 
 @theme inline {
@@ -259,18 +247,6 @@
   --color-status-cancelled-bg: var(--status-cancelled-bg);
   --color-status-cancelled-fg: var(--status-cancelled-fg);
 
-  --color-role-admin-bg: var(--role-admin-bg);
-  --color-role-admin-fg: var(--role-admin-fg);
-  --color-role-chief-mechanic-bg: var(--role-chief-mechanic-bg);
-  --color-role-chief-mechanic-fg: var(--role-chief-mechanic-fg);
-  --color-role-mechanic-bg: var(--role-mechanic-bg);
-  --color-role-mechanic-fg: var(--role-mechanic-fg);
-  --color-role-operations-bg: var(--role-operations-bg);
-  --color-role-operations-fg: var(--role-operations-fg);
-  --color-role-customer-support-bg: var(--role-customer-support-bg);
-  --color-role-customer-support-fg: var(--role-customer-support-fg);
-  --color-role-driver-bg: var(--role-driver-bg);
-  --color-role-driver-fg: var(--role-driver-fg);
 }
 
 /*
@@ -419,6 +395,25 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
+}
+
+/*
+  Where the SaveBar hangs (design.md, Saving and drafts): 24px above the bottom from 768px up; on
+  phones 16px above the tab bar (the shell sets --tab-bar-height) and the safe area.
+*/
+@utility bottom-save-bar {
+  bottom: calc(1rem + var(--tab-bar-height, 0px) + env(safe-area-inset-bottom));
+  @media (width >= 48rem) {
+    bottom: 1.5rem;
+  }
+}
+
+/* Set by the shell on phones with a bottom tab bar, so floating bars sit above it. */
+@utility has-tab-bar {
+  --tab-bar-height: 4rem;
+  @media (width >= 48rem) {
+    --tab-bar-height: 0px;
+  }
 }
 
 /* Keeps fixed bottom bars clear of the iPhone home indicator (needs viewport-fit=cover). */
@@ -643,10 +638,6 @@
     font-weight: 700;
   }
 
-  .role-editor {
-    display: grid;
-    gap: 12px;
-  }
 
   .help-text {
     margin: 0;
@@ -655,27 +646,10 @@
     line-height: 1.5;
   }
 
-  .role-editor-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
 
-  .role-assignment-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 82px 38px;
-    gap: 10px;
-    align-items: center;
-  }
 
-  .role-assignment-system {
-    display: flex;
-    justify-content: center;
-  }
 
-  .system-pill,
-  .role-tag {
+  .system-pill {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -689,11 +663,6 @@
     white-space: nowrap;
   }
 
-  .role-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
 
   .icon-action {
     min-height: 38px;
@@ -755,11 +724,6 @@
     }
   }
 
-  @media (max-width: 720px) {
-    .role-assignment-row {
-      grid-template-columns: 1fr;
-    }
-  }
 
   .status-chip {
     display: inline-flex;

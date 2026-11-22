@@ -18,7 +18,7 @@ export function MobileTabBar({ items }: { items: NavItem[] }) {
                 to={item.to}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'relative flex h-16 flex-col items-center justify-center gap-1 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                  'relative flex h-16 flex-col items-center justify-center gap-1 text-caption font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                   active
                     ? 'text-primary before:absolute before:inset-x-4 before:top-0 before:h-1 before:rounded-b-full before:bg-primary'
                     : 'text-muted-foreground',

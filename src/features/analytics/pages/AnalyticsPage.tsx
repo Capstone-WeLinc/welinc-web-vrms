@@ -39,8 +39,7 @@ export function AnalyticsPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <PageHeader
           title="Fleet Analytics"
-          subtitle="Vehicle Repair Management System — Analytics Dashboard"
-          icon={BarChart2}
+          context="Vehicle Repair Management System — Analytics Dashboard"
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted-foreground)', fontSize: '0.78rem' }}>

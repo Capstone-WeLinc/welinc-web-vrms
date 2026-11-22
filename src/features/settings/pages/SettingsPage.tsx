@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactElement } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAbility } from '@casl/react';
-import { Settings } from 'lucide-react';
+
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { BackLink } from '../../../components/shared/BackLink';
 import { useIsMobile } from '../../../hooks/useIsMobile';
@@ -37,7 +37,7 @@ export function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="Settings" subtitle="How VRMS works for every garage." icon={Settings} />
+      <PageHeader title="Settings" context="How VRMS works for every garage." />
       <div className="md:grid md:grid-cols-4 md:gap-6">
         {(!isMobile || atIndex) && (
           <aside className="md:col-span-1">

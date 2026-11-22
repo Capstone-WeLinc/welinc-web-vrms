@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { BookOpen, MessageSquarePlus, SearchX, TriangleAlert } from 'lucide-react';
+import { MessageSquarePlus, SearchX, TriangleAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -121,7 +121,7 @@ export function KnowledgeEntryPage() {
     return (
       <div>
         <BackLink to={back} label="Knowledge base" />
-        <PageHeader title="Knowledge base" icon={BookOpen} />
+        <PageHeader title="Knowledge base" />
         <div className="rounded-xl border border-border bg-card shadow-xs">{body}</div>
       </div>
     );
@@ -133,7 +133,6 @@ export function KnowledgeEntryPage() {
       <BackLink to={back} label="Knowledge base" />
       <PageHeader
         title={data.name}
-        icon={BookOpen}
         action={
           isEditor ? (
             <EntryActions entry={data} onChanged={entry.replace} onStale={entry.retry} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, History } from 'lucide-react';
+import { History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { EmptyState } from '../../../components/shared/EmptyState';
@@ -80,8 +80,7 @@ export function AuditLogsPage() {
     <div>
       <PageHeader
         title="Audit log"
-        subtitle="Every change to repair tickets: who made it and when."
-        icon={ClipboardList}
+        context="Every change to repair tickets: who made it and when."
       />
       <AuditFilters
         value={filters}

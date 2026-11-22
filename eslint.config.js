@@ -25,6 +25,20 @@ const legacySelectors = css
   .join(' ')
 const LEGACY_CLASSES = [...new Set([...legacySelectors.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => `^${m[1]}$`))]
 
+// Suite spec 0016 AC-17: classes the Control room standard removed (design.md, Banned and Typography).
+const BANNED_CLASSES = [
+  { pattern: '^.*-\\[.+\\]$', message: 'Arbitrary value. Use a Tailwind scale step or a token.' },
+  { pattern: '^(.*[:-])?role-.+$', message: 'Color never encodes a role. Use RoleChip or InitialsTile.' },
+  { pattern: '^(.*:)?ease-(snappy|drawer)$', message: 'Removed motion name. Use ease-enter or ease-exit.' },
+]
+const SWEEP_CLASSES = [
+  { pattern: '^(.*:)?shadow-(xs|sm|md|lg)$', message: 'Banned shadow. Use shadow-card, shadow-pop, shadow-bar or shadow-dialog.' },
+  {
+    pattern: '^(.*:)?text-(xs|sm|base|lg|xl|2xl)$',
+    message: 'Old type size. Use text-caption, text-body, text-group, text-subheading, text-heading or text-title.',
+  },
+]
+
 const TOKEN_ONLY_FILES = ['src/**/*.{ts,tsx}']
 
 export default defineConfig([
@@ -43,16 +57,15 @@ export default defineConfig([
   },
   {
     files: TOKEN_ONLY_FILES,
-    plugins: { 'better-tailwindcss': betterTailwindcss },
+    plugins: { 'better-tailwindcss': betterTailwindcss, 'design-sweep': betterTailwindcss },
     settings: {
       'better-tailwindcss': { entryPoint: 'src/index.css' },
     },
     rules: {
       'better-tailwindcss/no-unknown-classes': ['error', { ignore: LEGACY_CLASSES }],
-      'better-tailwindcss/no-restricted-classes': [
-        'error',
-        { restrict: [{ pattern: '^.*-\\[.+\\]$', message: 'Arbitrary value. Use a Tailwind scale step or a token.' }] },
-      ],
+      'better-tailwindcss/no-restricted-classes': ['error', { restrict: BANNED_CLASSES }],
+      // Until the page sweep (spec 0016 build plan step 8) moves every page off them; then they join BANNED_CLASSES.
+      'design-sweep/no-restricted-classes': ['warn', { restrict: SWEEP_CLASSES }],
       'no-restricted-syntax': noRawColors,
     },
   },

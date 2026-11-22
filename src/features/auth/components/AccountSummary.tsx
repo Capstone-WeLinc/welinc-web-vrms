@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/card';
-import { RoleBadge } from '../../../components/shared/RoleBadge';
+import { RoleChip } from '@/components/ui/role-chip';
+import { roleLabel } from '@/lib/roles';
 import { getInitials } from '../../../lib/utils/format';
 import type { UserRoleAssignment } from '../../../types';
 
@@ -34,7 +35,7 @@ export function AccountSummary({ name, email, roles }: AccountSummaryProps) {
             {roles.map((assignment) => (
               <li key={`${assignment.system}-${assignment.role}`} className="flex items-center gap-2">
                 <span className="text-sm font-medium text-foreground">{assignment.system}</span>
-                <RoleBadge role={assignment.role} />
+                <RoleChip>{roleLabel(assignment.role)}</RoleChip>
               </li>
             ))}
           </ul>

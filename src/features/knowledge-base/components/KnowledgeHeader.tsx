@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { getSuggestionCount } from '../../../lib/api/knowledgeApi';
@@ -27,7 +27,7 @@ export function KnowledgeHeader({ isEditor, suggestionCount, action }: Knowledge
   const count = suggestionCount ?? fetched.data ?? 0;
   return (
     <>
-      <PageHeader title="Knowledge base" subtitle="Known fixes from your own repairs." icon={BookOpen} action={action} />
+      <PageHeader title="Knowledge base" context="Known fixes from your own repairs." action={action} />
       {isEditor && (
         <nav aria-label="Knowledge base sections" className="-mt-2 mb-6 overflow-x-auto border-b border-border">
           <ul className="flex w-max gap-1">
