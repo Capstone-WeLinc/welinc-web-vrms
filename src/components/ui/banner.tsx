@@ -17,7 +17,8 @@ const TILES: Record<BannerKind, string> = {
   Suite spec 0016 AC-12 (design.md, Feedback: Banners): a floating card, top center of the content
   area, at most 560px wide (full width minus 16px on phones), rounded-xl on shadow-pop, a 28px
   status icon tile, a title, one line and an optional action, role="status". It fades in and
-  drops 8px on the toast tokens.
+  drops 8px on the toast tokens. `announce={false}` drops role="status" for a banner that speaks
+  through its own live line instead (signing out soon: the ticking time must stay silent).
 */
 function Banner({
   kind,
@@ -26,6 +27,7 @@ function Banner({
   children,
   action,
   onClose,
+  announce = true,
   className,
 }: {
   kind: BannerKind
@@ -34,11 +36,12 @@ function Banner({
   children?: ReactNode
   action?: { label: string; onClick: () => void; loading?: boolean }
   onClose?: () => void
+  announce?: boolean
   className?: string
 }) {
   return (
     <div
-      role="status"
+      role={announce ? "status" : undefined}
       data-slot="banner"
       className={cn(
         "pointer-events-auto flex w-full max-w-140 items-start gap-3 rounded-xl border border-transparent bg-card p-3 text-card-foreground shadow-pop animate-in fade-in-0 slide-in-from-top-2 duration-(--duration-toast) ease-enter",

@@ -20,11 +20,11 @@ interface AuthState {
   /** A background refresh couldn't reach the server; the current token is still in use (AC-25). */
   reconnecting: boolean;
   /**
-   * The open idle warning (AC-23): the cutoff it counts down to, and whether the session can't
-   * be extended (its 12 hour limit). A 12 hour warning can be dismissed to keep working; it then
-   * shows as a banner until the cutoff. Null when no warning is open.
+   * The signing out soon banner (suite spec 0016, AC-12): the cutoff it counts down to, whether
+   * the session can't be extended (its 12 hour limit), and whether Stay signed in is running.
+   * Null when the banner is closed.
    */
-  idleWarning: { cutoff: number; cannotExtend: boolean; busy: boolean; dismissed: boolean } | null;
+  idleWarning: { cutoff: number; cannotExtend: boolean; busy: boolean } | null;
 }
 
 export const useAuthStore = create<AuthState>()(() => ({
