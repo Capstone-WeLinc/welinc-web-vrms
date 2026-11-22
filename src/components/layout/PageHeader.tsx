@@ -17,7 +17,7 @@ export function PageHeader({ title, subtitle, icon: Icon, action }: PageHeaderPr
           <Icon aria-hidden="true" className="size-6" />
         </div>
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+          <h1 className="text-title text-foreground">{title}</h1>
           {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
         </div>
       </div>

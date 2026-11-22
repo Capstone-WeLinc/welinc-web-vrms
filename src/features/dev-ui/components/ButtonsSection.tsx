@@ -2,7 +2,7 @@ import { Plus, Trash2, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Row, Section } from './ShowcaseLayout';
 
-const VARIANTS = ['default', 'secondary', 'outline', 'ghost', 'destructive', 'link'] as const;
+const VARIANTS = ['default', 'outline', 'ghost', 'destructive', 'link'] as const;
 
 function variantLabel(variant: (typeof VARIANTS)[number]) {
   if (variant === 'default') return 'Save repair';

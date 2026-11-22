@@ -8,7 +8,7 @@ const tokenStyle = {
   "--normal-bg": "var(--popover)",
   "--normal-text": "var(--popover-foreground)",
   "--normal-border": "var(--border)",
-  "--border-radius": "var(--radius)",
+  "--border-radius": "var(--radius-xl, 0.75rem)",
 } as CSSProperties
 
 function Toaster() {

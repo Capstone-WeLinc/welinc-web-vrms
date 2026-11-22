@@ -23,7 +23,7 @@ function Actions({ isNew, saving, onCancel, onSave, className }: Omit<EditorActi
       </Button>
       {isNew ? (
         <>
-          <Button type="button" variant="secondary" size="touch" className={SIZE} disabled={busy} loading={saving === 'DRAFT'} onClick={() => onSave('DRAFT')}>
+          <Button type="button" variant="outline" size="touch" className={SIZE} disabled={busy} loading={saving === 'DRAFT'} onClick={() => onSave('DRAFT')}>
             Save as draft
           </Button>
           <Button type="button" size="touch" className={SIZE} disabled={busy} loading={saving === 'ACTIVE'} onClick={() => onSave('ACTIVE')}>

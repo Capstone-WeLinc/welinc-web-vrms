@@ -5,25 +5,27 @@ import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
+// Suite spec 0016 AC-6 (design.md, Components: Buttons). Presses shrink to 96% for --duration-press.
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-medium whitespace-nowrap transition duration-150 outline-none active:scale-97 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-lg text-body font-semibold whitespace-nowrap transition duration-(--duration-press) ease-enter outline-none active:scale-96 motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary-hover",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
-          "border border-border bg-card text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "border border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground",
         ghost: "text-foreground hover:bg-accent hover:text-accent-foreground",
+        // Quiet: red text, a red tint on hover, never a solid red fill
+        destructive: "text-destructive hover:bg-error-bg",
+        // Gold, only on a navy surface (the save bar): its keyboard ring is white on navy
+        commit:
+          "bg-highlight text-highlight-foreground hover:bg-commit-hover focus-visible:ring-ring-on-dark focus-visible:ring-offset-sidebar",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         sm: "h-9 gap-1.5 px-3 has-[>svg]:px-2.5",
         default: "h-10 px-4 py-2 has-[>svg]:px-3",
-        touch: "h-11 px-5 text-base has-[>svg]:px-4 [&_svg:not([class*='size-'])]:size-5",
+        touch: "h-11 px-5 text-group has-[>svg]:px-4 [&_svg:not([class*='size-'])]:size-5",
         icon: "size-10",
         "icon-touch": "size-11 [&_svg:not([class*='size-'])]:size-5",
       },

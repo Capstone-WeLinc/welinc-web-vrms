@@ -153,7 +153,7 @@ export function ChiefDashboard() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+          <h1 className="text-title text-foreground">Dashboard</h1>
           {state === 'ready' && <p className="text-sm text-muted-foreground">{todayLabel(fetchedAt)}</p>}
         </div>
         {state === 'ready' && <LastUpdated fetchedAt={fetchedAt} refreshFailed={refreshFailed} />}
