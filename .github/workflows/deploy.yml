@@ -187,7 +187,7 @@ jobs:
           if find dist -name '*.map' | grep -q .; then echo "::error::A source map is still in dist."; exit 1; fi
 
       # A short lived OpenID Connect pass, no stored password (AC-11)
-      - uses: azure/login@v2
+      - uses: azure/login@v3
         with:
           client-id: ${{ env.ENVIRONMENT == 'staging' && vars.AZURE_CLIENT_ID_STAGING || vars.AZURE_CLIENT_ID_PROD }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
