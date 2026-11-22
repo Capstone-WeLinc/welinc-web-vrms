@@ -75,6 +75,11 @@
   --duration-bar: 200ms;
   --duration-sheet: 220ms;
   --duration-land: 1200ms;
+  /* Exits with no token of their own take two thirds of the enter time (design.md, Motion) */
+  --duration-menu-out: 90ms;
+  --duration-toast-out: 130ms;
+  --duration-bar-out: 130ms;
+  --duration-sheet-out: 150ms;
 
   --chart-1: #1a1f6e;
   --chart-2: #e8b800;
@@ -115,14 +120,9 @@
 
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  /*
-    Motion curves (design.md, Motion). ease-snappy and ease-drawer stay as aliases of ease-enter
-    until the base components move to the motion tokens (suite spec 0016, build plan step 3).
-  */
+  /* Motion curves (design.md, Motion) */
   --ease-enter: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
-  --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-drawer: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* Type scale (design.md, Typography). text-title and text-label are @utility blocks below. */
   --text-display: 2rem;
@@ -153,6 +153,19 @@
   --shadow-pop: 0 0 0 1px rgba(15, 20, 69, 0.08), 0 12px 32px rgba(15, 20, 69, 0.18);
   --shadow-bar: 0 18px 44px rgba(15, 20, 69, 0.32);
   --shadow-dialog: 0 0 0 1px rgba(15, 20, 69, 0.08), 0 24px 60px rgba(15, 20, 69, 0.24);
+  /* The selected pill of a SegmentedControl on its track (suite spec 0016 AC-8) */
+  --shadow-segment: 0 0 0 1px rgba(15, 20, 69, 0.12), 0 1px 2px rgba(15, 20, 69, 0.1);
+
+  /* The time left bar in a success or info toast (suite spec 0016 AC-11); its length comes from the toast */
+  --animate-toast-bar: toast-bar linear forwards;
+  @keyframes toast-bar {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
 
   /* The fake caret in the code field (InputOTP, suite spec 0009) */
   --animate-caret-blink: caret-blink 1s ease-out infinite;
@@ -370,6 +383,22 @@
   [data-sonner-toast] {
     transition-property: opacity !important;
   }
+
+  /* The toast time bar steps once a second instead of gliding */
+  [data-slot='toast-bar'] {
+    animation-timing-function: steps(5, end) !important;
+  }
+}
+
+/* Toasts move on the toast tokens (design.md, Motion), not sonner's own 400ms */
+[data-sonner-toast] {
+  transition-duration: var(--duration-toast) !important;
+  transition-timing-function: var(--ease-enter) !important;
+}
+
+/* Sonner pauses every toast's timer while the toaster is hovered; the time bars pause with it */
+[data-sonner-toaster]:hover [data-slot='toast-bar'] {
+  animation-play-state: paused;
 }
 
 /* Page titles (design.md, Typography): 24px on phones, 28px from 768px up */

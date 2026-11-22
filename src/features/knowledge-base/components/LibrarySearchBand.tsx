@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { SegmentedControl, SegmentedControlItem } from '@/components/ui/segmented-control';
 import type { EntrySort, EntryStatusFilter, IssueCategory } from '../../../lib/api/knowledgeApi';
 import { SEARCH_MAX_LENGTH, SORTS, STATUS_FILTERS, type LibraryFilterValues } from '../lib/libraryFilters';
 
@@ -115,19 +115,12 @@ export function LibrarySearchBand({
 
       {/* The chips scroll sideways inside their own row on a phone; the page never does. */}
       <div className="-mx-4 overflow-x-auto px-4 md:-mx-5 md:px-5">
-        <ToggleGroup
-          type="single"
-          aria-label="Category"
-          value={value.categoryId}
-          // Pressing the chosen chip again would clear the group; keep the choice instead.
-          onValueChange={(categoryId) => categoryId && onChange({ categoryId })}
-          className="w-max flex-nowrap md:w-auto md:flex-wrap"
-        >
+        <SegmentedControl aria-label="Category" value={value.categoryId} onValueChange={(categoryId) => onChange({ categoryId })}>
           <CategoryChip value="all" label="All" count={allCount} />
           {categories.map((category) => (
             <CategoryChip key={category.id} value={category.id} label={category.name} count={categoryCounts ? count(category.id) : null} />
           ))}
-        </ToggleGroup>
+        </SegmentedControl>
       </div>
     </section>
   );
@@ -135,9 +128,9 @@ export function LibrarySearchBand({
 
 function CategoryChip({ value, label, count }: { value: string; label: string; count: number | null }) {
   return (
-    <ToggleGroupItem value={value} variant="outline" size="touch" className="rounded-full">
+    <SegmentedControlItem value={value}>
       {label}
-      {count != null && <span className="text-sm font-normal tabular-nums opacity-80">{count}</span>}
-    </ToggleGroupItem>
+      {count != null && <span className="font-mono text-caption">{count}</span>}
+    </SegmentedControlItem>
   );
 }

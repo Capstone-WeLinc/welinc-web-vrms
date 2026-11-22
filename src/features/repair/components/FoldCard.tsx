@@ -56,7 +56,7 @@ export function FoldCard({ title, summary, open, onOpenChange, lineAction, folda
         {foldable && (
           <button type="button" tabIndex={-1} aria-hidden="true" onClick={toggle} className="flex size-11 shrink-0 items-center justify-center md:size-8">
             <ChevronDown
-              className={cn('size-4 text-muted-foreground transition-transform duration-200 ease-snappy motion-reduce:transition-none', open && 'rotate-180')}
+              className={cn('size-4 text-muted-foreground transition-transform duration-(--duration-fold) ease-enter motion-reduce:transition-none', open && 'rotate-180')}
             />
           </button>
         )}

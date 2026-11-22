@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { showToast } from '../../context/toast';
-import { toast } from 'sonner';
 import { ADMIN_CODE_MESSAGE, getApiErrorMessage, getDisabledModule, isAdminCodeRequired, MODULE_OFF_MESSAGE } from './errors';
 import { DENIED_MESSAGE, FORBIDDEN_EVENT } from '../permissions/keys';
 import { installDataModes } from '../../features/dev-ui/worst-case/install';
+import { reportRequestFailed, reportRequestOk } from '../connection/connection';
 
 const UNAVAILABLE = 'Sign in service unavailable. Try again in a moment.';
 // Read here, not from session.ts, which imports this module
@@ -29,10 +29,15 @@ let lastUnavailableToast = 0;
 // Spec 0009, AC-26. The token, the 401 refresh and retry and the sign out live in
 // src/lib/session/session.ts, which adds its own interceptors to this instance (spec 0003).
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Suite spec 0016 AC-12: any answer ends the offline banner
+    reportRequestOk();
+    return response;
+  },
   (error) => {
     const status: number | undefined = error.response?.status;
     const quiet = error.config?.quiet === true;
+    reportRequestFailed(status, axios.isCancel(error));
 
     if (status === 503 && !quiet) {
       // welinc-auth is down: keep the session, say so at most once per 10 seconds
@@ -45,7 +50,7 @@ api.interceptors.response.use(
       // Suite spec 0013, AC-31: not a missing permission, so no refetch of the keys. The code is
       // confirmed in the portal's Admin section; its step up then works for this session at once.
       if (!quiet) {
-        toast.error(ADMIN_CODE_MESSAGE, {
+        showToast(ADMIN_CODE_MESSAGE, 'error', {
           id: 'admin-code-required',
           action: {
             label: 'Open the portal',

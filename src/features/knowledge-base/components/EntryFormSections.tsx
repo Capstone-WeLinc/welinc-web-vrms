@@ -5,7 +5,7 @@ import { FieldError, FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ChoiceChip, ChoiceChipGroup } from '@/components/ui/choice-chip';
 import { cn } from '@/lib/utils';
 import { FieldRow, FormSection } from '../../../components/shared/FormSection';
 import { PRIORITY_DOT } from '../../../components/shared/priorityStyles';
@@ -94,19 +94,16 @@ export function BasicsSection({ control, categories }: { control: EntryFormContr
         required
         description="Raises the ticket's priority when this entry is picked."
         render={({ field, controlProps, labelId }) => (
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            size="touch"
+          <ChoiceChipGroup
             id={controlProps.id}
             aria-labelledby={labelId}
             aria-describedby={controlProps['aria-describedby']}
             value={field.value}
-            onValueChange={(value) => value && field.onChange(value)}
+            onValueChange={field.onChange}
             className="grid w-full grid-cols-2 sm:flex sm:w-fit"
           >
             {PRIORITY_OPTIONS.map((option) => (
-              <ToggleGroupItem
+              <ChoiceChip
                 key={option.value}
                 value={option.value}
                 ref={option.value === field.value ? field.ref : undefined}
@@ -114,9 +111,9 @@ export function BasicsSection({ control, categories }: { control: EntryFormContr
               >
                 <span aria-hidden="true" className={cn('size-2.5 shrink-0 rounded-full', PRIORITY_DOT[option.value])} />
                 {option.label}
-              </ToggleGroupItem>
+              </ChoiceChip>
             ))}
-          </ToggleGroup>
+          </ChoiceChipGroup>
         )}
       />
     </FormSection>

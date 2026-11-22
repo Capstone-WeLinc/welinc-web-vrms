@@ -27,6 +27,7 @@ import { boot } from './lib/session/session';
 import { useCan, usePermissions } from './lib/permissions/usePermissions';
 import type { ModuleName, PermissionKey } from './lib/permissions/keys';
 import { ModuleOffPage } from './pages/ModuleOffPage';
+import { noAccessNote } from './lib/navigation/noAccess';
 import { RequireSection, SettingsIndex, SettingsPage } from './features/settings/pages/SettingsPage';
 import { ModulesSection } from './features/settings/components/ModulesSection';
 import { ThresholdsSection } from './features/settings/components/ThresholdsSection';
@@ -74,11 +75,23 @@ function RequireAuth({ children }: { children: ReactElement }) {
  * Spec 0012, AC-12: a page of a switched off module checks the module first, so its URL shows
  * the module off page instead.
  */
-function RequirePermission({ keys, module, children }: { keys: PermissionKey[]; module?: ModuleName; children: ReactElement }) {
+function RequirePermission({
+  keys,
+  module,
+  label,
+  children,
+}: {
+  keys: PermissionKey[];
+  module?: ModuleName;
+  /** The page's name for the no access banner (suite spec 0016, AC-12), as the sidebar says it. */
+  label: string;
+  children: ReactElement;
+}) {
   const allowed = useCan(...keys);
   const { modules } = usePermissions();
+  const role = useAuthStore((state) => state.user?.role);
   if (module && !modules[module]) return <ModuleOffPage module={module} />;
-  return allowed ? children : <Navigate to="/dashboard" replace />;
+  return allowed ? children : <Navigate to="/dashboard" replace state={{ noAccess: noAccessNote(label, role) }} />;
 }
 
 const TICKET_READ: PermissionKey[] = ['ticket.view', 'ticket.view_all'];
@@ -119,7 +132,7 @@ function App() {
             <Route
               path="debug/sentry"
               element={
-                <RequirePermission keys={['settings.manage']}>
+                <RequirePermission keys={['settings.manage']} label="the Sentry test page">
                   <Suspense fallback={null}>
                     <SentryTestPage />
                   </Suspense>
@@ -131,7 +144,7 @@ function App() {
           <Route
             path="repairs"
             element={
-              <RequirePermission keys={TICKET_READ}>
+              <RequirePermission keys={TICKET_READ} label="Repair tickets">
                 <RepairListPage />
               </RequirePermission>
             }
@@ -139,7 +152,7 @@ function App() {
           <Route
             path="repairs/new"
             element={
-              <RequirePermission keys={['ticket.create']}>
+              <RequirePermission keys={['ticket.create']} label="New repair">
                 <RepairFormPage />
               </RequirePermission>
             }
@@ -147,7 +160,7 @@ function App() {
           <Route
             path="repairs/:repairId"
             element={
-              <RequirePermission keys={TICKET_READ}>
+              <RequirePermission keys={TICKET_READ} label="Repair tickets">
                 <RepairDetailPage />
               </RequirePermission>
             }
@@ -155,7 +168,7 @@ function App() {
           <Route
             path="history"
             element={
-              <RequirePermission keys={TICKET_READ}>
+              <RequirePermission keys={TICKET_READ} label="Repair history">
                 <HistoryPage />
               </RequirePermission>
             }
@@ -164,7 +177,7 @@ function App() {
           <Route
             path="users"
             element={
-              <RequirePermission keys={['team.manage']}>
+              <RequirePermission keys={['team.manage']} label="Users">
                 <UsersPage />
               </RequirePermission>
             }
@@ -172,7 +185,7 @@ function App() {
           <Route
             path="audit-logs"
             element={
-              <RequirePermission keys={['audit.view']}>
+              <RequirePermission keys={['audit.view']} label="Audit logs">
                 <AuditLogsPage />
               </RequirePermission>
             }
@@ -180,7 +193,7 @@ function App() {
           <Route
             path="analytics"
             element={
-              <RequirePermission keys={['analytics.view']} module="analytics">
+              <RequirePermission keys={['analytics.view']} label="Analytics" module="analytics">
                 <AnalyticsPage />
               </RequirePermission>
             }
@@ -188,7 +201,7 @@ function App() {
           <Route
             path="knowledge-base"
             element={
-              <RequirePermission keys={KNOWLEDGE_READ} module="knowledge">
+              <RequirePermission keys={KNOWLEDGE_READ} label="Knowledge base" module="knowledge">
                 <KnowledgeLibraryPage />
               </RequirePermission>
             }
@@ -196,7 +209,7 @@ function App() {
           <Route
             path="knowledge-base/:entryId"
             element={
-              <RequirePermission keys={KNOWLEDGE_READ} module="knowledge">
+              <RequirePermission keys={KNOWLEDGE_READ} label="Knowledge base" module="knowledge">
                 <KnowledgeEntryPage />
               </RequirePermission>
             }
@@ -204,7 +217,7 @@ function App() {
           <Route
             path="knowledge-base/new"
             element={
-              <RequirePermission keys={KNOWLEDGE_EDIT} module="knowledge">
+              <RequirePermission keys={KNOWLEDGE_EDIT} label="the knowledge base editor" module="knowledge">
                 <KnowledgeEditorPage />
               </RequirePermission>
             }
@@ -212,7 +225,7 @@ function App() {
           <Route
             path="knowledge-base/:entryId/edit"
             element={
-              <RequirePermission keys={KNOWLEDGE_EDIT} module="knowledge">
+              <RequirePermission keys={KNOWLEDGE_EDIT} label="the knowledge base editor" module="knowledge">
                 <KnowledgeEditorPage />
               </RequirePermission>
             }
@@ -220,7 +233,7 @@ function App() {
           <Route
             path="knowledge-base/suggestions"
             element={
-              <RequirePermission keys={KNOWLEDGE_EDIT} module="knowledge">
+              <RequirePermission keys={KNOWLEDGE_EDIT} label="Suggestions" module="knowledge">
                 <KnowledgeSuggestionsPage />
               </RequirePermission>
             }
@@ -229,7 +242,7 @@ function App() {
           <Route
             path="settings"
             element={
-              <RequirePermission keys={SETTINGS_KEYS}>
+              <RequirePermission keys={SETTINGS_KEYS} label="Settings">
                 <SettingsPage />
               </RequirePermission>
             }

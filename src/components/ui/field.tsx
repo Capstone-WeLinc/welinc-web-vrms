@@ -41,8 +41,8 @@ function FieldLegend({
       data-variant={variant}
       className={cn(
         "mb-3 font-medium",
-        "data-[variant=legend]:text-base",
-        "data-[variant=label]:text-sm",
+        "data-[variant=legend]:text-group",
+        "data-[variant=label]:text-body",
         className
       )}
       {...props}
@@ -64,7 +64,7 @@ function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 const fieldVariants = cva(
-  "group/field flex w-full gap-3 data-[invalid=true]:text-destructive",
+  "group/field flex w-full gap-2",
   {
     variants: {
       orientation: {
@@ -131,7 +131,10 @@ function FieldLabel({
     <Label
       data-slot="field-label"
       className={cn(
+        // Suite spec 0016 (design.md, Fields): labels above a field are text-label in muted-strong; a label
+        // beside a checkbox or switch (horizontal) stays a normal sentence
         "group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50",
+        "group-data-[orientation=vertical]/field:text-label group-data-[orientation=vertical]/field:text-muted-strong",
         "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4",
         "has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary/5",
         className
@@ -141,11 +144,21 @@ function FieldLabel({
       {children}
       {required && (
         <>
-          <span aria-hidden="true" className="-ml-1 text-destructive">*</span>
+          <span aria-hidden="true" className="-ml-1.5 text-error">*</span>
           <span className="sr-only">{requiredText}</span>
         </>
       )}
     </Label>
+  )
+}
+
+/** Suite spec 0016 AC-7: said once, above the first field, in a form that has required fields. */
+function FieldRequiredNote({ className, ...props }: React.ComponentProps<"p">) {
+  return (
+    <p data-slot="field-required-note" className={cn("text-small text-muted-foreground", className)} {...props}>
+      Fields with <span aria-hidden="true" className="text-error">*</span>
+      <span className="sr-only">an asterisk</span> are required
+    </p>
   )
 }
 
@@ -154,7 +167,7 @@ function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="field-label"
       className={cn(
-        "flex w-fit items-center gap-2 text-sm leading-snug font-medium group-data-[disabled=true]/field:opacity-50",
+        "flex w-fit items-center gap-2 text-body leading-snug font-medium group-data-[disabled=true]/field:opacity-50",
         className
       )}
       {...props}
@@ -167,7 +180,7 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="field-description"
       className={cn(
-        "text-xs leading-normal font-normal text-muted-foreground group-has-[[data-orientation=horizontal]]/field:text-balance",
+        "text-small font-normal text-muted-foreground group-has-[[data-orientation=horizontal]]/field:text-balance",
         "last:mt-0 nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5",
         "[&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
         className
@@ -189,7 +202,7 @@ function FieldSeparator({
       data-slot="field-separator"
       data-content={!!children}
       className={cn(
-        "relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
+        "relative -my-2 h-5 text-body group-data-[variant=outline]/field-group:-mb-2",
         className
       )}
       {...props}
@@ -250,10 +263,10 @@ function FieldError({
     <div
       role="alert"
       data-slot="field-error"
-      className={cn("flex items-start gap-1.5 text-xs font-normal text-destructive", className)}
+      className={cn("flex items-start gap-1.5 text-small text-error", className)}
       {...props}
     >
-      <AlertCircle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+      <AlertCircle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
       <div>{content}</div>
     </div>
   )
@@ -380,4 +393,5 @@ export {
   FieldSet,
   FieldContent,
   FieldTitle,
+  FieldRequiredNote,
 }

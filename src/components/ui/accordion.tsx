@@ -4,7 +4,7 @@ import { Accordion as AccordionPrimitive } from 'radix-ui';
 import { cn } from '@/lib/utils';
 
 // shadcn Accordion, themed for VRMS (spec 0024, AC-1): no border per item (the list divides its
-// rows), the token focus ring, and the ease-snappy curve. The global reduced motion rule stops it.
+// rows), the token focus ring, and the ease-enter curve. The global reduced motion rule stops it.
 
 function Accordion({ ...props }: React.ComponentProps<typeof AccordionPrimitive.Root>) {
   return <AccordionPrimitive.Root data-slot="accordion" {...props} />;
@@ -32,7 +32,7 @@ function AccordionTrigger({
         ref={trigger}
         data-slot="accordion-trigger"
         className={cn(
-          'group/trigger flex min-w-0 flex-1 items-start justify-between gap-3 rounded-md text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+          'group/trigger flex min-w-0 flex-1 items-start justify-between gap-3 rounded-md text-left text-body outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
           className,
         )}
         {...props}
@@ -47,7 +47,7 @@ function AccordionTrigger({
         onClick={() => trigger.current?.click()}
         className="flex size-11 shrink-0 items-center justify-center md:mt-2 md:size-8"
       >
-        <ChevronDownIcon className="size-4 text-muted-foreground transition-transform duration-200 ease-snappy group-data-[state=open]/header:rotate-180" />
+        <ChevronDownIcon className="size-4 text-muted-foreground transition-transform duration-(--duration-fold) ease-enter group-data-[state=open]/header:rotate-180" />
       </button>
     </AccordionPrimitive.Header>
   );
@@ -57,7 +57,7 @@ function AccordionContent({ className, children, ...props }: React.ComponentProp
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
-      className="overflow-hidden text-sm duration-200 ease-snappy data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+      className="overflow-hidden text-body duration-(--duration-fold) ease-enter data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
       {...props}
     >
       <div className={cn('pb-4', className)}>{children}</div>

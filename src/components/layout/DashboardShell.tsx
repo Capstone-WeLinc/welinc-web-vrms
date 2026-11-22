@@ -2,7 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { CrashBoundary } from '../monitoring/CrashBoundary';
 import { cn } from '@/lib/utils';
 import { DataModeToggle } from '../../features/dev-ui/components/DataModeToggle';
-import { ReconnectingBanner } from '../session/ReconnectingBanner';
+import { BannerHost } from '../feedback/BannerHost';
 import { AppHeader } from './AppHeader';
 import { MobileTabBar } from './MobileTabBar';
 import { Sidebar } from './Sidebar';
@@ -33,7 +33,7 @@ export function DashboardShell() {
         )}
       >
         <AppHeader />
-        <ReconnectingBanner />
+        <BannerHost />
         <main
           id="main"
           tabIndex={-1}

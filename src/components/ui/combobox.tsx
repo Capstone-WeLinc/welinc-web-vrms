@@ -3,6 +3,7 @@ import { defaultFilter } from "cmdk"
 import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { fieldControl } from "@/components/ui/field-styles"
 import {
   Command,
   CommandEmpty,
@@ -125,7 +126,7 @@ function Combobox({
                   <span className="flex min-w-0 flex-1 items-baseline gap-2">
                     <span className="truncate">{option.label}</span>
                     {option.description && (
-                      <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground in-data-[selected=true]:text-accent-foreground">{option.description}</span>
+                      <span className="shrink-0 whitespace-nowrap text-caption text-muted-foreground in-data-[selected=true]:text-accent-foreground">{option.description}</span>
                     )}
                   </span>
                   {option.badge}
@@ -157,7 +158,8 @@ function Combobox({
           aria-expanded={open}
           data-slot="combobox-trigger"
           className={cn(
-            "flex h-11 w-full items-center justify-between gap-2 rounded-lg border border-input bg-card px-3 py-2 text-left text-base shadow-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive md:h-10 md:text-sm",
+            fieldControl,
+            "flex h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left md:h-10",
             !display && "text-muted-foreground",
             className
           )}
@@ -177,7 +179,7 @@ function Combobox({
             placeholder={searchPlaceholder}
             value={search}
             onValueChange={setSearch}
-            className="text-base md:text-sm"
+            className="text-base-input md:text-body"
           />
           <CommandList>
             {!showCreate && <CommandEmpty>{emptyText}</CommandEmpty>}
