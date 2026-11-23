@@ -18,6 +18,10 @@ export function BannerHost() {
   const { offline, backOnlineUntil } = useConnection();
   const reconnecting = useAuthStore((state) => state.reconnecting);
   const warning = useAuthStore((state) => state.idleWarning);
+  // Counted and spoken here, not inside the card: a higher banner (reconnecting, offline) can
+  // swap the card out and back, and a fresh card must not announce the time again
+  const left = useTimeLeft(warning?.cutoff ?? 0);
+  const spoken = useSpokenTimeLeft(warning !== null, left);
   const location = useLocation();
   const navigate = useNavigate();
   const noAccess = readNoAccess(location.state);
@@ -55,7 +59,7 @@ export function BannerHost() {
       </Banner>
     );
   } else if (slot === 'signingOut' && warning) {
-    banner = <SigningOutBanner cutoff={warning.cutoff} cannotExtend={warning.cannotExtend} busy={warning.busy} />;
+    banner = <SigningOutBanner cutoff={warning.cutoff} left={left} spoken={spoken} cannotExtend={warning.cannotExtend} busy={warning.busy} />;
   } else if (slot === 'noAccess' && noAccess) {
     banner = (
       <Banner kind="info" icon={Lock} title={`You were sent to your ${noAccess.home}.`} onClose={closeNoAccess}>
@@ -84,10 +88,8 @@ export function BannerHost() {
  * Screen readers hear the minutes left once and again at 30 seconds; the ticking time is hidden
  * from them, and the switch to the 12 hour text is not announced again.
  */
-function SigningOutBanner({ cutoff, cannotExtend, busy }: { cutoff: number; cannotExtend: boolean; busy: boolean }) {
-  const left = useTimeLeft(cutoff);
+function SigningOutBanner({ cutoff, left, spoken, cannotExtend, busy }: { cutoff: number; left: number; spoken: string; cannotExtend: boolean; busy: boolean }) {
   const endsAt = new Date(cutoff).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-  const spoken = useSpokenTimeLeft(left);
   const time = (
     <span aria-hidden="true" className="font-mono font-medium text-foreground">
       {countdown(left)}
@@ -114,20 +116,27 @@ function SigningOutBanner({ cutoff, cannotExtend, busy }: { cutoff: number; cann
 }
 
 /**
- * The line a screen reader hears: empty on the first render, then set, so the live region exists
- * before its text arrives and the text is read; set again once at 30 seconds.
+ * The line a screen reader hears while the warning is open: empty until the card's live region
+ * exists, then the minutes left once, and again at 30 seconds. It lives in the host, so a card
+ * that is swapped out and back (reconnecting, offline) says nothing new.
  */
-function useSpokenTimeLeft(left: number): string {
+function useSpokenTimeLeft(active: boolean, left: number): string {
   const [spoken, setSpoken] = useState('');
   const saidAgain = useRef(false);
+  const latest = useRef(left);
   const first = useRef(left);
   useEffect(() => {
-    setSpoken(spokenTimeLeft(first.current));
-  }, []);
+    latest.current = left;
+  });
   useEffect(() => {
-    if (saidAgain.current || first.current <= ANNOUNCE_AGAIN_MS || left > ANNOUNCE_AGAIN_MS) return;
+    saidAgain.current = false;
+    first.current = latest.current;
+    setSpoken(active ? spokenTimeLeft(latest.current) : '');
+  }, [active]);
+  useEffect(() => {
+    if (!active || saidAgain.current || first.current <= ANNOUNCE_AGAIN_MS || left > ANNOUNCE_AGAIN_MS) return;
     saidAgain.current = true;
     setSpoken(spokenTimeLeft(ANNOUNCE_AGAIN_MS));
-  }, [left]);
+  }, [active, left]);
   return spoken;
 }
