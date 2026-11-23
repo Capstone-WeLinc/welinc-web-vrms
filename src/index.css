@@ -104,7 +104,7 @@
   /* Tailwind's default palette is off: only tokens exist as color utilities. Keep this first. */
   --color-*: initial;
 
-  --font-sans: 'IBM Plex Sans Variable', system-ui, sans-serif;
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
 
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
