@@ -20,6 +20,10 @@ export interface NavItem {
   /** Shorter label for the phone tab bar. */
   shortLabel?: string;
   icon: LucideIcon;
+  /** A count bubble beside the label (feature 70 feeds these); 0 or none shows nothing. */
+  count?: number;
+  /** The count waits on the viewer's role (the VRMS hot list): gold. */
+  hot?: boolean;
 }
 
 export interface NavSection {

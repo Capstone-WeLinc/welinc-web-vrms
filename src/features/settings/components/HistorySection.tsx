@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { SegmentedControl, SegmentedControlItem } from '@/components/ui/segmented-control';
 import { DetailSection } from '../../../components/shared/DetailSection';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { ErrorState } from '../../../components/shared/ErrorState';
@@ -87,7 +87,7 @@ export function HistorySection() {
     body = (
       <>
         <ChangeList changes={current.rows} units={units} />
-        {currentMore?.error && <p className="text-sm text-destructive">{currentMore.error}</p>}
+        {currentMore?.error && <p className="text-body text-destructive">{currentMore.error}</p>}
         {current.next && (
           <Button type="button" variant="outline" className="self-start" onClick={loadMore} loading={currentMore?.loading === true}>
             Load more
@@ -99,13 +99,13 @@ export function HistorySection() {
 
   return (
     <DetailSection title="All changes">
-      <ToggleGroup type="single" variant="outline" value={kind} onValueChange={(v) => v && setKind(v as HistoryKind)} aria-label="Show changes of">
+      <SegmentedControl value={kind} onValueChange={(v) => setKind(v as HistoryKind)} aria-label="Show changes of">
         {FILTERS.map((f) => (
-          <ToggleGroupItem key={f.value} value={f.value} className="min-h-11 px-4">
+          <SegmentedControlItem key={f.value} value={f.value}>
             {f.label}
-          </ToggleGroupItem>
+          </SegmentedControlItem>
         ))}
-      </ToggleGroup>
+      </SegmentedControl>
       {body}
     </DetailSection>
   );

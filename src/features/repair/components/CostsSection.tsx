@@ -84,9 +84,9 @@ function LiveTotal({ control }: { control: Control<CostValues> }) {
   const partsTotal =
     mode === 'lump' ? toNumber(partsCost) : parts.reduce((sum, p) => sum + toNumber(p.unitCost) * Math.floor(toNumber(p.quantity)), 0);
   return (
-    <p className="flex items-baseline justify-between gap-3 border-t border-border pt-3 text-sm" aria-live="polite">
+    <p className="flex items-baseline justify-between gap-3 border-t border-border pt-3 text-body" aria-live="polite">
       <span className="font-medium text-foreground">Total</span>
-      <span className="text-base font-semibold text-foreground tabular-nums">{formatPesoExact(partsTotal + toNumber(laborCost))}</span>
+      <span className="text-group font-semibold text-foreground tabular-nums">{formatPesoExact(partsTotal + toNumber(laborCost))}</span>
     </p>
   );
 }
@@ -195,7 +195,7 @@ function CostForm({ ticket, onSaved, onReload, onClose }: CostFormProps) {
         />
       ) : (
         <fieldset className="flex flex-col gap-3">
-          <legend className="mb-2 text-sm font-medium text-foreground">Parts</legend>
+          <legend className="mb-2 text-body font-medium text-foreground">Parts</legend>
           <ul className="flex flex-col gap-3">
             {fields.map((item, index) => (
               <li key={item.id} className="grid gap-3 border-b border-border pb-3 sm:grid-cols-12 sm:items-start">
@@ -223,7 +223,7 @@ function CostForm({ ticket, onSaved, onReload, onClose }: CostFormProps) {
                   className="sm:col-span-2"
                   render={({ field, controlProps }) => <Input {...field} {...controlProps} inputMode="numeric" autoComplete="off" />}
                 />
-                <div className="flex items-center justify-between gap-2 text-sm sm:col-span-2 sm:mt-7 sm:flex-col sm:items-end">
+                <div className="flex items-center justify-between gap-2 text-body sm:col-span-2 sm:mt-7 sm:flex-col sm:items-end">
                   <PartSubtotal control={control} index={index} />
                   <Button
                     type="button"
@@ -239,7 +239,7 @@ function CostForm({ ticket, onSaved, onReload, onClose }: CostFormProps) {
               </li>
             ))}
           </ul>
-          {partsError && <p className="text-xs text-destructive">{partsError}</p>}
+          {partsError && <p className="text-caption text-destructive">{partsError}</p>}
           <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => append(EMPTY_PART)}>
             <Plus aria-hidden="true" />
             Add part
@@ -273,7 +273,7 @@ function CostForm({ ticket, onSaved, onReload, onClose }: CostFormProps) {
 }
 
 function CostSummary({ ticket }: { ticket: RepairTicket }) {
-  if (!hasCosts(ticket)) return <p className="text-sm text-muted-foreground">No costs recorded yet.</p>;
+  if (!hasCosts(ticket)) return <p className="text-body text-muted-foreground">No costs recorded yet.</p>;
   const money = (value: number | null | undefined) => (value == null ? '—' : formatPesoExact(value));
   const parts = ticket.isLumpSum === false ? (ticket.repairParts ?? []) : [];
 
@@ -283,14 +283,14 @@ function CostSummary({ ticket }: { ticket: RepairTicket }) {
         <DetailItem label="Parts">{money(ticket.partsCost)}</DetailItem>
         <DetailItem label="Labor">{money(ticket.laborCost)}</DetailItem>
         <DetailItem label="Total">
-          <span className="text-base font-semibold">{money(ticket.totalCost)}</span>
+          <span className="text-group font-semibold">{money(ticket.totalCost)}</span>
         </DetailItem>
       </dl>
       {parts.length > 0 && (
-        <table className="w-full text-sm">
+        <table className="w-full text-body">
           <caption className="sr-only">Itemized parts</caption>
           <thead>
-            <tr className="border-b border-border text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <tr className="border-b border-border text-label text-muted-foreground">
               <th scope="col" className="py-2 pr-2 text-left font-medium">
                 Description
               </th>

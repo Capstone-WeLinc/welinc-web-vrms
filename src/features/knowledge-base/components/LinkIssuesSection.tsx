@@ -11,7 +11,7 @@ interface LinkIssuesSectionProps {
 export function LinkIssuesSection({ issues, checked, onToggle }: LinkIssuesSectionProps) {
   return (
     <FormSection title="Link these issues">
-      <p className="-mt-2 text-sm text-muted-foreground tabular-nums">
+      <p className="-mt-2 text-body text-muted-foreground tabular-nums">
         {checked.size} of {issues.length} ticked. Ticked issues count toward this entry’s history.
       </p>
       <ul className="-mx-2 flex max-h-80 flex-col overflow-y-auto">
@@ -19,7 +19,7 @@ export function LinkIssuesSection({ issues, checked, onToggle }: LinkIssuesSecti
           const id = `link-${issue.issueId}`;
           return (
             <li key={issue.issueId}>
-              <label htmlFor={id} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg px-2 py-2 text-sm hover:bg-muted/50">
+              <label htmlFor={id} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg px-2 py-2 text-body hover:bg-muted/50">
                 <Checkbox
                   id={id}
                   checked={checked.has(issue.issueId)}

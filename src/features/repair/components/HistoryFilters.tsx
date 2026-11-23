@@ -16,7 +16,7 @@ interface HistoryFiltersProps {
   onChange: (value: HistoryFilterValues) => void;
 }
 
-const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
+const LABEL = 'text-label text-muted-foreground';
 
 export function HistoryFilters({ value, garages, verifiers, rangeError, onChange }: HistoryFiltersProps) {
   const set = (patch: Partial<HistoryFilterValues>) => onChange({ ...value, ...patch });

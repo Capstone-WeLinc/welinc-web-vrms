@@ -47,15 +47,15 @@ export function EmailAddressRow({ email, emailVerified, pendingEmail, onPendingC
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Email address</span>
+        <span className="text-body font-medium">Email address</span>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="min-w-0 text-sm break-all">{email}</span>
+          <span className="min-w-0 text-body break-all">{email}</span>
           <Button type="button" variant="outline" size="sm" className="h-10" onClick={() => openDialog('change')}>
             Change email
           </Button>
         </div>
         {!emailVerified && (
-          <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
+          <p className="flex items-start gap-1.5 text-body text-muted-foreground">
             <MailQuestion aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
             Not verified yet. You’ll confirm it the next time you sign in.
           </p>
@@ -63,7 +63,7 @@ export function EmailAddressRow({ email, emailVerified, pendingEmail, onPendingC
       </div>
 
       {pendingEmail && (
-        <div role="status" className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+        <div role="status" className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3 text-body">
           <p className="flex items-start gap-1.5">
             <MailCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <span className="min-w-0 break-all">Waiting for you to confirm {pendingEmail}</span>

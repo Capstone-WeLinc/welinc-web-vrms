@@ -12,6 +12,7 @@ import {
   statusCheckDelayMs,
 } from './timing';
 import { setMonitoringUser } from '../monitoring/sentry';
+import { clearUserDrafts } from '../drafts/drafts';
 
 /**
  * The VRMS web session (spec 0001 section 7, spec 0003 AC-19 to AC-25). The access token lives in
@@ -260,14 +261,14 @@ async function sessionRequest<T>(run: () => Promise<{ data: T }>, retried = fals
 }
 
 // ---------------------------------------------------------------------------------------------
-// The idle watch (AC-23)
+// The idle watch and the signing out soon banner (suite spec 0016, AC-12; spec 0003, AC-23)
 
 /** Asks the server when the session ends; work in another tab or system may have moved it. */
 function fetchStatus() {
   return sessionRequest(() => api.get<{ sessionExpiresAt: string }>('/vrms/session/status', withToken()));
 }
 
-/** Plans the status check 60 s before the cutoff this tab knows. Leaves an open warning alone. */
+/** Plans the status check 120 s before the cutoff this tab knows. Leaves an open banner alone. */
 function watchIdle() {
   const { sessionExpiresAt, idleWarning } = useAuthStore.getState();
   if (leaving || idleWarning || !sessionExpiresAt) return;
@@ -277,18 +278,31 @@ function watchIdle() {
   idleTimer = setTimeout(() => void checkIdle(), statusCheckDelayMs(cutoff, Date.now()));
 }
 
+/** The cutoff this tab holds: the open banner's, else the last one the server gave. */
+function heldCutoff(): number {
+  const { idleWarning, sessionExpiresAt } = useAuthStore.getState();
+  return idleWarning?.cutoff ?? Date.parse(sessionExpiresAt ?? '');
+}
+
 /**
- * The status check: a later cutoff reschedules quietly and closes an open warning; otherwise the
- * warning opens (or stays), and once its cutoff has passed the tab leaves with `reason=idle`, or
- * `reason=maxage` when the cutoff was the 12 hour end.
+ * The status check: a later cutoff reschedules quietly and closes an open banner; otherwise the
+ * banner opens (or stays). At the cutoff the tab asks once more and leaves only when the server
+ * agrees, or when the check fails and the held cutoff has passed, with `reason=idle`, or
+ * `reason=maxage` when the cutoff was the 12 hour end. It leaves even while the offline banner
+ * shows, since the banners are only what the tab displays.
  */
 async function checkIdle() {
+  if (idleTimer) clearTimeout(idleTimer);
   idleTimer = null;
   const result = await fetchStatus();
   if (leaving) return;
-  if (result.kind === 'ended') return leave(endedUrl(useAuthStore.getState().idleWarning?.cutoff ?? Date.now()));
+  if (result.kind === 'ended') return leave(endedUrl(heldCutoff() || Date.now()));
   if (result.kind === 'unavailable') {
-    idleTimer = setTimeout(() => void checkIdle(), STATUS_RETRY_MS);
+    const held = heldCutoff();
+    if (Number.isFinite(held) && held <= Date.now()) return leave(endedUrl(held));
+    // Try again soon, but never later than the cutoff itself
+    const wait = Number.isFinite(held) ? Math.min(STATUS_RETRY_MS, Math.max(0, held - Date.now())) : STATUS_RETRY_MS;
+    idleTimer = setTimeout(() => void checkIdle(), wait);
     return;
   }
   const cutoff = Date.parse(result.data.sessionExpiresAt);
@@ -304,10 +318,9 @@ async function checkIdle() {
   useAuthStore.setState({
     idleWarning: {
       cutoff,
-      // Known from the refresh answer, so the 12 hour warning says so from the start
+      // Known from the refresh answer, so the 12 hour banner says so from the start
       cannotExtend: (open?.cannotExtend ?? false) || isMaxAge(cutoff),
-      busy: false,
-      dismissed: open?.dismissed ?? false,
+      busy: open?.busy ?? false,
     },
   });
   // At the cutoff, ask once more: work elsewhere in the last minute still keeps the session
@@ -315,15 +328,9 @@ async function checkIdle() {
 }
 
 /**
- * **Keep working** on the 12 hour warning (AC-23): nothing can extend the session, so the dialog
- * just closes and a banner keeps counting down. The tab still leaves at the cutoff.
+ * **Stay signed in** (suite spec 0016, AC-12): an activity ping, then the status again. A cutoff
+ * that didn't move means the 12 hour limit: the banner says so and loses its action.
  */
-export function keepWorking() {
-  const open = useAuthStore.getState().idleWarning;
-  if (open?.cannotExtend) useAuthStore.setState({ idleWarning: { ...open, dismissed: true } });
-}
-
-/** **Stay signed in** (AC-23): an activity ping, then the status again. */
 export async function staySignedIn() {
   const open = useAuthStore.getState().idleWarning;
   if (!open || open.busy) return;
@@ -360,20 +367,27 @@ function sendActivity(): Promise<'ok' | 'ended' | 'unavailable'> {
     .catch((error: AxiosError) => (error.response?.status === 401 ? ('ended' as const) : ('unavailable' as const)));
 }
 
+/**
+ * One activity ping. While the signing out banner shows, a status check follows it (suite spec
+ * 0016, AC-12): the banner closes only when that check finds the cutoff moved, never on input
+ * alone.
+ */
 async function pingNow() {
   pingTimer = null;
   if (leaving || !useAuthStore.getState().token) return;
-  if ((await sendActivity()) === 'ended') leave(loginUrl(), ENDED_MESSAGE);
+  const ping = await sendActivity();
+  if (ping === 'ended') return leave(loginUrl(), ENDED_MESSAGE);
+  const open = useAuthStore.getState().idleWarning;
+  if (open && !open.busy && !leaving) void checkIdle();
 }
 
 /**
  * Real input: a ping now if the last one is a minute old, else one trailing ping when the minute
- * is up. Paused while the idle warning is open, so only **Stay signed in** keeps the session.
+ * is up. It keeps going while the signing out banner shows.
  */
 function onInput(event: Event) {
   if (!event.isTrusted || leaving || pingTimer) return;
-  const { token, idleWarning } = useAuthStore.getState();
-  if (!token || idleWarning) return;
+  if (!useAuthStore.getState().token) return;
   const delay = activityDelayMs(lastPingAt, Date.now());
   if (delay === 0) void pingNow();
   else pingTimer = setTimeout(() => void pingNow(), delay);
@@ -433,6 +447,9 @@ export async function signOut(): Promise<'ok' | 'failed'> {
   } catch {
     return 'failed';
   }
+  // Suite spec 0016, Saving and drafts: signing out clears all of this user's drafts
+  const userId = useAuthStore.getState().user?.id;
+  if (userId) clearUserDrafts(userId);
   channel?.postMessage({ type: 'logout' } satisfies ChannelMessage);
   leave(loginUrl('logout'));
   return 'ok';

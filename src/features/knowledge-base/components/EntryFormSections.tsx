@@ -5,7 +5,7 @@ import { FieldError, FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ChoiceChip, ChoiceChipGroup } from '@/components/ui/choice-chip';
 import { cn } from '@/lib/utils';
 import { FieldRow, FormSection } from '../../../components/shared/FormSection';
 import { PRIORITY_DOT } from '../../../components/shared/priorityStyles';
@@ -29,7 +29,7 @@ type TextName = 'symptoms' | 'descriptionTemplate' | 'safetyNotes';
 function CharCount({ control, name, limit }: { control: EntryFormControl; name: TextName; limit: number }) {
   const value = useWatch({ control, name }) ?? '';
   return (
-    <p className={cn('-mt-3 self-end text-xs tabular-nums', value.length > limit ? 'text-destructive' : 'text-muted-foreground')}>
+    <p className={cn('-mt-3 self-end text-caption tabular-nums', value.length > limit ? 'text-destructive' : 'text-muted-foreground')}>
       {value.length} / {limit}
     </p>
   );
@@ -44,7 +44,7 @@ export function BasicsSection({ control, categories }: { control: EntryFormContr
         label="Name"
         required
         description="What a mechanic would call it, like 'Brake pads worn'."
-        render={({ field, controlProps }) => <Input {...field} {...controlProps} maxLength={NAME_LIMIT} className="h-11 text-base md:h-10 md:text-sm" />}
+        render={({ field, controlProps }) => <Input {...field} {...controlProps} maxLength={NAME_LIMIT} className="h-11 text-base-input md:h-10 md:text-body" />}
       />
       <FieldRow>
         <FormField
@@ -82,7 +82,7 @@ export function BasicsSection({ control, categories }: { control: EntryFormContr
               max={200}
               step={0.25}
               placeholder="For example 1.5"
-              className="h-11 text-base tabular-nums md:h-10 md:text-sm"
+              className="h-11 text-base-input tabular-nums md:h-10 md:text-body"
             />
           )}
         />
@@ -94,19 +94,16 @@ export function BasicsSection({ control, categories }: { control: EntryFormContr
         required
         description="Raises the ticket's priority when this entry is picked."
         render={({ field, controlProps, labelId }) => (
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            size="touch"
+          <ChoiceChipGroup
             id={controlProps.id}
             aria-labelledby={labelId}
             aria-describedby={controlProps['aria-describedby']}
             value={field.value}
-            onValueChange={(value) => value && field.onChange(value)}
+            onValueChange={field.onChange}
             className="grid w-full grid-cols-2 sm:flex sm:w-fit"
           >
             {PRIORITY_OPTIONS.map((option) => (
-              <ToggleGroupItem
+              <ChoiceChip
                 key={option.value}
                 value={option.value}
                 ref={option.value === field.value ? field.ref : undefined}
@@ -114,9 +111,9 @@ export function BasicsSection({ control, categories }: { control: EntryFormContr
               >
                 <span aria-hidden="true" className={cn('size-2.5 shrink-0 rounded-full', PRIORITY_DOT[option.value])} />
                 {option.label}
-              </ToggleGroupItem>
+              </ChoiceChip>
             ))}
-          </ToggleGroup>
+          </ChoiceChipGroup>
         )}
       />
     </FormSection>
@@ -132,7 +129,7 @@ export function LooksLikeSection({ control }: { control: EntryFormControl }) {
         label="Symptoms"
         required
         description="What the driver or mechanic notices. Search matches these words."
-        render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={4} className="text-base md:text-sm" />}
+        render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={4} className="text-base-input md:text-body" />}
       />
       <CharCount control={control} name="symptoms" limit={SYMPTOMS_LIMIT} />
       <FormField
@@ -140,7 +137,7 @@ export function LooksLikeSection({ control }: { control: EntryFormControl }) {
         name="descriptionTemplate"
         label="Description template"
         description="Fills the issue description when picked in the repair form."
-        render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={3} className="text-base md:text-sm" />}
+        render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={3} className="text-base-input md:text-body" />}
       />
       <CharCount control={control} name="descriptionTemplate" limit={TEMPLATE_LIMIT} />
     </FormSection>
@@ -155,7 +152,7 @@ export function SafetySection({ control }: { control: EntryFormControl }) {
         name="safetyNotes"
         label="Safety notes"
         description="Shown first on the entry and on the ticket, in a warning box."
-        render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={3} className="text-base md:text-sm" />}
+        render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={3} className="text-base-input md:text-body" />}
       />
       <CharCount control={control} name="safetyNotes" limit={SAFETY_LIMIT} />
     </FormSection>
@@ -187,7 +184,7 @@ function RowListSection({ control, name, title, noun, addLabel, max, limit, minR
 
   return (
     <FormSection title={title}>
-      {fields.length === 0 && emptyText && <p className="text-sm text-muted-foreground">{emptyText}</p>}
+      {fields.length === 0 && emptyText && <p className="text-body text-muted-foreground">{emptyText}</p>}
       <ol className="flex flex-col gap-3" aria-describedby={listError ? listErrorId : undefined}>
         {fields.map((item, index) => {
           const n = index + 1;
@@ -196,7 +193,7 @@ function RowListSection({ control, name, title, noun, addLabel, max, limit, minR
             <li key={item.id} className="flex flex-wrap items-start gap-2">
               <span
                 aria-hidden="true"
-                className="mt-2 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary tabular-nums md:mt-1.5"
+                className="mt-2 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-body font-semibold text-primary tabular-nums md:mt-1.5"
               >
                 {n}
               </span>
@@ -211,7 +208,7 @@ function RowListSection({ control, name, title, noun, addLabel, max, limit, minR
                       aria-invalid={fieldState.invalid}
                       aria-describedby={fieldState.invalid ? `${name}-${index}-error` : undefined}
                       maxLength={limit}
-                      className="h-11 text-base md:h-10 md:text-sm"
+                      className="h-11 text-base-input md:h-10 md:text-body"
                     />
                     {fieldState.invalid && <FieldError id={`${name}-${index}-error`} errors={[fieldState.error]} />}
                   </div>
@@ -262,7 +259,7 @@ function RowListSection({ control, name, title, noun, addLabel, max, limit, minR
           type="button"
           variant="outline"
           size="touch"
-          className="md:h-10 md:text-sm"
+          className="md:h-10 md:text-body"
           disabled={atMax}
           aria-describedby={limitId}
           onClick={() => append({ text: '' })}
@@ -270,7 +267,7 @@ function RowListSection({ control, name, title, noun, addLabel, max, limit, minR
           <Plus aria-hidden="true" />
           {addLabel}
         </Button>
-        <p id={limitId} className="text-xs text-muted-foreground tabular-nums">
+        <p id={limitId} className="text-caption text-muted-foreground tabular-nums">
           {fields.length} of {max}
         </p>
       </div>

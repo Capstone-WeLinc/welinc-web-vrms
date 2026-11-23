@@ -1,19 +1,19 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Zap, ThumbsUp, ThumbsDown, Activity, Shield } from 'lucide-react';
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import type { AnalyticsData } from '../hooks/useAnalyticsData';
 import { ChartCard, EmptyState, KpiCard, SectionGate } from './ChartPrimitives';
+import { legendText } from './legendText';
 import { IssueFrequencyChart } from './IssueFrequencyChart';
-import { PALETTE, chartTooltipProps, getAiFeedbackStats, modelDisplayName, tint } from '../utils';
+import { PALETTE, chartTooltipProps, getAiFeedbackStats, modelDisplayName } from '../utils';
 
 function FeedbackStat({ count, label, color, icon: Icon }: { count: number; label: string; color: string; icon: typeof ThumbsUp }) {
   return (
-    <div style={{ flex: 1, background: tint(color, 8), border: `1px solid ${tint(color, 20)}`, borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-      <div style={{ width: 42, height: 42, borderRadius: 10, background: tint(color, 15), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon size={22} color={color} />
-      </div>
+    // Inside a chart card: a plain row, never a tinted box (spec 0016, Banned).
+    <div className="flex flex-1 items-center gap-3">
+      <Icon aria-hidden="true" className="size-5 shrink-0" style={{ color }} />
       <div>
-        <div style={{ fontSize: '1.8rem', fontWeight: 900, color, lineHeight: 1 }}>{count}</div>
-        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--muted-foreground)', marginTop: 4 }}>{label}</div>
+        <div className="font-mono text-heading font-semibold text-foreground">{count}</div>
+        <div className="text-small text-muted-foreground">{label}</div>
       </div>
     </div>
   );
@@ -36,14 +36,14 @@ export function AiInsightsTab({ aiStats, issueFreq, sections, retry }: Analytics
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <SectionGate state={sections.aiStats} onRetry={() => retry('aiStats')} height={300}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-        <KpiCard label="Total AI Diagnoses" value={aiStats?.total_interactions ?? 0} icon={Zap} color="var(--primary)" />
-        <KpiCard label="Satisfaction Rate" value={`${satRate}%`} icon={ThumbsUp} color="var(--success)" note={`Based on ${totalFb} mechanic ratings`} />
-        <KpiCard label="Avg Rating" value={`${avgRating.toFixed(1)} / 5`} icon={Activity} color="var(--primary)" />
-        <KpiCard label="Feedback Received" value={totalFb} icon={Shield} color="var(--warning)" />
+      <div className="grid grid-cols-1 gap-4 *:min-w-0 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="Total AI Diagnoses" value={aiStats?.total_interactions ?? 0} />
+        <KpiCard label="Satisfaction Rate" value={`${satRate}%`} note={`Based on ${totalFb} mechanic ratings`} />
+        <KpiCard label="Avg Rating" value={`${avgRating.toFixed(1)} / 5`} />
+        <KpiCard label="Feedback Received" value={totalFb} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="grid grid-cols-1 gap-4 *:min-w-0 lg:grid-cols-2">
         <ChartCard title="AI Model Usage Distribution">
           {modelData.length === 0
             ? <EmptyState label="No AI interaction data yet" />
@@ -55,7 +55,7 @@ export function AiInsightsTab({ aiStats, issueFreq, sections, retry }: Analytics
                       {modelData.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
                     </Pie>
                     <Tooltip {...chartTooltipProps} formatter={(v, name) => [v, name]} />
-                    <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: 12, color: 'var(--text)', paddingLeft: 16 }} />
+                    <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: 12, paddingLeft: 16 }} formatter={legendText} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

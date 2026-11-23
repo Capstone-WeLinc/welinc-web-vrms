@@ -138,10 +138,10 @@ function SampleRepairForm() {
         />
       </FieldGroup>
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" size="touch" className="md:h-10 md:text-sm" loading={isSubmitting}>
+        <Button type="submit" size="touch" className="md:h-10 md:text-body" loading={isSubmitting}>
           {isSubmitting ? 'Saving' : 'Save ticket'}
         </Button>
-        <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={isSubmitting} onClick={() => reset()}>
+        <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={isSubmitting} onClick={() => reset()}>
           Reset
         </Button>
       </div>

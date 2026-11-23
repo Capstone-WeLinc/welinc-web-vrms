@@ -2,7 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { CrashBoundary } from '../monitoring/CrashBoundary';
 import { cn } from '@/lib/utils';
 import { DataModeToggle } from '../../features/dev-ui/components/DataModeToggle';
-import { ReconnectingBanner } from '../session/ReconnectingBanner';
+import { BannerHost } from '../feedback/BannerHost';
 import { AppHeader } from './AppHeader';
 import { MobileTabBar } from './MobileTabBar';
 import { Sidebar } from './Sidebar';
@@ -18,22 +18,22 @@ export function DashboardShell() {
   const { pathname } = useLocation();
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className={cn('min-h-dvh bg-background', hasTabBar && 'has-tab-bar')}>
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary focus:ring-2 focus:ring-ring"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:text-body focus:font-medium focus:text-primary focus:ring-2 focus:ring-ring"
       >
         Skip to content
       </a>
       <Sidebar collapsed={collapsed} onToggleCollapsed={toggle} />
       <div
         className={cn(
-          'flex min-h-dvh flex-col transition-all duration-200 motion-reduce:transition-none',
-          collapsed ? 'md:pl-16' : 'md:pl-64',
+          'flex min-h-dvh flex-col transition-all duration-(--duration-fold) ease-enter motion-reduce:transition-none',
+          collapsed ? 'md:pl-16' : 'md:pl-60',
         )}
       >
         <AppHeader />
-        <ReconnectingBanner />
+        <BannerHost />
         <main
           id="main"
           tabIndex={-1}

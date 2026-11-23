@@ -4,15 +4,16 @@ import { cn } from "@/lib/utils"
 import { Slot } from "radix-ui"
 
 const badgeVariants = cva(
-  "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-invalid:border-destructive [&>svg]:pointer-events-none [&>svg]:size-3",
+  "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-caption font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&>svg]:pointer-events-none [&>svg]:size-3",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
-        secondary:
-          "bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground [a&]:hover:bg-destructive/90",
+        // Suite spec 0016 (design.md, Status pills): a soft tint, darker text, an inset ring of the text at 20%
+        default: "bg-info-bg text-primary ring-1 ring-current/20 ring-inset",
+        secondary: "bg-muted text-muted-strong ring-1 ring-current/20 ring-inset",
+        success: "bg-success-bg text-success ring-1 ring-current/20 ring-inset",
+        warning: "bg-warning-bg text-warning ring-1 ring-current/20 ring-inset",
+        destructive: "bg-error-bg text-error ring-1 ring-current/20 ring-inset",
         outline:
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",

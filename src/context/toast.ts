@@ -1,37 +1,88 @@
-import { toast } from 'sonner';
+import { createElement } from 'react';
+import { toast, type ExternalToast } from 'sonner';
+import { Toast, type ToastKind } from '../components/ui/toast';
 import { DENIED_MESSAGE, DENIED_TOAST_MS } from '../lib/permissions/keys';
 
-export type ToastType = 'success' | 'error' | 'info' | 'warning';
+export type ToastType = ToastKind;
 
-// sonner's live region is polite only. The Toaster registers a role="alert"
-// region here so error toasts are also announced assertively.
-type AlertAnnouncer = (message: string) => void;
-let announceAlert: AlertAnnouncer | null = null;
+/*
+  Suite spec 0016 AC-11 (design.md, Feedback: Toasts). Success and info last 5 seconds, warnings 8,
+  errors stay until closed. At most MAX_TOASTS show: when full, the oldest non error goes first,
+  then the oldest error.
+*/
+export const TOAST_MS: Record<ToastType, number> = {
+  success: 5000,
+  info: 5000,
+  warning: 8000,
+  error: Infinity,
+};
+export const MAX_TOASTS = 3;
 
-export function registerAlertAnnouncer(announcer: AlertAnnouncer | null) {
-  announceAlert = announcer;
+export type ToastOptions = {
+  /** One optional line under the title. */
+  body?: string;
+  action?: { label: string; onClick: () => void };
+  /** A toast with the same id replaces the one showing instead of stacking. */
+  id?: string;
+};
+
+type Shown = { id: string | number; type: ToastType };
+let shown: Shown[] = [];
+let lastDeniedToast = 0;
+let nextId = 0;
+
+/** Which shown toast has to go to make room for one more, or null when there is room. */
+export function pickToastToEvict(list: Shown[], max = MAX_TOASTS): Shown | null {
+  if (list.length < max) return null;
+  return list.find((item) => item.type !== 'error') ?? list[0] ?? null;
 }
 
-let lastDeniedToast = 0;
+function forget(id: string | number) {
+  shown = shown.filter((item) => item.id !== id);
+}
 
 /** For code outside React, such as the axios interceptor; components use useToast(). */
-export function showToast(message: string, type: ToastType = 'success') {
+export function showToast(message: string, type: ToastType = 'success', options: ToastOptions = {}) {
   // The denied text shows at most once per window, however many callers raise it (spec 0011, AC-24)
   if (message === DENIED_MESSAGE) {
     const now = Date.now();
     if (now - lastDeniedToast < DENIED_TOAST_MS) return;
     lastDeniedToast = now;
   }
-  if (type === 'error') {
-    toast.error(message);
-    announceAlert?.(message);
-  } else if (type === 'warning') {
-    toast.warning(message);
-  } else if (type === 'info') {
-    toast.info(message);
-  } else {
-    toast.success(message);
+
+  const id = options.id ?? `toast-${++nextId}`;
+  const replacing = shown.some((item) => item.id === id);
+  if (!replacing) {
+    const evict = pickToastToEvict(shown);
+    if (evict) {
+      forget(evict.id);
+      toast.dismiss(evict.id);
+    }
+    shown = [...shown, { id, type }];
   }
+
+  const duration = TOAST_MS[type];
+  const settings: ExternalToast = {
+    id,
+    duration,
+    onDismiss: () => forget(id),
+    onAutoClose: () => forget(id),
+  };
+  toast.custom(
+    () =>
+      createElement(Toast, {
+        kind: type,
+        title: message,
+        body: options.body,
+        action: options.action,
+        durationMs: Number.isFinite(duration) && type !== 'warning' ? duration : undefined,
+        onClose: () => {
+          forget(id);
+          toast.dismiss(id);
+        },
+      }),
+    settings,
+  );
 }
 
 // One stable object, so callers can list showToast in effect dependencies.
@@ -39,4 +90,10 @@ const toastApi = { showToast };
 
 export function useToast() {
   return toastApi;
+}
+
+/** Tests only. */
+export function resetToastsForTests() {
+  shown = [];
+  lastDeniedToast = 0;
 }

@@ -113,8 +113,7 @@ export function UsersPage() {
     <div>
       <PageHeader
         title="Users"
-        subtitle="Your VRMS team and their open work. Account changes happen in the portal."
-        icon={Users}
+        context="Your VRMS team and their open work. Account changes happen in the portal."
         action={addUser}
       />
 

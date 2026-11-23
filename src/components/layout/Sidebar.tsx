@@ -1,46 +1,39 @@
-import { LayoutGrid, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { BrandMark } from './BrandMark';
+import { SidebarAccount, SystemSwitcher } from './SidebarAccount';
 import { SidebarAction, SidebarNav } from './SidebarNav';
 import { useNavSections } from './useNavSections';
-import { useShellActions } from './useShellActions';
 
 interface SidebarProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }
 
-/** Desktop navigation (768px and up): w-64 expanded, w-16 icon only. */
+/**
+ * Desktop navigation from 768px up (suite spec 0016 AC-16, design.md Layout and navigation):
+ * navy, 240px, the system switcher at the top and the account menu at the bottom; the toggle
+ * above it collapses it to a 64px icon strip with a tooltip on each icon.
+ */
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const sections = useNavSections();
-  const { canSwitchSystem, switchSystem, signOut } = useShellActions();
 
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-40 hidden flex-col bg-sidebar text-sidebar-foreground transition-all duration-200 motion-reduce:transition-none md:flex',
-        collapsed ? 'w-16' : 'w-64',
+        'fixed inset-y-0 left-0 z-20 hidden flex-col bg-sidebar text-sidebar-foreground transition-all duration-(--duration-fold) ease-enter motion-reduce:transition-none md:flex',
+        collapsed ? 'w-16' : 'w-60',
       )}
     >
-      {/* Same height and rule as the header, so the two read as one top line. */}
-      <div
-        className={cn(
-          'flex h-16 shrink-0 items-center border-b border-sidebar-foreground/10',
-          collapsed ? 'justify-center' : 'px-5',
-        )}
-      >
-        <BrandMark compact={collapsed} />
+      <div className={cn('shrink-0 pt-3', collapsed ? 'px-2' : 'px-3')}>
+        <SystemSwitcher collapsed={collapsed} />
+        <hr aria-hidden="true" className="mx-0.5 mt-3.5 border-sidebar-line" />
       </div>
 
-      <div className={cn('flex-1 overflow-y-auto py-5', collapsed ? 'px-2' : 'px-3')}>
+      <div className={cn('flex-1 overflow-x-hidden overflow-y-auto py-3', collapsed ? 'px-2' : 'px-3')}>
         <SidebarNav sections={sections} collapsed={collapsed} />
       </div>
 
-      <div className={cn('flex shrink-0 flex-col gap-1 border-t border-sidebar-foreground/10 py-3', collapsed ? 'px-2' : 'px-3')}>
-        {canSwitchSystem && (
-          <SidebarAction icon={LayoutGrid} label="Switch system" onClick={switchSystem} collapsed={collapsed} />
-        )}
-        <SidebarAction icon={LogOut} label="Sign out" onClick={signOut} collapsed={collapsed} />
+      <div className={cn('flex shrink-0 flex-col gap-1 border-t border-sidebar-line py-3', collapsed ? 'px-2' : 'px-3')}>
         <SidebarAction
           icon={collapsed ? PanelLeftOpen : PanelLeftClose}
           label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -48,6 +41,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
           collapsed={collapsed}
           aria-expanded={!collapsed}
         />
+        <SidebarAccount collapsed={collapsed} />
       </div>
     </aside>
   );

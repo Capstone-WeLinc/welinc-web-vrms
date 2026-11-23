@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { BookOpen, MessageSquarePlus, SearchX, TriangleAlert } from 'lucide-react';
+import { MessageSquarePlus, SearchX, TriangleAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -32,8 +32,8 @@ function EntryBody({ entry, isEditor }: { entry: KnowledgeEntryDetail; isEditor:
           <section aria-label="Safety" className="flex items-start gap-3 rounded-xl border border-highlight bg-highlight/15 p-4 md:p-5">
             <TriangleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
             <div className="flex min-w-0 flex-col gap-1">
-              <h2 className="text-base font-semibold text-foreground">Safety</h2>
-              <p className="text-sm break-words whitespace-pre-line text-foreground">{entry.safetyNotes}</p>
+              <h2 className="text-group font-semibold text-foreground">Safety</h2>
+              <p className="text-body break-words whitespace-pre-line text-foreground">{entry.safetyNotes}</p>
             </div>
           </section>
         )}
@@ -42,10 +42,10 @@ function EntryBody({ entry, isEditor }: { entry: KnowledgeEntryDetail; isEditor:
           <ol className="flex flex-col gap-3">
             {entry.steps.map((step) => (
               <li key={step.position} className="flex items-start gap-3">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary tabular-nums">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-body font-semibold text-primary tabular-nums">
                   {step.position}
                 </span>
-                <p className="min-w-0 pt-0.5 text-sm break-words text-foreground">{step.text}</p>
+                <p className="min-w-0 pt-0.5 text-body break-words text-foreground">{step.text}</p>
               </li>
             ))}
           </ol>
@@ -56,7 +56,7 @@ function EntryBody({ entry, isEditor }: { entry: KnowledgeEntryDetail; isEditor:
             <ul className="flex flex-wrap gap-2">
               {entry.parts.map((part) => (
                 <li key={part.position}>
-                  <Badge variant="outline" className="h-7 px-3 text-sm font-normal">
+                  <Badge variant="outline" className="h-7 px-3 text-body font-normal">
                     {part.name}
                   </Badge>
                 </li>
@@ -66,15 +66,15 @@ function EntryBody({ entry, isEditor }: { entry: KnowledgeEntryDetail; isEditor:
         )}
 
         <DetailSection title="Symptoms">
-          <p className="text-sm break-words whitespace-pre-line text-foreground">{entry.symptoms}</p>
+          <p className="text-body break-words whitespace-pre-line text-foreground">{entry.symptoms}</p>
         </DetailSection>
 
         {isEditor && (
           <DetailSection title="Description template">
             {entry.descriptionTemplate ? (
-              <p className="text-sm break-words whitespace-pre-line text-foreground">{entry.descriptionTemplate}</p>
+              <p className="text-body break-words whitespace-pre-line text-foreground">{entry.descriptionTemplate}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">No template. Picking this entry in the repair form leaves the description empty.</p>
+              <p className="text-body text-muted-foreground">No template. Picking this entry in the repair form leaves the description empty.</p>
             )}
           </DetailSection>
         )}
@@ -121,8 +121,8 @@ export function KnowledgeEntryPage() {
     return (
       <div>
         <BackLink to={back} label="Knowledge base" />
-        <PageHeader title="Knowledge base" icon={BookOpen} />
-        <div className="rounded-xl border border-border bg-card shadow-xs">{body}</div>
+        <PageHeader title="Knowledge base" />
+        <div className="rounded-2xl border border-transparent bg-card shadow-card">{body}</div>
       </div>
     );
   }
@@ -133,12 +133,11 @@ export function KnowledgeEntryPage() {
       <BackLink to={back} label="Knowledge base" />
       <PageHeader
         title={data.name}
-        icon={BookOpen}
         action={
           isEditor ? (
             <EntryActions entry={data} onChanged={entry.replace} onStale={entry.retry} />
           ) : suggests ? (
-            <Button variant="outline" size="touch" className="md:h-10 md:text-sm" onClick={() => setSuggesting(true)}>
+            <Button variant="outline" size="touch" className="md:h-10 md:text-body" onClick={() => setSuggesting(true)}>
               <MessageSquarePlus aria-hidden="true" />
               Suggest a change
             </Button>
@@ -147,7 +146,7 @@ export function KnowledgeEntryPage() {
       />
       <div className="-mt-2 mb-6 flex flex-wrap items-center gap-2">
         <Badge variant="outline">{data.category.name}</Badge>
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 text-caption text-muted-foreground">
           Suggested priority <PriorityBadge priority={data.suggestedPriority} />
         </span>
         {data.status !== 'ACTIVE' && <StatusBadge status={data.status} />}

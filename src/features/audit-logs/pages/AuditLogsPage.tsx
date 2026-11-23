@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, History } from 'lucide-react';
+import { History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { EmptyState } from '../../../components/shared/EmptyState';
@@ -12,7 +12,7 @@ import { AuditTimeline, AuditTimelineSkeleton } from '../components/AuditTimelin
 import { useAuditEvents } from '../hooks/useAuditEvents';
 import { DEFAULT_AUDIT_FILTERS, hasActiveAuditFilters, type AuditFilterValues } from '../lib/auditEvents';
 
-const PANEL = 'rounded-xl border border-border bg-card shadow-xs';
+const PANEL = 'rounded-2xl border border-transparent bg-card shadow-card';
 
 export function AuditLogsPage() {
   const [filters, setFilters] = useState<AuditFilterValues>(DEFAULT_AUDIT_FILTERS);
@@ -80,8 +80,7 @@ export function AuditLogsPage() {
     <div>
       <PageHeader
         title="Audit log"
-        subtitle="Every change to repair tickets: who made it and when."
-        icon={ClipboardList}
+        context="Every change to repair tickets: who made it and when."
       />
       <AuditFilters
         value={filters}

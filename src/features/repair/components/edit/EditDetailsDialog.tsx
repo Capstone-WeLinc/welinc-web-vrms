@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ChoiceChip, ChoiceChipGroup } from '@/components/ui/choice-chip';
 import { cn } from '@/lib/utils';
 import { Callout } from '../../../../components/shared/Callout';
 import { FormAlert } from '../../../../components/shared/FormAlert';
@@ -134,10 +134,10 @@ export function EditDetailsDialog({ open, onOpenChange, ticket, onSave }: EditDe
       description="Fix what was entered wrong. Every change is recorded in the ticket’s activity."
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={isSubmitting} onClick={() => void changeOpen(false)}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={isSubmitting} onClick={() => void changeOpen(false)}>
             Cancel
           </Button>
-          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" loading={isSubmitting}>
+          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-body" loading={isSubmitting}>
             {jumpConfirmed ? 'Confirm and save' : 'Save changes'}
           </Button>
         </>
@@ -161,7 +161,7 @@ export function EditDetailsDialog({ open, onOpenChange, ticket, onSave }: EditDe
           required
           description="It must sit between the readings on this truck’s earlier and later tickets."
           render={({ field, controlProps }) => (
-            <Input {...field} {...controlProps} inputMode="numeric" autoComplete="off" className="h-11 text-base tabular-nums md:h-10 md:text-sm" />
+            <Input {...field} {...controlProps} inputMode="numeric" autoComplete="off" className="h-11 text-base-input tabular-nums md:h-10 md:text-body" />
           )}
         />
         {jumpConfirmed && (
@@ -177,19 +177,15 @@ export function EditDetailsDialog({ open, onOpenChange, ticket, onSave }: EditDe
           label="Priority"
           required
           render={({ field, controlProps, labelId }) => (
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="touch"
+            <ChoiceChipGroup
               id={controlProps.id}
               aria-labelledby={labelId}
               value={field.value}
-              // Radix sends '' when the selected item is pressed again; priority is never empty
-              onValueChange={(value) => value && field.onChange(value)}
+              onValueChange={field.onChange}
               className="grid w-full grid-cols-2 sm:flex sm:w-fit"
             >
               {PRIORITY_OPTIONS.map((option) => (
-                <ToggleGroupItem
+                <ChoiceChip
                   key={option.value}
                   value={option.value}
                   ref={option.value === field.value ? field.ref : undefined}
@@ -197,9 +193,9 @@ export function EditDetailsDialog({ open, onOpenChange, ticket, onSave }: EditDe
                 >
                   <span aria-hidden="true" className={cn('size-2.5 shrink-0 rounded-full', PRIORITY_DOT[option.value])} />
                   {option.label}
-                </ToggleGroupItem>
+                </ChoiceChip>
               ))}
-            </ToggleGroup>
+            </ChoiceChipGroup>
           )}
         />
 
@@ -208,10 +204,7 @@ export function EditDetailsDialog({ open, onOpenChange, ticket, onSave }: EditDe
           name="accountType"
           label="Account type"
           render={({ field, controlProps, labelId }) => (
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="touch"
+            <ChoiceChipGroup
               id={controlProps.id}
               aria-labelledby={labelId}
               value={field.value}
@@ -224,16 +217,16 @@ export function EditDetailsDialog({ open, onOpenChange, ticket, onSave }: EditDe
               className="grid w-full grid-cols-2 sm:flex sm:w-fit"
             >
               {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                <ToggleGroupItem
+                <ChoiceChip
                   key={option.value}
                   value={option.value}
                   ref={option.value === field.value ? field.ref : undefined}
                   onBlur={field.onBlur}
                 >
                   {option.label}
-                </ToggleGroupItem>
+                </ChoiceChip>
               ))}
-            </ToggleGroup>
+            </ChoiceChipGroup>
           )}
         />
         {accountType === 'CORPORATE' && (

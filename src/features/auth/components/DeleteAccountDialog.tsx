@@ -93,8 +93,8 @@ export function DeleteAccountDialog({ open, onOpenChange, onRequested }: DeleteA
     >
       <form id={formId} noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         <div>
-          <h3 className="text-sm font-medium">What happens next</h3>
-          <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">
+          <h3 className="text-body font-medium">What happens next</h3>
+          <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-body text-muted-foreground">
             {DELETION_STEPS.map((step) => (
               <li key={step}>{step}</li>
             ))}

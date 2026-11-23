@@ -21,11 +21,11 @@ function DocumentRow({ doc, kindLabel, onRemove }: { doc: Attachment; kindLabel:
     <li className="flex min-w-0 items-start gap-2 py-2.5 first:pt-0 last:pb-0">
       <FileText aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-xs font-medium text-muted-foreground">{kindLabel}</span>
-        <span className="text-sm wrap-break-word text-foreground">{doc.fileName}</span>
+        <span className="text-caption font-medium text-muted-foreground">{kindLabel}</span>
+        <span className="text-body wrap-break-word text-foreground">{doc.fileName}</span>
         {/* Spec 0024, AC-19: the uploader on one line, the date on the next */}
-        <span className="text-xs text-muted-foreground">{doc.uploadedBy.name}</span>
-        <time dateTime={doc.createdAt} className="text-xs text-muted-foreground">
+        <span className="text-caption text-muted-foreground">{doc.uploadedBy.name}</span>
+        <time dateTime={doc.createdAt} className="text-caption text-muted-foreground">
           {formatManilaDateTime(doc.createdAt)}
         </time>
       </div>
@@ -93,14 +93,14 @@ export function DocumentsCard() {
   let body;
   if (attachments.state === 'loading') {
     body = (
-      <p role="status" className="text-sm text-muted-foreground">
+      <p role="status" className="text-body text-muted-foreground">
         Loading documents…
       </p>
     );
   } else if (attachments.state === 'error' || !list) {
     // AC-3: STORAGE_UNAVAILABLE shows its message in place of the documents
     body = (
-      <p role="alert" className="text-sm text-muted-foreground">
+      <p role="alert" className="text-body text-muted-foreground">
         {attachments.errorMessage}
       </p>
     );
@@ -119,7 +119,7 @@ export function DocumentsCard() {
             ))}
           </ul>
         ) : (
-          docQueue.length === 0 && <p className="text-sm text-muted-foreground">No receipts or documents yet.</p>
+          docQueue.length === 0 && <p className="text-body text-muted-foreground">No receipts or documents yet.</p>
         )}
 
         {/* The live region stays mounted so the first upload is announced too */}
@@ -149,7 +149,7 @@ export function DocumentsCard() {
               <FilePlus aria-hidden="true" />
               Add document
             </Button>
-            {room <= 0 && <span className="text-xs text-muted-foreground">Document limit reached</span>}
+            {room <= 0 && <span className="text-caption text-muted-foreground">Document limit reached</span>}
           </div>
         )}
       </div>

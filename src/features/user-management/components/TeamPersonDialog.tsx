@@ -40,7 +40,7 @@ export function TeamPersonDialog({ open, onOpenChange, user, finalFocusRef, onWo
             <StatusBadge status={getAccountStatus(user)} />
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-body text-muted-foreground">
               Name, email, role, reset codes, sessions and deactivation are in the portal.
             </p>
             <a

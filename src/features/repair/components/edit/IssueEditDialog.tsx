@@ -118,10 +118,10 @@ export function IssueEditDialog({ open, onOpenChange, ticket, issue, onSave }: I
       description={mode === 'add' ? 'The issue joins the ticket’s work list.' : 'Every change is recorded in the ticket’s activity.'}
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={isSubmitting} onClick={() => void changeOpen(false)}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={isSubmitting} onClick={() => void changeOpen(false)}>
             Cancel
           </Button>
-          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" loading={isSubmitting}>
+          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-body" loading={isSubmitting}>
             {mode === 'add' ? 'Add issue' : 'Save issue'}
           </Button>
         </>

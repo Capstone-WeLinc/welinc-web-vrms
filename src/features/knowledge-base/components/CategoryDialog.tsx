@@ -90,10 +90,10 @@ export function CategoryDialog({ category, open, onOpenChange, onSaved, onReload
       description={category ? undefined : 'Categories group entries and fill the System list in the repair form.'}
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={saving} onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={saving} onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" disabled={saving || stale} loading={saving}>
+          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-body" disabled={saving || stale} loading={saving}>
             {category ? 'Save changes' : 'Add category'}
           </Button>
         </>

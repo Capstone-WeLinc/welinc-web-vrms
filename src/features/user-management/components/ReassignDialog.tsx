@@ -106,10 +106,10 @@ export function ReassignDialog({ ticket, fromName, finalFocusRef, onOpenChange, 
       description={`Move it from ${fromName} to another mechanic. Mechanics with the fewest open tickets are listed first.`}
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={saving} onClick={() => close(false)}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={saving} onClick={() => close(false)}>
             Cancel
           </Button>
-          <Button type="button" size="touch" className="md:h-10 md:text-sm" loading={saving} disabled={!picked} onClick={() => void submit()}>
+          <Button type="button" size="touch" className="md:h-10 md:text-body" loading={saving} disabled={!picked} onClick={() => void submit()}>
             Reassign
           </Button>
         </>
@@ -117,7 +117,7 @@ export function ReassignDialog({ ticket, fromName, finalFocusRef, onOpenChange, 
     >
       <div className="flex flex-col gap-2">
         {error && <FormAlert message={error} />}
-        <label id={`${pickerId}-label`} htmlFor={pickerId} className="text-sm font-medium">
+        <label id={`${pickerId}-label`} htmlFor={pickerId} className="text-body font-medium">
           New mechanic
         </label>
         <Combobox
@@ -133,13 +133,13 @@ export function ReassignDialog({ ticket, fromName, finalFocusRef, onOpenChange, 
           emptyText="No mechanic matches."
         />
         {picked && (
-          <p role="status" className="text-xs text-muted-foreground">
+          <p role="status" className="text-caption text-muted-foreground">
             Moving it to {picked.name}
             {picked.email ? `, ${picked.email}` : ''}.
           </p>
         )}
         {loadFailed && (
-          <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+          <p role="alert" className="flex flex-wrap items-center gap-2 text-caption text-destructive">
             Couldn’t load mechanics.
             <Button type="button" variant="link" size="sm" className="h-auto min-h-11 px-0 md:min-h-0" onClick={() => setAttempt((n) => n + 1)}>
               Try again
@@ -147,7 +147,7 @@ export function ReassignDialog({ ticket, fromName, finalFocusRef, onOpenChange, 
           </p>
         )}
         {mechanics && candidates.length === 0 && (
-          <p id={hintId} role="status" className="text-xs text-muted-foreground">
+          <p id={hintId} role="status" className="text-caption text-muted-foreground">
             No other mechanic is available for this ticket.
           </p>
         )}

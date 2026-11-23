@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ClipboardList, Plus, SearchX, Wrench } from 'lucide-react';
+import { AlertTriangle, ClipboardList, Plus, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -39,9 +39,9 @@ function TruckCell({ ticket }: { ticket: RepairTicket }) {
     <span className="flex flex-col gap-1">
       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <PlateChip plate={ticket.vehiclePlate} />
-        {ticket.vehicleModel && <span className="text-sm font-normal text-foreground">{ticket.vehicleModel}</span>}
+        {ticket.vehicleModel && <span className="text-body font-normal text-foreground">{ticket.vehicleModel}</span>}
       </span>
-      <span translate="no" className="text-xs font-normal whitespace-nowrap text-muted-foreground tabular-nums">{ticket.repairNumber}</span>
+      <span translate="no" className="text-caption font-normal whitespace-nowrap text-muted-foreground tabular-nums">{ticket.repairNumber}</span>
     </span>
   );
 }
@@ -54,7 +54,7 @@ function IssueCell({ ticket }: { ticket: RepairTicket }) {
         {/* Two lines in the list; focusable so keyboard users can read the full issue too. */}
         <span
           tabIndex={0}
-          className="line-clamp-2 min-w-48 rounded-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="line-clamp-2 min-w-48 rounded-md text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {ticket.issueDescription}
         </span>
@@ -177,8 +177,7 @@ export function RepairListPage() {
     <div>
       <PageHeader
         title="Repair tickets"
-        subtitle={seesAll ? 'Open repair tickets across every garage.' : 'Open repair tickets assigned to you.'}
-        icon={Wrench}
+        context={seesAll ? 'Open repair tickets across every garage.' : 'Open repair tickets assigned to you.'}
         action={canCreate ? newTicket : undefined}
       />
 
@@ -192,7 +191,7 @@ export function RepairListPage() {
       />
 
       {list.state === 'error' ? (
-        <div className="rounded-xl border border-border bg-card shadow-xs">
+        <div className="rounded-2xl border border-transparent bg-card shadow-card">
           <ErrorState
             title="We couldn’t load repair tickets"
             message={list.errorMessage ?? 'Repair tickets didn’t load.'}

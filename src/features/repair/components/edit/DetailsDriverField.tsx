@@ -50,7 +50,7 @@ export function DetailsDriverField({ control, setValue, clearErrors }: DetailsDr
           label="New driver’s name"
           required
           render={({ field, controlProps }) => (
-            <Input {...field} {...controlProps} maxLength={NAME_LIMIT} autoComplete="off" className="h-11 text-base md:h-10 md:text-sm" />
+            <Input {...field} {...controlProps} maxLength={NAME_LIMIT} autoComplete="off" className="h-11 text-base-input md:h-10 md:text-body" />
           )}
         />
         <FormField
@@ -66,7 +66,7 @@ export function DetailsDriverField({ control, setValue, clearErrors }: DetailsDr
               onChange={(event) => field.onChange(event.target.value.toUpperCase())}
               autoComplete="off"
               placeholder="A01-23-456789"
-              className="h-11 text-base md:h-10 md:text-sm"
+              className="h-11 text-base-input md:h-10 md:text-body"
             />
           )}
         />

@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import type { AnalyticsData } from '../hooks/useAnalyticsData';
 import { ChartCard, EmptyState, SectionGate } from './ChartPrimitives';
+import { legendText } from './legendText';
 import {
   PALETTE, STATUS_COLORS, STATUS_LABELS, axisTick, chartTooltipProps, filterByPeriod, fmt, fmtThousands,
 } from '../utils';
@@ -33,7 +34,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Row 1: Trend + Status Donut */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
+      <div className="grid grid-cols-1 gap-4 *:min-w-0 lg:grid-cols-2">
         <ChartCard title={costsHidden ? 'Monthly Repair Volume' : 'Monthly Expense & Volume Trend'} period={trendPeriod} onPeriodChange={setTrendPeriod}>
           <SectionGate state={sections.trends} onRetry={() => retry('trends')} height={260}>
           {filteredTrends.length === 0
@@ -56,7 +57,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                       {...chartTooltipProps}
                       formatter={(val, name) => name === 'Spend' ? [fmt(Number(val)), 'Total Spend'] : [val, 'Repair Count']}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)', paddingTop: 8 }} />
+                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} formatter={legendText} />
                     {!costsHidden && <Area yAxisId="left" type="monotone" dataKey="total_spend" name="Spend" fill="url(#gradSpend)" stroke="var(--chart-1)" strokeWidth={2} dot={false} />}
                     <Line yAxisId="right" type="monotone" dataKey="repair_count" name="Repairs" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 4, fill: 'var(--chart-2)', strokeWidth: 0 }} activeDot={{ r: 6 }} />
                   </ComposedChart>
@@ -106,8 +107,8 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                       layout="vertical"
                       align="right"
                       verticalAlign="middle"
-                      wrapperStyle={{ fontSize: 12, color: 'var(--text)', paddingLeft: 16 }}
-                      formatter={(value) => STATUS_LABELS[value] || value}
+                      wrapperStyle={{ fontSize: 12, paddingLeft: 16 }}
+                      formatter={(value) => legendText(STATUS_LABELS[value] || value)}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -118,7 +119,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
       </div>
 
       {/* Row 2: Velocity + Aging */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="grid grid-cols-1 gap-4 *:min-w-0 lg:grid-cols-2">
         <ChartCard title="Ticket Creation Velocity" period={velocityPeriod} onPeriodChange={setVelocityPeriod}>
           <SectionGate state={sections.velocity} onRetry={() => retry('velocity')} height={230}>
           {filteredVelocity.length === 0
@@ -177,7 +178,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
       </div>
 
       {/* Row 3: Garage Costs + Cumulative Spend */}
-      <div style={{ display: 'grid', gridTemplateColumns: costsHidden ? '1fr' : '1fr 1fr', gap: 16 }}>
+      <div className={`grid grid-cols-1 gap-4 *:min-w-0 ${costsHidden ? '' : 'lg:grid-cols-2'}`}>
         <ChartCard title={costsHidden ? 'Repairs by Garage' : 'Repair Spend by Garage'}>
           <SectionGate state={sections.garageCosts} onRetry={() => retry('garageCosts')} height={230}>
           {garageCosts.length === 0

@@ -41,11 +41,11 @@ export function RecentChanges({
       {joined && state === 'loading' ? (
         <Skeleton className="h-16 w-full" aria-label="Loading recent changes" />
       ) : recent.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No changes yet.</p>
+        <p className="text-body text-muted-foreground">No changes yet.</p>
       ) : (
         <ChangeList changes={recent} units={units} />
       )}
-      <Link to="/settings/history" className="text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:underline">
+      <Link to="/settings/history" className="text-body font-medium text-primary underline-offset-4 hover:underline focus-visible:underline">
         See the full history
       </Link>
     </DetailSection>

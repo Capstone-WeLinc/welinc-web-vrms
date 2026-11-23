@@ -19,7 +19,7 @@ interface UserListFiltersProps {
   roles: VrmsRoles;
 }
 
-const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
+const LABEL = 'text-label text-muted-foreground';
 
 export function UserListFilters({ value, searchText, onSearchTextChange, onChange, onClear, roles }: UserListFiltersProps) {
   const filtered = hasActiveFilters(value) || searchText.trim() !== '';

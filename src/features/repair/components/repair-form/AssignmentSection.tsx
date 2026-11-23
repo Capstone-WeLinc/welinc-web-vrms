@@ -1,6 +1,6 @@
 import type { UseFormClearErrors } from 'react-hook-form';
 import { FormField } from '@/components/ui/field';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ChoiceChip, ChoiceChipGroup } from '@/components/ui/choice-chip';
 import { cn } from '@/lib/utils';
 import { PRIORITY_DOT } from '../../../../components/shared/priorityStyles';
 import type { MechanicOption } from '../../../../lib/api/vrmsConfigApi';
@@ -25,19 +25,15 @@ export function AssignmentSection({ control, mechanics, clearErrors }: Assignmen
         label="Priority"
         required
         render={({ field, controlProps, labelId }) => (
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            size="touch"
+          <ChoiceChipGroup
             id={controlProps.id}
             aria-labelledby={labelId}
             value={field.value}
-            // Radix sends '' when the selected item is pressed again; priority is never empty (AC-9).
-            onValueChange={(value) => value && field.onChange(value)}
+            onValueChange={field.onChange}
             className="grid w-full grid-cols-2 sm:flex sm:w-fit"
           >
             {PRIORITY_OPTIONS.map((option) => (
-              <ToggleGroupItem
+              <ChoiceChip
                 key={option.value}
                 value={option.value}
                 ref={option.value === field.value ? field.ref : undefined}
@@ -45,9 +41,9 @@ export function AssignmentSection({ control, mechanics, clearErrors }: Assignmen
               >
                 <span aria-hidden="true" className={cn('size-2.5 shrink-0 rounded-full', PRIORITY_DOT[option.value])} />
                 {option.label}
-              </ToggleGroupItem>
+              </ChoiceChip>
             ))}
-          </ToggleGroup>
+          </ChoiceChipGroup>
         )}
       />
 

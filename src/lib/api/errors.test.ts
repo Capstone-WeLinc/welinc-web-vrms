@@ -1,7 +1,7 @@
 import { AxiosError, type AxiosResponse } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const sonner = vi.hoisted(() => ({ toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn(), info: vi.fn() } }));
+const sonner = vi.hoisted(() => ({ toast: { custom: vi.fn(), dismiss: vi.fn() } }));
 vi.mock('sonner', () => sonner);
 
 import { showToast } from '../../context/toast';
@@ -70,27 +70,27 @@ describe('the denied toast', () => {
     // The clock only moves forward, so a toast from an earlier test is always outside the window
     vi.useFakeTimers({ now: Date.now() });
     vi.advanceTimersByTime(DENIED_TOAST_MS + 1);
-    sonner.toast.error.mockClear();
+    sonner.toast.custom.mockClear();
   });
 
   it('shows once, however many callers raise it inside the window', () => {
     showToast(DENIED_MESSAGE, 'error');
     showToast(DENIED_MESSAGE, 'error');
     showToast(DENIED_MESSAGE, 'error');
-    expect(sonner.toast.error).toHaveBeenCalledTimes(1);
+    expect(sonner.toast.custom).toHaveBeenCalledTimes(1);
   });
 
   it('shows again after the window', () => {
     showToast(DENIED_MESSAGE, 'error');
     vi.advanceTimersByTime(DENIED_TOAST_MS + 1);
     showToast(DENIED_MESSAGE, 'error');
-    expect(sonner.toast.error).toHaveBeenCalledTimes(2);
+    expect(sonner.toast.custom).toHaveBeenCalledTimes(2);
   });
 
   it('never holds back other error toasts', () => {
     showToast('Something else', 'error');
     showToast('Something else', 'error');
-    expect(sonner.toast.error).toHaveBeenCalledTimes(2);
+    expect(sonner.toast.custom).toHaveBeenCalledTimes(2);
   });
 });
 

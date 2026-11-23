@@ -82,7 +82,7 @@ function ProgressBar({ state, ticked, total, className }: ProgressProps & { clas
 /** AC-3: from 768px, a fixed right column so the state words line up on every row; hidden on phones. */
 function ProgressColumn(props: ProgressProps) {
   return (
-    <span className="hidden w-24 shrink-0 flex-col items-end gap-1.5 pt-0.5 text-right text-xs md:flex">
+    <span className="hidden w-24 shrink-0 flex-col items-end gap-1.5 pt-0.5 text-right text-caption md:flex">
       <ProgressLabel {...props} />
       <ProgressBar {...props} />
     </span>
@@ -109,7 +109,7 @@ function PhoneProgress(props: ProgressProps) {
 function RowMeta({ issue, state, status, progress }: { issue: RepairIssue; state: IssueState; status: RepairTicket['status']; progress: ProgressProps }) {
   const resolution = resolutionLine(issue);
   const line =
-    'flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground md:flex-nowrap md:gap-3 md:overflow-hidden md:whitespace-nowrap';
+    'flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-caption text-muted-foreground md:flex-nowrap md:gap-3 md:overflow-hidden md:whitespace-nowrap';
   if (resolution) {
     // AC-2: closed, What fixed it and the hours; open, the category line, since the resolution block shows below (AC-7)
     return (
@@ -164,7 +164,7 @@ function SafetyLine({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   const { ref, clamped } = useClamped<HTMLParagraphElement>();
   return (
-    <div className="flex items-start gap-2 text-sm text-warning-text">
+    <div className="flex items-start gap-2 text-body text-warning-text">
       <p ref={ref} className={cn('min-w-0 flex-1 whitespace-pre-line', !expanded && 'line-clamp-1')}>
         <span className="font-medium">Safety: </span>
         {text}
@@ -193,7 +193,7 @@ function StepRow({ step, enabled, onToggle }: { step: RepairIssueStep; enabled: 
       htmlFor={id}
       className={cn(
         // AC-9: 44px on phones, 36px from 768px
-        'flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg px-2 text-sm md:min-h-9',
+        'flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg px-2 text-body md:min-h-9',
         enabled ? 'cursor-pointer hover:bg-muted/50' : 'cursor-default',
         // AC-9: done steps dim, with no strikethrough
         checked ? 'text-muted-foreground' : 'text-foreground',
@@ -220,7 +220,7 @@ function StepRow({ step, enabled, onToggle }: { step: RepairIssueStep; enabled: 
         {row}
         <Tooltip>
           <TooltipTrigger asChild>
-            <span tabIndex={0} className="shrink-0 rounded-sm px-1 text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span tabIndex={0} className="shrink-0 rounded-md px-1 text-caption text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
               {tag}
             </span>
           </TooltipTrigger>
@@ -388,11 +388,11 @@ export function IssueRow(props: IssueRowProps) {
     <AccordionItem value={issue.id} id={issueAnchor(index)} className="scroll-mt-24">
       <AccordionTrigger className="min-h-11 py-3" actions={menu}>
         <span className="flex min-w-0 flex-1 gap-2">
-          <span aria-hidden="true" className="w-5 shrink-0 pt-px text-sm text-muted-foreground tabular-nums">
+          <span aria-hidden="true" className="w-5 shrink-0 pt-px text-body text-muted-foreground tabular-nums">
             {n}.
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="line-clamp-2 text-sm font-semibold break-words text-foreground group-data-[state=open]/trigger:line-clamp-none md:line-clamp-1 md:text-base">
+            <span className="line-clamp-2 text-body font-semibold break-words text-foreground group-data-[state=open]/trigger:line-clamp-none md:line-clamp-1 md:text-group">
               <span className="sr-only">Issue {n}: </span>
               {shown}
             </span>
@@ -419,7 +419,7 @@ export function IssueRow(props: IssueRowProps) {
                 <StepRow key={step.id} step={step} enabled={canTick} onToggle={(checked) => onToggle(step, checked)} />
               ))}
             </ol>
-            {!canTick && ticket.status === 'ASSIGNED' && <p className="text-xs text-muted-foreground">Steps can be ticked once work starts.</p>}
+            {!canTick && ticket.status === 'ASSIGNED' && <p className="text-caption text-muted-foreground">Steps can be ticked once work starts.</p>}
           </div>
         )}
 
@@ -469,8 +469,8 @@ export function IssueRow(props: IssueRowProps) {
 
         {resolution && (
           // AC-7: one block, the label with the hours on its right, then the note
-          <div className="flex flex-col gap-1 border-t border-border pt-3 text-sm">
-            <p className="flex items-baseline justify-between gap-3 text-xs font-medium text-muted-foreground">
+          <div className="flex flex-col gap-1 border-t border-border pt-3 text-body">
+            <p className="flex items-baseline justify-between gap-3 text-caption font-medium text-muted-foreground">
               What fixed it
               {issue.hoursSpent != null && (
                 <span className="shrink-0 tabular-nums">

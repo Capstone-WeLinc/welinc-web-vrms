@@ -18,7 +18,7 @@ export function DetailSection({ title, id, action, className, children, ...rest 
   return (
     <Card {...rest} id={id} role="region" aria-labelledby={headingId} className={cn('scroll-mt-20 gap-4 p-4 md:p-5', className)}>
       <div className="flex min-h-9 items-center justify-between gap-3">
-        <h2 id={headingId} tabIndex={-1} className="text-base font-semibold text-foreground outline-none">
+        <h2 id={headingId} tabIndex={-1} className="text-group font-semibold text-foreground outline-none">
           {title}
         </h2>
         {action}
@@ -32,8 +32,8 @@ export function DetailSection({ title, id, action, className, children, ...rest 
 export function DetailItem({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
     <div className={cn('flex min-w-0 flex-col gap-0.5', className)}>
-      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-      <dd className="text-sm break-words text-foreground">{children}</dd>
+      <dt className="text-caption font-medium text-muted-foreground">{label}</dt>
+      <dd className="text-body break-words text-foreground">{children}</dd>
     </div>
   );
 }

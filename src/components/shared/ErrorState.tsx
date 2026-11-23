@@ -17,7 +17,7 @@ export function ErrorState({ message, onRetry, title = 'Something went wrong', r
         <EmptyMedia variant="icon" className="bg-destructive/10 text-destructive">
           <AlertCircle aria-hidden="true" />
         </EmptyMedia>
-        <EmptyTitle className="text-base font-semibold text-foreground">{title}</EmptyTitle>
+        <EmptyTitle className="text-group font-semibold text-foreground">{title}</EmptyTitle>
         <EmptyDescription>{message}</EmptyDescription>
       </EmptyHeader>
       {onRetry && (

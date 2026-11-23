@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { SearchX, ShieldAlert, Wrench } from 'lucide-react';
+import { SearchX, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { BackLink } from '../../../components/shared/BackLink';
@@ -131,8 +131,8 @@ export function RepairDetailPage() {
     return (
       <div>
         <BackLink to="/repairs" label="Back to repairs" />
-        <PageHeader title="Repair ticket" icon={Wrench} />
-        <div className="rounded-xl border border-border bg-card shadow-xs">{body}</div>
+        <PageHeader title="Repair ticket" />
+        <div className="rounded-2xl border border-transparent bg-card shadow-card">{body}</div>
       </div>
     );
   }

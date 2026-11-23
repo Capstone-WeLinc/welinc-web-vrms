@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { LayoutGrid, ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { RoleBadge } from '../shared/RoleBadge';
+import { RoleChip } from '@/components/ui/role-chip';
+import { roleLabel } from '@/lib/roles';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,23 +30,23 @@ export function UserMenu() {
       <DropdownMenuTrigger className="flex min-h-11 items-center gap-3 rounded-lg py-1 pr-2 pl-1 text-left transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transition-none">
         <span
           aria-hidden="true"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-body font-semibold text-primary-foreground"
         >
           {getInitials(name)}
         </span>
         <span className="flex flex-col items-start gap-1">
           {/* Read aloud on phones too, shown from 640px up. */}
-          <span className="sr-only text-sm leading-none font-medium text-foreground sm:not-sr-only sm:max-w-48 sm:truncate">
+          <span className="sr-only text-body leading-none font-medium text-foreground sm:not-sr-only sm:max-w-48 sm:truncate">
             {name}
           </span>
-          <RoleBadge role={user.role} />
+          <RoleChip>{roleLabel(user.role)}</RoleChip>
         </span>
         <ChevronDown aria-hidden="true" className="hidden size-4 text-muted-foreground sm:block" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="flex flex-col gap-1 py-2">
-          <span className="truncate text-sm font-medium text-foreground">{name}</span>
-          <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+          <span className="truncate text-body font-medium text-foreground">{name}</span>
+          <span className="truncate text-caption font-normal text-muted-foreground">{user.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>

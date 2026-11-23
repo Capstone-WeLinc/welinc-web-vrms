@@ -131,10 +131,10 @@ export function AssignMechanicDialog({
       }
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={saving} onClick={() => void changeOpen(false)}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={saving} onClick={() => void changeOpen(false)}>
             Cancel
           </Button>
-          <Button type="button" size="touch" className="md:h-10 md:text-sm" loading={saving} disabled={!canSave} onClick={() => void submit()}>
+          <Button type="button" size="touch" className="md:h-10 md:text-body" loading={saving} disabled={!canSave} onClick={() => void submit()}>
             {editing ? 'Save mechanics' : 'Assign'}
           </Button>
         </>
@@ -143,7 +143,7 @@ export function AssignMechanicDialog({
       <div className="flex flex-col gap-4">
         {error && <FormAlert message={error} />}
         <div className="flex flex-col gap-2">
-          <label id={`${pickerId}-label`} htmlFor={pickerId} className="text-sm font-medium">
+          <label id={`${pickerId}-label`} htmlFor={pickerId} className="text-body font-medium">
             Mechanics
           </label>
           <Combobox
@@ -160,7 +160,7 @@ export function AssignMechanicDialog({
             emptyText="No mechanic matches."
           />
           {loadFailed && (
-            <p className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+            <p className="flex flex-wrap items-center gap-2 text-caption text-destructive">
               Couldn’t load mechanics.
               <Button type="button" variant="link" size="sm" className="h-auto min-h-11 px-0 md:min-h-0" onClick={() => setAttempt((n) => n + 1)}>
                 Try again
@@ -168,13 +168,13 @@ export function AssignMechanicDialog({
             </p>
           )}
           {mechanics?.length === 0 && (
-            <p className="text-xs text-muted-foreground">No in house mechanics are set up yet. Give someone a mechanic role on the Users page.</p>
+            <p className="text-caption text-muted-foreground">No in house mechanics are set up yet. Give someone a mechanic role on the Users page.</p>
           )}
         </div>
         {chosen.length > 0 ? (
           <ul aria-label={editing ? 'Mechanics on this ticket' : 'Mechanics to assign'} className="flex flex-wrap gap-2">
             {chosen.map((m) => (
-              <li key={m.id} className="flex items-center gap-1.5 rounded-full border border-border bg-secondary py-0.5 pl-3 text-sm text-foreground">
+              <li key={m.id} className="flex items-center gap-1.5 rounded-full border border-border bg-secondary py-0.5 pl-3 text-body text-foreground">
                 <span className="max-w-60 truncate">{m.name}</span>
                 <Button
                   type="button"
@@ -190,12 +190,12 @@ export function AssignMechanicDialog({
             ))}
           </ul>
         ) : (
-          editing && <p className="text-sm text-muted-foreground">No mechanic on this ticket.</p>
+          editing && <p className="text-body text-muted-foreground">No mechanic on this ticket.</p>
         )}
         {editing && effect && <Callout tone="warning" className="animate-in fade-in-0 duration-150">{effect}</Callout>}
         {needsReason && (
           <div className="flex flex-col gap-2">
-            <label htmlFor={reasonId} className="text-sm font-medium">
+            <label htmlFor={reasonId} className="text-body font-medium">
               Reason for the change <span aria-hidden="true" className="text-destructive">*</span>
             </label>
             <Textarea
@@ -206,7 +206,7 @@ export function AssignMechanicDialog({
               aria-describedby={`${reasonId}-help`}
               onChange={(event) => setReason(event.target.value)}
             />
-            <p id={`${reasonId}-help`} className="text-xs text-muted-foreground">
+            <p id={`${reasonId}-help`} className="text-caption text-muted-foreground">
               This ticket is closed, so say why. {EDIT_REASON_MIN} to {EDIT_REASON_MAX} characters.
             </p>
           </div>

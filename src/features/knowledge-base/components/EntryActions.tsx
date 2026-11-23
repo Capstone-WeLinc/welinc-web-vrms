@@ -79,7 +79,7 @@ export function EntryActions({ entry, onChanged, onStale }: EntryActionsProps) {
 
   return (
     <div className="flex gap-2">
-      <Button asChild size="touch" className="flex-1 md:h-10 md:flex-none md:text-sm">
+      <Button asChild size="touch" className="flex-1 md:h-10 md:flex-none md:text-body">
         <Link to={`/knowledge-base/${entry.id}/edit`}>
           <Pencil aria-hidden="true" />
           Edit

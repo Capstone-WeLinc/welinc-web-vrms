@@ -13,11 +13,11 @@ export function TicketHeader({ ticket }: { ticket: RepairTicket }) {
       <h1 className="flex min-w-0 flex-col gap-1.5 text-foreground">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <PlateChip plate={ticket.vehiclePlate} />
-          {ticket.vehicleModel && <span className="text-sm font-medium text-muted-strong">{ticket.vehicleModel}</span>}
+          {ticket.vehicleModel && <span className="text-body font-medium text-muted-strong">{ticket.vehicleModel}</span>}
         </span>
-        {first && <span className="line-clamp-1 text-xl font-semibold break-words md:text-2xl">{issueDisplayText(stripSystem(first.description))}</span>}
+        {first && <span className="line-clamp-1 text-heading font-semibold break-words md:text-title">{issueDisplayText(stripSystem(first.description))}</span>}
       </h1>
-      <p className="text-sm whitespace-nowrap text-muted-foreground tabular-nums">{ticket.repairNumber}</p>
+      <p className="text-body whitespace-nowrap text-muted-foreground tabular-nums">{ticket.repairNumber}</p>
     </header>
   );
 }

@@ -53,7 +53,7 @@ const PhotoViewer = lazy(() => import('./PhotoViewer').then((m) => ({ default: m
 
 /** A 72px slot: the add tile and the "+N more" tile share the thumbnail's size (AC-13). */
 const tile =
-  'flex size-18 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg text-xs font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring';
+  'flex size-18 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg text-caption font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring';
 
 const ARROWS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 
@@ -372,17 +372,17 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
         enabled={activePhoto != null && activePhoto.kind !== group.kind}
         full={moveFull(group.kind)}
       >
-        <h3 className="flex items-baseline gap-2 text-sm font-semibold text-foreground">
+        <h3 className="flex items-baseline gap-2 text-body font-semibold text-foreground">
           {group.label}
           {/* The limit is for people who add; everyone else sees the photos only */}
           {canAdd && (
-            <span className="text-xs font-normal text-muted-foreground tabular-nums">
+            <span className="text-caption font-normal text-muted-foreground tabular-nums">
               {group.count} of {group.max}
             </span>
           )}
         </h3>
         {shown.length === 0 && !hasTile ? (
-          <p className="text-sm text-muted-foreground">None yet</p>
+          <p className="text-body text-muted-foreground">None yet</p>
         ) : (
           // One row, never wrapping: at most 4 slots of 72px
           <ul className="flex gap-2 pt-2">
@@ -405,7 +405,7 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
                   onClick={(event) => openViewer(moreViewerIndex(groups, group.kind), event.currentTarget)}
                   className={cn(tile, 'border border-border bg-muted text-foreground hover:border-primary')}
                 >
-                  <span className="text-base font-semibold tabular-nums">+{more}</span>
+                  <span className="text-group font-semibold tabular-nums">+{more}</span>
                   more
                 </button>
               </li>
@@ -433,7 +433,7 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
             )}
           </ul>
         )}
-        {fullText && <p className="text-xs text-muted-foreground">{fullText}</p>}
+        {fullText && <p className="text-caption text-muted-foreground">{fullText}</p>}
       </PhotoGroupDrop>
     );
   };
@@ -446,7 +446,7 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
       id={PHOTOS_SECTION_ID}
       // AC-13: below the sticky header when the blocked link scrolls here, as the issue rows
       className="relative @container scroll-mt-24"
-      action={hint ? <span className="text-sm font-medium text-warning-text">{hint}</span> : null}
+      action={hint ? <span className="text-body font-medium text-warning-text">{hint}</span> : null}
       {...dropHandlers}
     >
       {viewerLoaded && (
@@ -478,7 +478,7 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
       )}
 
       {attachments.state === 'error' && !list ? (
-        <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-2 text-body text-muted-foreground">
           {attachments.errorMessage}
           <Button type="button" variant="link" size="sm" className="h-auto min-h-11 px-0 md:min-h-0" onClick={attachments.retry}>
             Try again
@@ -497,7 +497,7 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
             {loading
               ? (['VEHICLE_PHOTO', 'PROOF'] as const).map((kind) => (
                   <section key={kind} aria-label={`${PHOTO_GROUP_LABELS[kind]} photos`} aria-busy="true" className="flex flex-col gap-2">
-                    <h3 className="text-sm font-semibold text-foreground">{PHOTO_GROUP_LABELS[kind]}</h3>
+                    <h3 className="text-body font-semibold text-foreground">{PHOTO_GROUP_LABELS[kind]}</h3>
                     <div className="flex gap-2 pt-2">
                       {Array.from({ length: GROUP_THUMBS }, (_, n) => (
                         <Skeleton key={n} className="size-18 rounded-lg" />
@@ -534,7 +534,7 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
                 key={group.kind}
                 data-drop-zone={group.kind}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border p-2 text-center text-sm',
+                  'flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border p-2 text-center text-body',
                   overZone === group.kind && !full && 'border-solid border-primary ring-2 ring-primary',
                 )}
               >
@@ -543,7 +543,7 @@ export function PhotosCard({ ticket, blockedBy }: PhotosCardProps) {
                 ) : (
                   <>
                     <span className="font-medium text-foreground">Drop for {group.label.toLowerCase()} photos</span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
+                    <span className="text-caption text-muted-foreground tabular-nums">
                       {group.count + queuedFor(photoQueue, group.kind)} of {group.max}
                     </span>
                   </>
@@ -588,7 +588,7 @@ function PhotoGroupDrop({ group, enabled, full, children }: PhotoGroupDropProps)
       className={cn('flex min-w-0 flex-col gap-2 rounded-lg', over && !full && 'ring-2 ring-primary ring-offset-4 ring-offset-card')}
     >
       {children}
-      {over && full && <p className="text-xs text-muted-foreground">{group.label} photos full</p>}
+      {over && full && <p className="text-caption text-muted-foreground">{group.label} photos full</p>}
     </section>
   );
 }

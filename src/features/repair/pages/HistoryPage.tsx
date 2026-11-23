@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, History, Lock } from 'lucide-react';
+import { Archive, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -30,7 +30,7 @@ function RepairNumberCell({ row }: { row: RepairHistoryRow }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 font-medium md:flex-nowrap md:whitespace-nowrap">
       {/* Beside the outcome badge on a 375px card the number wraps once, at a hyphen. */}
-      <span className="text-sm">{row.repairNumber}</span>
+      <span className="text-body">{row.repairNumber}</span>
       {row.isUnlocked ? (
         <BadgePill className="bg-highlight/25 text-highlight-foreground">Unlocked</BadgePill>
       ) : (
@@ -48,7 +48,7 @@ function OutcomeCell({ row }: { row: RepairHistoryRow }) {
         <Tooltip>
           <TooltipTrigger asChild>
             {/* Focusable so keyboard users can read the full reason too. */}
-            <span tabIndex={0} className="block max-w-20 truncate rounded-sm text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring md:max-w-48">
+            <span tabIndex={0} className="block max-w-20 truncate rounded-md text-caption text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring md:max-w-48">
               {row.cancellationReason}
             </span>
           </TooltipTrigger>
@@ -104,7 +104,7 @@ function historyColumns(showCosts: boolean): Column<RepairHistoryRow>[] {
                 {/* A card's field is half its width, so the name wraps (three lines at most); the table caps it to one line to keep its width. Focusable so a keyboard can read it too. */}
                 <span
                   tabIndex={0}
-                  className="line-clamp-3 max-w-full rounded-sm text-xs wrap-anywhere text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring md:line-clamp-none md:max-w-24 md:truncate"
+                  className="line-clamp-3 max-w-full rounded-md text-caption wrap-anywhere text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring md:line-clamp-none md:max-w-24 md:truncate"
                 >
                   by {row.verifiedByName}
                 </span>
@@ -160,7 +160,7 @@ export function HistoryPage() {
 
   return (
     <div>
-      <PageHeader title="Repair history" subtitle="Finished repairs, closed and cancelled." icon={History} />
+      <PageHeader title="Repair history" context="Finished repairs, closed and cancelled." />
 
       <HistoryFilters
         value={filters}
@@ -171,7 +171,7 @@ export function HistoryPage() {
       />
 
       {history.state === 'error' ? (
-        <div className="rounded-xl border border-border bg-card shadow-xs">
+        <div className="rounded-2xl border border-transparent bg-card shadow-card">
           <ErrorState
             title="We couldn’t load repair history"
             message={history.errorMessage ?? 'Repair history didn’t load.'}

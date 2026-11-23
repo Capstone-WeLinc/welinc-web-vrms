@@ -20,7 +20,7 @@ export function SettingsSectionNav({ sections }: { sections: SettingsSection[] }
                 to={`/settings/${section.path}`}
                 className={({ isActive }) =>
                   cn(
-                    'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-body outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     isActive && 'bg-primary/8 hover:bg-primary/8',
                   )
                 }
@@ -28,7 +28,7 @@ export function SettingsSectionNav({ sections }: { sections: SettingsSection[] }
                 <Icon aria-hidden="true" className="size-4 shrink-0 self-start mt-0.5 text-muted-foreground group-aria-[current=page]:text-primary" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-foreground group-aria-[current=page]:font-semibold group-aria-[current=page]:text-primary">{section.label}</span>
-                  <span className="block text-xs text-pretty text-muted-foreground">{section.description}</span>
+                  <span className="block text-caption text-pretty text-muted-foreground">{section.description}</span>
                 </span>
                 <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground md:hidden" />
               </NavLink>
@@ -37,7 +37,7 @@ export function SettingsSectionNav({ sections }: { sections: SettingsSection[] }
         })}
       </ul>
       {seesPermissionsLink && (
-        <p className="mt-3 border-t border-border px-3 pt-3 text-xs text-muted-foreground">
+        <p className="mt-3 border-t border-border px-3 pt-3 text-caption text-muted-foreground">
           Permissions are edited in the portal.{' '}
           <a
             href={permissionsUrl()}

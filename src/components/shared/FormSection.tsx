@@ -8,7 +8,7 @@ export function FormSection({ title, children }: { title: string; children: Reac
     <Card role="group" aria-labelledby={headingId} className="gap-5">
       <CardHeader>
         <CardTitle>
-          <h2 id={headingId} className="text-base font-semibold">
+          <h2 id={headingId} className="text-group font-semibold">
             {title}
           </h2>
         </CardTitle>

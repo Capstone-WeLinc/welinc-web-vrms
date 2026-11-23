@@ -3,7 +3,7 @@ import { Search, Truck } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { SegmentedControl, SegmentedControlItem } from '@/components/ui/segmented-control';
 import { DataTable } from '../../../components/shared/data-table/DataTable';
 import type { Column, RowAction } from '../../../components/shared/data-table/types';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
@@ -223,21 +223,14 @@ export function VehiclesSection() {
         {/* Scrolls sideways on a phone instead of wrapping */}
         {/* Vertical padding keeps the focus ring of the first and last chip from being clipped; the right fade (phones only) says more chips are off screen */}
         <div className="-mx-4 -my-1 overflow-x-auto mask-r-from-95% px-4 py-1 md:mx-0 md:px-0 md:mask-none">
-          <ToggleGroup
-            type="single"
-            aria-label="Status"
-            value={chip}
-            // Pressing the chosen chip again would clear the group; keep the choice instead.
-            onValueChange={(next) => next && changeChip(next as StatusChip)}
-            className="w-max flex-nowrap"
-          >
+          <SegmentedControl aria-label="Status" value={chip} onValueChange={(next) => changeChip(next as StatusChip)}>
             {STATUS_CHIPS.map((value) => (
-              <ToggleGroupItem key={value} value={value} variant="outline" size="touch" className="rounded-full">
+              <SegmentedControlItem key={value} value={value}>
                 {value === 'ALL' ? 'All' : statusLabel(value)}
-                {vehicles.state === 'ready' && <span className="text-sm font-normal tabular-nums opacity-80">{counts[value].toLocaleString()}</span>}
-              </ToggleGroupItem>
+                {vehicles.state === 'ready' && <span className="font-mono text-caption">{counts[value].toLocaleString()}</span>}
+              </SegmentedControlItem>
             ))}
-          </ToggleGroup>
+          </SegmentedControl>
         </div>
       </div>
       <DataTable

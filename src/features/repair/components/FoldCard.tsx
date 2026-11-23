@@ -30,13 +30,13 @@ export function FoldCard({ title, summary, open, onOpenChange, lineAction, folda
   const line = (
     <>
       <span className="shrink-0">{title}</span>
-      <span className="min-w-0 flex-1 truncate text-sm font-normal">{summary}</span>
+      <span className="min-w-0 flex-1 truncate text-body font-normal">{summary}</span>
     </>
   );
   return (
     <Card role="region" aria-labelledby={headingId} className="gap-0 px-4 py-2 md:px-5">
       <div className="flex items-center gap-2">
-        <h2 id={headingId} className="min-w-0 flex-1 text-base font-semibold text-foreground">
+        <h2 id={headingId} className="min-w-0 flex-1 text-group font-semibold text-foreground">
           {foldable ? (
             <button
               type="button"
@@ -56,7 +56,7 @@ export function FoldCard({ title, summary, open, onOpenChange, lineAction, folda
         {foldable && (
           <button type="button" tabIndex={-1} aria-hidden="true" onClick={toggle} className="flex size-11 shrink-0 items-center justify-center md:size-8">
             <ChevronDown
-              className={cn('size-4 text-muted-foreground transition-transform duration-200 ease-snappy motion-reduce:transition-none', open && 'rotate-180')}
+              className={cn('size-4 text-muted-foreground transition-transform duration-(--duration-fold) ease-enter motion-reduce:transition-none', open && 'rotate-180')}
             />
           </button>
         )}

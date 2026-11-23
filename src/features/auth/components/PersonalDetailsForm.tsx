@@ -54,7 +54,7 @@ export function PersonalDetailsForm({ initialValues, email, onPendingEmailChange
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Personal details</CardTitle>
+        <CardTitle className="text-group">Personal details</CardTitle>
         <CardDescription>Your WeLinc account details, the same in every system you use.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">

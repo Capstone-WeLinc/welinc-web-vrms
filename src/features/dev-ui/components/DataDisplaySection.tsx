@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, ClipboardList, Clock, SearchX } from 'lucide-react';
+import { SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -7,7 +7,8 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { KpiCard } from '@/components/shared/KpiCard';
 import { PriorityBadge } from '@/components/shared/PriorityBadge';
-import { RoleBadge } from '@/components/shared/RoleBadge';
+import { RoleChip } from '@/components/ui/role-chip';
+import { roleLabel } from '@/lib/roles';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Row, Section } from './ShowcaseLayout';
 
@@ -29,15 +30,15 @@ export function DataDisplaySection() {
         {PRIORITIES.map((priority) => <PriorityBadge key={priority} priority={priority} />)}
       </Row>
       <Row label="Role badge">
-        {ROLES.map((role) => <RoleBadge key={role} role={role} />)}
+        {ROLES.map((role) => <RoleChip key={role}>{roleLabel(role)}</RoleChip>)}
       </Row>
 
       <Row label="KPI card">
         <div className="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard caption="Open tickets" value="38" icon={ClipboardList} context="6 more than last week" />
-          <KpiCard caption="Completed this month" value="124" icon={CheckCircle2} tone="success" context="92% on time" />
-          <KpiCard caption="Overdue" value="5" icon={AlertTriangle} tone="destructive" context="Oldest is 9 days late" />
-          <KpiCard caption="Awaiting parts" value="11" icon={Clock} tone="highlight" context="3 parts on back order" />
+          <KpiCard caption="Open tickets" value="38" context="6 more than last week" />
+          <KpiCard caption="Completed this month" value="124" context="92% on time" />
+          <KpiCard caption="Overdue" value="5" context="Oldest is 9 days late" />
+          <KpiCard caption="Awaiting parts" value="11" context="3 parts on back order" />
         </div>
       </Row>
 
@@ -48,9 +49,9 @@ export function DataDisplaySection() {
             <TabsTrigger value="costs">Costs</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
-          <TabsContent value="details" className="text-sm text-foreground">Toyota Hilux, NAB 1234. Brake pads worn on the front axle.</TabsContent>
-          <TabsContent value="costs" className="text-sm text-foreground">Parts ₱4,800 and labor ₱1,500.</TabsContent>
-          <TabsContent value="history" className="text-sm text-foreground">Three earlier repairs, the last in March.</TabsContent>
+          <TabsContent value="details" className="text-body text-foreground">Toyota Hilux, NAB 1234. Brake pads worn on the front axle.</TabsContent>
+          <TabsContent value="costs" className="text-body text-foreground">Parts ₱4,800 and labor ₱1,500.</TabsContent>
+          <TabsContent value="history" className="text-body text-foreground">Three earlier repairs, the last in March.</TabsContent>
         </Tabs>
       </Row>
 

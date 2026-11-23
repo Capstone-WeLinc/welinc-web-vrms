@@ -6,7 +6,11 @@ import { boot } from './lib/session/session';
 import { CrashBoundary } from './components/monitoring/CrashBoundary';
 import { installChunkReload } from './lib/monitoring/chunkReload';
 import { initMonitoring, rootErrorHandlers } from './lib/monitoring/sentry';
-import '@fontsource-variable/inter';
+import './fonts.css';
+import '@fontsource/ibm-plex-mono/latin-500.css';
+import '@fontsource/ibm-plex-mono/latin-600.css';
+import '@fontsource/ibm-plex-mono/latin-ext-500.css';
+import '@fontsource/ibm-plex-mono/latin-ext-600.css';
 import './index.css';
 
 // Spec 0025: error monitoring starts before React (off with no VITE_SENTRY_DSN), and a lazy file

@@ -26,7 +26,7 @@ export function NextActionBar({ label, secondaryLabel, aboveTabBar, blockedReaso
         {/* Stays mounted so a reason that appears or clears is announced (role status is polite) */}
         <div role="status" className="md:order-first md:self-center">
           {blockedReason && (
-            <p id="bar-blocked" className="text-sm text-muted-foreground">
+            <p id="bar-blocked" className="text-body text-muted-foreground">
               {blockedReason}
             </p>
           )}

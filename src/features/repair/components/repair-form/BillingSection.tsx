@@ -1,7 +1,7 @@
 import { useWatch, type UseFormClearErrors, type UseFormSetValue } from 'react-hook-form';
 import { FormField } from '@/components/ui/field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ChoiceChip, ChoiceChipGroup } from '@/components/ui/choice-chip';
 import { ACCOUNT_TYPE_OPTIONS } from '../../../../lib/repairOptions';
 import type { LookupOption } from '../../../../lib/api/vrmsConfigApi';
 import type { OptionList } from '../../hooks/useRepairFormOptions';
@@ -28,10 +28,7 @@ export function BillingSection({ control, setValue, clearErrors, corporations }:
           label="Account type"
           required
           render={({ field, controlProps, labelId }) => (
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="touch"
+            <ChoiceChipGroup
               id={controlProps.id}
               aria-labelledby={labelId}
               value={field.value}
@@ -47,16 +44,16 @@ export function BillingSection({ control, setValue, clearErrors, corporations }:
               className="grid w-full grid-cols-2 sm:flex sm:w-fit"
             >
               {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                <ToggleGroupItem
+                <ChoiceChip
                   key={option.value}
                   value={option.value}
                   ref={option.value === field.value ? field.ref : undefined}
                   onBlur={field.onBlur}
                 >
                   {option.label}
-                </ToggleGroupItem>
+                </ChoiceChip>
               ))}
-            </ToggleGroup>
+            </ChoiceChipGroup>
           )}
         />
         {accountType === 'CORPORATE' && (

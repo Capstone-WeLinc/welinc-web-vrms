@@ -220,10 +220,10 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
       description={stripSystem(issue.description)}
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={isSubmitting} onClick={() => void changeOpen(false)}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={isSubmitting} onClick={() => void changeOpen(false)}>
             Cancel
           </Button>
-          <Button id={saveId} type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" loading={isSubmitting}>
+          <Button id={saveId} type="submit" form={formId} size="touch" className="md:h-10 md:text-body" loading={isSubmitting}>
             Save steps
           </Button>
         </>
@@ -231,7 +231,7 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
     >
       <form id={formId} noValidate onSubmit={handleSubmit(submit)} className="flex flex-col gap-4">
         {fields.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No steps yet. Add the first one, or save to leave the checklist empty.</p>
+          <p className="text-body text-muted-foreground">No steps yet. Add the first one, or save to leave the checklist empty.</p>
         ) : (
           <DndContext
             sensors={sensors}
@@ -269,12 +269,12 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
                         {(tag || error || step?.checkedAt) && (
                           <div className="flex flex-col gap-0.5 px-2">
                             {(tag || step?.checkedAt) && (
-                              <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+                              <p className="flex flex-wrap items-center gap-x-3 text-caption text-muted-foreground">
                                 {step?.checkedAt && <span className="text-success">Ticked</span>}
                                 {tag && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span tabIndex={0} className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                      <span tabIndex={0} className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                         {tag}
                                       </span>
                                     </TooltipTrigger>
@@ -284,7 +284,7 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
                               </p>
                             )}
                             {error && (
-                              <p id={errorId} className="text-xs text-destructive">
+                              <p id={errorId} className="text-caption text-destructive">
                                 {error}
                               </p>
                             )}
@@ -312,15 +312,15 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
                 {activeIndex !== -1 ? (
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none flex cursor-grabbing items-start gap-1 rounded-lg border border-border bg-card shadow-lg"
+                    className="pointer-events-none flex cursor-grabbing items-start gap-1 rounded-lg border border-transparent bg-card shadow-pop"
                   >
                     <span className="flex h-11 w-8 shrink-0 items-center justify-center text-muted-foreground">
                       <GripVertical className="size-4" />
                     </span>
-                    <span className="w-6 shrink-0 pt-2.5 text-right text-sm text-muted-strong tabular-nums">{activeIndex + 1}.</span>
+                    <span className="w-6 shrink-0 pt-2.5 text-right text-body text-muted-strong tabular-nums">{activeIndex + 1}.</span>
                     <span
                       className={cn(
-                        'min-w-0 flex-1 px-2 py-2.5 text-base break-words whitespace-pre-wrap md:text-sm',
+                        'min-w-0 flex-1 px-2 py-2.5 text-base-input break-words whitespace-pre-wrap md:text-body',
                         previewText.trim() === '' && 'text-muted-foreground',
                       )}
                     >
@@ -338,7 +338,7 @@ export function ChecklistEditDialog({ open, onOpenChange, issue, latestSteps, on
             <Plus aria-hidden="true" />
             Add step
           </Button>
-          <span className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
+          <span className="text-caption text-muted-foreground tabular-nums" aria-live="polite">
             {fields.length} of {STEPS_MAX} steps
           </span>
         </div>
@@ -377,7 +377,7 @@ function SortableStepRow({ id, n, handleId, children }: SortableStepRowProps) {
         >
           <GripVertical aria-hidden="true" className="size-4" />
         </Button>
-        <span aria-hidden="true" className="w-6 shrink-0 pt-2.5 text-right text-sm text-muted-strong tabular-nums">
+        <span aria-hidden="true" className="w-6 shrink-0 pt-2.5 text-right text-body text-muted-strong tabular-nums">
           {n}.
         </span>
         {children}

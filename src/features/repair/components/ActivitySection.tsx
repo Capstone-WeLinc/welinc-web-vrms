@@ -135,7 +135,7 @@ export function ActivitySection({ ticketId }: { ticketId: string }) {
                 const headingId = `${panelId}-${day.key}`;
                 return (
                   <div key={day.key} className="flex flex-col gap-3">
-                    <h3 id={headingId} className="text-sm font-semibold text-foreground">
+                    <h3 id={headingId} className="text-body font-semibold text-foreground">
                       {formatDayHeading(day.at, now)}
                     </h3>
                     <ol aria-labelledby={headingId} className="flex flex-col">
@@ -147,7 +147,7 @@ export function ActivitySection({ ticketId }: { ticketId: string }) {
                 );
               })}
               {activity.more === 'error' && (
-                <p role="alert" className="inline-flex items-center gap-1.5 text-sm text-destructive">
+                <p role="alert" className="inline-flex items-center gap-1.5 text-body text-destructive">
                   <AlertCircle aria-hidden="true" className="size-4" />
                   Couldn’t load older events.
                 </p>

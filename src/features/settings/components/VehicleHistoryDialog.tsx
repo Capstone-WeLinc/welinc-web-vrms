@@ -26,7 +26,7 @@ function Entry({ change }: { change: VehicleChange }) {
   const { detail } = entry;
   return (
     // tabIndex -1 lets Load more move focus to the first new entry (it is not a tab stop)
-    <li id={`change-${change.id}`} tabIndex={-1} className="flex flex-col gap-0.5 py-3 text-sm outline-none first:pt-0 last:pb-0">
+    <li id={`change-${change.id}`} tabIndex={-1} className="flex flex-col gap-0.5 py-3 text-body outline-none first:pt-0 last:pb-0">
       <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
         <span className="text-foreground">{entry.what}:</span>
         <span className="flex flex-wrap items-center gap-1 text-foreground">
@@ -35,23 +35,23 @@ function Entry({ change }: { change: VehicleChange }) {
           <span className="font-medium">{entry.after}</span>
         </span>
       </span>
-      <span className="text-xs wrap-break-word text-muted-foreground">
+      <span className="text-caption wrap-break-word text-muted-foreground">
         {entry.who} · <time dateTime={change.createdAt}>{formatDateTime(change.createdAt)}</time>
       </span>
       {detail?.kind === 'reason' && (
-        <span className="max-w-full text-xs wrap-anywhere whitespace-pre-line text-muted-strong">
+        <span className="max-w-full text-caption wrap-anywhere whitespace-pre-line text-muted-strong">
           <span className="font-medium">Reason:</span> {detail.text}
         </span>
       )}
       {detail?.kind === 'ticket' && (
         <Link
           to={`/repairs/${detail.ticket.id}`}
-          className="w-fit text-xs font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:underline"
+          className="w-fit text-caption font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:underline"
         >
           Ticket {detail.ticket.repairNumber}
         </Link>
       )}
-      {detail?.kind === 'removed' && <span className="text-xs text-muted-foreground">Ticket removed</span>}
+      {detail?.kind === 'removed' && <span className="text-caption text-muted-foreground">Ticket removed</span>}
     </li>
   );
 }
@@ -104,7 +104,7 @@ export function VehicleHistoryDialog({ vehicle, open, onOpenChange, finalFocusRe
       description="Every status and type change, newest first."
       finalFocusRef={finalFocusRef}
       footer={
-        <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" onClick={() => onOpenChange(false)}>
+        <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" onClick={() => onOpenChange(false)}>
           Close
         </Button>
       }
@@ -133,7 +133,7 @@ export function VehicleHistoryDialog({ vehicle, open, onOpenChange, finalFocusRe
             {announcement}
           </p>
           {more === 'error' && (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-body text-destructive">
               {moreError}
             </p>
           )}

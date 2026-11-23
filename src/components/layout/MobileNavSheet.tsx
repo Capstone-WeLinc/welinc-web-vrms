@@ -37,7 +37,7 @@ export function MobileNavSheet({ sections }: { sections: NavSection[] }) {
               variant="ghost"
               size="icon-touch"
               aria-label="Close menu"
-              className="text-sidebar-foreground hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground"
+              className="text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:ring-ring-on-dark focus-visible:ring-offset-sidebar"
             >
               <X />
             </Button>
@@ -46,7 +46,7 @@ export function MobileNavSheet({ sections }: { sections: NavSection[] }) {
         <div className="flex-1 overflow-y-auto px-3 py-4">
           <SidebarNav sections={sections} onNavigate={close} />
         </div>
-        <div className="flex shrink-0 flex-col gap-1 border-t border-sidebar-foreground/10 px-3 py-3 pb-safe">
+        <div className="flex shrink-0 flex-col gap-1 border-t border-sidebar-line px-3 py-3 pb-safe">
           {canSwitchSystem && <SidebarAction icon={LayoutGrid} label="Switch system" onClick={switchSystem} />}
           <SidebarAction
             icon={LogOut}

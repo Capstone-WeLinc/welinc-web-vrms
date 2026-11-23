@@ -12,13 +12,13 @@ export function ResolutionFields({ control, issues }: { control: Control<NoteFor
   const rows = useWatch({ control, name: 'resolutions' });
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="mb-2 text-sm font-medium text-foreground">What fixed each issue</legend>
+      <legend className="mb-2 text-body font-medium text-foreground">What fixed each issue</legend>
       {issues.map((issue, index) => {
         const linked = issue.knowledgeEntry != null;
         const followed = rows?.[index]?.followedKnownFix ?? true;
         return (
           <div key={issue.id} className="flex flex-col gap-3 rounded-lg border border-border p-3">
-            <p className="text-sm font-medium break-words text-foreground">
+            <p className="text-body font-medium break-words text-foreground">
               <span className="text-muted-foreground tabular-nums">{index + 1}.</span> {stripSystem(issue.description)}
             </p>
             {linked && (
@@ -26,7 +26,7 @@ export function ResolutionFields({ control, issues }: { control: Control<NoteFor
                 control={control}
                 name={`resolutions.${index}.followedKnownFix`}
                 render={({ field }) => (
-                  <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-foreground">
+                  <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body text-foreground">
                     <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} onBlur={field.onBlur} className="size-5" />
                     Followed the known fix ({issue.knowledgeEntry!.name})
                   </label>
@@ -59,7 +59,7 @@ export function ResolutionFields({ control, issues }: { control: Control<NoteFor
                   max={200}
                   step={0.25}
                   placeholder="For example 1.5"
-                  className="h-11 w-40 text-base tabular-nums md:h-10 md:text-sm"
+                  className="h-11 w-40 text-base-input tabular-nums md:h-10 md:text-body"
                 />
               )}
             />

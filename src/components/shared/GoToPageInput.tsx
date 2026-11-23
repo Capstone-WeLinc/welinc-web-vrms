@@ -16,7 +16,7 @@ export function GoToPageInput({ currentPage, totalPages, onPageChange, label = '
 
   return (
     <div className="flex items-center gap-2">
-      <Label htmlFor={id} className="text-sm font-medium whitespace-nowrap text-muted-foreground">
+      <Label htmlFor={id} className="text-body font-medium whitespace-nowrap text-muted-foreground">
         {label}
       </Label>
       <Input

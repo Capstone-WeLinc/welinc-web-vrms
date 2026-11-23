@@ -20,15 +20,15 @@ function ModuleRow({ module, onFlip }: { module: Setting; onFlip: () => void }) 
   return (
     <div className="flex items-start justify-between gap-4 border-t border-border py-4 first:border-t-0 first:pt-0">
       <div className="min-w-0">
-        <p id={labelId} className="text-sm font-medium text-foreground">
+        <p id={labelId} className="text-body font-medium text-foreground">
           {module.label}
         </p>
-        <p id={descriptionId} className="mt-1 text-sm text-pretty text-muted-foreground">
+        <p id={descriptionId} className="mt-1 text-body text-pretty text-muted-foreground">
           {module.description}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2 pt-0.5">
-        <span className="text-sm text-muted-foreground" aria-hidden="true">
+        <span className="text-body text-muted-foreground" aria-hidden="true">
           {on ? 'On' : 'Off'}
         </span>
         <Switch checked={on} onCheckedChange={onFlip} aria-labelledby={labelId} aria-describedby={descriptionId} />
@@ -104,7 +104,7 @@ export function ModulesSection() {
   return (
     <div className="flex flex-col gap-4">
       <DetailSection title="Module switches">
-        <p className="-mt-2 text-sm text-pretty text-muted-foreground">
+        <p className="-mt-2 text-body text-pretty text-muted-foreground">
           A module that is off disappears for everyone and its background work stops. Its data stays for when it comes back.
         </p>
         <div>

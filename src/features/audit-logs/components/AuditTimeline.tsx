@@ -36,7 +36,7 @@ export function AuditTimeline({ events, hasOlder, more, onLoadOlder }: AuditTime
         const headingId = `audit-day-${day.key}`;
         return (
           <Card key={day.key} className="gap-4 p-4 md:p-5" aria-labelledby={headingId} role="region">
-            <h2 id={headingId} className="text-sm font-semibold text-foreground">
+            <h2 id={headingId} className="text-body font-semibold text-foreground">
               {heading}
             </h2>
             <ol aria-labelledby={headingId} className="flex flex-col">
@@ -50,7 +50,7 @@ export function AuditTimeline({ events, hasOlder, more, onLoadOlder }: AuditTime
 
       <div className="flex flex-col items-center gap-2 py-2" aria-live="polite">
         {more === 'error' ? (
-          <div role="alert" className="flex flex-col items-center gap-2 text-sm text-destructive sm:flex-row">
+          <div role="alert" className="flex flex-col items-center gap-2 text-body text-destructive sm:flex-row">
             <span className="inline-flex items-center gap-1.5">
               <AlertCircle aria-hidden="true" className="size-4" />
               Couldn’t load older events.
@@ -64,7 +64,7 @@ export function AuditTimeline({ events, hasOlder, more, onLoadOlder }: AuditTime
             Load older events
           </Button>
         ) : (
-          <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+          <p className="inline-flex items-center gap-1.5 text-body text-muted-foreground">
             <CircleCheck aria-hidden="true" className="size-4" />
             You’ve reached the start of the log.
           </p>

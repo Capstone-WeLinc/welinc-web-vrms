@@ -20,11 +20,11 @@ type PanelProps = {
  */
 export function DashboardPanel({ id, title, count, action, danger = false, children, className }: PanelProps) {
   return (
-    <section aria-labelledby={id} className={cn('flex flex-col overflow-hidden rounded-xl border border-border bg-card', className)}>
+    <section aria-labelledby={id} className={cn('flex flex-col overflow-hidden rounded-2xl border border-transparent bg-card shadow-card', className)}>
       <header className="flex min-h-12 items-center gap-3 border-b border-border px-4 py-2 md:px-5">
         <h2
           id={id}
-          className={cn('flex min-w-0 flex-1 items-baseline gap-2 text-base font-semibold', danger ? 'text-destructive' : 'text-foreground')}
+          className={cn('flex min-w-0 flex-1 items-baseline gap-2 text-group font-semibold', danger ? 'text-destructive' : 'text-foreground')}
         >
           <span className="min-w-0">{title}</span>
           {count !== undefined && <span className="font-normal text-muted-foreground tabular-nums">{count}</span>}
@@ -38,5 +38,5 @@ export function DashboardPanel({ id, title, count, action, danger = false, child
 
 /** A panel's one line empty state (spec 0022, AC-9). */
 export function PanelEmpty({ children }: { children: ReactNode }) {
-  return <p className="px-4 py-6 text-sm text-muted-foreground md:px-5">{children}</p>;
+  return <p className="px-4 py-6 text-body text-muted-foreground md:px-5">{children}</p>;
 }

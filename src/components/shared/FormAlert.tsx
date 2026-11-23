@@ -6,7 +6,7 @@ export function FormAlert({ message, action }: { message: string; action?: React
   return (
     <div
       role="alert"
-      className="flex flex-wrap items-start gap-x-2 gap-y-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+      className="flex flex-wrap items-start gap-x-2 gap-y-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-body text-destructive"
     >
       <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
       <p className="min-w-0 flex-1">{message}</p>

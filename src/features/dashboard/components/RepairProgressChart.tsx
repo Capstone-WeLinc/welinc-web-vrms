@@ -34,8 +34,8 @@ export function RepairProgressChart({ counts }: { counts: Record<PipelineStatus,
   return (
     <Card className="gap-4 p-5">
       <div>
-        <h2 className="text-lg font-semibold text-foreground">Pipeline</h2>
-        <p className="text-sm text-muted-foreground">Open tickets and this month&apos;s completions</p>
+        <h2 className="text-subheading font-semibold text-foreground">Pipeline</h2>
+        <p className="text-body text-muted-foreground">Open tickets and this month&apos;s completions</p>
       </div>
 
       <div role="img" aria-label={label} className="flex flex-col gap-2">
@@ -68,7 +68,7 @@ export function RepairProgressChart({ counts }: { counts: Record<PipelineStatus,
             </Tooltip>
           ))}
         </svg>
-        {total === 0 && <p className="text-sm text-muted-foreground">Nothing open and nothing closed this month</p>}
+        {total === 0 && <p className="text-body text-muted-foreground">Nothing open and nothing closed this month</p>}
       </div>
 
       <ul className="flex flex-wrap gap-x-6 gap-y-2">
@@ -78,7 +78,7 @@ export function RepairProgressChart({ counts }: { counts: Record<PipelineStatus,
             onMouseEnter={() => setHovered(status)}
             onMouseLeave={() => setHovered(null)}
             className={cn(
-              'flex items-center gap-2 text-sm transition-opacity duration-150 motion-reduce:transition-none',
+              'flex items-center gap-2 text-body transition-opacity duration-150 motion-reduce:transition-none',
               dimmed(status) && 'opacity-50',
             )}
           >

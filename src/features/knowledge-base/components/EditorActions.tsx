@@ -12,7 +12,7 @@ interface EditorActionsProps {
 }
 
 // Narrower padding below 768px, so three buttons fit side by side at 375px.
-const SIZE = 'min-w-0 flex-1 px-3 md:flex-none md:px-5 lg:h-10 lg:text-sm';
+const SIZE = 'min-w-0 flex-1 px-3 md:flex-none md:px-5 lg:h-10 lg:text-body';
 
 function Actions({ isNew, saving, onCancel, onSave, className }: Omit<EditorActionsProps, 'aboveTabBar'> & { className?: string }) {
   const busy = saving !== null;
@@ -23,7 +23,7 @@ function Actions({ isNew, saving, onCancel, onSave, className }: Omit<EditorActi
       </Button>
       {isNew ? (
         <>
-          <Button type="button" variant="secondary" size="touch" className={SIZE} disabled={busy} loading={saving === 'DRAFT'} onClick={() => onSave('DRAFT')}>
+          <Button type="button" variant="outline" size="touch" className={SIZE} disabled={busy} loading={saving === 'DRAFT'} onClick={() => onSave('DRAFT')}>
             Save as draft
           </Button>
           <Button type="button" size="touch" className={SIZE} disabled={busy} loading={saving === 'ACTIVE'} onClick={() => onSave('ACTIVE')}>

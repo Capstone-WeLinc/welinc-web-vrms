@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { AlertTriangle, Clock, LayoutDashboard, ShieldCheck, Wrench } from 'lucide-react';
+
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { useAuthStore } from '../../../store/authStore';
@@ -22,10 +22,11 @@ export function MechanicDashboard() {
     // Overdue counts only ASSIGNED and IN_PROGRESS, so the tile matches the overdue rows in the list.
     const overdue = countMechanicOverdue(active, fetchedAt);
     const tiles: AttentionTile[] = [
-      { caption: 'To start', value: active.filter((t) => t.status === 'ASSIGNED').length, icon: Clock },
-      { caption: 'In progress', value: active.filter((t) => t.status === 'IN_PROGRESS').length, icon: Wrench },
-      { caption: 'Overdue', value: overdue, icon: AlertTriangle, tone: overdue > 0 ? 'destructive' : 'default' },
-      { caption: 'Waiting for sign off', value: active.filter(isWaiting).length, icon: ShieldCheck },
+      { caption: 'To start', value: active.filter((t) => t.status === 'ASSIGNED').length, href: '/repairs?status=ASSIGNED' },
+      { caption: 'In progress', value: active.filter((t) => t.status === 'IN_PROGRESS').length, href: '/repairs?status=IN_PROGRESS' },
+      { caption: 'Overdue', value: overdue, href: '/repairs?overdue=1' },
+      // Waits on the sign off roles, not on the mechanic, so it is never hot here.
+      { caption: 'Waiting for sign off', value: active.filter(isWaiting).length, href: '/repairs?status=FOR_VERIFICATION' },
     ];
     return { tiles, work: mechanicWorkList(active, fetchedAt) };
   }, [active, fetchedAt]);
@@ -34,8 +35,7 @@ export function MechanicDashboard() {
     <div>
       <PageHeader
         title="Dashboard"
-        subtitle={`${greeting(user?.name)} Here's your work, most urgent first.`}
-        icon={LayoutDashboard}
+        context={`${greeting(user?.name)} Here's your work, most urgent first.`}
       />
 
       {state === 'loading' && <DashboardSkeleton admin={false} />}
@@ -59,10 +59,10 @@ export function MechanicDashboard() {
 
           <section aria-labelledby="my-work-heading" className="flex flex-col gap-3">
             <div>
-              <h2 id="my-work-heading" className="text-lg font-semibold text-foreground">
+              <h2 id="my-work-heading" className="text-subheading font-semibold text-foreground">
                 My work
               </h2>
-              <p className="text-sm text-muted-foreground">Overdue first, then by due date.</p>
+              <p className="text-body text-muted-foreground">Overdue first, then by due date.</p>
             </div>
             <TicketAttentionTable
               rows={derived.work}

@@ -16,7 +16,7 @@ export function BrandMark({ compact = false, tone = 'sidebar' }: BrandMarkProps)
         <div className="min-w-0">
           <p
             className={cn(
-              'truncate text-base font-semibold',
+              'truncate text-group font-semibold',
               tone === 'sidebar' ? 'text-sidebar-foreground' : 'text-foreground',
             )}
           >
@@ -24,8 +24,8 @@ export function BrandMark({ compact = false, tone = 'sidebar' }: BrandMarkProps)
           </p>
           <p
             className={cn(
-              'truncate text-xs',
-              tone === 'sidebar' ? 'text-sidebar-foreground/70' : 'text-muted-foreground',
+              'truncate text-caption',
+              tone === 'sidebar' ? 'text-sidebar-idle' : 'text-muted-foreground',
             )}
           >
             Vehicle repair system

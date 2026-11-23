@@ -185,19 +185,19 @@ export function ChangeEmailDialog({
       footer={
         onCodeStep ? (
           <>
-            <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={busy} onClick={() => void cancelChange()}>
+            <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={busy} onClick={() => void cancelChange()}>
               Cancel change
             </Button>
-            <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" loading={busy}>
+            <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-body" loading={busy}>
               {busy ? 'Checking' : 'Confirm email'}
             </Button>
           </>
         ) : (
           <>
-            <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={busy} onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={busy} onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" loading={busy}>
+            <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-body" loading={busy}>
               {busy ? 'Sending code' : 'Send code'}
             </Button>
           </>
@@ -206,7 +206,7 @@ export function ChangeEmailDialog({
     >
       {onCodeStep ? (
         <form id={formId} noValidate onSubmit={codeForm.handleSubmit(verify)} className="flex flex-col gap-5">
-          {notice && <p className="text-sm text-muted-foreground" role="status">{notice}</p>}
+          {notice && <p className="text-body text-muted-foreground" role="status">{notice}</p>}
           <FormField
             control={codeForm.control}
             name="code"
@@ -230,7 +230,7 @@ export function ChangeEmailDialog({
               >
                 <InputOTPGroup>
                   {Array.from({ length: CODE_LENGTH }, (_, i) => (
-                    <InputOTPSlot key={i} index={i} className="size-11 text-base md:size-10" />
+                    <InputOTPSlot key={i} index={i} className="size-11 text-base-input md:size-10" />
                   ))}
                 </InputOTPGroup>
               </InputOTP>
@@ -245,7 +245,7 @@ export function ChangeEmailDialog({
         </form>
       ) : (
         <form id={formId} noValidate onSubmit={details.handleSubmit(start)} className="flex flex-col gap-5">
-          {notice && <p className="text-sm text-muted-foreground" role="status">{notice}</p>}
+          {notice && <p className="text-body text-muted-foreground" role="status">{notice}</p>}
           <FieldGroup className="gap-5">
             <FormField
               control={details.control}

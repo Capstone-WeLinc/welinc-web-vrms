@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { BookOpen, RotateCw, SearchX } from 'lucide-react';
+import { RotateCw, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { BackLink } from '../../../components/shared/BackLink';
@@ -153,8 +153,7 @@ function EntryEditor({ entry, categories, onReload, origin, originLost }: EntryE
       <BackLink to={leaveTo} label={entry ? entry.name : 'Knowledge base'} />
       <PageHeader
         title={isNew ? 'New entry' : 'Edit entry'}
-        subtitle={isNew ? 'Add a known fix to the library.' : 'Changes reach new tickets only. Tickets already linked keep their checklist.'}
-        icon={BookOpen}
+        context={isNew ? 'Add a known fix to the library.' : 'Changes reach new tickets only. Tickets already linked keep their checklist.'}
       />
 
       {originLost && (
@@ -255,8 +254,8 @@ export function KnowledgeEditorPage() {
     return (
       <div>
         <BackLink to="/knowledge-base" label="Knowledge base" />
-        <PageHeader title={isNew ? 'New entry' : 'Edit entry'} icon={BookOpen} />
-        <div className="rounded-xl border border-border bg-card shadow-xs">
+        <PageHeader title={isNew ? 'New entry' : 'Edit entry'} />
+        <div className="rounded-2xl border border-transparent bg-card shadow-card">
           {notFound ? (
             <EmptyState
               icon={SearchX}

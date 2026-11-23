@@ -69,8 +69,8 @@ export function ModuleConfirmDialog({ module, dependents, saving, onConfirm, onC
         <div className="flex flex-col gap-4">
           {turningOff && (
             <div>
-              <h3 className="text-sm font-medium text-foreground">This turns off</h3>
-              <ul className="mt-1 list-disc pl-5 text-sm text-muted-foreground">
+              <h3 className="text-body font-medium text-foreground">This turns off</h3>
+              <ul className="mt-1 list-disc pl-5 text-body text-muted-foreground">
                 {module.hides.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
@@ -79,8 +79,8 @@ export function ModuleConfirmDialog({ module, dependents, saving, onConfirm, onC
           )}
           {dependents.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-foreground">These modules turn off with it</h3>
-              <ul className="mt-1 list-disc pl-5 text-sm text-muted-foreground">
+              <h3 className="text-body font-medium text-foreground">These modules turn off with it</h3>
+              <ul className="mt-1 list-disc pl-5 text-body text-muted-foreground">
                 {dependents.map((dependent) => (
                   <li key={dependent.key}>{dependent.label}</li>
                 ))}
@@ -88,7 +88,7 @@ export function ModuleConfirmDialog({ module, dependents, saving, onConfirm, onC
             </div>
           )}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={reasonId} className="text-sm font-medium text-foreground">
+            <Label htmlFor={reasonId} className="text-body font-medium text-foreground">
               Reason <span className="text-destructive">*</span>
             </Label>
             <Textarea
@@ -104,12 +104,12 @@ export function ModuleConfirmDialog({ module, dependents, saving, onConfirm, onC
               aria-required="true"
             />
             {showError && (
-              <p id={errorId} className="text-sm text-destructive">
+              <p id={errorId} className="text-body text-destructive">
                 {error}
               </p>
             )}
             {reason.length >= REASON_COUNTER_FROM && (
-              <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
+              <p className="text-caption text-muted-foreground tabular-nums" aria-live="polite">
                 {reason.length} of {REASON_MAX} characters
               </p>
             )}

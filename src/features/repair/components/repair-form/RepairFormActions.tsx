@@ -18,19 +18,19 @@ function Actions({ saving, listsBlocked, openTicketBlocked = false, onCancel, cl
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       {listsBlocked && (
-        <p id={noteId} className="text-xs text-destructive md:text-right">
+        <p id={noteId} className="text-caption text-destructive md:text-right">
           {BLOCKED_NOTE}
         </p>
       )}
       {/* From 768px the bar runs under the sidebar, so the buttons keep to the right. */}
       <div className="flex gap-3 md:justify-end">
-        <Button type="button" variant="outline" size="touch" className="flex-1 md:flex-none lg:h-10 lg:text-sm" onClick={onCancel}>
+        <Button type="button" variant="outline" size="touch" className="flex-1 md:flex-none lg:h-10 lg:text-body" onClick={onCancel}>
           Cancel
         </Button>
         <Button
           type="submit"
           size="touch"
-          className="flex-1 md:flex-none lg:h-10 lg:text-sm"
+          className="flex-1 md:flex-none lg:h-10 lg:text-body"
           disabled={saving || listsBlocked || openTicketBlocked}
           aria-describedby={listsBlocked ? noteId : undefined}
         >

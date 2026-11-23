@@ -8,12 +8,12 @@ export function UploadQueueRow({ item, onRetry, onDismiss }: { item: QueuedPhoto
   const status =
     item.status === 'uploading' ? `Uploading ${item.progress}%` : item.status === 'done' ? 'Done' : item.status === 'waiting' ? 'Waiting' : 'Failed';
   return (
-    <li className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-2 text-sm">
+    <li className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-2 text-body">
       <div className="flex min-w-0 items-center justify-between gap-2">
         <span title={item.name} className="min-w-0 truncate text-foreground">
           {item.name}
         </span>
-        <span className={cn('shrink-0 text-xs tabular-nums', item.status === 'failed' ? 'text-destructive' : 'text-muted-foreground')}>
+        <span className={cn('shrink-0 text-caption tabular-nums', item.status === 'failed' ? 'text-destructive' : 'text-muted-foreground')}>
           {/* Screen readers hear the status once; the progress bar carries the percentage */}
           <span aria-hidden="true">{status}</span>
           <span className="sr-only">{item.status === 'uploading' ? 'Uploading' : status}</span>
@@ -33,7 +33,7 @@ export function UploadQueueRow({ item, onRetry, onDismiss }: { item: QueuedPhoto
       )}
       {item.status === 'failed' && (
         <>
-          <p className="text-xs break-words text-destructive">{item.error}</p>
+          <p className="text-caption break-words text-destructive">{item.error}</p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" onClick={onRetry} aria-label={`Retry ${item.name}`}>
               <RotateCw aria-hidden="true" />

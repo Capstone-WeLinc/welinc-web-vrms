@@ -9,8 +9,8 @@ import { entryMetaLine } from '../lib/entryFormat';
 import { LIBRARY_PAGE_SIZE } from '../lib/libraryFilters';
 
 // Cards that stack on a phone, one bordered list from 1024px (AC-9).
-const LIST = 'flex flex-col gap-3 lg:gap-0 lg:divide-y lg:divide-border lg:overflow-hidden lg:rounded-xl lg:border lg:border-border lg:bg-card lg:shadow-xs';
-const ITEM = 'rounded-xl border border-border bg-card shadow-xs lg:rounded-none lg:border-0 lg:shadow-none';
+const LIST = 'flex flex-col gap-3 lg:gap-0 lg:divide-y lg:divide-border lg:overflow-hidden lg:rounded-2xl lg:border lg:border-transparent lg:bg-card lg:shadow-card';
+const ITEM = 'rounded-2xl border border-transparent bg-card shadow-card lg:rounded-none lg:border-0 lg:shadow-none';
 
 interface EntryResultsProps {
   entries: KnowledgeEntrySummary[];
@@ -42,8 +42,8 @@ export function EntryResults({ entries, total, page, isEditor, from, onPageChang
                   <Badge variant="outline">{entry.category.name}</Badge>
                   {isEditor && entry.status !== 'ACTIVE' && <StatusBadge status={entry.status} />}
                 </div>
-                <p className="truncate text-sm text-muted-foreground">{entry.symptoms}</p>
-                <p className="text-xs text-muted-foreground tabular-nums">{entryMetaLine(entry)}</p>
+                <p className="truncate text-body text-muted-foreground">{entry.symptoms}</p>
+                <p className="text-caption text-muted-foreground tabular-nums">{entryMetaLine(entry)}</p>
               </div>
               <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
             </Link>
@@ -51,7 +51,7 @@ export function EntryResults({ entries, total, page, isEditor, from, onPageChang
         ))}
       </ul>
       {total > LIBRARY_PAGE_SIZE && (
-        <div className="rounded-xl border border-border bg-card shadow-xs *:border-t-0 lg:mt-3">
+        <div className="rounded-2xl border border-transparent bg-card shadow-card *:border-t-0 lg:mt-3">
           <Pagination page={page} pageSize={LIBRARY_PAGE_SIZE} total={total} onPageChange={onPageChange} />
         </div>
       )}

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { getSuggestionCount } from '../../../lib/api/knowledgeApi';
@@ -27,7 +27,7 @@ export function KnowledgeHeader({ isEditor, suggestionCount, action }: Knowledge
   const count = suggestionCount ?? fetched.data ?? 0;
   return (
     <>
-      <PageHeader title="Knowledge base" subtitle="Known fixes from your own repairs." icon={BookOpen} action={action} />
+      <PageHeader title="Knowledge base" context="Known fixes from your own repairs." action={action} />
       {isEditor && (
         <nav aria-label="Knowledge base sections" className="-mt-2 mb-6 overflow-x-auto border-b border-border">
           <ul className="flex w-max gap-1">
@@ -38,7 +38,7 @@ export function KnowledgeHeader({ isEditor, suggestionCount, action }: Knowledge
                   end={tab.end}
                   className={({ isActive }) =>
                     cn(
-                      'relative inline-flex h-11 items-center gap-2 rounded-t-lg px-3 text-sm font-medium outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
+                      'relative inline-flex h-11 items-center gap-2 rounded-t-lg px-3 text-body font-medium outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
                       isActive
                         ? 'text-primary after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary'
                         : 'text-muted-foreground',
@@ -47,7 +47,7 @@ export function KnowledgeHeader({ isEditor, suggestionCount, action }: Knowledge
                 >
                   {tab.label}
                   {tab.label === 'Suggestions' && count > 0 && (
-                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-highlight px-1.5 text-xs font-semibold text-highlight-foreground tabular-nums">
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-highlight px-1.5 text-caption font-semibold text-highlight-foreground tabular-nums">
                       <span className="sr-only">, </span>
                       {count}
                       <span className="sr-only"> open</span>

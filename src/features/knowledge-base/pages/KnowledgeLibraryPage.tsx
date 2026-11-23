@@ -17,7 +17,7 @@ import { LIBRARY_PAGE_SIZE, libraryParams } from '../lib/libraryFilters';
 // The old page kept made up SOPs in the browser; nothing reads them any more (AC-11).
 const OLD_ARTICLES_KEY = 'welinc_kb_articles';
 
-const PANEL = 'rounded-xl border border-border bg-card shadow-xs';
+const PANEL = 'rounded-2xl border border-transparent bg-card shadow-card';
 
 /** The common issues library (spec 0007, AC-6 to AC-11). */
 export function KnowledgeLibraryPage() {

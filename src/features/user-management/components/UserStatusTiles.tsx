@@ -1,4 +1,3 @@
-import { UserCheck, UserMinus, UserX, type LucideIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiCard } from '../../../components/shared/KpiCard';
 import { statusLabel } from '../../../components/shared/statusLabels';
@@ -6,12 +5,6 @@ import type { TeamMember } from '../../../types';
 import { ACCOUNT_STATUSES, getAccountStatus, type AccountStatus } from '../lib/accountStatus';
 
 // No context line: the visible text must match the tile's name, "{caption}, {count}".
-const TILES: Record<AccountStatus, { icon: LucideIcon; tone: 'default' | 'success' | 'destructive' | 'highlight' }> = {
-  ACTIVE: { icon: UserCheck, tone: 'success' },
-  INACTIVE: { icon: UserX, tone: 'default' },
-  DELETED: { icon: UserMinus, tone: 'destructive' },
-};
-
 interface UserStatusTilesProps {
   /** Every loaded user, not the filtered set. */
   users: TeamMember[];
@@ -33,14 +26,13 @@ export function UserStatusTiles({ users, loading, selected, onSelect }: UserStat
     <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
       {ACCOUNT_STATUSES.map((status) =>
         loading ? (
-          <Skeleton key={status} className="h-24 rounded-xl" />
+          <Skeleton key={status} className="h-24 rounded-2xl" />
         ) : (
           <KpiCard
             key={status}
             caption={statusLabel(status)}
             value={counts.get(status) ?? 0}
-            icon={TILES[status].icon}
-            tone={TILES[status].tone}
+           
             selected={selected === status}
             onSelect={() => onSelect(status)}
           />

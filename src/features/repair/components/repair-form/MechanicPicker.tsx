@@ -99,7 +99,7 @@ export function MechanicPicker({ control, mechanics, clearErrors }: MechanicPick
                     <li
                       key={chip.id}
                       className={cn(
-                        'flex items-center gap-1.5 rounded-full border bg-secondary py-0.5 pl-3 text-sm text-foreground',
+                        'flex items-center gap-1.5 rounded-full border bg-secondary py-0.5 pl-3 text-body text-foreground',
                         stale ? 'border-destructive' : 'border-border',
                       )}
                     >

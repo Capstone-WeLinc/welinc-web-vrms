@@ -29,7 +29,7 @@ export function ReleasedNotice({ rows, now }: { rows: ReleasedTicket[]; now: num
             >
               <PlateChip plate={row.plateNumber} />
               <span className="min-w-0 flex-1 truncate text-foreground">{leaverLine(row.person, row.reason)}</span>
-              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+              <span className="shrink-0 text-caption text-muted-foreground tabular-nums">
                 Now {statusLabel(row.repairStatus)}, {releasedAgo(row.releasedAt, now)}
               </span>
             </Link>

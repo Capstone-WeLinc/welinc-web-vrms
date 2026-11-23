@@ -49,10 +49,10 @@ export function LookupNameDialog({ open, onOpenChange, title, submitLabel, initi
       title={title}
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={saving} onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={saving} onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" loading={saving}>
+          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-body" loading={saving}>
             {submitLabel}
           </Button>
         </>
@@ -75,7 +75,7 @@ export function LookupNameDialog({ open, onOpenChange, title, submitLabel, initi
             autoComplete="off"
             aria-invalid={!!error}
             aria-describedby={error ? `${inputId}-error` : undefined}
-            className="h-11 text-base md:h-10 md:text-sm"
+            className="h-11 text-base-input md:h-10 md:text-body"
           />
           {error && <FieldError id={`${inputId}-error`} errors={[{ message: error }]} />}
         </Field>

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { SegmentedControl, SegmentedControlItem } from '@/components/ui/segmented-control';
 import type { EntrySort, EntryStatusFilter, IssueCategory } from '../../../lib/api/knowledgeApi';
 import { SEARCH_MAX_LENGTH, SORTS, STATUS_FILTERS, type LibraryFilterValues } from '../lib/libraryFilters';
 
@@ -19,7 +19,7 @@ interface LibrarySearchBandProps {
   onChange: (patch: Partial<LibraryFilterValues>) => void;
 }
 
-const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
+const LABEL = 'text-label text-muted-foreground';
 export const LIBRARY_SEARCH_ID = 'knowledge-search';
 
 /** Search, category chips and, for editors, status and sort (spec 0007, AC-7). */
@@ -37,7 +37,7 @@ export function LibrarySearchBand({
   const allCount = categoryCounts ? Object.values(categoryCounts).reduce((sum, n) => sum + n, 0) : null;
 
   return (
-    <section role="search" aria-label="Search the knowledge base" className="mb-4 flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-xs md:p-5">
+    <section role="search" aria-label="Search the knowledge base" className="mb-4 flex flex-col gap-4 rounded-2xl border border-transparent bg-card p-4 shadow-card md:p-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Label htmlFor={LIBRARY_SEARCH_ID} className={LABEL}>
@@ -48,7 +48,7 @@ export function LibrarySearchBand({
             <Input
               id={LIBRARY_SEARCH_ID}
               type="search"
-              className="h-11 pr-11 pl-10 text-base"
+              className="h-11 pr-11 pl-10 text-base-input"
               placeholder="Describe the problem, like 'squeal when braking'"
               maxLength={SEARCH_MAX_LENGTH}
               value={searchText}
@@ -115,19 +115,12 @@ export function LibrarySearchBand({
 
       {/* The chips scroll sideways inside their own row on a phone; the page never does. */}
       <div className="-mx-4 overflow-x-auto px-4 md:-mx-5 md:px-5">
-        <ToggleGroup
-          type="single"
-          aria-label="Category"
-          value={value.categoryId}
-          // Pressing the chosen chip again would clear the group; keep the choice instead.
-          onValueChange={(categoryId) => categoryId && onChange({ categoryId })}
-          className="w-max flex-nowrap md:w-auto md:flex-wrap"
-        >
+        <SegmentedControl aria-label="Category" value={value.categoryId} onValueChange={(categoryId) => onChange({ categoryId })}>
           <CategoryChip value="all" label="All" count={allCount} />
           {categories.map((category) => (
             <CategoryChip key={category.id} value={category.id} label={category.name} count={categoryCounts ? count(category.id) : null} />
           ))}
-        </ToggleGroup>
+        </SegmentedControl>
       </div>
     </section>
   );
@@ -135,9 +128,9 @@ export function LibrarySearchBand({
 
 function CategoryChip({ value, label, count }: { value: string; label: string; count: number | null }) {
   return (
-    <ToggleGroupItem value={value} variant="outline" size="touch" className="rounded-full">
+    <SegmentedControlItem value={value}>
       {label}
-      {count != null && <span className="text-sm font-normal tabular-nums opacity-80">{count}</span>}
-    </ToggleGroupItem>
+      {count != null && <span className="font-mono text-caption">{count}</span>}
+    </SegmentedControlItem>
   );
 }

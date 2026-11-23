@@ -46,7 +46,7 @@ function RowActionsMenu({ actions, touch, label, rowId }: RowActionsMenuProps) {
             const text = action.hint ? (
               <span className="flex flex-col gap-0.5">
                 {action.label}
-                <span className="text-xs text-muted-foreground">{action.hint}</span>
+                <span className="text-caption text-muted-foreground">{action.hint}</span>
               </span>
             ) : (
               action.label
@@ -114,7 +114,7 @@ function DesktopTable<T>({
           {columns.map((column) => (
             <TableHead
               key={column.id}
-              className={cn('h-10 px-4 text-xs font-medium tracking-wide text-muted-strong uppercase', alignClass(column))}
+              className={cn('h-10 px-4 text-label text-muted-strong', alignClass(column))}
             >
               {column.header}
             </TableHead>
@@ -145,7 +145,7 @@ function DesktopTable<T>({
                       <TableHead
                         colSpan={columnCount}
                         scope="colgroup"
-                        className="h-10 bg-card px-4 pt-4 text-sm font-semibold text-foreground"
+                        className="h-10 bg-card px-4 pt-4 text-body font-semibold text-foreground"
                       >
                         {group.label}
                       </TableHead>
@@ -205,7 +205,7 @@ function MobileCards<T>({
     return (
       <ul aria-label={label} aria-busy="true" className="flex flex-col gap-3 p-3">
         {Array.from({ length: skeletonCount }, (_, index) => (
-          <li key={index} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+          <li key={index} className="flex flex-col gap-3 rounded-2xl border border-transparent bg-card p-4 shadow-card">
             <div className="flex items-center justify-between gap-3">
               <Skeleton className="h-5 w-1/2" />
               <Skeleton className="h-5 w-20 rounded-full" />
@@ -222,7 +222,7 @@ function MobileCards<T>({
         <li
           key={getRowId(row)}
           className={cn(
-            'relative flex flex-col gap-3 rounded-xl border border-border bg-card p-4',
+            'relative flex flex-col gap-3 rounded-2xl border border-transparent bg-card p-4 shadow-card',
             onRowClick && 'has-[[data-row-link]:focus-visible]:ring-2 has-[[data-row-link]:focus-visible]:ring-ring active:bg-muted/50',
           )}
         >
@@ -235,15 +235,15 @@ function MobileCards<T>({
                     type="button"
                     data-row-link
                     onClick={() => onRowClick(row)}
-                    className="text-left text-base font-semibold wrap-anywhere text-foreground outline-none after:absolute after:inset-0 after:rounded-xl"
+                    className="text-left text-group font-semibold wrap-anywhere text-foreground outline-none after:absolute after:inset-0 after:rounded-2xl"
                   >
                     {titleColumn.cell(row)}
                   </button>
                 ) : (
-                  <p className="text-base font-semibold wrap-anywhere text-foreground">{titleColumn.cell(row)}</p>
+                  <p className="text-group font-semibold wrap-anywhere text-foreground">{titleColumn.cell(row)}</p>
                 ))}
               {subtitles.map((column) => (
-                <p key={column.id} className="text-sm wrap-anywhere text-muted-foreground">
+                <p key={column.id} className="text-body wrap-anywhere text-muted-foreground">
                   {column.cell(row)}
                 </p>
               ))}
@@ -263,8 +263,8 @@ function MobileCards<T>({
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
               {fields.map((column) => (
                 <div key={column.id} className="flex min-w-0 flex-col gap-0.5">
-                  <dt className="text-xs font-medium text-muted-foreground">{column.header}</dt>
-                  <dd className={cn('text-sm wrap-anywhere text-foreground', column.align === 'end' && 'tabular-nums')}>{column.cell(row)}</dd>
+                  <dt className="text-caption font-medium text-muted-foreground">{column.header}</dt>
+                  <dd className={cn('text-body wrap-anywhere text-foreground', column.align === 'end' && 'tabular-nums')}>{column.cell(row)}</dd>
                 </div>
               ))}
             </dl>
@@ -285,7 +285,7 @@ function MobileCards<T>({
     <div className="flex flex-col gap-4 p-3">
       {groupRows(rows, groupBy).map((group) => (
         <div key={group.key} className="flex flex-col gap-2">
-          <p aria-hidden="true" className="px-1 text-sm font-semibold text-foreground">
+          <p aria-hidden="true" className="px-1 text-body font-semibold text-foreground">
             {group.label}
           </p>
           <ul aria-label={label ? `${label}, ${group.label}` : (group.label ?? undefined)} className="flex flex-col gap-3">
@@ -313,7 +313,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+    <div className="overflow-hidden rounded-2xl border border-transparent bg-card shadow-card">
       {body}
       {pagination && state !== 'error' && pagination.total > 0 && <Pagination {...pagination} />}
     </div>

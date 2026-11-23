@@ -59,7 +59,7 @@ export function PhotoThumb({ photo, groupLabel, onOpen, onRemove, onLinkError, d
             className="relative block size-18 overflow-hidden rounded-lg border border-border bg-muted outline-none transition-colors duration-150 hover:border-primary focus-visible:ring-2 focus-visible:ring-ring"
           >
             {errors === 2 ? (
-              <span className="flex size-full flex-col items-center justify-center gap-1 p-1 text-center text-xs leading-tight text-muted-foreground">
+              <span className="flex size-full flex-col items-center justify-center gap-1 p-1 text-center text-caption leading-tight text-muted-foreground">
                 <ImageOff aria-hidden="true" className="size-4" />
                 Could not load
                 <span className="sr-only">{fullName}</span>
@@ -109,7 +109,7 @@ export function PhotoThumb({ photo, groupLabel, onOpen, onRemove, onLinkError, d
           size="icon"
           aria-label={`Remove ${name.charAt(0).toLowerCase()}${name.slice(1)}`}
           onClick={() => onRemove(photo)}
-          className="absolute -top-2 -right-2 size-7 rounded-full bg-card shadow-sm pointer-coarse:size-11"
+          className="absolute -top-2 -right-2 size-7 rounded-full bg-card shadow-pop pointer-coarse:size-11"
         >
           <X aria-hidden="true" />
         </Button>
