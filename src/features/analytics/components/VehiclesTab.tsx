@@ -77,7 +77,7 @@ export function VehiclesTab({ vehicles, issueFreq, sections, retry, costsHidden 
         </SectionGate>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: costsHidden ? '1fr' : '1fr 1fr', gap: 16 }}>
+      <div className={`grid grid-cols-1 gap-4 *:min-w-0 ${costsHidden ? '' : 'lg:grid-cols-2'}`}>
         <ChartCard
           title="Top Recurring Repair Issues"
           extraRight={<PillToggle options={TOP_N_OPTIONS} value={issuePeriod} onChange={setIssuePeriod} labels={TOP_N_LABELS} />}

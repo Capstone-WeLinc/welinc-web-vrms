@@ -33,7 +33,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Row 1: Trend + Status Donut */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
+      <div className="grid grid-cols-1 gap-4 *:min-w-0 lg:grid-cols-2">
         <ChartCard title={costsHidden ? 'Monthly Repair Volume' : 'Monthly Expense & Volume Trend'} period={trendPeriod} onPeriodChange={setTrendPeriod}>
           <SectionGate state={sections.trends} onRetry={() => retry('trends')} height={260}>
           {filteredTrends.length === 0
@@ -118,7 +118,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
       </div>
 
       {/* Row 2: Velocity + Aging */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="grid grid-cols-1 gap-4 *:min-w-0 lg:grid-cols-2">
         <ChartCard title="Ticket Creation Velocity" period={velocityPeriod} onPeriodChange={setVelocityPeriod}>
           <SectionGate state={sections.velocity} onRetry={() => retry('velocity')} height={230}>
           {filteredVelocity.length === 0
@@ -177,7 +177,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
       </div>
 
       {/* Row 3: Garage Costs + Cumulative Spend */}
-      <div style={{ display: 'grid', gridTemplateColumns: costsHidden ? '1fr' : '1fr 1fr', gap: 16 }}>
+      <div className={`grid grid-cols-1 gap-4 *:min-w-0 ${costsHidden ? '' : 'lg:grid-cols-2'}`}>
         <ChartCard title={costsHidden ? 'Repairs by Garage' : 'Repair Spend by Garage'}>
           <SectionGate state={sections.garageCosts} onRetry={() => retry('garageCosts')} height={230}>
           {garageCosts.length === 0

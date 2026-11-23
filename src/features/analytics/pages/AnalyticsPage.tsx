@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { BarChart2, Car, RefreshCw, Clock, Zap, FileText } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { Button } from '../../../components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { useAnalyticsData } from '../hooks/useAnalyticsData';
 import { KpiCard, SectionGate } from '../components/ChartPrimitives';
 import { Callout } from '../../../components/shared/Callout';
@@ -36,38 +38,33 @@ export function AnalyticsPage() {
 
   return (
     <div className="dashboard-page">
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
-        <PageHeader
-          title="Fleet Analytics"
-          context="Vehicle Repair Management System — Analytics Dashboard"
-        />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted-foreground)', fontSize: '0.78rem' }}>
-            <Clock size={13} />
-            <span>{loading ? 'Loading…' : `Updated ${lastUpdated}`}</span>
-          </div>
-          <button
-            onClick={refresh}
-            disabled={loading}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
-          >
-            <RefreshCw size={13} /> Refresh
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Fleet Analytics"
+        context={
+          <span className="inline-flex items-center gap-1.5">
+            <Clock aria-hidden="true" className="size-4" />
+            {loading ? 'Loading…' : `Updated ${lastUpdated}`}
+          </span>
+        }
+        action={
+          <Button type="button" variant="outline" onClick={refresh} disabled={loading}>
+            <RefreshCw aria-hidden="true" /> Refresh
+          </Button>
+        }
+      />
 
       {costsHidden && (
-        <div style={{ marginBottom: 16 }}>
+        <div className="mb-4">
           <Callout tone="info" title="Costs are hidden for your role">
             Spend and cost figures need the "See costs" permission.
           </Callout>
         </div>
       )}
 
-      <div style={{ marginBottom: 20 }}>
+      <div className="mb-6">
         <SectionGate state={sections.summary} onRetry={() => retry('summary')} height={88}>
           {summary && (
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${costsHidden ? 2 : 4}, 1fr)`, gap: 14 }}>
+            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${costsHidden ? '' : 'xl:grid-cols-4'}`}>
               {!costsHidden && <KpiCard label="Total Repair Spend" value={fmt(summary.total_spend)} />}
               <KpiCard label="Total Repairs" value={summary.total_repairs} note={`${totalActiveTickets} currently active`} />
               <KpiCard label="Vehicles Tracked" value={summary.total_vehicles} note={`${completionRate}% completion rate`} />
@@ -77,33 +74,21 @@ export function AnalyticsPage() {
         </SectionGate>
       </div>
 
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
-        {tabs.map(t => {
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '9px 18px', border: 'none', background: 'transparent', cursor: 'pointer',
-                fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.15s',
-                color: shownTab === t.key ? 'var(--highlight)' : 'var(--muted-foreground)',
-                borderBottom: shownTab === t.key ? '2px solid var(--highlight)' : '2px solid transparent',
-                marginBottom: -1,
-              }}
-            >
-              <Icon size={16} />
+      {/* The suite Tabs (spec 0016): real tabs for the keyboard and screen readers, never gold text */}
+      <Tabs value={shownTab} onValueChange={(next) => setTab(next as TabKey)}>
+        <TabsList aria-label="Analytics views" className="max-w-full overflow-x-auto">
+          {tabs.map(t => (
+            <TabsTrigger key={t.key} value={t.key}>
+              <t.icon aria-hidden="true" />
               {t.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {shownTab === 'overview' && <OverviewTab {...data} />}
-      {shownTab === 'vehicles' && <VehiclesTab {...data} />}
-      {shownTab === 'ai' && <AiInsightsTab {...data} />}
-      {shownTab === 'reports' && <ReportsTab {...data} />}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value="overview"><OverviewTab {...data} /></TabsContent>
+        <TabsContent value="vehicles"><VehiclesTab {...data} /></TabsContent>
+        {aiOn && <TabsContent value="ai"><AiInsightsTab {...data} /></TabsContent>}
+        <TabsContent value="reports"><ReportsTab {...data} /></TabsContent>
+      </Tabs>
     </div>
   );
 }

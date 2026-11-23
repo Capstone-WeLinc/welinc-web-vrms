@@ -35,14 +35,14 @@ export function AiInsightsTab({ aiStats, issueFreq, sections, retry }: Analytics
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <SectionGate state={sections.aiStats} onRetry={() => retry('aiStats')} height={300}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div className="grid grid-cols-1 gap-4 *:min-w-0 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Total AI Diagnoses" value={aiStats?.total_interactions ?? 0} />
         <KpiCard label="Satisfaction Rate" value={`${satRate}%`} note={`Based on ${totalFb} mechanic ratings`} />
         <KpiCard label="Avg Rating" value={`${avgRating.toFixed(1)} / 5`} />
         <KpiCard label="Feedback Received" value={totalFb} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="grid grid-cols-1 gap-4 *:min-w-0 lg:grid-cols-2">
         <ChartCard title="AI Model Usage Distribution">
           {modelData.length === 0
             ? <EmptyState label="No AI interaction data yet" />
