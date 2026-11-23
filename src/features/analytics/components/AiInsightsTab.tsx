@@ -2,6 +2,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import type { AnalyticsData } from '../hooks/useAnalyticsData';
 import { ChartCard, EmptyState, KpiCard, SectionGate } from './ChartPrimitives';
+import { legendText } from './legendText';
 import { IssueFrequencyChart } from './IssueFrequencyChart';
 import { PALETTE, chartTooltipProps, getAiFeedbackStats, modelDisplayName } from '../utils';
 
@@ -54,7 +55,7 @@ export function AiInsightsTab({ aiStats, issueFreq, sections, retry }: Analytics
                       {modelData.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
                     </Pie>
                     <Tooltip {...chartTooltipProps} formatter={(v, name) => [v, name]} />
-                    <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: 12, color: 'var(--text)', paddingLeft: 16 }} />
+                    <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: 12, paddingLeft: 16 }} formatter={legendText} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

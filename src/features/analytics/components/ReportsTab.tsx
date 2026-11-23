@@ -161,7 +161,7 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
                     <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--text)', fontSize: '0.8rem' }}>TOTAL</td>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text)' }}>{totalRepairsAll}</td>
                     {!costsHidden && <>
-                    <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--highlight)' }}>{fmt(totalSpendAll)}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--foreground)' }}>{fmt(totalSpendAll)}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--muted-foreground)' }}>{fmt(totalSpendAll / Math.max(1, totalRepairsAll))}</td>
                     <td colSpan={2} />
                     </>}

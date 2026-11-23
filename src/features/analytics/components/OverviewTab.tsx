@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import type { AnalyticsData } from '../hooks/useAnalyticsData';
 import { ChartCard, EmptyState, SectionGate } from './ChartPrimitives';
+import { legendText } from './legendText';
 import {
   PALETTE, STATUS_COLORS, STATUS_LABELS, axisTick, chartTooltipProps, filterByPeriod, fmt, fmtThousands,
 } from '../utils';
@@ -56,7 +57,7 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                       {...chartTooltipProps}
                       formatter={(val, name) => name === 'Spend' ? [fmt(Number(val)), 'Total Spend'] : [val, 'Repair Count']}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)', paddingTop: 8 }} />
+                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} formatter={legendText} />
                     {!costsHidden && <Area yAxisId="left" type="monotone" dataKey="total_spend" name="Spend" fill="url(#gradSpend)" stroke="var(--chart-1)" strokeWidth={2} dot={false} />}
                     <Line yAxisId="right" type="monotone" dataKey="repair_count" name="Repairs" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 4, fill: 'var(--chart-2)', strokeWidth: 0 }} activeDot={{ r: 6 }} />
                   </ComposedChart>
@@ -106,8 +107,8 @@ export function OverviewTab({ trends, statusBreakdown, velocity, aging, garageCo
                       layout="vertical"
                       align="right"
                       verticalAlign="middle"
-                      wrapperStyle={{ fontSize: 12, color: 'var(--text)', paddingLeft: 16 }}
-                      formatter={(value) => STATUS_LABELS[value] || value}
+                      wrapperStyle={{ fontSize: 12, paddingLeft: 16 }}
+                      formatter={(value) => legendText(STATUS_LABELS[value] || value)}
                     />
                   </PieChart>
                 </ResponsiveContainer>
