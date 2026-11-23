@@ -30,12 +30,12 @@ export function SessionRows({ sessions, onEnd, endingSid }: SessionRowsProps) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="truncate text-sm font-medium text-foreground" title={session.device}>
+                <span className="truncate text-body font-medium text-foreground" title={session.device}>
                   {session.device}
                 </span>
                 {session.current && <BadgePill className="bg-success/15 text-success">This device</BadgePill>}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-caption text-muted-foreground">
                 {systemsText(session)}, active{' '}
                 <time dateTime={session.lastActiveAt} title={new Date(session.lastActiveAt).toLocaleString()}>
                   {formatRelativeTime(session.lastActiveAt)}

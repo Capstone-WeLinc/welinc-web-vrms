@@ -20,7 +20,7 @@ const TONES = {
 export function Callout({ tone, title, children, className }: CalloutProps) {
   const { icon: Icon, box, accent } = TONES[tone];
   return (
-    <div className={cn('flex items-start gap-2 rounded-lg border p-3 text-sm', box, className)}>
+    <div className={cn('flex items-start gap-2 rounded-lg border p-3 text-body', box, className)}>
       <Icon aria-hidden="true" className={cn('mt-0.5 size-4 shrink-0', accent)} />
       <div className="flex min-w-0 flex-col gap-1">
         {title && <p className={cn('font-medium [overflow-wrap:anywhere]', accent)}>{title}</p>}

@@ -44,7 +44,7 @@ export function usersColumns(
       cell: (user) => (
         <span className="flex min-w-0 flex-col gap-0.5">
           {name(user)}
-          <span className="text-sm break-all text-muted-foreground">{user.email}</span>
+          <span className="text-body break-all text-muted-foreground">{user.email}</span>
         </span>
       ),
     },

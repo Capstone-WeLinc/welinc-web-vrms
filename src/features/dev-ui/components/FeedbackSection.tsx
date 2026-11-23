@@ -53,7 +53,7 @@ export function FeedbackSection() {
         <Button variant="outline" onClick={() => ask('default')}>Default confirm</Button>
         <Button variant="destructive" onClick={() => ask('destructive')}>Destructive confirm</Button>
         <Button variant="outline" onClick={askTwice}>Two queued confirms</Button>
-        <p className="text-sm text-muted-foreground" aria-live="polite">{lastAnswer}</p>
+        <p className="text-body text-muted-foreground" aria-live="polite">{lastAnswer}</p>
       </Row>
 
       <Row label="Responsive dialog">
@@ -65,12 +65,12 @@ export function FeedbackSection() {
           description="A centered dialog from 768px up, a bottom sheet on phones."
           footer={
             <>
-              <Button variant="outline" size="touch" className="md:h-10 md:text-sm" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button size="touch" className="md:h-10 md:text-sm" onClick={() => setDialogOpen(false)}>Assign</Button>
+              <Button variant="outline" size="touch" className="md:h-10 md:text-body" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button size="touch" className="md:h-10 md:text-body" onClick={() => setDialogOpen(false)}>Assign</Button>
             </>
           }
         >
-          <div className="flex flex-col gap-3 text-sm text-foreground">
+          <div className="flex flex-col gap-3 text-body text-foreground">
             {Array.from({ length: 12 }, (_, index) => (
               <p key={index}>
                 Mechanic {index + 1}: currently on {index % 3} open tickets at the Marikina garage. The footer stays visible while this list scrolls.

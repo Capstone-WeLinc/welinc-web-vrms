@@ -1,32 +1,23 @@
 import type { ReactNode } from 'react';
 import { ArrowUpRight, ArrowDownRight, Minus, ChevronDown } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import type { SectionState } from '../hooks/useAnalyticsData';
-import { PERIOD_OPTIONS, tint } from '../utils';
+import { PERIOD_OPTIONS } from '../utils';
+import { SegmentedControl, SegmentedControlItem } from '../../../components/ui/segmented-control';
 
+/** A period or sort switch on a chart: the suite SegmentedControl (spec 0016 AC-8), never a gold pill. */
 export function PillToggle<T extends string>({
-  options, value, onChange, labels, track = 'var(--surface-alt)', size = 'sm',
+  options, value, onChange, labels, label,
 }: {
   options: readonly T[]; value: T; onChange: (v: T) => void;
-  labels?: Partial<Record<T, string>>; track?: string; size?: 'sm' | 'md';
+  labels?: Partial<Record<T, string>>; label?: string;
 }) {
   return (
-    <div style={{ display: 'flex', background: track, borderRadius: 8, padding: 2, gap: 1 }}>
+    <SegmentedControl value={value} onValueChange={(v) => onChange(v as T)} aria-label={label}>
       {options.map(o => (
-        <button
-          key={o}
-          onClick={() => onChange(o)}
-          style={{
-            padding: size === 'md' ? '4px 10px' : '3px 9px', borderRadius: 6, border: 'none',
-            fontSize: size === 'md' ? '0.75rem' : '0.72rem',
-            fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
-            background: value === o ? 'var(--highlight)' : 'transparent',
-            color: value === o ? 'var(--on-accent)' : 'var(--muted-foreground)',
-          }}
-        >{labels?.[o] ?? o}</button>
+        <SegmentedControlItem key={o} value={o}>{labels?.[o] ?? o}</SegmentedControlItem>
       ))}
-    </div>
+    </SegmentedControl>
   );
 }
 
@@ -38,12 +29,12 @@ export function ChartCard({
 }) {
   return (
     <div className="premium-card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>{title}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-subheading text-foreground">{title}</h3>
+        <div className="flex max-w-full items-center gap-2">
           {extraRight}
           {onPeriodChange && (
-            <PillToggle options={PERIOD_OPTIONS} value={period ?? 'ALL'} onChange={onPeriodChange} track="var(--surface)" />
+            <PillToggle options={PERIOD_OPTIONS} value={period ?? 'ALL'} onChange={onPeriodChange} label={`${title} period`} />
           )}
         </div>
       </div>
@@ -52,28 +43,21 @@ export function ChartCard({
   );
 }
 
-export function KpiCard({ label, value, icon: Icon, color, delta, note }: {
-  label: string; value: string | number; icon: LucideIcon; color: string;
-  delta?: number; note?: string;
+/** A summary number on the StatCard look (spec 0016 AC-14, AC-18): label, mono number, one line, no icon square. */
+export function KpiCard({ label, value, delta, note }: {
+  label: string; value: string | number; delta?: number; note?: string;
 }) {
   return (
-    <div className="premium-card" style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: tint(color, 10), color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-        <Icon size={20} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{label}</div>
-        <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{value}</div>
-        {delta !== undefined && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-            {delta > 0 ? <ArrowUpRight size={13} color="var(--success)" /> : delta < 0 ? <ArrowDownRight size={13} color="var(--danger)" /> : <Minus size={13} color="var(--muted-foreground)" />}
-            <span style={{ fontSize: '0.72rem', color: delta > 0 ? 'var(--success)' : delta < 0 ? 'var(--danger)' : 'var(--muted-foreground)', fontWeight: 700 }}>
-              {Math.abs(delta)}% vs last period
-            </span>
-          </div>
-        )}
-        {note && <div style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginTop: 4 }}>{note}</div>}
-      </div>
+    <div className="premium-card flex min-w-0 flex-col gap-2">
+      <span className="text-label text-muted-strong">{label}</span>
+      <span className="font-mono text-display font-semibold text-foreground">{value}</span>
+      {delta !== undefined && (
+        <span className={`flex items-center gap-1 text-small ${delta > 0 ? 'text-success' : delta < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+          {delta > 0 ? <ArrowUpRight aria-hidden="true" className="size-4" /> : delta < 0 ? <ArrowDownRight aria-hidden="true" className="size-4" /> : <Minus aria-hidden="true" className="size-4" />}
+          {Math.abs(delta)}% vs last period
+        </span>
+      )}
+      {note && <span className="text-small text-muted-foreground">{note}</span>}
     </div>
   );
 }

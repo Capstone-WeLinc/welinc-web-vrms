@@ -64,8 +64,8 @@ export default defineConfig([
     rules: {
       'better-tailwindcss/no-unknown-classes': ['error', { ignore: LEGACY_CLASSES }],
       'better-tailwindcss/no-restricted-classes': ['error', { restrict: BANNED_CLASSES }],
-      // Until the page sweep (spec 0016 build plan step 8) moves every page off them; then they join BANNED_CLASSES.
-      'design-sweep/no-restricted-classes': ['warn', { restrict: SWEEP_CLASSES }],
+      // Spec 0016 AC-17: the page sweep moved every page off the old sizes and shadows.
+      'design-sweep/no-restricted-classes': ['error', { restrict: SWEEP_CLASSES }],
       'no-restricted-syntax': noRawColors,
     },
   },

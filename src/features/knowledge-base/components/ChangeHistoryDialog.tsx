@@ -44,22 +44,22 @@ function ChangeRow({ change }: { change: EntryChange }) {
   return (
     <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground tabular-nums">
+        <p className="text-body font-medium text-foreground">{title}</p>
+        <p className="text-caption text-muted-foreground tabular-nums">
           {change.actorName ?? change.actorEmail ?? 'System'} · {formatDateTime(change.createdAt)}
         </p>
       </div>
       {!created &&
         change.changes.map((c) => (
           <div key={c.field} className="flex flex-col gap-1">
-            {change.changes.length > 1 && <p className="text-xs font-medium text-muted-strong">{fieldLabel(c.field)}</p>}
-            <dl className="grid gap-2 text-sm sm:grid-cols-2">
+            {change.changes.length > 1 && <p className="text-caption font-medium text-muted-strong">{fieldLabel(c.field)}</p>}
+            <dl className="grid gap-2 text-body sm:grid-cols-2">
               <div className="min-w-0 rounded-lg bg-muted p-2">
-                <dt className="text-xs font-medium text-muted-strong">Before</dt>
+                <dt className="text-caption font-medium text-muted-strong">Before</dt>
                 <dd className="break-words whitespace-pre-line text-foreground">{shown(c.field, c.before)}</dd>
               </div>
               <div className="min-w-0 rounded-lg bg-muted p-2">
-                <dt className="text-xs font-medium text-muted-strong">After</dt>
+                <dt className="text-caption font-medium text-muted-strong">After</dt>
                 <dd className="break-words whitespace-pre-line text-foreground">{shown(c.field, c.after)}</dd>
               </div>
             </dl>

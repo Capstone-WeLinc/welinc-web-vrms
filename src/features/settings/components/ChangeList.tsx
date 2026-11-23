@@ -11,7 +11,7 @@ function ChangeNote({ note }: { note: string }) {
   const long = isLongNote(note);
   return (
     <span className="flex flex-col items-start gap-0.5">
-      <span className={cn('max-w-full text-xs wrap-anywhere whitespace-pre-line text-muted-strong', long && !open && 'line-clamp-2')}>
+      <span className={cn('max-w-full text-caption wrap-anywhere whitespace-pre-line text-muted-strong', long && !open && 'line-clamp-2')}>
         <span className="font-medium">Note:</span> {note}
       </span>
       {long && (
@@ -19,7 +19,7 @@ function ChangeNote({ note }: { note: string }) {
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="text-xs font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:underline"
+          className="text-caption font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:underline"
         >
           {open ? 'Show less' : 'Show more'}
         </button>
@@ -38,7 +38,7 @@ export function ChangeList({ changes, units = {} }: { changes: HistoryChange[]; 
       {changes.map((change) => {
         const sides = changeSides(change, units[change.key]);
         return (
-          <li key={change.id} className="flex flex-col gap-0.5 py-2 text-sm first:pt-0 last:pb-0">
+          <li key={change.id} className="flex flex-col gap-0.5 py-2 text-body first:pt-0 last:pb-0">
             <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <span className="wrap-break-word text-foreground">{changeWhat(change)}</span>
               <span className="flex items-center gap-1 text-foreground tabular-nums">
@@ -47,7 +47,7 @@ export function ChangeList({ changes, units = {} }: { changes: HistoryChange[]; 
                 <span className="font-medium">{sides.after}</span>
               </span>
             </span>
-            <span className="text-xs wrap-break-word text-muted-foreground">
+            <span className="text-caption wrap-break-word text-muted-foreground">
               {actorLabel(change.actor)} · <time dateTime={change.createdAt}>{formatDateTime(change.createdAt)}</time>
             </span>
             {change.note && <ChangeNote note={change.note} />}

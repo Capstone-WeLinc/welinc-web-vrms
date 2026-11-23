@@ -229,7 +229,7 @@ export function RepairFormPage() {
   return (
     <div className="pb-action-bar lg:pb-0">
       <PageHeader title="New repair ticket" context="Log a vehicle repair and assign it." />
-      <p className="-mt-3 mb-6 text-sm text-muted-foreground">
+      <p className="-mt-3 mb-6 text-body text-muted-foreground">
         Reported by {reporter} · {formatShortDate(openedAt)}
       </p>
 

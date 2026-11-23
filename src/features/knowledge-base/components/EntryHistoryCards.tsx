@@ -12,7 +12,7 @@ export function FromYourRepairsCard({ stats }: { stats: KnowledgeEntryDetail['st
     <DetailSection title="From your repairs">
       <dl className="grid grid-cols-2 gap-4 lg:grid-cols-1 xl:grid-cols-2">
         <DetailItem label="Seen">
-          <span className="text-xl font-semibold tabular-nums">
+          <span className="text-heading font-semibold tabular-nums">
             {stats.seenCount === 1 ? '1 time' : `${stats.seenCount} times`}
           </span>
         </DetailItem>
@@ -23,7 +23,7 @@ export function FromYourRepairsCard({ stats }: { stats: KnowledgeEntryDetail['st
           {work ? (
             <>
               <span className="font-medium tabular-nums">{work.value}</span>
-              <span className="block text-xs text-muted-foreground">{work.label}</span>
+              <span className="block text-caption text-muted-foreground">{work.label}</span>
             </>
           ) : (
             <span className="text-muted-foreground">No estimate yet</span>
@@ -49,12 +49,12 @@ export function RepeatVehiclesCard({ vehicles }: { vehicles: KnowledgeEntryDetai
   if (vehicles.length === 0) return null;
   return (
     <DetailSection title="Keeps coming back">
-      <p className="-mt-2 text-xs text-muted-foreground">Vehicles with this problem more than once in the last year.</p>
+      <p className="-mt-2 text-caption text-muted-foreground">Vehicles with this problem more than once in the last year.</p>
       <ul className="flex flex-col divide-y divide-border">
         {vehicles.map((v) => (
           <li key={v.plate} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
             <span className="font-medium text-foreground">{v.plate}</span>
-            <span className="text-right text-sm text-muted-foreground tabular-nums">
+            <span className="text-right text-body text-muted-foreground tabular-nums">
               {v.count} times · last {formatDay(v.lastAt)}
             </span>
           </li>
@@ -75,11 +75,11 @@ export function RecentTicketsCard({ tickets }: { tickets: NonNullable<KnowledgeE
             <div className="flex min-w-0 flex-col">
               <Link
                 to={`/repairs/${t.id}`}
-                className="rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                className="rounded-md text-body font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {t.repairNumber}
               </Link>
-              <span className="text-xs text-muted-foreground tabular-nums">
+              <span className="text-caption text-muted-foreground tabular-nums">
                 {t.plate} · {formatDay(t.createdAt)}
               </span>
             </div>

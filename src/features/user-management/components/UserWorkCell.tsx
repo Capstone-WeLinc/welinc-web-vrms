@@ -16,7 +16,7 @@ export function UserWorkCell({ user, workload }: { user: TeamMember; workload: R
   return (
     <span className="flex min-w-0 flex-col items-start gap-1">
       <BadgePill className={WORK_STATE_CLASSES[state]}>{WORK_LABELS[state]}</BadgePill>
-      <span className="text-xs text-muted-foreground">{workloadSummary(workload?.get(user.id))}</span>
+      <span className="text-caption text-muted-foreground">{workloadSummary(workload?.get(user.id))}</span>
     </span>
   );
 }

@@ -23,7 +23,7 @@ import {
   ticketTextLines,
 } from '../lib/auditEvents';
 
-const FOCUSABLE_TEXT = 'rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const FOCUSABLE_TEXT = 'rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 function Actor({ event, name }: { event: AuditEvent; name: string }) {
   const email = event.actor?.email;
@@ -31,7 +31,7 @@ function Actor({ event, name }: { event: AuditEvent; name: string }) {
     <span className="inline-flex items-center gap-1.5 align-top">
       <span
         aria-hidden="true"
-        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-caption font-semibold text-primary"
       >
         {getInitials(name)}
       </span>
@@ -108,9 +108,9 @@ function Change({ event }: { event: AuditEvent }) {
     if (!total && detail.length === 0) return null;
     return (
       <div className="flex flex-col gap-0.5 tabular-nums">
-        {total && <p className="text-sm font-medium text-foreground">{total}</p>}
+        {total && <p className="text-body font-medium text-foreground">{total}</p>}
         {detail.map((line) => (
-          <p key={line} className="text-xs text-muted-foreground">
+          <p key={line} className="text-caption text-muted-foreground">
             {line}
           </p>
         ))}
@@ -121,7 +121,7 @@ function Change({ event }: { event: AuditEvent }) {
     const entry = changeOf(event, 'knowledgeEntry');
     if (!entry) return null;
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         {entry.after ? `Linked known fix: ${entry.after}` : 'Removed known fix'}
         {entry.before && entry.after && ` (was ${entry.before})`}
       </p>
@@ -130,14 +130,14 @@ function Change({ event }: { event: AuditEvent }) {
   if (event.type === 'MECHANIC_ASSIGNED') {
     const names = event.changes.filter((c) => c.field === 'mechanic' && c.after).map((c) => c.after);
     if (names.length === 0) return null;
-    return <p className="text-sm text-muted-foreground">Assigned: {names.join(', ')}.</p>;
+    return <p className="text-body text-muted-foreground">Assigned: {names.join(', ')}.</p>;
   }
   if (event.type === 'MECHANIC_UNASSIGNED') {
     const mechanic = changeOf(event, 'mechanic');
     const reopened = changeOf(event, 'repairStatus')?.after === 'OPEN';
     if (!mechanic?.before) return null;
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         {mechanic.before} was taken off{reopened ? '. The ticket went back to Open.' : '.'}
       </p>
     );
@@ -146,7 +146,7 @@ function Change({ event }: { event: AuditEvent }) {
     // "Before photo: IMG_2041.jpg", in after on add and in before on remove (spec 0017, AC-18; spec 0018, AC-18)
     const name = attachmentLine(event);
     if (!name) return null;
-    return <p className="text-sm break-words text-muted-foreground">{name}</p>;
+    return <p className="text-body break-words text-muted-foreground">{name}</p>;
   }
   if (event.type === 'ATTACHMENT_MOVED') {
     const line = photoMoveLine(event);
@@ -154,8 +154,8 @@ function Change({ event }: { event: AuditEvent }) {
     const file = movedFileName(event);
     return (
       <div className="flex flex-col gap-0.5">
-        <p className="text-sm text-foreground">{line}</p>
-        {file && <p className="text-xs break-words text-muted-foreground">{file}</p>}
+        <p className="text-body text-foreground">{line}</p>
+        {file && <p className="text-caption break-words text-muted-foreground">{file}</p>}
       </div>
     );
   }
@@ -165,7 +165,7 @@ function Change({ event }: { event: AuditEvent }) {
     const texts = event.type === 'TICKET_EDITED' ? ticketTextLines(event) : [];
     if (lines.length === 0 && texts.length === 0) return null;
     return (
-      <ul className="flex flex-col gap-0.5 text-sm break-words text-muted-foreground">
+      <ul className="flex flex-col gap-0.5 text-body break-words text-muted-foreground">
         {lines.map((line) => (
           <li key={line}>{line}</li>
         ))}
@@ -187,15 +187,15 @@ function Change({ event }: { event: AuditEvent }) {
   if (event.type === 'STEP_CHECKED' || event.type === 'STEP_UNCHECKED') {
     const step = stepLine(event);
     if (!step) return null;
-    return <p className="text-sm break-words text-muted-foreground">{step}</p>;
+    return <p className="text-body break-words text-muted-foreground">{step}</p>;
   }
   const checklistLine = checklistEditLine(event);
-  if (checklistLine) return <p className="text-sm break-words text-muted-foreground">{checklistLine}</p>;
+  if (checklistLine) return <p className="text-body break-words text-muted-foreground">{checklistLine}</p>;
   if (event.type === 'GARAGE_CHANGE') {
     const garage = changeOf(event, 'garage');
     if (!garage) return null;
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         {garage.before ?? 'No garage'} → {garage.after ?? 'No garage'}
       </p>
     );
@@ -208,7 +208,7 @@ function Detail({ event }: { event: AuditEvent }) {
   return (
     <>
       <Change event={event} />
-      {event.note && <p className="text-sm text-muted-foreground">“{event.note}”</p>}
+      {event.note && <p className="text-body text-muted-foreground">“{event.note}”</p>}
     </>
   );
 }
@@ -225,7 +225,7 @@ export function AuditEventItem({ event, showTicket = true }: { event: AuditEvent
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-          <p className="min-w-0 text-sm leading-6 text-foreground">
+          <p className="min-w-0 text-body leading-6 text-foreground">
             <Sentence event={event} showTicket={showTicket} />
           </p>
           <Tooltip>
@@ -233,7 +233,7 @@ export function AuditEventItem({ event, showTicket = true }: { event: AuditEvent
               <time
                 tabIndex={0}
                 dateTime={event.at}
-                className={cn('shrink-0 text-xs leading-6 whitespace-nowrap text-muted-foreground tabular-nums', FOCUSABLE_TEXT)}
+                className={cn('shrink-0 text-caption leading-6 whitespace-nowrap text-muted-foreground tabular-nums', FOCUSABLE_TEXT)}
               >
                 {formatClockTime(event.at)}
               </time>

@@ -58,11 +58,11 @@ export function IssuesSection({ ticket, canWork, onChanged, onStale, onEditSteps
       }
     >
       {issues.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No issues logged.</p>
+        <p className="text-body text-muted-foreground">No issues logged.</p>
       ) : (
         <div className="flex flex-col">
           {/* AC-6: the ticket's progress at a glance, with no controls */}
-          <p className="border-b border-border pb-2 text-xs text-muted-foreground tabular-nums">{summaryText(summaryCounts(rows))}</p>
+          <p className="border-b border-border pb-2 text-caption text-muted-foreground tabular-nums">{summaryText(summaryCounts(rows))}</p>
           <Accordion type="multiple" value={view.open} onValueChange={view.setOpen} className="flex flex-col divide-y divide-border">
             {rows.map(({ issue, steps, state }, index) => (
               <IssueRow

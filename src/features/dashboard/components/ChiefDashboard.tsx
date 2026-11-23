@@ -35,7 +35,7 @@ function FloorLine({ summary, extra }: { summary: TeamSummary | undefined; extra
     : extra;
   if (parts.length === 0) return null;
   return (
-    <p className="text-sm text-muted-foreground tabular-nums">
+    <p className="text-body text-muted-foreground tabular-nums">
       {parts.map((part, index) => (
         <span key={part}>
           {index > 0 && <span aria-hidden="true"> · </span>}
@@ -52,18 +52,18 @@ function SignOffSummary({ count, oldest, now }: { count: number; oldest: RepairT
     return (
       <div className="flex items-center gap-3">
         <CircleCheck aria-hidden="true" className="size-6 shrink-0 text-status-completed-fg" />
-        <p className="text-lg font-semibold text-foreground">Nothing waiting for verification.</p>
+        <p className="text-subheading font-semibold text-foreground">Nothing waiting for verification.</p>
       </div>
     );
   }
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-col gap-1.5">
-        <p className="flex flex-wrap items-baseline gap-x-3 text-lg font-semibold text-foreground">
-          <span className="text-4xl font-semibold tracking-tight text-foreground tabular-nums">{count}</span>
+        <p className="flex flex-wrap items-baseline gap-x-3 text-subheading font-semibold text-foreground">
+          <span className="font-mono text-display font-semibold text-foreground">{count}</span>
           {count === 1 ? 'repair waiting for verification' : 'repairs waiting for verification'}
         </p>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-muted-foreground">
           Oldest
           <PlateChip plate={oldest.vehiclePlate} />
           <span>
@@ -100,13 +100,13 @@ function QueueRow({ ticket, now }: { ticket: RepairTicket; now: number }) {
       >
         <span className="flex items-center gap-3">
           <PlateChip plate={ticket.vehiclePlate} />
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{signOffNames(ticket.mechanics)}</span>
-          <span className={cn('shrink-0 text-xs tabular-nums', WAIT_TONE[tone])}>
+          <span className="min-w-0 flex-1 truncate text-body font-medium text-foreground">{signOffNames(ticket.mechanics)}</span>
+          <span className={cn('shrink-0 text-caption tabular-nums', WAIT_TONE[tone])}>
             {timeInStatus(ticket.statusChangedAt, now)}
           </span>
         </span>
         {ticket.issueDescription && (
-          <span className="line-clamp-1 text-sm text-muted-foreground">{ticket.issueDescription}</span>
+          <span className="line-clamp-1 text-body text-muted-foreground">{ticket.issueDescription}</span>
         )}
       </Link>
     </li>
@@ -154,7 +154,7 @@ export function ChiefDashboard() {
       <header className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <h1 className="text-title text-foreground">Dashboard</h1>
-          {state === 'ready' && <p className="text-sm text-muted-foreground">{todayLabel(fetchedAt)}</p>}
+          {state === 'ready' && <p className="text-body text-muted-foreground">{todayLabel(fetchedAt)}</p>}
         </div>
         {state === 'ready' && <LastUpdated fetchedAt={fetchedAt} refreshFailed={refreshFailed} />}
       </header>
@@ -175,7 +175,7 @@ export function ChiefDashboard() {
 
           <section
             aria-label="At a glance"
-            className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 md:p-6"
+            className="flex flex-col gap-4 rounded-2xl border border-transparent bg-card p-4 shadow-card md:p-5"
           >
             <SignOffSummary count={derived.queueCount} oldest={derived.queue[0]} now={fetchedAt} />
             <div className="border-t border-border pt-4">

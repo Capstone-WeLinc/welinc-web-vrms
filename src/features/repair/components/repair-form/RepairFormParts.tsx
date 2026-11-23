@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function FieldSkeleton({ label }: { label: string }) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm font-medium">{label}</p>
+      <p className="text-body font-medium">{label}</p>
       <Skeleton className="h-11 w-full md:h-10" />
       <span className="sr-only">Loading {label.toLowerCase()}</span>
     </div>
@@ -16,7 +16,7 @@ export function FieldSkeleton({ label }: { label: string }) {
 /** A list that failed to load, with a retry for that list only (AC-15). */
 export function ListError({ message, retrying, onRetry }: { message: string; retrying: boolean; onRetry: () => void }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-destructive">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-destructive">
       <span className="flex items-center gap-1.5">
         <AlertCircle aria-hidden="true" className="size-3.5 shrink-0" />
         {message}

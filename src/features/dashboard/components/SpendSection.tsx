@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { PhilippinePeso, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KpiCard } from '../../../components/shared/KpiCard';
@@ -28,8 +27,8 @@ export function SpendSection({ tickets, now }: SpendSectionProps) {
       <Tabs value={timeframe} onValueChange={(value) => setTimeframe(value as SpendTimeframe)} className="gap-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Repair spend</h2>
-            <p className="text-sm text-muted-foreground">By ticket created date, cancelled tickets left out</p>
+            <h2 className="text-subheading font-semibold text-foreground">Repair spend</h2>
+            <p className="text-body text-muted-foreground">By ticket created date, cancelled tickets left out</p>
           </div>
           {/* Two by two on phones so the four labels never need a scrollbar. */}
           <TabsList
@@ -45,8 +44,8 @@ export function SpendSection({ tickets, now }: SpendSectionProps) {
         </div>
         {TIMEFRAMES.map((option) => (
           <TabsContent key={option.value} value={option.value} className="grid gap-4 sm:grid-cols-2">
-            <KpiCard caption="Total repair cost" value={formatPeso(spend.total)} icon={PhilippinePeso} />
-            <KpiCard caption="Average cost" value={formatPeso(spend.average)} icon={TrendingUp} />
+            <KpiCard caption="Total repair cost" value={formatPeso(spend.total)} />
+            <KpiCard caption="Average cost" value={formatPeso(spend.average)} />
           </TabsContent>
         ))}
       </Tabs>

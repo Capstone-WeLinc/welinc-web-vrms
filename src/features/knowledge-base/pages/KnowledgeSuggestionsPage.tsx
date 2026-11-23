@@ -24,15 +24,15 @@ import { useLoad } from '../hooks/useLoad';
 import { FROM_SUGGESTIONS, groupOrigin, suggestionOrigin } from '../lib/editorOrigin';
 
 const fetchSuggestions = () => getSuggestions();
-const PANEL = 'rounded-xl border border-border bg-card shadow-xs';
+const PANEL = 'rounded-2xl border border-transparent bg-card shadow-card';
 
 function SectionHeading({ id, title, count }: { id: string; title: string; count?: string }) {
   return (
     <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-      <h2 id={id} className="text-base font-semibold text-foreground">
+      <h2 id={id} className="text-group font-semibold text-foreground">
         {title}
       </h2>
-      {count && <p className="text-sm text-muted-foreground tabular-nums">{count}</p>}
+      {count && <p className="text-body text-muted-foreground tabular-nums">{count}</p>}
     </div>
   );
 }
@@ -70,14 +70,14 @@ function MechanicSuggestionRow({
         {change && suggestion.entry && (
           <Link
             to={`/knowledge-base/${suggestion.entry.id}`}
-            className="rounded-sm text-sm font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded-md text-body font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
           >
             {suggestion.entry.name}
           </Link>
         )}
       </div>
-      <p className="text-sm break-words whitespace-pre-line text-foreground">{suggestion.body}</p>
-      <p className="text-xs text-muted-foreground tabular-nums">
+      <p className="text-body break-words whitespace-pre-line text-foreground">{suggestion.body}</p>
+      <p className="text-caption text-muted-foreground tabular-nums">
         {suggestion.createdByEmail} · {formatDateTime(suggestion.createdAt)}
         {suggestion.source && (
           <>

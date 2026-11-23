@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ArrowUpRight, ArrowDownRight, FileText, Download } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
 import type { AnalyticsData } from '../hooks/useAnalyticsData';
-import { EmptyState, PillToggle, SectionGate } from './ChartPrimitives';
+import { EmptyState, KpiCard, PillToggle, SectionGate } from './ChartPrimitives';
 import { downloadMasterCsv, downloadMasterPdf } from '../export';
-import { fmt, tint } from '../utils';
+import { fmt } from '../utils';
 
 const SORT_OPTIONS = ['month', 'spend', 'repairs'] as const;
 type ReportSort = typeof SORT_OPTIONS[number];
@@ -34,10 +35,10 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
 
   const quickStats = [
     ...(costsHidden ? [] : [
-      { label: 'Highest Spend Month', value: trends.length ? trends.reduce((a, b) => (a.total_spend ?? 0) > (b.total_spend ?? 0) ? a : b).month : '—', icon: ArrowUpRight, color: 'var(--danger)' },
-      { label: 'Lowest Spend Month', value: trends.length ? trends.reduce((a, b) => (a.total_spend ?? 0) < (b.total_spend ?? 0) ? a : b).month : '—', icon: ArrowDownRight, color: 'var(--success)' },
+      { label: 'Highest Spend Month', value: trends.length ? trends.reduce((a, b) => (a.total_spend ?? 0) > (b.total_spend ?? 0) ? a : b).month : '—' },
+      { label: 'Lowest Spend Month', value: trends.length ? trends.reduce((a, b) => (a.total_spend ?? 0) < (b.total_spend ?? 0) ? a : b).month : '—' },
     ]),
-    { label: 'Avg Monthly Repairs', value: trends.length ? Math.round(totalRepairsAll / trends.length) : 0, icon: FileText, color: 'var(--primary)' },
+    { label: 'Avg Monthly Repairs', value: trends.length ? Math.round(totalRepairsAll / trends.length) : 0 },
   ];
 
   const toggleMonth = (month: string) => {
@@ -47,48 +48,34 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="premium-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text)' }}>{costsHidden ? 'Monthly Repair Report' : 'Monthly Repair Cost Report'}</span>
-            <div style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginTop: 2 }}>
+            <h3 className="text-subheading text-foreground">{costsHidden ? 'Monthly Repair Report' : 'Monthly Repair Cost Report'}</h3>
+            <p className="mt-0.5 text-small text-muted-foreground">
               {selectedMonths.length > 0
-                ? <span style={{ color: 'var(--highlight)', fontWeight: 700 }}>{selectedMonths.length} of {sortedReport.length} months selected for export</span>
+                ? <span className="font-semibold text-primary">{selectedMonths.length} of {sortedReport.length} months selected for export</span>
                 : 'Select specific months below or export the entire report'}
-            </div>
+            </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <PillToggle options={costsHidden ? COUNT_SORT_OPTIONS : SORT_OPTIONS} value={sort} onChange={setReportSort} labels={SORT_LABELS} size="md" />
+          <div className="flex flex-wrap items-center gap-2">
+            <PillToggle options={costsHidden ? COUNT_SORT_OPTIONS : SORT_OPTIONS} value={sort} onChange={setReportSort} labels={SORT_LABELS} label="Sort the report" />
 
             {selectedMonths.length > 0 && (
-              <button
-                onClick={() => setSelectedMonths([])}
-                style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted-foreground)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-              >
+              <Button type="button" variant="ghost" onClick={() => setSelectedMonths([])}>
                 Clear ({selectedMonths.length})
-              </button>
+              </Button>
             )}
 
-            <button
-              onClick={() => downloadMasterCsv(exportData)}
-              disabled={exportBlocked}
-              title={exportTitle}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--highlight)', color: 'var(--on-accent)', fontSize: '0.8rem', fontWeight: 700, cursor: exportBlocked ? 'not-allowed' : 'pointer', opacity: exportBlocked ? 0.5 : 1, boxShadow: `0 2px 8px ${tint('var(--highlight)', 25)}` }}
-            >
-              <Download size={14} />
+            <Button type="button" onClick={() => downloadMasterCsv(exportData)} disabled={exportBlocked} title={exportTitle}>
+              <Download aria-hidden="true" />
               {selectedMonths.length > 0 ? `Export Selected CSV (${selectedMonths.length})` : 'Export Master CSV'}
-            </button>
+            </Button>
 
-            <button
-              type="button"
-              onClick={() => downloadMasterPdf(exportData)}
-              disabled={exportBlocked}
-              title={exportTitle}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 700, cursor: exportBlocked ? 'not-allowed' : 'pointer', opacity: exportBlocked ? 0.5 : 1 }}
-            >
-              <FileText size={14} color="var(--danger)" />
+            <Button type="button" variant="outline" onClick={() => downloadMasterPdf(exportData)} disabled={exportBlocked} title={exportTitle}>
+              <FileText aria-hidden="true" />
               Export Master PDF Report
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -186,17 +173,9 @@ export function ReportsTab({ summary, trends, vehicles, garageCosts, issueFreq, 
         </SectionGate>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${quickStats.length}, 1fr)`, gap: 14 }}>
-        {quickStats.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="premium-card" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: tint(color, 9), color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon size={18} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)' }}>{value}</div>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {quickStats.map(({ label, value }) => (
+          <KpiCard key={label} label={label} value={value} />
         ))}
       </div>
     </div>

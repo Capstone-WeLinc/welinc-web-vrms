@@ -140,7 +140,7 @@ export function MechanicOpenTickets({ user, onChanged, className = 'mt-5 border-
         id="open-tickets-heading"
         ref={headingRef}
         tabIndex={-1}
-        className="rounded-sm text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="rounded-md text-body font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         Open tickets
         {state.status === 'ready' && (
@@ -149,13 +149,13 @@ export function MechanicOpenTickets({ user, onChanged, className = 'mt-5 border-
       </h3>
 
       {state.status === 'loading' && (
-        <p role="status" className="text-sm text-muted-foreground">
+        <p role="status" className="text-body text-muted-foreground">
           Loading their open tickets…
         </p>
       )}
 
       {state.status === 'error' && (
-        <div role="alert" className="flex flex-wrap items-center gap-2 text-sm">
+        <div role="alert" className="flex flex-wrap items-center gap-2 text-body">
           <span className="text-destructive">{state.message}</span>
           <Button type="button" variant="outline" size="sm" onClick={reload}>
             Try again
@@ -164,7 +164,7 @@ export function MechanicOpenTickets({ user, onChanged, className = 'mt-5 border-
       )}
 
       {state.status === 'ready' && state.data.tickets.length === 0 && (
-        <p role="status" className="text-sm text-muted-foreground">
+        <p role="status" className="text-body text-muted-foreground">
           They have no open tickets.
         </p>
       )}
@@ -181,7 +181,7 @@ export function MechanicOpenTickets({ user, onChanged, className = 'mt-5 border-
                     <PlateChip plate={ticket.plateNumber} />
                     <StatusBadge status={ticket.repairStatus} />
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-caption text-muted-foreground">
                     <Link to={`/repairs/${ticket.id}`} className="whitespace-nowrap underline-offset-4 hover:underline">
                       {ticket.repairNumber}
                     </Link>
@@ -194,7 +194,7 @@ export function MechanicOpenTickets({ user, onChanged, className = 'mt-5 border-
                       type="button"
                       variant="outline"
                       size="touch"
-                      className="flex-1 sm:flex-none md:h-9 md:text-sm"
+                      className="flex-1 sm:flex-none md:h-9 md:text-body"
                       disabled={savingId !== null}
                       loading={savingId === ticket.id}
                       aria-label={`Reassign ${ticket.repairNumber}`}
@@ -206,7 +206,7 @@ export function MechanicOpenTickets({ user, onChanged, className = 'mt-5 border-
                       type="button"
                       variant="ghost"
                       size="touch"
-                      className="flex-1 sm:flex-none md:h-9 md:text-sm"
+                      className="flex-1 sm:flex-none md:h-9 md:text-body"
                       disabled={savingId !== null}
                       aria-label={`Unassign ${user.name} from ${ticket.repairNumber}`}
                       onClick={() => void unassign(ticket, mechanicId)}

@@ -1175,16 +1175,18 @@
      PREMIUM DASHBOARD CUSTOM STYLING
      ========================================================================== */
 
+  /* The Analytics cards, on the Card surface (suite spec 0016, Shape and surfaces). */
   .premium-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 28px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-    transition: border-color 0.2s ease;
+    background: var(--card);
+    border: 1px solid transparent;
+    border-radius: var(--radius-2xl);
+    padding: 16px;
+    box-shadow: var(--shadow-card);
   }
 
-  .premium-card:hover {
-    border-color: rgba(26, 31, 110, 0.25);
+  @media (min-width: 768px) {
+    .premium-card {
+      padding: 20px;
+    }
   }
 }

@@ -52,11 +52,11 @@ export function SendBackBanner({ rejection, now }: SendBackBannerProps) {
         {rejection.remarks}
       </p>
       {cutOff && (
-        <Button type="button" variant="link" aria-expanded={open} aria-controls={remarksId} className="h-auto self-start px-0 py-1 text-xs pointer-coarse:py-3" onClick={() => setOpen((v) => !v)}>
+        <Button type="button" variant="link" aria-expanded={open} aria-controls={remarksId} className="h-auto self-start px-0 py-1 text-caption pointer-coarse:py-3" onClick={() => setOpen((v) => !v)}>
           {open ? 'Show less' : 'Show more'}
         </Button>
       )}
-      <p className="mt-1 text-xs text-muted-strong">
+      <p className="mt-1 text-caption text-muted-strong">
         <time dateTime={rejection.at}>{formatDateTime(rejection.at)}</time>
       </p>
     </Callout>

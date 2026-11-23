@@ -17,7 +17,7 @@ export function EmptyState({ title, description, icon: Icon = Inbox, action }: E
         <EmptyMedia variant="icon" className="text-muted-foreground">
           <Icon aria-hidden="true" />
         </EmptyMedia>
-        <EmptyTitle className="text-base font-semibold text-foreground">{title}</EmptyTitle>
+        <EmptyTitle className="text-group font-semibold text-foreground">{title}</EmptyTitle>
         {description && <EmptyDescription>{description}</EmptyDescription>}
       </EmptyHeader>
       {action && <EmptyContent>{action}</EmptyContent>}

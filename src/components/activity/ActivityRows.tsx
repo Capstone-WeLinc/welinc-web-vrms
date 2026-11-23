@@ -35,7 +35,7 @@ export function ActivityRows({ events, labels, viewer }: ActivityRowsProps) {
     <div className="flex flex-col gap-4">
       {days.map((day) => (
         <section key={day.key} aria-label={day.heading}>
-          <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{day.heading}</h3>
+          <h3 className="mb-1 text-label text-muted-foreground">{day.heading}</h3>
           <ul className="divide-y divide-border">
             {day.events.map((event) => (
               <ActivityRow key={event.id} event={event} labels={labels} viewer={viewer} />
@@ -44,7 +44,7 @@ export function ActivityRows({ events, labels, viewer }: ActivityRowsProps) {
         </section>
       ))}
       {showsPlace && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           Places are approximate.{' '}
           <a href="https://db-ip.com" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
             IP data by DB-IP
@@ -70,14 +70,14 @@ function ActivityRow({ event, labels, viewer }: { event: ActivityEvent; labels: 
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium break-words text-foreground">{eventTitle(event, labels, viewer)}</p>
+        <p className="text-body font-medium break-words text-foreground">{eventTitle(event, labels, viewer)}</p>
         {meta && (
-          <p className="text-xs break-words text-muted-foreground" title={event.userAgent ?? undefined}>
+          <p className="text-caption break-words text-muted-foreground" title={event.userAgent ?? undefined}>
             {meta}
           </p>
         )}
       </div>
-      <time dateTime={event.createdAt} title={manilaFull(event.createdAt)} className="shrink-0 pt-0.5 text-xs tabular-nums text-muted-foreground">
+      <time dateTime={event.createdAt} title={manilaFull(event.createdAt)} className="shrink-0 pt-0.5 text-caption tabular-nums text-muted-foreground">
         {manilaTime(event.createdAt)}
       </time>
     </li>
@@ -118,7 +118,7 @@ export function ActivityShowMore({ hasMore, loading, error, onMore }: ShowMorePr
   return (
     <div className="flex flex-col items-start gap-2">
       {error && (
-        <p role="alert" className="text-xs text-destructive">
+        <p role="alert" className="text-caption text-destructive">
           {error}
         </p>
       )}

@@ -42,7 +42,7 @@ export function SignedInDevicesCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Signed in devices</CardTitle>
+        <CardTitle className="text-group">Signed in devices</CardTitle>
         <CardDescription>Where your WeLinc account is signed in right now. End any device you don’t recognize, then change your password.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -51,7 +51,7 @@ export function SignedInDevicesCard() {
         {state.status === 'ready' && (
           <div className="flex flex-col gap-3">
             <SessionRows sessions={state.sessions} onEnd={(s) => void end(s)} endingSid={endingSid} />
-            {others === 0 && <p className="text-sm text-muted-foreground">No other devices are signed in.</p>}
+            {others === 0 && <p className="text-body text-muted-foreground">No other devices are signed in.</p>}
           </div>
         )}
       </CardContent>

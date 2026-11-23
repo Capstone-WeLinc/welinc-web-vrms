@@ -34,7 +34,7 @@ export function DashboardTicketRow({
             <PlateChip plate={ticket.vehiclePlate} />
             {lead ?? <StatusBadge status={ticket.status} />}
           </span>
-          <span className="flex flex-wrap gap-x-1.5 text-xs text-muted-foreground">
+          <span className="flex flex-wrap gap-x-1.5 text-caption text-muted-foreground">
             <span className="whitespace-nowrap">{ticket.repairNumber}</span>
             {facts.map((fact) => (
               <span

@@ -32,10 +32,10 @@ export function CrashScreen({ code, variant }: CrashScreenProps) {
           <EmptyMedia variant="icon" className="bg-destructive/10 text-destructive">
             <AlertCircle aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle className="text-base font-semibold text-foreground">Something went wrong on this page</EmptyTitle>
+          <EmptyTitle className="text-group font-semibold text-foreground">Something went wrong on this page</EmptyTitle>
           <EmptyDescription>Try reloading. If it keeps happening, send this code to your admin.</EmptyDescription>
           {code && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-body text-muted-foreground">
               Reference <span className="font-mono font-semibold text-foreground select-all">{code}</span>
             </p>
           )}

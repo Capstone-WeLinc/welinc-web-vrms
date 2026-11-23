@@ -56,12 +56,12 @@ function ThresholdField({
       <div className="flex items-start justify-between gap-4 border-t border-border py-4 first:border-t-0 first:pt-0">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Label htmlFor={inputId} className="text-sm font-medium text-foreground">
+            <Label htmlFor={inputId} className="text-body font-medium text-foreground">
               {setting.label}
             </Label>
             {custom && <Badge variant="secondary">Custom</Badge>}
           </div>
-          <p id={helpId} className="mt-1 text-sm text-pretty text-muted-foreground">
+          <p id={helpId} className="mt-1 text-body text-pretty text-muted-foreground">
             {setting.description} Default {setting.default ? 'on' : 'off'}.
           </p>
         </div>
@@ -82,12 +82,12 @@ function ThresholdField({
     <div className="flex flex-col gap-2 border-t border-border py-4 first:border-t-0 first:pt-0 md:flex-row md:items-start md:justify-between md:gap-6">
       <div className="min-w-0 md:flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <Label htmlFor={inputId} className="text-sm font-medium text-foreground">
+          <Label htmlFor={inputId} className="text-body font-medium text-foreground">
             {setting.label}
           </Label>
           {custom && <Badge variant="secondary">Custom</Badge>}
         </div>
-        <p id={helpId} className="mt-1 text-sm text-pretty text-muted-foreground">
+        <p id={helpId} className="mt-1 text-body text-pretty text-muted-foreground">
           {setting.description} Allowed {formatAmount(Number(setting.min))} to {formatAmount(Number(setting.max), setting.unit)}. Default{' '}
           {formatAmount(Number(setting.default), setting.unit)}.
         </p>
@@ -103,10 +103,10 @@ function ThresholdField({
             aria-describedby={error ? `${helpId} ${errorId}` : helpId}
             className="w-24 text-right tabular-nums"
           />
-          <span className="w-20 text-sm text-muted-foreground">{setting.unit}</span>
+          <span className="w-20 text-body text-muted-foreground">{setting.unit}</span>
         </div>
         {error && (
-          <p id={errorId} className="flex items-center gap-1.5 text-xs text-destructive">
+          <p id={errorId} className="flex items-center gap-1.5 text-caption text-destructive">
             <AlertCircle aria-hidden="true" className="size-3.5 shrink-0" />
             {error}
           </p>
@@ -200,7 +200,7 @@ export function ThresholdsSection() {
         return (
           <DetailSection key={group} title={group}>
             {module && !modules[module] && (
-              <p className="-mt-2 flex items-start gap-2 rounded-lg border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
+              <p className="-mt-2 flex items-start gap-2 rounded-lg border border-border bg-muted/50 p-3 text-body text-muted-foreground">
                 <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
                 {MODULE_LABELS[module]} is off. These apply when it is turned back on.
               </p>
@@ -238,12 +238,12 @@ export function ThresholdsSection() {
           aria-label="Unsaved changes"
           // Above the phone tab bar (h-16) when this user has one
           className={cn(
-            'sticky z-10 flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-lg md:flex-row md:items-end',
+            'sticky z-10 flex flex-col gap-3 rounded-xl border border-transparent bg-card p-4 shadow-pop md:flex-row md:items-end',
             hasTabBar ? 'bottom-20 md:bottom-4' : 'bottom-4',
           )}
         >
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <Label htmlFor={noteId} className="text-sm font-medium text-foreground">
+            <Label htmlFor={noteId} className="text-body font-medium text-foreground">
               {changes.length === 0 ? 'Fix the value marked in red' : changes.length === 1 ? '1 value changed' : `${changes.length} values changed`}
               <span className="font-normal text-muted-foreground"> · applies as soon as you save · note (optional)</span>
             </Label>

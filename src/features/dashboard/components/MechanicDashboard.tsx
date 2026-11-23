@@ -59,10 +59,10 @@ export function MechanicDashboard() {
 
           <section aria-labelledby="my-work-heading" className="flex flex-col gap-3">
             <div>
-              <h2 id="my-work-heading" className="text-lg font-semibold text-foreground">
+              <h2 id="my-work-heading" className="text-subheading font-semibold text-foreground">
                 My work
               </h2>
-              <p className="text-sm text-muted-foreground">Overdue first, then by due date.</p>
+              <p className="text-body text-muted-foreground">Overdue first, then by due date.</p>
             </div>
             <TicketAttentionTable
               rows={derived.work}

@@ -87,7 +87,7 @@ export function HistorySection() {
     body = (
       <>
         <ChangeList changes={current.rows} units={units} />
-        {currentMore?.error && <p className="text-sm text-destructive">{currentMore.error}</p>}
+        {currentMore?.error && <p className="text-body text-destructive">{currentMore.error}</p>}
         {current.next && (
           <Button type="button" variant="outline" className="self-start" onClick={loadMore} loading={currentMore?.loading === true}>
             Load more

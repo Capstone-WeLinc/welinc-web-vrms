@@ -19,7 +19,7 @@ interface LibrarySearchBandProps {
   onChange: (patch: Partial<LibraryFilterValues>) => void;
 }
 
-const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
+const LABEL = 'text-label text-muted-foreground';
 export const LIBRARY_SEARCH_ID = 'knowledge-search';
 
 /** Search, category chips and, for editors, status and sort (spec 0007, AC-7). */
@@ -37,7 +37,7 @@ export function LibrarySearchBand({
   const allCount = categoryCounts ? Object.values(categoryCounts).reduce((sum, n) => sum + n, 0) : null;
 
   return (
-    <section role="search" aria-label="Search the knowledge base" className="mb-4 flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-xs md:p-5">
+    <section role="search" aria-label="Search the knowledge base" className="mb-4 flex flex-col gap-4 rounded-2xl border border-transparent bg-card p-4 shadow-card md:p-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Label htmlFor={LIBRARY_SEARCH_ID} className={LABEL}>
@@ -48,7 +48,7 @@ export function LibrarySearchBand({
             <Input
               id={LIBRARY_SEARCH_ID}
               type="search"
-              className="h-11 pr-11 pl-10 text-base"
+              className="h-11 pr-11 pl-10 text-base-input"
               placeholder="Describe the problem, like 'squeal when braking'"
               maxLength={SEARCH_MAX_LENGTH}
               value={searchText}

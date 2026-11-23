@@ -31,7 +31,7 @@ function MoveButton({ photo, moving, onMove }: { photo: Attachment; moving: bool
   return (
     <button
       type="button"
-      className="mx-2 h-10 min-w-34 self-center rounded-md bg-primary-foreground/15 px-3 text-center text-sm font-semibold whitespace-nowrap text-primary-foreground outline-none transition-colors duration-150 hover:bg-primary-foreground/25 focus-visible:ring-2 focus-visible:ring-highlight aria-disabled:opacity-60"
+      className="mx-2 h-10 min-w-34 self-center rounded-md bg-primary-foreground/15 px-3 text-center text-body font-semibold whitespace-nowrap text-primary-foreground outline-none transition-colors duration-150 hover:bg-primary-foreground/25 focus-visible:ring-2 focus-visible:ring-highlight aria-disabled:opacity-60"
       // aria-disabled, not disabled: a disabled button drops keyboard focus out of the viewer
       onClick={() => {
         if (!moving) onMove(photo);
@@ -88,7 +88,7 @@ function LinkError({ onError }: { onError: () => Promise<unknown> }) {
     void onError();
   }, [onError]);
   return (
-    <div role="alert" className="flex max-w-xs flex-col items-center gap-2 p-4 text-center text-sm text-primary-foreground">
+    <div role="alert" className="flex max-w-xs flex-col items-center gap-2 p-4 text-center text-body text-primary-foreground">
       <ImageOff aria-hidden="true" className="size-8" />
       Could not load this photo. Close the viewer and open it again.
     </div>

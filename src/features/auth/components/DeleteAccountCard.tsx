@@ -60,7 +60,7 @@ export function DeleteAccountCard() {
   return (
     <Card className="border-destructive/30">
       <CardHeader>
-        <CardTitle className="text-base text-destructive">Delete account</CardTitle>
+        <CardTitle className="text-group text-destructive">Delete account</CardTitle>
         <CardDescription>Ask an admin to close your WeLinc account and erase your personal data.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -68,7 +68,7 @@ export function DeleteAccountCard() {
 
         {state.status === 'error' && (
           <>
-            <p className="text-sm text-muted-foreground">We couldn’t check for a deletion request.</p>
+            <p className="text-body text-muted-foreground">We couldn’t check for a deletion request.</p>
             <Button variant="outline" onClick={() => { setState({ status: 'loading' }); setAttempt((n) => n + 1); }}>
               Try again
             </Button>
@@ -77,7 +77,7 @@ export function DeleteAccountCard() {
 
         {view?.kind === 'none' && (
           <>
-            <p className="text-sm text-muted-foreground">An admin reviews it first. Until then you can cancel.</p>
+            <p className="text-body text-muted-foreground">An admin reviews it first. Until then you can cancel.</p>
             <Button variant="destructive" className="w-full sm:w-auto" onClick={openDialog}>
               Delete account
             </Button>
@@ -86,7 +86,7 @@ export function DeleteAccountCard() {
 
         {view?.kind === 'pending' && (
           <>
-            <p className="text-sm" role="status">
+            <p className="text-body" role="status">
               You asked to delete your account on <strong>{formatManilaDay(view.requestedAt)}</strong>. An admin
               is reviewing it.
             </p>
@@ -98,7 +98,7 @@ export function DeleteAccountCard() {
 
         {view?.kind === 'rejected' && (
           <>
-            <div className="text-sm">
+            <div className="text-body">
               <p>
                 Your request was not approved
                 {view.decidedAt ? ` on ${formatManilaDay(view.decidedAt)}` : ''}.

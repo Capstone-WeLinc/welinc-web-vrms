@@ -39,7 +39,7 @@ export function ChangePasswordForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Change password</CardTitle>
+        <CardTitle className="text-group">Change password</CardTitle>
         <CardDescription>Pick one you don’t use for anything else.</CardDescription>
       </CardHeader>
       <CardContent>

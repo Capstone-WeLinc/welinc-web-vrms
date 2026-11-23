@@ -27,10 +27,10 @@ interface RepairSummaryDialogProps {
 function Row({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1 border-b border-border py-3 last:border-b-0 sm:flex-row sm:gap-4">
-      <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase sm:w-28 sm:shrink-0 sm:pt-0.5">
+      <dt className="text-label text-muted-foreground sm:w-28 sm:shrink-0 sm:pt-0.5">
         {term}
       </dt>
-      <dd className="min-w-0 text-sm text-foreground">{children}</dd>
+      <dd className="min-w-0 text-body text-foreground">{children}</dd>
     </div>
   );
 }
@@ -61,10 +61,10 @@ export function RepairSummaryDialog({
       finalFocusRef={finalFocusRef}
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={saving} onClick={onCancel}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={saving} onClick={onCancel}>
             Keep editing
           </Button>
-          <Button type="button" size="touch" className="md:h-10 md:text-sm" loading={saving} disabled={!!jump && !jumpConfirmed} onClick={onConfirm}>
+          <Button type="button" size="touch" className="md:h-10 md:text-body" loading={saving} disabled={!!jump && !jumpConfirmed} onClick={onConfirm}>
             Create ticket
           </Button>
         </>
@@ -99,7 +99,7 @@ export function RepairSummaryDialog({
                 <AlertTriangle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
                 {jump.message}
               </p>
-              <label className="mt-2 flex min-h-11 items-center gap-2 text-sm md:min-h-0">
+              <label className="mt-2 flex min-h-11 items-center gap-2 text-body md:min-h-0">
                 <Checkbox checked={jumpConfirmed} onCheckedChange={(checked) => onJumpConfirmedChange(checked === true)} />
                 The reading is right
               </label>

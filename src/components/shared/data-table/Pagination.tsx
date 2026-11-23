@@ -22,13 +22,13 @@ export function Pagination({
 
   return (
     <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
-      <p className="text-sm text-muted-foreground tabular-nums">{pageInfo(page, last)}</p>
+      <p className="text-body text-muted-foreground tabular-nums">{pageInfo(page, last)}</p>
       <div className="flex flex-wrap items-center gap-2">
         <GoToPageInput currentPage={page} totalPages={last} onPageChange={onPageChange} />
         <Button
           variant="outline"
           size="touch"
-          className="md:h-9 md:px-3 md:text-sm"
+          className="md:h-9 md:px-3 md:text-body"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
@@ -38,7 +38,7 @@ export function Pagination({
         <Button
           variant="outline"
           size="touch"
-          className="md:h-9 md:px-3 md:text-sm"
+          className="md:h-9 md:px-3 md:text-body"
           disabled={page >= last}
           onClick={() => onPageChange(page + 1)}
         >

@@ -38,7 +38,7 @@ export function PageHeader({ title, context, crumb, action }: PageHeaderProps) {
               )}
               {page && (
                 <li className="truncate">
-                  <Link to={page.to} className="rounded-sm hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                  <Link to={page.to} className="rounded-md hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
                     {page.label}
                   </Link>
                 </li>

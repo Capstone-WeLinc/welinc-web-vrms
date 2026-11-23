@@ -132,7 +132,7 @@ export function RepairDetailPage() {
       <div>
         <BackLink to="/repairs" label="Back to repairs" />
         <PageHeader title="Repair ticket" />
-        <div className="rounded-xl border border-border bg-card shadow-xs">{body}</div>
+        <div className="rounded-2xl border border-transparent bg-card shadow-card">{body}</div>
       </div>
     );
   }

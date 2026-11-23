@@ -255,7 +255,7 @@ export function KnowledgeEditorPage() {
       <div>
         <BackLink to="/knowledge-base" label="Knowledge base" />
         <PageHeader title={isNew ? 'New entry' : 'Edit entry'} />
-        <div className="rounded-xl border border-border bg-card shadow-xs">
+        <div className="rounded-2xl border border-transparent bg-card shadow-card">
           {notFound ? (
             <EmptyState
               icon={SearchX}

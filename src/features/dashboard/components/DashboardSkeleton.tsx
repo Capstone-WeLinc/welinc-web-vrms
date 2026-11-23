@@ -29,7 +29,7 @@ export function DashboardSkeleton({ admin, tiles = true }: { admin: boolean; til
       )}
       <div className="flex flex-col gap-3">
         <Skeleton className="h-6 w-48" />
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+        <div className="flex flex-col gap-3 rounded-2xl border border-transparent bg-card p-4 shadow-card">
           {Array.from({ length: 4 }, (_, index) => (
             <Skeleton key={index} className="h-10 w-full" />
           ))}

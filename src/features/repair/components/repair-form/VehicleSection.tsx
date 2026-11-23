@@ -144,7 +144,7 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
               />
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground"
+                className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-body text-muted-foreground"
               >
                 km
               </span>

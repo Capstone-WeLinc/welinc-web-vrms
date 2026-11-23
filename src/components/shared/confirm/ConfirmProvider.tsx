@@ -66,7 +66,7 @@ function ConfirmDialog({ request }: { request: ConfirmRequest }) {
           <fieldset className="flex flex-col gap-2">
             <legend className="sr-only">{options.title}</legend>
             {options.choices.map((item) => (
-              <label key={item.value} className="flex items-center gap-2 text-sm">
+              <label key={item.value} className="flex items-center gap-2 text-body">
                 <input
                   type="radio"
                   name={groupName}

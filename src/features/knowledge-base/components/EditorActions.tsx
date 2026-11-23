@@ -12,7 +12,7 @@ interface EditorActionsProps {
 }
 
 // Narrower padding below 768px, so three buttons fit side by side at 375px.
-const SIZE = 'min-w-0 flex-1 px-3 md:flex-none md:px-5 lg:h-10 lg:text-sm';
+const SIZE = 'min-w-0 flex-1 px-3 md:flex-none md:px-5 lg:h-10 lg:text-body';
 
 function Actions({ isNew, saving, onCancel, onSave, className }: Omit<EditorActionsProps, 'aboveTabBar'> & { className?: string }) {
   const busy = saving !== null;

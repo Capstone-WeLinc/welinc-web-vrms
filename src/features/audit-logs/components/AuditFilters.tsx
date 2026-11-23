@@ -14,7 +14,7 @@ interface AuditFiltersProps {
   onChange: (value: AuditFilterValues) => void;
 }
 
-const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
+const LABEL = 'text-label text-muted-foreground';
 
 export function AuditFilters({ value, actors, rangeError, onChange }: AuditFiltersProps) {
   const set = (patch: Partial<AuditFilterValues>) => onChange({ ...value, ...patch });

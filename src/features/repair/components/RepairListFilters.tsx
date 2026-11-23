@@ -22,7 +22,7 @@ interface RepairListFiltersProps {
   onChange: (patch: Partial<RepairListFilterValues>) => void;
 }
 
-const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
+const LABEL = 'text-label text-muted-foreground';
 
 export function RepairListFilters({ value, searchText, garages, mechanics, onSearchTextChange, onChange }: RepairListFiltersProps) {
   return (
@@ -112,7 +112,7 @@ export function RepairListFilters({ value, searchText, garages, mechanics, onSea
 
       <div className="flex h-10 items-center gap-2 sm:self-end">
         <Switch id="repairs-overdue" checked={value.overdue} onCheckedChange={(overdue) => onChange({ overdue })} />
-        <Label htmlFor="repairs-overdue" className="text-sm font-medium text-foreground">
+        <Label htmlFor="repairs-overdue" className="text-body font-medium text-foreground">
           Overdue only
         </Label>
       </div>

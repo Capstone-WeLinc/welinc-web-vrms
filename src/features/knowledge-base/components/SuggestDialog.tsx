@@ -67,10 +67,10 @@ export function SuggestDialog({ open, onOpenChange, kind, entryId, repairIssueId
       }
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={isSubmitting} onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={isSubmitting} onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" loading={isSubmitting}>
+          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-body" loading={isSubmitting}>
             Send suggestion
           </Button>
         </>
@@ -83,7 +83,7 @@ export function SuggestDialog({ open, onOpenChange, kind, entryId, repairIssueId
           label={change ? 'What should change?' : 'What should the entry cover?'}
           required
           description="5 to 1000 characters."
-          render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={5} maxLength={BODY_MAX} className="text-base md:text-sm" />}
+          render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={5} maxLength={BODY_MAX} className="text-base-input md:text-body" />}
         />
         {error && <FormAlert message={error} />}
       </form>

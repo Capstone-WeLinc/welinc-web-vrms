@@ -19,7 +19,7 @@ export function RecentActivityCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Recent activity</CardTitle>
+        <CardTitle className="text-group">Recent activity</CardTitle>
         <CardDescription>Sign ins, devices and changes to your account across WeLinc. If something wasn’t you, end that device above and change your password.</CardDescription>
       </CardHeader>
       <CardContent>

@@ -117,7 +117,7 @@ function IssueCard({ control, index, canRemove, onRemove, categories, entries, s
   return (
     <li className="flex flex-col gap-4 rounded-lg border border-border p-4">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">Issue {number}</h3>
+        <h3 className="text-body font-semibold">Issue {number}</h3>
         {canRemove && (
           <Button
             type="button"
@@ -160,7 +160,7 @@ function IssueCard({ control, index, canRemove, onRemove, categories, entries, s
           )}
           {entries.failed && <ListError message="Couldn’t load common issues." retrying={entries.retrying} onRetry={entries.retry} />}
           {picked && estimateLine(picked) && (
-            <p className="flex items-start gap-1.5 text-xs text-muted-foreground tabular-nums">
+            <p className="flex items-start gap-1.5 text-caption text-muted-foreground tabular-nums">
               <Info aria-hidden="true" className="mt-px size-3.5 shrink-0" />
               {estimateLine(picked)}
             </p>
@@ -225,7 +225,7 @@ function IssueCard({ control, index, canRemove, onRemove, categories, entries, s
           ) : (
             <span />
           )}
-          <p className={cn('text-xs tabular-nums', length > DESCRIPTION_WARN_AT ? 'text-destructive' : 'text-muted-foreground')}>
+          <p className={cn('text-caption tabular-nums', length > DESCRIPTION_WARN_AT ? 'text-destructive' : 'text-muted-foreground')}>
             {length} / {DESCRIPTION_LIMIT}
           </p>
         </div>
@@ -269,7 +269,7 @@ export function IssueLoggingSection({ control, categories, entries, setValue, ge
           type="button"
           variant="outline"
           size="touch"
-          className="md:h-10 md:text-sm"
+          className="md:h-10 md:text-body"
           disabled={atLimit}
           aria-describedby="issues-limit"
           onClick={() => append(emptyIssue(), { shouldFocus: true, focusName: `issues.${fields.length}.${firstField}` })}

@@ -32,8 +32,8 @@ function TruckLine({ chip }: { chip: TeamChip }) {
         className="flex min-h-11 items-center gap-3 rounded-md px-2 py-1.5 outline-none transition-colors duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none md:min-h-9"
       >
         <PlateChip plate={chip.ticket.vehiclePlate} />
-        <span className="min-w-0 flex-1 truncate text-sm text-foreground">{chip.status}</span>
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+        <span className="min-w-0 flex-1 truncate text-body text-foreground">{chip.status}</span>
+        <span className="shrink-0 text-caption text-muted-foreground tabular-nums">
           {chip.overdue ? <span className="font-medium text-destructive">{chip.overdue}</span> : chip.time}
         </span>
       </Link>
@@ -134,9 +134,9 @@ function PersonRow({
             )}
           />
           <span className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-medium text-foreground">{person.name}</span>
+            <span className="truncate text-body font-medium text-foreground">{person.name}</span>
             {sub.length > 0 && (
-              <span className="truncate text-xs text-muted-foreground">
+              <span className="truncate text-caption text-muted-foreground">
                 {sub.map((part, index) => (
                   <span key={part.key}>
                     {index > 0 && <span aria-hidden="true"> · </span>}
@@ -147,12 +147,12 @@ function PersonRow({
             )}
           </span>
         </span>
-        <span className="order-2 w-8 text-right text-sm font-medium text-foreground tabular-nums sm:order-3">{total}</span>
+        <span className="order-2 w-8 text-right text-body font-medium text-foreground tabular-nums sm:order-3">{total}</span>
         <span className="order-3 flex basis-full items-center sm:order-2 sm:flex-1 sm:basis-auto">
           <WorkloadBar mix={mix} scale={scale} />
           <span className="sr-only">{describe(mix)}</span>
         </span>
-        <span className={cn('order-4 basis-full truncate text-xs sm:w-32 sm:basis-auto', note?.className)}>{note?.text}</span>
+        <span className={cn('order-4 basis-full truncate text-caption sm:w-32 sm:basis-auto', note?.className)}>{note?.text}</span>
       </button>
       {expanded && (
         <div id={panelId} className="flex flex-col gap-1 px-4 pb-3 sm:pl-11 md:pr-5">
@@ -191,9 +191,9 @@ function FreeList({ people, shared }: { people: MechanicRosterRow[]; shared: Rea
         >
           <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-status-completed-fg" />
           <span className="flex min-w-0 flex-col">
-            <span className="truncate text-sm text-foreground">{row.name}</span>
+            <span className="truncate text-body text-foreground">{row.name}</span>
             {row.email && showsEmail(row, shared) && (
-              <span className="truncate text-xs text-muted-foreground">{row.email}</span>
+              <span className="truncate text-caption text-muted-foreground">{row.email}</span>
             )}
           </span>
         </li>
@@ -219,7 +219,7 @@ function TeamSkeleton() {
 
 function Legend() {
   return (
-    <ul aria-hidden="true" className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-4 py-2 text-xs text-muted-foreground md:px-5">
+    <ul aria-hidden="true" className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-4 py-2 text-caption text-muted-foreground md:px-5">
       {SEGMENTS.map((segment) => (
         <li key={segment.key} className="flex items-center gap-1.5">
           <span className={cn('size-2 rounded-full', segment.className)} />

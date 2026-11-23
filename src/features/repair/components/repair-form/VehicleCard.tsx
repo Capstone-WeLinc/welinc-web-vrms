@@ -24,7 +24,7 @@ export function VehicleCard({ state }: { state: VehicleSummaryState }) {
   }
   if (failed) {
     return (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground sm:col-span-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body text-muted-foreground sm:col-span-2">
         Couldn’t load the vehicle details.
         <Button type="button" variant="link" size="sm" className="h-auto min-h-11 px-0 md:min-h-0" loading={retrying} onClick={retry}>
           {!retrying && <RotateCw aria-hidden="true" />}
@@ -45,7 +45,7 @@ export function VehicleCard({ state }: { state: VehicleSummaryState }) {
           </Link>
         </Callout>
       )}
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border border-border bg-secondary/40 p-3 text-sm sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border border-border bg-secondary/40 p-3 text-body sm:grid-cols-3">
         <Fact term="Model">{summary.model}</Fact>
         <Fact term="Type">{summary.type?.name ?? 'Not set'}</Fact>
         <Fact term="Status">
@@ -55,7 +55,7 @@ export function VehicleCard({ state }: { state: VehicleSummaryState }) {
         <Fact term="Last repair">{summary.lastRepairAt ? formatShortDate(summary.lastRepairAt) : 'None yet'}</Fact>
       </dl>
       {summary.status === 'DISABLED' && (
-        <p className="text-xs text-muted-foreground">This truck is Disabled. It goes back to Disabled after the repair.</p>
+        <p className="text-caption text-muted-foreground">This truck is Disabled. It goes back to Disabled after the repair.</p>
       )}
     </div>
   );
@@ -64,7 +64,7 @@ export function VehicleCard({ state }: { state: VehicleSummaryState }) {
 function Fact({ term, children }: { term: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs text-muted-foreground">{term}</dt>
+      <dt className="text-caption text-muted-foreground">{term}</dt>
       <dd className="break-words font-medium">{children}</dd>
     </div>
   );

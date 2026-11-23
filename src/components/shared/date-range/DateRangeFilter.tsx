@@ -20,7 +20,7 @@ export function DateRangeFilter({ value, onChange, error }: DateRangeFilterProps
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`${id}-preset`} className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        <Label htmlFor={`${id}-preset`} className="text-label text-muted-foreground">
           Date range
         </Label>
         <Select value={value.preset} onValueChange={(preset) => onChange({ ...value, preset: preset as DatePreset })}>
@@ -45,7 +45,7 @@ export function DateRangeFilter({ value, onChange, error }: DateRangeFilterProps
           <div className="grid grid-cols-2 gap-2">
             {(['from', 'to'] as const).map((field) => (
               <div key={field} className="flex min-w-0 flex-col gap-1.5">
-                <Label htmlFor={`${id}-${field}`} className="text-xs font-medium text-muted-foreground">
+                <Label htmlFor={`${id}-${field}`} className="text-caption font-medium text-muted-foreground">
                   {field === 'from' ? 'From' : 'To'}
                 </Label>
                 <Input
@@ -61,7 +61,7 @@ export function DateRangeFilter({ value, onChange, error }: DateRangeFilterProps
             ))}
           </div>
           {error && (
-            <p id={errorId} role="alert" className="flex items-center gap-1.5 text-xs text-destructive">
+            <p id={errorId} role="alert" className="flex items-center gap-1.5 text-caption text-destructive">
               <AlertCircle aria-hidden="true" className="size-4" />
               {error}
             </p>

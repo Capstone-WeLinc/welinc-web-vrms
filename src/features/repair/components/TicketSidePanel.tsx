@@ -73,8 +73,8 @@ function MoreActions({ ticketId, cancel, onCancel }: { ticketId: string; cancel:
 function StatusRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline gap-3">
-      <dt className="w-16 shrink-0 text-sm text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 text-sm text-foreground">{children}</dd>
+      <dt className="w-16 shrink-0 text-body text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-body text-foreground">{children}</dd>
     </div>
   );
 }
@@ -83,7 +83,7 @@ function StatusRow({ label, children }: { label: string; children: ReactNode }) 
 function BlockedReason({ id, actions, onPhotos }: { id: string; actions: TicketActions; onPhotos: () => void }) {
   if (!actions.blocked) return null;
   return (
-    <p id={id} className="text-sm text-muted-foreground">
+    <p id={id} className="text-body text-muted-foreground">
       {actions.blockedBy ? (
         <Button type="button" variant="link" className="h-auto min-h-11 p-0 text-left whitespace-normal lg:min-h-0" onClick={onPhotos}>
           {actions.blocked}
@@ -140,9 +140,9 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
             </time>
             {/* Under the date, never trailing it */}
             {due.overdue ? (
-              <span className="block text-xs font-medium text-destructive">{due.note ?? 'Past due'}</span>
+              <span className="block text-caption font-medium text-destructive">{due.note ?? 'Past due'}</span>
             ) : (
-              due.note && <span className="block text-xs text-muted-foreground">{due.note}</span>
+              due.note && <span className="block text-caption text-muted-foreground">{due.note}</span>
             )}
           </StatusRow>
         )}
@@ -154,7 +154,7 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
   const reason = <BlockedReason id={blockedId} actions={actions} onPhotos={onPhotosBlocked} />;
 
   const body = readOnly ? (
-    <div className="flex flex-col items-start gap-1 text-sm text-muted-foreground">
+    <div className="flex flex-col items-start gap-1 text-body text-muted-foreground">
       <p>View only</p>
       {hasButton && (
         <Button asChild variant="link" className="h-auto px-0">
@@ -164,7 +164,7 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
     </div>
   ) : (
     <div className="flex flex-col gap-2">
-      {actions.note && <p className="text-sm text-muted-foreground">{actions.note}</p>}
+      {actions.note && <p className="text-body text-muted-foreground">{actions.note}</p>}
       {/* The line leaves the primary and Return to mechanic to the fixed bar, so its reason stands alone;
           without a primary the bar has nothing, so Return stays. */}
       {line && reason}
@@ -174,7 +174,7 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
           {primary && !line && (
             <Button
               size="touch"
-              className="w-full min-w-0 flex-1 lg:h-10 lg:text-sm"
+              className="w-full min-w-0 flex-1 lg:h-10 lg:text-body"
               onClick={onPrimary}
               disabled={!!actions.blocked}
               aria-describedby={actions.blocked ? blockedId : undefined}
@@ -183,7 +183,7 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
             </Button>
           )}
           {secondary && (
-            <Button variant="outline" size="touch" className="w-full min-w-0 flex-1 lg:h-10 lg:text-sm" onClick={onSecondary}>
+            <Button variant="outline" size="touch" className="w-full min-w-0 flex-1 lg:h-10 lg:text-body" onClick={onSecondary}>
               {secondary.label}
             </Button>
           )}
@@ -254,7 +254,7 @@ function DriverValue({ ticket }: { ticket: RepairTicket }) {
       {ticket.driverName}
       {/* Sent with the cost record only (ticket.costs.view) */}
       {ticket.driverIsVerified != null && (
-        <span className={cn('inline-flex items-center gap-1 text-xs font-medium', ticket.driverIsVerified ? 'text-success' : 'text-muted-foreground')}>
+        <span className={cn('inline-flex items-center gap-1 text-caption font-medium', ticket.driverIsVerified ? 'text-success' : 'text-muted-foreground')}>
           {ticket.driverIsVerified ? <BadgeCheck aria-hidden="true" className="size-3.5" /> : <CircleAlert aria-hidden="true" className="size-3.5" />}
           {ticket.driverIsVerified ? 'Verified' : 'Not verified'}
         </span>
@@ -271,7 +271,7 @@ function DetailsGroup({ title, children }: { title: string; children: ReactNode 
   const id = useId();
   return (
     <section aria-labelledby={id} className="flex flex-col gap-3">
-      <h3 id={id} className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <h3 id={id} className="text-label text-muted-foreground">
         {title}
       </h3>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3">{children}</dl>
@@ -357,7 +357,7 @@ export function PeopleCard({ ticket, action }: { ticket: RepairTicket; action?: 
           <DetailItem label="Verified by">
             <span className="block">{ticket.verifiedByName}</span>
             {ticket.verifiedAt && (
-              <time dateTime={ticket.verifiedAt} className="block text-xs text-muted-foreground">
+              <time dateTime={ticket.verifiedAt} className="block text-caption text-muted-foreground">
                 {formatDateTime(ticket.verifiedAt)}
               </time>
             )}

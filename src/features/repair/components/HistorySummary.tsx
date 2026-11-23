@@ -1,4 +1,3 @@
-import { Archive, CheckCircle2, PhilippinePeso, XCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -37,13 +36,13 @@ export function HistorySummary({ summary, showSpend }: HistorySummaryProps) {
   return (
     <section aria-label="Totals for these filters" className={grid}>
       <div className={cn('col-span-2 *:h-full', showSpend ? 'sm:col-span-1' : 'lg:col-span-1')}>
-        <KpiCard caption="Finished" value={summary.finished.toLocaleString('en-US')} icon={Archive} />
+        <KpiCard caption="Finished" value={summary.finished.toLocaleString('en-US')} />
       </div>
-      <KpiCard caption="Closed" value={summary.closed.toLocaleString('en-US')} icon={CheckCircle2} tone="success" />
-      <KpiCard caption="Cancelled" value={summary.cancelled.toLocaleString('en-US')} icon={XCircle} />
+      <KpiCard caption="Closed" value={summary.closed.toLocaleString('en-US')} />
+      <KpiCard caption="Cancelled" value={summary.cancelled.toLocaleString('en-US')} />
       {showSpend && summary.spend !== null && (
         <div className="col-span-2 *:h-full sm:col-span-1">
-          <KpiCard caption="Total spend" value={formatPeso(summary.spend)} icon={PhilippinePeso} />
+          <KpiCard caption="Total spend" value={formatPeso(summary.spend)} />
         </div>
       )}
     </section>

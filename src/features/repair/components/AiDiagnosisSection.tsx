@@ -14,7 +14,7 @@ import { Callout } from '../../../components/shared/Callout';
 import { FoldCard } from './FoldCard';
 import { DetailItem } from '../../../components/shared/DetailSection';
 
-const LABEL = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
+const LABEL = 'text-label text-muted-foreground';
 const CONFIDENCE_TEXT: Record<string, string> = {
   High: 'High confidence',
   Moderate: 'Moderate confidence',
@@ -49,7 +49,7 @@ function Feedback({ diagnosisId }: { diagnosisId: string }) {
 
   if (sent) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 text-sm" aria-live="polite">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 text-body" aria-live="polite">
         <p className="inline-flex items-center gap-1.5 font-medium text-success">
           <CircleCheck aria-hidden="true" className="size-4" />
           Thanks, your rating ({rating} out of 5) is saved.
@@ -63,7 +63,7 @@ function Feedback({ diagnosisId }: { diagnosisId: string }) {
 
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-4">
-      <p className="text-sm font-medium text-foreground">Was this diagnosis helpful?</p>
+      <p className="text-body font-medium text-foreground">Was this diagnosis helpful?</p>
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" onClick={() => rate(true, 5)}>
           <ThumbsUp aria-hidden="true" />
@@ -101,7 +101,7 @@ function Results({ data }: { data: Diagnosis }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-caption text-muted-foreground">
         Ran {formatRelativeTime(data.createdAt)} with {data.model}, {(CONFIDENCE_TEXT[data.confidence] ?? `${data.confidence} confidence`).toLowerCase()}
       </p>
 
@@ -123,26 +123,26 @@ function Results({ data }: { data: Diagnosis }) {
 
       <div className="flex flex-col gap-1">
         <h3 className={LABEL}>Summary</h3>
-        <p className="text-sm text-foreground">{diagnosis.summary}</p>
+        <p className="text-body text-foreground">{diagnosis.summary}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-2">
           <h3 className={LABEL}>Probable causes</h3>
           {diagnosis.probableCauses.length ? (
-            <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-sm text-foreground">
+            <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-body text-foreground">
               {diagnosis.probableCauses.map((cause, index) => (
                 <li key={index}>{cause}</li>
               ))}
             </ol>
           ) : (
-            <p className="text-sm text-muted-foreground">None listed.</p>
+            <p className="text-body text-muted-foreground">None listed.</p>
           )}
         </div>
         <div className="flex flex-col gap-2">
           <h3 className={LABEL}>Recommended parts</h3>
           {diagnosis.recommendedParts.length ? (
-            <ul className="flex flex-col divide-y divide-border text-sm">
+            <ul className="flex flex-col divide-y divide-border text-body">
               {diagnosis.recommendedParts.map((part, index) => (
                 <li key={index} className="flex justify-between gap-3 py-1.5">
                   <span className="min-w-0 break-words">{part.partName}</span>
@@ -151,7 +151,7 @@ function Results({ data }: { data: Diagnosis }) {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">No specific parts recommended.</p>
+            <p className="text-body text-muted-foreground">No specific parts recommended.</p>
           )}
         </div>
       </div>
@@ -182,7 +182,7 @@ function Results({ data }: { data: Diagnosis }) {
             <ChevronDown aria-hidden="true" className={cn('transition-transform motion-reduce:transition-none', showSimilar && 'rotate-180')} />
           </Button>
           {showSimilar && (
-            <ul className="flex flex-col divide-y divide-border text-sm">
+            <ul className="flex flex-col divide-y divide-border text-body">
               {similar.map((repair) => (
                 <li key={repair.issueId} className="flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <p className="min-w-0 break-words text-foreground">{repair.description}</p>
@@ -300,7 +300,7 @@ export function AiDiagnosisSection({ ticket }: { ticket: RepairTicket }) {
             </div>
           ) : loaded?.status === 'ready' && !closed ? (
             <div className="flex flex-col items-start gap-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 {hasIssues
                   ? 'Suggests likely causes and parts from this ticket’s issues and similar past repairs.'
                   : 'Log an issue on this ticket to run a diagnosis.'}
@@ -311,7 +311,7 @@ export function AiDiagnosisSection({ ticket }: { ticket: RepairTicket }) {
               </Button>
             </div>
           ) : loaded?.status === 'ready' ? (
-            <p className="text-sm text-muted-foreground">No AI diagnosis was run while this ticket was open.</p>
+            <p className="text-body text-muted-foreground">No AI diagnosis was run while this ticket was open.</p>
           ) : null}
       </div>
     </FoldCard>

@@ -63,7 +63,7 @@ export function ResponsiveDialog({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="max-h-11/12 gap-0" {...focusProps}>
           <SheetHeader className="pr-16">
-            <SheetTitle className="text-xl">{title}</SheetTitle>
+            <SheetTitle className="text-heading">{title}</SheetTitle>
             {description && <SheetDescription>{description}</SheetDescription>}
           </SheetHeader>
           {body}
@@ -77,7 +77,7 @@ export function ResponsiveDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-11/12 flex-col gap-0 p-0" {...focusProps}>
         <DialogHeader className="p-6 pr-16 pb-4 text-left">
-          <DialogTitle className="text-xl">{title}</DialogTitle>
+          <DialogTitle className="text-heading">{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         {body}

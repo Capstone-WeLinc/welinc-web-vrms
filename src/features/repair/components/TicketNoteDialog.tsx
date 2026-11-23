@@ -112,7 +112,7 @@ export function TicketNoteDialog({
       finalFocusRef={finalFocusRef}
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={isSubmitting} onClick={() => changeOpen(false)}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={isSubmitting} onClick={() => changeOpen(false)}>
             {cancelLabel}
           </Button>
           <Button
@@ -120,7 +120,7 @@ export function TicketNoteDialog({
             form={formId}
             variant={destructive ? 'destructive' : 'default'}
             size="touch"
-            className="md:h-10 md:text-sm"
+            className="md:h-10 md:text-body"
             disabled={blocked}
             loading={isSubmitting}
           >

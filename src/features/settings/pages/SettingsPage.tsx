@@ -49,10 +49,10 @@ export function SettingsPage() {
             {isMobile && <BackLink to="/settings" label="All settings" />}
             {current && (
               <div className="mb-4">
-                <h2 ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-foreground outline-none">
+                <h2 ref={headingRef} tabIndex={-1} className="text-heading font-semibold text-foreground outline-none">
                   {current.label}
                 </h2>
-                <p className="mt-1 text-sm text-pretty text-muted-foreground">{current.description}</p>
+                <p className="mt-1 text-body text-pretty text-muted-foreground">{current.description}</p>
               </div>
             )}
             <Outlet />

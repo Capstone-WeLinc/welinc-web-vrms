@@ -66,7 +66,7 @@ export function DataModeToggle() {
         onClick={() => toggleHidden(false)}
         aria-label={`Show dataset switch (${SHORTCUT})`}
         title={`Show dataset switch (${SHORTCUT})`}
-        className={`fixed left-4 z-50 size-3 rounded-full border border-border shadow-sm ${position} ${fixtureOn ? 'bg-highlight' : 'bg-muted'}`}
+        className={`fixed left-4 z-50 size-3 rounded-full border border-border shadow-pop ${position} ${fixtureOn ? 'bg-highlight' : 'bg-muted'}`}
       />
     );
   }
@@ -75,7 +75,7 @@ export function DataModeToggle() {
     // The outer strip keeps a 16px gutter; the pill scrolls inside it on a narrow phone.
     <div className={`pointer-events-none fixed inset-x-4 z-50 flex justify-center ${position}`}>
       <div
-        className="pointer-events-auto flex max-w-full items-center gap-0.5 rounded-full border border-border bg-muted p-0.5 text-xs shadow-md"
+        className="pointer-events-auto flex max-w-full items-center gap-0.5 rounded-full border border-border bg-muted p-0.5 text-caption shadow-pop"
         style={{ fontFamily: 'system-ui, sans-serif' }}
       >
         <div role="radiogroup" aria-label="Dataset" className="flex gap-0.5 overflow-x-auto">
@@ -88,7 +88,7 @@ export function DataModeToggle() {
               onClick={() => mode.value !== current && switchDataMode(mode.value)}
               className={
                 mode.value === current
-                  ? 'rounded-full bg-card px-3 py-1.5 font-medium whitespace-nowrap text-foreground shadow-sm'
+                  ? 'rounded-full bg-card px-3 py-1.5 font-medium whitespace-nowrap text-foreground shadow-card'
                   : 'rounded-full px-3 py-1.5 whitespace-nowrap text-muted-foreground'
               }
             >

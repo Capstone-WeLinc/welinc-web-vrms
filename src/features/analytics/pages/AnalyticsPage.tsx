@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BarChart2, TrendingUp, Wrench, Car, PhilippinePeso, RefreshCw, Clock, Zap, FileText } from 'lucide-react';
+import { BarChart2, Car, RefreshCw, Clock, Zap, FileText } from 'lucide-react';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { useAnalyticsData } from '../hooks/useAnalyticsData';
 import { KpiCard, SectionGate } from '../components/ChartPrimitives';
@@ -68,10 +68,10 @@ export function AnalyticsPage() {
         <SectionGate state={sections.summary} onRetry={() => retry('summary')} height={88}>
           {summary && (
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${costsHidden ? 2 : 4}, 1fr)`, gap: 14 }}>
-              {!costsHidden && <KpiCard label="Total Repair Spend" value={fmt(summary.total_spend)} icon={PhilippinePeso} color="var(--primary)" />}
-              <KpiCard label="Total Repairs" value={summary.total_repairs} icon={Wrench} color="var(--primary)" note={`${totalActiveTickets} currently active`} />
-              <KpiCard label="Vehicles Tracked" value={summary.total_vehicles} icon={Car} color="var(--success)" note={`${completionRate}% completion rate`} />
-              {!costsHidden && <KpiCard label="Avg Cost / Repair" value={fmt(summary.avg_cost_per_repair)} icon={TrendingUp} color="var(--warning)" />}
+              {!costsHidden && <KpiCard label="Total Repair Spend" value={fmt(summary.total_spend)} />}
+              <KpiCard label="Total Repairs" value={summary.total_repairs} note={`${totalActiveTickets} currently active`} />
+              <KpiCard label="Vehicles Tracked" value={summary.total_vehicles} note={`${completionRate}% completion rate`} />
+              {!costsHidden && <KpiCard label="Avg Cost / Repair" value={fmt(summary.avg_cost_per_repair)} />}
             </div>
           )}
         </SectionGate>

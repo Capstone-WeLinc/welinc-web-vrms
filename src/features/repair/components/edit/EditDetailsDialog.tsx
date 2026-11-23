@@ -134,10 +134,10 @@ export function EditDetailsDialog({ open, onOpenChange, ticket, onSave }: EditDe
       description="Fix what was entered wrong. Every change is recorded in the ticket’s activity."
       footer={
         <>
-          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-sm" disabled={isSubmitting} onClick={() => void changeOpen(false)}>
+          <Button type="button" variant="outline" size="touch" className="md:h-10 md:text-body" disabled={isSubmitting} onClick={() => void changeOpen(false)}>
             Cancel
           </Button>
-          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-sm" loading={isSubmitting}>
+          <Button type="submit" form={formId} size="touch" className="md:h-10 md:text-body" loading={isSubmitting}>
             {jumpConfirmed ? 'Confirm and save' : 'Save changes'}
           </Button>
         </>
@@ -161,7 +161,7 @@ export function EditDetailsDialog({ open, onOpenChange, ticket, onSave }: EditDe
           required
           description="It must sit between the readings on this truck’s earlier and later tickets."
           render={({ field, controlProps }) => (
-            <Input {...field} {...controlProps} inputMode="numeric" autoComplete="off" className="h-11 text-base tabular-nums md:h-10 md:text-sm" />
+            <Input {...field} {...controlProps} inputMode="numeric" autoComplete="off" className="h-11 text-base-input tabular-nums md:h-10 md:text-body" />
           )}
         />
         {jumpConfirmed && (
