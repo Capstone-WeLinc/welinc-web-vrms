@@ -21,7 +21,8 @@ function Toaster() {
   return (
     <Sonner
       position={isMobile ? "top-center" : "bottom-right"}
-      visibleToasts={MAX_TOASTS}
+      // The session warning never counts toward the 3 (suite spec 0019, AC-25)
+      visibleToasts={MAX_TOASTS + 1}
       gap={8}
       offset={barShown ? 24 + 88 : 24}
       mobileOffset={8}

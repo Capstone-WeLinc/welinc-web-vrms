@@ -1,4 +1,4 @@
-import { createElement } from 'react';
+import { createElement, type ReactElement } from 'react';
 import { toast, type ExternalToast } from 'sonner';
 import { Toast, type ToastKind } from '../components/ui/toast';
 import { DENIED_MESSAGE, DENIED_TOAST_MS } from '../lib/permissions/keys';
@@ -17,6 +17,12 @@ export const TOAST_MS: Record<ToastType, number> = {
   error: Infinity,
 };
 export const MAX_TOASTS = 3;
+
+/**
+ * Suite spec 0019, AC-25: the session warning's fixed id. It never counts toward MAX_TOASTS (it
+ * is not in `shown`), so the toaster shows one more than the limit.
+ */
+export const SESSION_TOAST_ID = 'session-warning';
 
 export type ToastOptions = {
   /** One optional line under the title. */
@@ -90,6 +96,18 @@ const toastApi = { showToast };
 
 export function useToast() {
   return toastApi;
+}
+
+/**
+ * Suite spec 0019, AC-25: shows the session warning (or redraws it), with no time limit and no
+ * swipe away. `render` reads the auth store itself, so its countdown ticks on its own.
+ */
+export function showSessionToast(render: () => ReactElement) {
+  toast.custom(render, { id: SESSION_TOAST_ID, duration: Infinity, dismissible: false });
+}
+
+export function dismissSessionToast() {
+  toast.dismiss(SESSION_TOAST_ID);
 }
 
 /** Tests only. */
