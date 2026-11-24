@@ -33,7 +33,7 @@ The VRMS web app: a React 19 + Vite 8 + Tailwind 4 SPA where admins and mechanic
 | `src/features/knowledge-base/` | Library, entry, editor and suggestions pages over `/vrms/knowledge`; categories are managed in Settings, Lookup lists |
 | `src/context/toast.ts` | `showToast(message, type, { body, action, id })` and the `useToast()` hook: our `Toast` component through sonner's `toast.custom` (suite spec 0016 AC-11); never call sonner directly. The `<Toaster />` is mounted in `App.tsx` |
 | `src/lib/repairStatus.ts` | The one definition of open and finished ticket statuses (mirrors the backend's `ticket-statuses.ts`); screens read it, never a list of their own |
-| `src/lib/monitoring/`, `src/components/monitoring/` | VRMS spec 0025, Sentry (off with no `VITE_SENTRY_DSN`): `sentry.ts` (init from `main.tsx`, user context set in `session.ts`), `filters.ts` (what may be reported, the per page cap), `chunkReload.ts` (one silent reload when a lazy file vanished after a deploy), `CrashBoundary` and `CrashScreen` (one around the app, one around the page in `DashboardShell`). The `/debug/sentry` test page exists only in builds made with `VITE_SENTRY_TEST_ROUTES=true` |
+| `src/lib/monitoring/`, `src/components/monitoring/` | VRMS spec 0025, Sentry (off with no `VITE_SENTRY_DSN`): `sentry.ts` (init from `main.tsx`, user context set in `session.ts`), `filters.ts` (what may be reported, the per page cap), `chunkReload.ts` (one silent reload when a lazy file vanished after a deploy), `standing.ts` and `crashDetails.ts` (who sees the admin crash screen, and its details text), `CrashBoundary` and `CrashScreen` (one around the app, one around the page in `DashboardShell`). The `/debug/sentry` test page exists only in builds made with `VITE_SENTRY_TEST_ROUTES=true` |
 | `src/features/analytics/` | Analytics page split into `hooks/`, `components/` (one per tab), `utils.ts`, `export.ts` (CSV and PDF) |
 
 ## Commands
@@ -56,7 +56,7 @@ npm run build:local  # typecheck then build with the committed .env.development 
 - Every backend call goes through the axios instance (via a wrapper in `src/lib/api/`), so it carries the token and the 401 handling. Don't use raw `fetch`.
 - In `catch` blocks, leave the error untyped and read it with `getApiErrorMessage`; no `err: any`.
 - Pages are named exports (`export function RepairListPage`). Imports mostly use relative paths; the `@` alias for `src` also works.
-- Never check a role in the UI. Routes, nav and buttons use `<Can I="<key>">` or `useCan(...keys)`; ticket buttons use the ticket's `can` flags (`TicketCan`). Rules with conditions run on the server (spec 0011).
+- Never check a role in the UI. Routes, nav and buttons use `<Can I="<key>">` or `useCan(...keys)`; ticket buttons use the ticket's `can` flags (`TicketCan`). Rules with conditions run on the server (spec 0011). One exception: the crash screen's admin version follows the VRMS `ADMIN` role from the session answer (`src/lib/monitoring/standing.ts`, spec 0025 AC-7a), because a crash can happen before permissions load.
 - Repair updates send `lastUpdatedAt` for optimistic locking; the backend rejects stale writes. Keep sending it on any new update call.
 - `GET /vrms/repairs` may return an array or `{ data, total }`; `getRepairs` normalizes both.
 - Colors: no hex in components (lint fails). Use `var(--token)` in inline styles and the `@theme inline` utilities in `className`; Tailwind's default palette is off. Tint with `color-mix(...)` (`tint()` in `features/analytics/utils.ts`).
