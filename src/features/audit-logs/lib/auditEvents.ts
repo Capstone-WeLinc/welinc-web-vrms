@@ -21,6 +21,9 @@ import {
   Warehouse,
   type LucideIcon,
   Inbox,
+  Undo2,
+  RotateCw,
+  CircleSlash,
 } from 'lucide-react';
 import { ALL_TIME, type DateRangeValue } from '../../../components/shared/date-range/dateRange';
 import { PRIORITY_MAP } from '../../../components/shared/priorityStyles';
@@ -111,6 +114,11 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   STEP_MOVED: { icon: ArrowUpDown, tone: 'bg-primary/10 text-primary' },
   // Spec 0029, AC-8
   REFERRAL_OPENED_TICKET: { icon: Inbox, tone: 'bg-primary/10 text-primary' },
+  // Spec 0029, AC-9, AC-10 and AC-22
+  REFERRAL_ADDED: { icon: Inbox, tone: 'bg-primary/10 text-primary' },
+  REFERRAL_REJECTED: { icon: Undo2, tone: 'bg-muted text-muted-strong' },
+  DELIVERY_RETRIED: { icon: RotateCw, tone: 'bg-primary/10 text-primary' },
+  DELIVERY_DISMISSED: { icon: CircleSlash, tone: 'bg-muted text-muted-strong' },
 };
 
 export function eventStyle(type: string): EventStyle {
@@ -159,7 +167,21 @@ const EVENT_PHRASES: Record<string, EventPhrase> = {
   STEP_MOVED: { verb: 'moved a step on', passive: ['A step was moved on ', ''] },
   // Spec 0029, AC-8
   REFERRAL_OPENED_TICKET: { verb: 'opened', tail: ' from a VMMS referral', passive: ['', ' was opened from a VMMS referral'] },
+  // Spec 0029, AC-9, AC-10 and AC-22. A rejection names its referral instead of a ticket
+  REFERRAL_ADDED: { verb: 'added a VMMS referral to', passive: ['A VMMS referral was added to ', ''] },
+  REFERRAL_REJECTED: { verb: 'sent back', passive: ['', ' was sent back'] },
+  DELIVERY_RETRIED: { verb: 'retried a failed message for', passive: ['A failed message for ', ' was retried'] },
+  DELIVERY_DISMISSED: { verb: 'dismissed a failed message for', passive: ['A failed message for ', ' was dismissed'] },
 };
+
+/**
+ * Spec 0029: what a row about no ticket is about, in place of the repair number: the VMMS
+ * referral's work order ("VMMS referral WO-2026-0042"), or "a VMMS referral" for a message.
+ */
+export function ticketlessSubject(event: Pick<AuditEvent, 'changes'>): string {
+  const referral = changeOf(event, 'referral')?.after;
+  return referral ? `VMMS referral ${referral}` : 'a VMMS referral';
+}
 
 /** The type's wording; an unknown type reads as its raw name. */
 export function eventPhrase(type: string): EventPhrase {

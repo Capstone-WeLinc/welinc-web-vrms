@@ -67,7 +67,7 @@ describe('referralBlocker', () => {
     expect(
       referralBlocker(
         referral({
-          vehicle: { ...referral().vehicle, openTicket: { id: 't1', repairNumber: 'REP-1', repairStatus: 'OPEN' } },
+          vehicle: { ...referral().vehicle, openTicket: { id: 't1', repairNumber: 'REP-1', repairStatus: 'OPEN', updatedAt: '2026-11-27T02:00:00.000Z' } },
         }),
       ),
     ).toContain('REP-1');

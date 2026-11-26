@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
-import { ArrowRight, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, ListPlus, Plus, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -7,17 +8,32 @@ import { ErrorState } from '../../../../components/shared/ErrorState';
 import { PlateChip } from '../../../../components/shared/PlateChip';
 import { formatDateTime } from '../../../../lib/utils/format';
 import { useCan } from '../../../../lib/permissions/usePermissions';
+import { addReferralToTicket, rejectReferral } from '../../../../lib/api/referralsApi';
+import { useToast } from '../../../../context/toast';
+import { TicketNoteDialog } from '../TicketNoteDialog';
+import { AddReferralDialog } from './AddReferralDialog';
 import { useReferral } from '../../hooks/useReferral';
 import { referralBlocker } from '../../lib/referralPrefill';
 import { REFERRAL_STATUS_LABEL } from '../../lib/referrals';
 
 /**
- * Spec 0029, AC-7 and AC-8: one VMMS referral in a side sheet: the work order, the truck, the
- * odometer, every finding and the Chief Mechanic's remarks, with "Open a ticket" when it can.
+ * Spec 0029, AC-7 to AC-11: one VMMS referral in a side sheet: the work order, the truck, the
+ * odometer, every finding and the Chief Mechanic's remarks, with "Open a ticket" or "Add to
+ * REP-…" (by whether the truck has an open ticket) and "Reject", for `integration.respond`.
  */
-export function ReferralSheet({ referralId, onClose }: { referralId: string | null; onClose: () => void }) {
+export function ReferralSheet({
+  referralId,
+  onClose,
+  onDecided,
+}: {
+  referralId: string | null;
+  onClose: () => void;
+  /** After Add or Reject: the list refreshes and the sheet closes. */
+  onDecided: () => void;
+}) {
   const referral = useReferral(referralId);
   const canCreate = useCan('ticket.create');
+  const canRespond = useCan('integration.respond');
 
   return (
     <Sheet open={!!referralId} onOpenChange={(open) => !open && onClose()}>
@@ -48,7 +64,14 @@ export function ReferralSheet({ referralId, onClose }: { referralId: string | nu
         </div>
 
         {referral.state === 'ready' && (
-          <ReferralActions referral={referral.referral} canCreate={canCreate} />
+          <ReferralActions
+            // A fresh dialog state per referral
+            key={referral.referral.id}
+            referral={referral.referral}
+            canCreate={canCreate}
+            canRespond={canRespond}
+            onDecided={onDecided}
+          />
         )}
       </SheetContent>
     </Sheet>
@@ -124,16 +147,50 @@ function ReferralBody({ referral }: { referral: Ready }) {
   );
 }
 
-function ReferralActions({ referral, canCreate }: { referral: Ready; canCreate: boolean }) {
-  if (referral.status !== 'WAITING') return null;
+function ReferralActions({
+  referral,
+  canCreate,
+  canRespond,
+  onDecided,
+}: {
+  referral: Ready;
+  canCreate: boolean;
+  canRespond: boolean;
+  onDecided: () => void;
+}) {
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const [dialog, setDialog] = useState<'add' | 'reject' | null>(null);
+  if (referral.status !== 'WAITING' || !canRespond) return null;
   const open = referral.vehicle.openTicket;
   const blocker = referralBlocker(referral);
+
+  const add = async (issues: Parameters<typeof addReferralToTicket>[1]['issues']) => {
+    if (!open) return;
+    await addReferralToTicket(referral.id, { issues, updatedAt: open.updatedAt });
+    setDialog(null);
+    showToast(`Added to ${open.repairNumber}`, 'success', {
+      body: 'VMMS sees the link to this ticket.',
+      action: { label: 'Open ticket', onClick: () => navigate(`/repairs/${open.id}`) },
+    });
+    onDecided();
+  };
+  const reject = async (reason: string) => {
+    await rejectReferral(referral.id, reason.trim());
+    setDialog(null);
+    showToast('Referral sent back to VMMS', 'success', { body: referral.workOrderNumber });
+    onDecided();
+  };
+
   return (
     <div className="flex flex-col gap-2 border-t border-border p-4 md:px-5">
       {open ? (
         <>
-          <p className="text-small text-muted-foreground">{blocker}</p>
-          <Button asChild variant="outline">
+          <Button onClick={() => setDialog('add')}>
+            <ListPlus aria-hidden="true" />
+            Add to {open.repairNumber}
+          </Button>
+          <Button asChild variant="ghost">
             <Link to={`/repairs/${open.id}`}>
               Open {open.repairNumber}
               <ArrowRight aria-hidden="true" />
@@ -152,6 +209,32 @@ function ReferralActions({ referral, canCreate }: { referral: Ready; canCreate: 
           </Button>
         )
       )}
+      <Button variant="destructive" onClick={() => setDialog('reject')}>
+        <Undo2 aria-hidden="true" />
+        Reject
+      </Button>
+
+      {open && dialog === 'add' && (
+        <AddReferralDialog
+          open
+          onOpenChange={(next) => !next && setDialog(null)}
+          referral={referral}
+          ticket={open}
+          onSave={add}
+        />
+      )}
+      <TicketNoteDialog
+        open={dialog === 'reject'}
+        onOpenChange={(next) => !next && setDialog(null)}
+        title={`Reject ${referral.workOrderNumber}?`}
+        description="VMMS gets the referral back with your reason, and no ticket is opened."
+        fieldLabel="Why"
+        requiredMessage="Say why you’re sending it back."
+        minLength={5}
+        confirmLabel="Reject referral"
+        destructive
+        onSubmit={reject}
+      />
     </div>
   );
 }

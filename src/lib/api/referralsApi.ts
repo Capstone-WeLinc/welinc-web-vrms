@@ -1,4 +1,5 @@
 import api from './axios';
+import type { RepairTicket } from '../../types';
 
 // Spec 0029 (child 0002): VMMS repair referrals, behind `integration.respond`.
 
@@ -45,7 +46,7 @@ export interface ReferralDetail {
     model: string;
     isActive: boolean;
     garage: { id: string; name: string } | null;
-    openTicket: { id: string; repairNumber: string; repairStatus: string } | null;
+    openTicket: { id: string; repairNumber: string; repairStatus: string; updatedAt: string } | null;
   };
 }
 
@@ -60,5 +61,23 @@ export async function getReferrals(
 
 export async function getReferral(id: string) {
   const response = await api.get<ReferralDetail>(`/vrms/referrals/${encodeURIComponent(id)}`);
+  return response.data;
+}
+
+/** One finding as an issue line on the open ticket (AC-9). */
+export interface ReferralIssueLine {
+  description: string;
+  categoryId: string;
+}
+
+/** AC-9: the findings join the truck's open ticket; `updatedAt` is that ticket as loaded. */
+export async function addReferralToTicket(id: string, body: { issues: ReferralIssueLine[]; updatedAt: string }) {
+  const response = await api.post<RepairTicket>(`/vrms/referrals/${encodeURIComponent(id)}/add-to-ticket`, body);
+  return response.data;
+}
+
+/** AC-10: sent back to VMMS with a reason of 5 to 500 characters. */
+export async function rejectReferral(id: string, reason: string) {
+  const response = await api.post<ReferralDetail>(`/vrms/referrals/${encodeURIComponent(id)}/reject`, { reason });
   return response.data;
 }

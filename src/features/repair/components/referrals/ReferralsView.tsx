@@ -108,7 +108,14 @@ export function ReferralsView({ status, onStatusChange, list }: Props) {
         }
       />
 
-      <ReferralSheet referralId={openId} onClose={() => setOpenId(null)} />
+      <ReferralSheet
+        referralId={openId}
+        onClose={() => setOpenId(null)}
+        onDecided={() => {
+          setOpenId(null);
+          list.retry();
+        }}
+      />
     </div>
   );
 }

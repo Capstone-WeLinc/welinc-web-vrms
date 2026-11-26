@@ -211,6 +211,10 @@ export interface RepairTicket {
   fromVmmsWorkOrder?: string | null;
   /** Spec 0029, AC-35: open, and VMMS removed its truck. The Admin cancels it, or VMMS adds the truck back. */
   truckRemoved?: boolean;
+  /** Spec 0029, AC-36: the outside shop the truck went to, from VMMS's list, else null. */
+  outsideShopName?: string | null;
+  /** Spec 0029, AC-36: Outsourced or Pending approval with no shop picked (from before the picker). */
+  needsOutsideShop?: boolean;
   issueDescription: string;
   status: RepairStatus;
   createdAt: string;
@@ -328,7 +332,8 @@ export interface AuditEvent {
   category: string | null;
   at: string;
   actor: { id: string | null; name: string | null; email: string | null; role: string | null } | null;
-  ticket: { id: string; repairNumber: string };
+  /** Null only for a row about no ticket: a VMMS referral rejection or its message (spec 0029). */
+  ticket: { id: string; repairNumber: string } | null;
   changes: AuditChange[];
   /** A reason or comment: the cancel reason, the unlock reason, or the remarks sent with a move. */
   note: string | null;

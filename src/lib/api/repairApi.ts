@@ -220,6 +220,12 @@ export async function addTicketIssue(repairId: string, payload: AddIssuePayload)
   return response.data;
 }
 
+/** Spec 0029, AC-36: the outside shop on a ticket outsourced before the picker existed. */
+export async function pickOutsideShop(repairId: string, payload: TicketEditBase & { vmmsProviderId: string }): Promise<RepairTicket> {
+  const response = await api.put<RepairTicket>(`/vrms/repairs/${repairId}/outside-shop`, payload);
+  return response.data;
+}
+
 /** PATCH /issues/:issueId: the system and the text after "[System] " (spec 0019, AC-15). */
 export async function editTicketIssue(
   repairId: string,

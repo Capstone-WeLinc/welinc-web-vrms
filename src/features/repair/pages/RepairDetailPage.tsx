@@ -14,6 +14,7 @@ import {
   addTicketIssue,
   editTicketDetails,
   editTicketIssue,
+  pickOutsideShop,
   removeTicketIssue,
   saveIssueChecklist,
   setMechanics,
@@ -41,6 +42,7 @@ import { TicketHeader } from '../components/TicketHeader';
 import { DocumentsCard } from '../components/DocumentsCard';
 import { EditDetailsDialog } from '../components/edit/EditDetailsDialog';
 import { IssueEditDialog, type IssueSave } from '../components/edit/IssueEditDialog';
+import { OutsideShopDialog } from '../components/edit/OutsideShopDialog';
 import { ChecklistEditDialog, type ChecklistSave } from '../components/edit/ChecklistEditDialog';
 import { canEditChecklist, STALE_CHECKLIST_MESSAGE } from '../lib/checklist';
 import { confirm } from '../../../components/shared/confirm/confirm';
@@ -93,6 +95,8 @@ export function RepairDetailPage() {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [dialog, setDialog] = useState<DialogKind>(null);
+  // Spec 0029, AC-36: the late outside shop pick
+  const [shopOpen, setShopOpen] = useState(false);
   // Spec 0024, AC-18: from 1024px the sidebar sits on the right; below, one column in the phone order
   const wide = useMediaQuery('(min-width: 1024px)');
   const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId, {
@@ -249,6 +253,22 @@ export function RepairDetailPage() {
     }
   };
 
+  // Spec 0029, AC-36: the outside shop on a ticket outsourced before the picker
+  const saveShop = async (opened: RepairTicket, vmmsProviderId: string) => {
+    try {
+      const updated = await pickOutsideShop(ticket.id, { lastUpdatedAt: opened.updatedAt, vmmsProviderId });
+      setShopOpen(false);
+      replace(updated);
+      showToast(`Outside shop saved on ${rep}.`, 'success');
+    } catch (err) {
+      if (getApiErrorStatus(err) === 409) {
+        setShopOpen(false);
+        return handleStale();
+      }
+      throw err;
+    }
+  };
+
   // Spec 0019, AC-14 and AC-15: add or reword an issue, from the ticket as the dialog opened
   const saveIssue = async (opened: RepairTicket, issueId: string | undefined, save: IssueSave) => {
     try {
@@ -344,7 +364,10 @@ export function RepairDetailPage() {
     // Keyed by ticket, so a link to another ticket (similar repairs) starts every section fresh.
     <div key={ticket.id} className={barLabel ? (barSecondary ? 'pb-36 md:pb-20 lg:pb-0' : 'pb-20 lg:pb-0') : undefined}>
       <BackLink to={back.to} label={back.label} />
-      <TicketHeader ticket={ticket} />
+      <TicketHeader ticket={ticket} onPickShop={ticket.can.edit ? () => setShopOpen(true) : undefined} />
+      {shopOpen && (
+        <OutsideShopDialog open onOpenChange={setShopOpen} repairNumber={ticket.repairNumber} onSave={(id) => saveShop(ticket, id)} />
+      )}
       {ticket.lastRejection && <SendBackBanner key={ticket.lastRejection.at} rejection={ticket.lastRejection} now={loadedAt} />}
 
       {/* Spec 0017: one file list and one upload queue for the photos and the Documents card. Spec 0018: a

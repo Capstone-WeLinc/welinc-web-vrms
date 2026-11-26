@@ -9,6 +9,7 @@ import type { AuditEvent } from '../../../types';
 import {
   actorLabel,
   eventPhrase,
+  ticketlessSubject,
   attachmentLine,
   changeOf,
   costDetailLines,
@@ -56,7 +57,10 @@ function Actor({ event, name }: { event: AuditEvent; name: string }) {
 function Sentence({ event, showTicket }: { event: AuditEvent; showTicket: boolean }) {
   const name = actorLabel(event);
   // On the ticket's own page the number stays as plain text: a link back to the same page is noise.
-  const rep = showTicket ? (
+  // Spec 0029: a row about no ticket (a referral rejection or its message) names the referral
+  const rep = !event.ticket ? (
+    <span className="font-medium">{ticketlessSubject(event)}</span>
+  ) : showTicket ? (
     <Link to={`/repairs/${event.ticket.id}`} className="font-medium whitespace-nowrap text-primary underline-offset-4 hover:underline">
       {event.ticket.repairNumber}
     </Link>
