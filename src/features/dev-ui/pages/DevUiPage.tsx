@@ -13,7 +13,7 @@ export function DevUiPage() {
           <p className="text-label text-sidebar-primary">VRMS design system</p>
           <h1 className="text-title font-semibold">UI kit</h1>
           <p className="text-body">
-            Every shared component in every state. Development builds only; the production bundle has no route here.
+            Every shared component in every state. Development and staging builds only (staging behind sign in); the production bundle has no route here.
           </p>
         </div>
       </header>

@@ -37,10 +37,12 @@ import { VehiclesSection } from './features/settings/components/VehiclesSection'
 import { HistorySection } from './features/settings/components/HistorySection';
 import { SETTINGS_KEYS } from './features/settings/lib/sections';
 
-// Development only: the condition is a build time constant, so production drops the import.
-const DevUiPage = import.meta.env.DEV
-  ? lazy(() => import('./features/dev-ui/pages/DevUiPage').then((m) => ({ default: m.DevUiPage })))
-  : null;
+// Development, and the staging build (VITE_DEV_UI=true, your call on 2026-11-26): the condition is
+// a build time constant, so production drops the import entirely.
+const DevUiPage =
+  import.meta.env.DEV || import.meta.env.VITE_DEV_UI === 'true'
+    ? lazy(() => import('./features/dev-ui/pages/DevUiPage').then((m) => ({ default: m.DevUiPage })))
+    : null;
 
 // Spec 0025, AC-16: only in builds made with VITE_SENTRY_TEST_ROUTES=true (staging); a build time
 // constant, so every other build leaves the page out entirely.
@@ -113,9 +115,18 @@ function App() {
           <Route
             path="/dev/ui"
             element={
-              <Suspense fallback={null}>
-                <DevUiPage />
-              </Suspense>
+              import.meta.env.DEV ? (
+                <Suspense fallback={null}>
+                  <DevUiPage />
+                </Suspense>
+              ) : (
+                // A hosted build shows the kit to signed in people only, never to a passer by
+                <RequireAuth>
+                  <Suspense fallback={null}>
+                    <DevUiPage />
+                  </Suspense>
+                </RequireAuth>
+              )
             }
           />
         )}
