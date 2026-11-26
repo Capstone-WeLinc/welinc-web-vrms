@@ -1,58 +1,77 @@
 import type { ReactNode } from 'react';
-import { ShieldOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '../shared/EmptyState';
-import { ErrorState } from '../shared/ErrorState';
+import { GateScene } from '@/components/brand/scenes/GateScene';
+import { LanyardScene } from '@/components/brand/scenes/LanyardScene';
+import { ReaderScene } from '@/components/brand/scenes/ReaderScene';
+import { SceneBand } from '@/components/brand/scenes/SceneBand';
+import { useScenePick } from '@/components/brand/scenes/useScenePick';
+import { BrandMark } from './BrandMark';
 import { usePermissions } from '../../lib/permissions/usePermissions';
 import { signOutFlow } from '../../lib/session/signOutFlow';
 
 /**
  * Spec 0011, AC-23: no guarded item shows before the first permissions answer. Loading shows
- * the shell's shape, a failed first fetch offers Retry, and no keys at all means no VRMS access.
+ * the shell's shape, a failed first fetch offers Try again, and no keys at all means no VRMS access.
+ * Spec 0028: a failed fetch shows the card reader or the lanyard rack (AC-13), no keys the gate
+ * drawn wide (AC-12). The pick is made here, above the early returns, so a Try again that fails
+ * again keeps the same picture (AC-16).
  */
 export function PermissionsGate({ children }: { children: ReactNode }) {
   const { status, keys, error, retry } = usePermissions();
+  const pick = useScenePick(2);
+  const signOut = (
+    <Button variant="outline" onClick={() => void signOutFlow({ ask: false })}>
+      Sign out
+    </Button>
+  );
 
   if (status === 'loading') return <ShellSkeleton />;
 
   if (status === 'error') {
     return (
-      <CenteredPage>
-        <ErrorState
-          title="Could not load your permissions"
-          message={error ?? 'Check your connection, then try again.'}
-          onRetry={retry}
-        />
-      </CenteredPage>
+      <DoorBand
+        pick={pick}
+        title="Could not load your permissions"
+        line={error ?? 'Check your connection, then try again.'}
+        actions={
+          <>
+            <Button onClick={retry}>Try again</Button>
+            {signOut}
+          </>
+        }
+      />
     );
   }
 
   if (keys.length === 0) {
     return (
-      <CenteredPage>
-        <EmptyState
-          icon={ShieldOff}
-          title="No VRMS access"
-          description="Your account has no permissions in VRMS. Ask an admin to give you a VRMS role."
-          action={
-            <Button variant="outline" onClick={() => void signOutFlow({ ask: false })}>
-              Sign out
-            </Button>
-          }
-        />
-      </CenteredPage>
+      <SceneBand
+        lockup={<BrandMark tone="sidebar" />}
+        scene={<GateScene wide />}
+        title="No VRMS access"
+        line="Your account has no permissions in VRMS. Ask an admin to give you a VRMS role."
+        actions={signOut}
+      />
     );
   }
 
   return children;
 }
 
-export function CenteredPage({ children }: { children: ReactNode }) {
+/**
+ * Spec 0028, AC-13 and AC-14: the staff door when VRMS can't confirm who you are yet (permissions or
+ * the sign in service didn't answer). `pick` comes from the caller's `useScenePick(2)`.
+ */
+export function DoorBand({ pick, title, line, actions }: { pick: number; title: string; line: string; actions: ReactNode }) {
   return (
-    <main id="main" className="flex min-h-dvh items-center justify-center bg-background px-4">
-      {children}
-    </main>
+    <SceneBand
+      lockup={<BrandMark tone="sidebar" />}
+      scene={pick === 0 ? <ReaderScene /> : <LanyardScene />}
+      title={title}
+      line={line}
+      actions={actions}
+    />
   );
 }
 

@@ -63,7 +63,7 @@ export function ProfilePage() {
       {state.status === 'loading' && <ProfileSkeleton />}
 
       {state.status === 'error' && (
-        <ErrorState title="We couldn’t load your profile" message={state.message} onRetry={retry} />
+        <ErrorState kind="page" title="We couldn’t load your profile" message={state.message} onRetry={retry} />
       )}
 
       {state.status === 'ready' && (

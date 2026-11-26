@@ -80,7 +80,7 @@ export function HistorySection() {
       </div>
     );
   } else if ('error' in current) {
-    body = <ErrorState title="Couldn’t load the change history." message={current.error} onRetry={() => setAttempt((n) => n + 1)} retryText="Retry" />;
+    body = <ErrorState kind="page" title="Couldn’t load the change history." message={current.error} onRetry={() => setAttempt((n) => n + 1)} retryText="Retry" />;
   } else if (current.rows.length === 0) {
     body = <EmptyState title="No changes yet." description="Setting and lookup list changes show here." icon={History} />;
   } else {

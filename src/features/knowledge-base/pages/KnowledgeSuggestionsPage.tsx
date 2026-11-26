@@ -150,9 +150,7 @@ export function KnowledgeSuggestionsPage() {
   };
 
   const error = data.state === 'error' && (
-    <div className={PANEL}>
-      <ErrorState title="Couldn’t load suggestions." message={data.errorMessage ?? ''} onRetry={data.retry} retryText="Retry" />
-    </div>
+    <ErrorState kind="page" title="Couldn’t load suggestions." message={data.errorMessage ?? ''} onRetry={data.retry} retryText="Retry" />
   );
 
   return (

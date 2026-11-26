@@ -171,13 +171,12 @@ export function HistoryPage() {
       />
 
       {history.state === 'error' ? (
-        <div className="rounded-2xl border border-transparent bg-card shadow-card">
-          <ErrorState
-            title="We couldn’t load repair history"
-            message={history.errorMessage ?? 'Repair history didn’t load.'}
-            onRetry={history.retry}
-          />
-        </div>
+        <ErrorState
+          kind="page"
+          title="We couldn’t load repair history"
+          message={history.errorMessage ?? 'Repair history didn’t load.'}
+          onRetry={history.retry}
+        />
       ) : (
         <div className="flex flex-col gap-4">
           <HistorySummary summary={history.state === 'ready' ? history.summary : null} showSpend={seesCosts} />

@@ -38,13 +38,12 @@ export function AuditLogsPage() {
     body = <AuditTimelineSkeleton />;
   } else if (timeline.state === 'error') {
     body = (
-      <div className={PANEL}>
-        <ErrorState
-          title="We couldn’t load the audit log"
-          message={timeline.errorMessage ?? 'The audit log didn’t load.'}
-          onRetry={timeline.retry}
-        />
-      </div>
+      <ErrorState
+        kind="page"
+        title="We couldn’t load the audit log"
+        message={timeline.errorMessage ?? 'The audit log didn’t load.'}
+        onRetry={timeline.retry}
+      />
     );
   } else if (timeline.events.length === 0) {
     body = (

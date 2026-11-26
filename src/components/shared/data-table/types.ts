@@ -1,3 +1,4 @@
+import type { TileSubject } from '@/components/brand/scenes/tileSubjects';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -42,6 +43,13 @@ export type DataTableProps<T> = {
   onRetry?: () => void;
   /** Shown in the ErrorState, usually from getApiErrorMessage. */
   errorMessage?: string;
+  /**
+   * VRMS spec 0028: `page` when the table is the page's main content (the scene panel, without the
+   * table's card around it); `tile` (default) when it is one part of a page.
+   */
+  errorKind?: 'page' | 'tile';
+  /** The tile's drawing when `errorKind` is `tile`; `list` by default. */
+  errorSubject?: TileSubject;
   empty: { title: string; description?: string; icon?: LucideIcon; action?: ReactNode };
   onRowClick?: (row: T) => void;
   rowActions?: (row: T) => RowAction[];

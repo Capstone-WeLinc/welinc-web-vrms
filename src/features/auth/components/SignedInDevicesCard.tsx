@@ -47,7 +47,7 @@ export function SignedInDevicesCard() {
       </CardHeader>
       <CardContent>
         {state.status === 'loading' && <SessionRowsSkeleton />}
-        {state.status === 'error' && <ErrorState title="We couldn’t load your devices" message={state.message} onRetry={reload} />}
+        {state.status === 'error' && <ErrorState kind="tile" subject="devices" title="We couldn’t load your devices" message={state.message} onRetry={reload} />}
         {state.status === 'ready' && (
           <div className="flex flex-col gap-3">
             <SessionRows sessions={state.sessions} onEnd={(s) => void end(s)} endingSid={endingSid} />
