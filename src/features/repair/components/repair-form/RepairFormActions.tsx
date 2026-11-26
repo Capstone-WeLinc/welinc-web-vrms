@@ -6,6 +6,8 @@ interface RepairFormActionsProps {
   saving: boolean;
   /** A required list failed or is empty, so the form can't be completed (AC-15). */
   listsBlocked: boolean;
+  /** Says why the save is off when it isn't a list that failed (spec 0029: the referral). */
+  blockedNote?: string;
   /** The truck already has an open ticket, so a second one is refused (spec 0016, AC-12). */
   openTicketBlocked?: boolean;
   onCancel: () => void;
@@ -13,13 +15,13 @@ interface RepairFormActionsProps {
 
 const BLOCKED_NOTE = 'Some lists couldn’t load. Try again above before creating the ticket.';
 
-function Actions({ saving, listsBlocked, openTicketBlocked = false, onCancel, className }: RepairFormActionsProps & { className?: string }) {
+function Actions({ saving, listsBlocked, blockedNote, openTicketBlocked = false, onCancel, className }: RepairFormActionsProps & { className?: string }) {
   const noteId = useId();
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       {listsBlocked && (
         <p id={noteId} className="text-caption text-destructive md:text-right">
-          {BLOCKED_NOTE}
+          {blockedNote ?? BLOCKED_NOTE}
         </p>
       )}
       {/* From 768px the bar runs under the sidebar, so the buttons keep to the right. */}

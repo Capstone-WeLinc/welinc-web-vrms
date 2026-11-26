@@ -12,13 +12,15 @@ interface DriverFieldProps {
   control: RepairFormControl;
   setValue: UseFormSetValue<RepairFormInput>;
   clearErrors: UseFormClearErrors<RepairFormInput>;
+  /** Spec 0029, AC-8: a ticket from a VMMS referral may have no driver. */
+  optional?: boolean;
 }
 
 /**
  * The form's driver choice (spec 0016, AC-6 and AC-13): search existing drivers by name or
  * license, or open the Name and License number fields to add a new one in place.
  */
-export function DriverField({ control, setValue, clearErrors }: DriverFieldProps) {
+export function DriverField({ control, setValue, clearErrors, optional = false }: DriverFieldProps) {
   const adding = useWatch({ control, name: 'addingDriver' });
   const driverId = useWatch({ control, name: 'driverId' });
   const driverLabel = useWatch({ control, name: 'driverLabel' });
@@ -85,7 +87,8 @@ export function DriverField({ control, setValue, clearErrors }: DriverFieldProps
         control={control}
         name="driverId"
         label="Driver"
-        required
+        required={!optional}
+        description={optional ? 'Optional: a truck VMMS referred may have no driver yet.' : undefined}
         render={({ field, controlProps }) => (
           <Combobox
             {...controlProps}

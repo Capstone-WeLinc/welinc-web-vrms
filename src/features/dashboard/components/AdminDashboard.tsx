@@ -5,6 +5,7 @@ import { PageHeader } from '../../../components/layout/PageHeader';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { useAuthStore } from '../../../store/authStore';
 import { useDashboardData } from '../hooks/useDashboardData';
+import { useReferrals } from '../../repair/hooks/useReferrals';
 import {
   attentionDueLabel,
   attentionList,
@@ -27,6 +28,9 @@ const ATTENTION_LIMIT = 8;
 export function AdminDashboard() {
   const user = useAuthStore((state) => state.user);
   const canVerify = useCan('ticket.verify');
+  // Spec 0029, AC-7: VMMS referrals waiting for a decision
+  const canRespond = useCan('integration.respond');
+  const { waitingCount } = useReferrals('WAITING', canRespond);
   const { active, history, fetchedAt, state, errorMessage, refreshFailed, truncated, retry } = useDashboardData({
     includeHistory: true,
   });
@@ -40,6 +44,9 @@ export function AdminDashboard() {
       // Hot for the roles that sign off (docs/context/vrms/design.md, Hot counts)
       { caption: 'Waiting for sign off', value: active.filter(isWaiting).length, href: '/repairs?status=FOR_VERIFICATION', hot: canVerify },
       { caption: 'Done this month', value: closedThisMonth(history, fetchedAt), href: '/history' },
+      ...(canRespond && waitingCount !== null
+        ? [{ caption: 'Referrals waiting', value: waitingCount, href: '/repairs?view=referrals' }]
+        : []),
     ];
     return {
       all,
@@ -47,7 +54,7 @@ export function AdminDashboard() {
       attention: attentionList(active, fetchedAt, ATTENTION_LIMIT),
       pipeline: pipelineCounts(active, history, fetchedAt),
     };
-  }, [active, history, fetchedAt, canVerify]);
+  }, [active, history, fetchedAt, canVerify, canRespond, waitingCount]);
 
   return (
     <div>

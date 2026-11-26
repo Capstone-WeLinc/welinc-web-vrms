@@ -1,3 +1,4 @@
+import { FromVmmsChip } from '../../../components/shared/FromVmmsChip';
 import { PlateChip } from '../../../components/shared/PlateChip';
 import type { RepairTicket } from '../../../types';
 import { issueDisplayText, stripSystem } from '../lib/issueRow';
@@ -17,7 +18,11 @@ export function TicketHeader({ ticket }: { ticket: RepairTicket }) {
         </span>
         {first && <span className="line-clamp-1 text-heading font-semibold break-words md:text-title">{issueDisplayText(stripSystem(first.description))}</span>}
       </h1>
-      <p className="text-body whitespace-nowrap text-muted-foreground tabular-nums">{ticket.repairNumber}</p>
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-muted-foreground tabular-nums">
+        <span className="whitespace-nowrap">{ticket.repairNumber}</span>
+        {/* Spec 0029, AC-12 */}
+        {ticket.fromVmmsWorkOrder && <FromVmmsChip workOrderNumber={ticket.fromVmmsWorkOrder} />}
+      </p>
     </header>
   );
 }

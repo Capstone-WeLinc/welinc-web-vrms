@@ -22,9 +22,11 @@ interface VehicleSectionProps {
   setValue: UseFormSetValue<RepairFormInput>;
   clearErrors: UseFormClearErrors<RepairFormInput>;
   summary: VehicleSummaryState;
+  /** Spec 0029, AC-8: opened from a VMMS referral, so the driver may stay empty. */
+  driverOptional?: boolean;
 }
 
-export function VehicleSection({ control, vehicles, garages, setValue, clearErrors, summary }: VehicleSectionProps) {
+export function VehicleSection({ control, vehicles, garages, setValue, clearErrors, summary, driverOptional }: VehicleSectionProps) {
 
   const vehicleOptions = useMemo<ComboboxOption[]>(
     () =>
@@ -83,7 +85,7 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
 
         <VehicleCard state={summary} />
 
-        <DriverField control={control} setValue={setValue} clearErrors={clearErrors} />
+        <DriverField control={control} setValue={setValue} clearErrors={clearErrors} optional={driverOptional} />
 
         <div className="flex flex-col gap-2">
           {garages.loading ? (

@@ -202,9 +202,12 @@ export interface RepairTicket {
   repairNumber: string;
   vehiclePlate: string;
   vehicleModel?: string;
-  driverName: string;
+  /** Null on a ticket opened from a VMMS referral (spec 0029, AC-12): show `driverLabel()`. */
+  driverName: string | null;
   /** Spec 0019, AC-4: the details edit compares it to tell a swap from the same driver. */
-  driverId?: string;
+  driverId?: string | null;
+  /** Spec 0029, AC-12: the VMMS work order a ticket was opened from, else null. */
+  fromVmmsWorkOrder?: string | null;
   issueDescription: string;
   status: RepairStatus;
   createdAt: string;
@@ -258,7 +261,7 @@ export interface RepairTicket {
 
 export interface CreateRepairPayload {
   vehiclePlate: string;
-  /** Exactly one of driverId and newDriver (spec 0016, AC-6). */
+  /** Exactly one of driverId and newDriver (spec 0016, AC-6); neither for a VMMS referral (spec 0029). */
   driverId?: string;
   newDriver?: { name: string; licenseNumber: string };
   accountType: AccountType;
@@ -272,6 +275,8 @@ export interface CreateRepairPayload {
   mechanics?: { id: string }[];
   priority: PriorityLevel;
   issues: CreateRepairIssue[];
+  /** Spec 0029, AC-8: the VMMS referral the ticket is opened from. */
+  referralId?: string;
 }
 
 /** A closed ticket as `GET /vrms/repairs/history` sends it (spec 0003). Mechanics get no `totalCost`. */

@@ -22,6 +22,8 @@ export type PermissionKey =
   | 'ticket.documents.add'
   | 'ticket.files.remove_any'
   | 'ai.use'
+  // Spec 0029, AC-11: VMMS referrals, BMS expedite requests and failed deliveries
+  | 'integration.respond'
   | 'audit.view'
   | 'analytics.view'
   | 'config.read'

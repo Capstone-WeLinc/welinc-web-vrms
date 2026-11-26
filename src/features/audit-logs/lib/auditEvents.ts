@@ -20,6 +20,7 @@ import {
   PhilippinePeso,
   Warehouse,
   type LucideIcon,
+  Inbox,
 } from 'lucide-react';
 import { ALL_TIME, type DateRangeValue } from '../../../components/shared/date-range/dateRange';
 import { PRIORITY_MAP } from '../../../components/shared/priorityStyles';
@@ -108,6 +109,8 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   STEP_REMOVED: { icon: ListMinus, tone: 'bg-muted text-muted-strong' },
   STEP_EDITED: { icon: PencilLine, tone: 'bg-primary/10 text-primary' },
   STEP_MOVED: { icon: ArrowUpDown, tone: 'bg-primary/10 text-primary' },
+  // Spec 0029, AC-8
+  REFERRAL_OPENED_TICKET: { icon: Inbox, tone: 'bg-primary/10 text-primary' },
 };
 
 export function eventStyle(type: string): EventStyle {
@@ -154,6 +157,8 @@ const EVENT_PHRASES: Record<string, EventPhrase> = {
   STEP_REMOVED: { verb: 'removed a step from', passive: ['A step was removed from ', ''] },
   STEP_EDITED: { verb: 'reworded a step on', passive: ['A step was reworded on ', ''] },
   STEP_MOVED: { verb: 'moved a step on', passive: ['A step was moved on ', ''] },
+  // Spec 0029, AC-8
+  REFERRAL_OPENED_TICKET: { verb: 'opened', tail: ' from a VMMS referral', passive: ['', ' was opened from a VMMS referral'] },
 };
 
 /** The type's wording; an unknown type reads as its raw name. */

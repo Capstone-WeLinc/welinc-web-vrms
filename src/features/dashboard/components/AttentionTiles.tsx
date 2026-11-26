@@ -11,7 +11,8 @@ export type AttentionTile = {
 
 export function AttentionTiles({ tiles }: { tiles: AttentionTile[] }) {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    // Five with the VMMS referrals tile (spec 0029), four otherwise
+    <div className={tiles.length > 4 ? 'grid grid-cols-2 gap-4 lg:grid-cols-5' : 'grid grid-cols-2 gap-4 lg:grid-cols-4'}>
       {tiles.map((tile) => (
         <StatCard key={tile.caption} caption={tile.caption} value={tile.value} href={tile.href} hot={tile.hot} />
       ))}
