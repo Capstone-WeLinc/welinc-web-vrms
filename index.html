@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>WeLinc VRMS Admin</title>
+    <!--
+      Suite spec 0019, the launch: until the app draws anything, the page is the portal's navy
+      (--sidebar, #0f1445, kept in step with src/index.css) with "Opening VRMS…", so opening VRMS
+      from the portal's launch scene never flashes white, in any browser. It also covers the sign
+      in handshake's second load. Gone the moment #root has content.
+    -->
+    <style>
+      html:has(#root:empty) { background: #0f1445; color-scheme: dark; }
+      #root:empty { min-height: 100dvh; display: grid; place-items: center; }
+      #root:empty::before { content: 'Opening VRMS\2026'; color: rgb(255 255 255 / 0.72); font: 500 15px/1.4 system-ui, sans-serif; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

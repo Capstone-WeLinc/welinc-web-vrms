@@ -1,27 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Clock, Lock, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Lock, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { Banner } from '@/components/ui/banner';
 import { useConnection } from '@/lib/connection/connection';
 import { noAccessLine, readNoAccess } from '@/lib/navigation/noAccess';
 import { useAuthStore } from '@/store/authStore';
-import { staySignedIn } from '@/lib/session/session';
-import { ANNOUNCE_AGAIN_MS, countdown, spokenTimeLeft } from '@/lib/session/timing';
-import { useTimeLeft } from '../session/useCountdown';
 import { NO_ACCESS_MS, pickBanner } from './bannerPriority';
 
 /**
  * Suite spec 0016 AC-12: the one floating banner at the top center of the content area. It
- * replaces the old full width session strips (spec 0003, AC-23 and AC-25 keep their wording).
+ * replaces the old full width session strips. Signing out soon is the session warning toast now
+ * (suite spec 0019, AC-25, `SessionToast.tsx`), which shows alongside these.
  */
 export function BannerHost() {
   const { offline, backOnlineUntil } = useConnection();
   const reconnecting = useAuthStore((state) => state.reconnecting);
-  const warning = useAuthStore((state) => state.idleWarning);
-  // Counted and spoken here, not inside the card: a higher banner (reconnecting, offline) can
-  // swap the card out and back, and a fresh card must not announce the time again
-  const left = useTimeLeft(warning?.cutoff ?? 0);
-  const spoken = useSpokenTimeLeft(warning !== null, left);
   const location = useLocation();
   const navigate = useNavigate();
   const noAccess = readNoAccess(location.state);
@@ -32,7 +25,6 @@ export function BannerHost() {
   const slot = pickBanner({
     offline,
     reconnecting: reconnecting && !offline,
-    signingOut: warning !== null,
     noAccess: noAccess !== null,
     backOnline: backOnlineUntil !== null,
   });
@@ -58,8 +50,6 @@ export function BannerHost() {
         You can keep working.
       </Banner>
     );
-  } else if (slot === 'signingOut' && warning) {
-    banner = <SigningOutBanner cutoff={warning.cutoff} left={left} spoken={spoken} cannotExtend={warning.cannotExtend} busy={warning.busy} />;
   } else if (slot === 'noAccess' && noAccess) {
     banner = (
       <Banner kind="info" icon={Lock} title={`You were sent to your ${noAccess.home}.`} onClose={closeNoAccess}>
@@ -73,70 +63,9 @@ export function BannerHost() {
   return (
     // Sticks just under the 64px app header, so it floats over the top of the page content
     <div className="pointer-events-none sticky top-16 z-50 h-0">
-      {/* The signing out banner speaks through its own line, so its ticking time stays silent */}
-      <div aria-live={slot === 'signingOut' ? 'off' : 'polite'} className="flex justify-center px-2 pt-4 md:px-4">
+      <div aria-live="polite" className="flex justify-center px-2 pt-4 md:px-4">
         {banner}
       </div>
     </div>
   );
-}
-
-/**
- * Signing out soon (suite spec 0016, AC-12; replaces spec 0003's idle dialog). It never takes
- * focus. **Stay signed in** is its only control; at the 12 hour end (or when Stay signed in finds
- * the cutoff didn't move) the text says it can't be extended, shows the time, and has no action.
- * Screen readers hear the minutes left once and again at 30 seconds; the ticking time is hidden
- * from them, and the switch to the 12 hour text is not announced again.
- */
-function SigningOutBanner({ cutoff, left, spoken, cannotExtend, busy }: { cutoff: number; left: number; spoken: string; cannotExtend: boolean; busy: boolean }) {
-  const endsAt = new Date(cutoff).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-  const time = (
-    <span aria-hidden="true" className="font-mono font-medium text-foreground">
-      {countdown(left)}
-    </span>
-  );
-
-  return (
-    <Banner
-      kind="warning"
-      icon={Clock}
-      announce={false}
-      title={cannotExtend ? `Signing out at ${endsAt}` : 'Signing out soon'}
-      action={cannotExtend ? undefined : { label: 'Stay signed in', onClick: () => void staySignedIn(), loading: busy }}
-    >
-      {cannotExtend
-        ? 'This session reached its 12 hour limit and can\'t be extended. Save your work, then sign in again. '
-        : 'You haven\'t done anything for a while. '}
-      {time}
-      <span role="status" className="sr-only">
-        {spoken}
-      </span>
-    </Banner>
-  );
-}
-
-/**
- * The line a screen reader hears while the warning is open: empty until the card's live region
- * exists, then the minutes left once, and again at 30 seconds. It lives in the host, so a card
- * that is swapped out and back (reconnecting, offline) says nothing new.
- */
-function useSpokenTimeLeft(active: boolean, left: number): string {
-  const [spoken, setSpoken] = useState('');
-  const saidAgain = useRef(false);
-  const latest = useRef(left);
-  const first = useRef(left);
-  useEffect(() => {
-    latest.current = left;
-  });
-  useEffect(() => {
-    saidAgain.current = false;
-    first.current = latest.current;
-    setSpoken(active ? spokenTimeLeft(latest.current) : '');
-  }, [active]);
-  useEffect(() => {
-    if (!active || saidAgain.current || first.current <= ANNOUNCE_AGAIN_MS || left > ANNOUNCE_AGAIN_MS) return;
-    saidAgain.current = true;
-    setSpoken(spokenTimeLeft(ANNOUNCE_AGAIN_MS));
-  }, [active, left]);
-  return spoken;
 }

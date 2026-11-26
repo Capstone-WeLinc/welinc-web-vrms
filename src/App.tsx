@@ -17,6 +17,7 @@ import { KnowledgeSuggestionsPage } from './features/knowledge-base/pages/Knowle
 import { useAuthStore } from './store/authStore';
 import { DashboardShell } from './components/layout/DashboardShell';
 import { Toaster } from './components/ui/sonner';
+import { SessionToastHost } from './components/feedback/SessionToast';
 import { ConfirmProvider } from './components/shared/confirm/ConfirmProvider';
 import { TooltipProvider } from './components/ui/tooltip';
 import { PermissionsProvider } from './lib/permissions/PermissionsProvider';
@@ -101,6 +102,8 @@ function App() {
   return (
     <TooltipProvider delayDuration={300}>
       <Toaster />
+      {/* Suite spec 0019, AC-25: the session warning toast, in place of the signing out banner */}
+      <SessionToastHost />
       <ConfirmProvider />
       <Routes>
         {DevUiPage && (
