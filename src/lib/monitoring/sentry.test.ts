@@ -164,3 +164,39 @@ describe('with a DSN', () => {
     log.mockRestore();
   });
 });
+
+describe('the crash screen standing (AC-7a)', () => {
+  const admin = { id: 'u1', roles: [{ role: 'ADMIN' as const, system: 'VRMS' as const }] };
+  const mechanic = { id: 'u1', roles: [{ role: 'MECHANIC' as const, system: 'VRMS' as const }] };
+
+  it('follows each session answer: admin, then not admin after a demotion', async () => {
+    const monitoring = await load({ dsn: DSN });
+    const standing = await import('./standing');
+
+    monitoring.setMonitoringUser(admin);
+    expect(standing.crashViewerIsAdmin()).toBe(true);
+    monitoring.setMonitoringUser(mechanic);
+    expect(standing.crashViewerIsAdmin()).toBe(false);
+  });
+
+  it('is set with Sentry off too, and cleared by a sign out', async () => {
+    const monitoring = await load();
+    const standing = await import('./standing');
+
+    monitoring.setMonitoringUser(admin);
+    expect(standing.crashViewerIsAdmin()).toBe(true);
+    expect(sentry.setUser).not.toHaveBeenCalled();
+    monitoring.setMonitoringUser(null);
+    expect(standing.crashViewerIsAdmin()).toBe(false);
+  });
+
+  it('counts only the VRMS ADMIN entry, not an admin role in another system', async () => {
+    const monitoring = await load();
+    const standing = await import('./standing');
+
+    monitoring.setMonitoringUser({ id: 'u1', roles: [{ role: 'ADMIN', system: 'VMMS' as const }] });
+    expect(standing.crashViewerIsAdmin()).toBe(false);
+    monitoring.setMonitoringUser({ id: 'u1' });
+    expect(standing.crashViewerIsAdmin()).toBe(false);
+  });
+});

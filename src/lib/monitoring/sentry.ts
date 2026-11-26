@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import type { UserRoleAssignment } from '../../types';
 import { apiOrigin, beforeBreadcrumb, createBeforeSend, IGNORE_ERRORS, vrmsRoleTag } from './filters';
+import { setCrashViewerIsAdmin } from './standing';
 
 // VRMS spec 0025, Browser setup. With VITE_SENTRY_DSN blank nothing starts and nothing is sent
 // (AC-14); every other call here is then a harmless no op.
@@ -37,6 +38,9 @@ export function initMonitoring(): void {
 
 /** AC-1 and AC-3: the signed in caller as an id and their VRMS role names, nothing else. */
 export function setMonitoringUser(user: { id: string; roles?: UserRoleAssignment[] } | null): void {
+  // AC-7a: worked out again on every session answer and before the off switch, so a demotion or a
+  // sign out turns the admin crash screen off, and admins get it with Sentry off too
+  setCrashViewerIsAdmin(isVrmsAdmin(user?.roles));
   if (!monitoringOn) return;
   if (!user) {
     Sentry.setUser(null);
@@ -45,6 +49,11 @@ export function setMonitoringUser(user: { id: string; roles?: UserRoleAssignment
   }
   Sentry.setUser({ id: user.id });
   Sentry.setTag('role', vrmsRoleTag(user.roles ?? []));
+}
+
+/** The session answer's own VRMS entry, never `user.role` (which falls back to MECHANIC). */
+function isVrmsAdmin(roles: UserRoleAssignment[] | undefined): boolean {
+  return (roles ?? []).some((entry) => entry.system === 'VRMS' && entry.role === 'ADMIN');
 }
 
 /** Reports a render crash once, with the component stack; the event id backs the reference code. */
