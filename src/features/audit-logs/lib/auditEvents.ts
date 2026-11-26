@@ -24,10 +24,13 @@ import {
   Undo2,
   RotateCw,
   CircleSlash,
+  FastForward,
+  CircleCheck,
+  CircleX,
 } from 'lucide-react';
 import { ALL_TIME, type DateRangeValue } from '../../../components/shared/date-range/dateRange';
 import { PRIORITY_MAP } from '../../../components/shared/priorityStyles';
-import { formatPeso } from '../../../lib/utils/format';
+import { formatDateTime, formatPeso } from '../../../lib/utils/format';
 import type { AuditChange, AuditEvent } from '../../../types';
 
 // Spec 0003, AC-10 to AC-12, on the spec 0010 shape: one event with its list of changes.
@@ -119,6 +122,10 @@ const EVENT_STYLES: Record<string, EventStyle> = {
   REFERRAL_REJECTED: { icon: Undo2, tone: 'bg-muted text-muted-strong' },
   DELIVERY_RETRIED: { icon: RotateCw, tone: 'bg-primary/10 text-primary' },
   DELIVERY_DISMISSED: { icon: CircleSlash, tone: 'bg-muted text-muted-strong' },
+  // Spec 0029 (child 0003), AC-18 and AC-19: BMS expedite requests and their answers
+  EXPEDITE_REQUESTED: { icon: FastForward, tone: 'bg-highlight/25 text-highlight-foreground' },
+  EXPEDITE_ACCEPTED: { icon: CircleCheck, tone: 'bg-success/10 text-success' },
+  EXPEDITE_DECLINED: { icon: CircleX, tone: 'bg-muted text-muted-strong' },
 };
 
 export function eventStyle(type: string): EventStyle {
@@ -172,6 +179,10 @@ const EVENT_PHRASES: Record<string, EventPhrase> = {
   REFERRAL_REJECTED: { verb: 'sent back', passive: ['', ' was sent back'] },
   DELIVERY_RETRIED: { verb: 'retried a failed message for', passive: ['A failed message for ', ' was retried'] },
   DELIVERY_DISMISSED: { verb: 'dismissed a failed message for', passive: ['A failed message for ', ' was dismissed'] },
+  // Spec 0029 (child 0003). The request is written as BMS, an auto decline as VRMS (AC-25)
+  EXPEDITE_REQUESTED: { verb: 'asked to speed up', passive: ['Speeding up ', ' was requested'] },
+  EXPEDITE_ACCEPTED: { verb: 'accepted a BMS expedite request on', passive: ['A BMS expedite request on ', ' was accepted'] },
+  EXPEDITE_DECLINED: { verb: 'declined a BMS expedite request on', passive: ['A BMS expedite request on ', ' was declined'] },
 };
 
 /**
@@ -289,6 +300,12 @@ export function ticketEditLines(event: Pick<AuditEvent, 'changes'>): string[] {
   if (priority) {
     const label = (v: string | null) => (v ? (PRIORITY_MAP[v]?.label ?? v) : 'None');
     lines.push(`Priority: ${label(priority.before)} → ${label(priority.after)}`);
+  }
+  // Spec 0029 (child 0003): the expected return date, which BMS plans around
+  const due = changeOf(event, 'dueAt');
+  if (due) {
+    const when = (v: string | null) => (v ? formatDateTime(v) : 'None');
+    lines.push(`Due: ${when(due.before)} → ${when(due.after)}`);
   }
   const type = changeOf(event, 'accountType');
   const corporation = changeOf(event, 'corporation');

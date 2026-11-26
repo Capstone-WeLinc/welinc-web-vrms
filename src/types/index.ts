@@ -198,9 +198,25 @@ export interface TicketRejection {
   at: string;
 }
 
+/** Spec 0029 (child 0003), AC-18: a BMS request to hurry the repair for one Job Order. */
+export interface ExpediteRequest {
+  id: string;
+  jobOrderNumber: string;
+  reason: string;
+  /** YYYY-MM-DD, or null when BMS gave no date. */
+  neededBy: string | null;
+  receivedAt: string;
+  repairTicketId: string;
+  repairNumber: string;
+  vehiclePlate: string;
+  ticketPriority: PriorityLevel;
+}
+
 export interface RepairTicket {
   id: string;
   repairNumber: string;
+  /** Spec 0029, AC-16: VRMS's own vehicle id, for the Upcoming trips card. */
+  vehicleId?: string;
   vehiclePlate: string;
   vehicleModel?: string;
   /** Null on a ticket opened from a VMMS referral (spec 0029, AC-12): show `driverLabel()`. */
@@ -224,6 +240,8 @@ export interface RepairTicket {
   statusChangedAt: string;
   /** Spec 0018: when work first started; set on single ticket responses only. Decides Before or After. */
   workStartedAt?: string | null;
+  /** Spec 0029, AC-18: waiting BMS expedite requests, oldest first; single ticket responses only. */
+  expediteRequests?: ExpediteRequest[];
   /** Set on the move to Closed or Cancelled. */
   closedAt?: string | null;
   totalCost?: number | null;

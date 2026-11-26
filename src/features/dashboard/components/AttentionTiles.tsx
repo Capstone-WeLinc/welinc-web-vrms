@@ -1,4 +1,5 @@
 import { StatCard } from '@/components/ui/stat-card';
+import { tileGridClass } from '../lib/tileGrid';
 
 export type AttentionTile = {
   caption: string;
@@ -11,8 +12,7 @@ export type AttentionTile = {
 
 export function AttentionTiles({ tiles }: { tiles: AttentionTile[] }) {
   return (
-    // Five with the VMMS referrals tile (spec 0029), four otherwise
-    <div className={tiles.length > 4 ? 'grid grid-cols-2 gap-4 lg:grid-cols-5' : 'grid grid-cols-2 gap-4 lg:grid-cols-4'}>
+    <div className={tileGridClass(tiles.length)}>
       {tiles.map((tile) => (
         <StatCard key={tile.caption} caption={tile.caption} value={tile.value} href={tile.href} hot={tile.hot} />
       ))}

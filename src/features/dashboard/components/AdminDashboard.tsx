@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import { PageHeader } from '../../../components/layout/PageHeader';
@@ -6,6 +7,8 @@ import { ErrorState } from '../../../components/shared/ErrorState';
 import { useAuthStore } from '../../../store/authStore';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useReferrals } from '../../repair/hooks/useReferrals';
+import { useExpediteRequests } from '../../repair/hooks/useExpediteRequests';
+import { ExpediteRequestsList } from './ExpediteRequestsList';
 import {
   attentionDueLabel,
   attentionList,
@@ -31,6 +34,16 @@ export function AdminDashboard() {
   // Spec 0029, AC-7: VMMS referrals waiting for a decision
   const canRespond = useCan('integration.respond');
   const { waitingCount } = useReferrals('WAITING', canRespond);
+  // Spec 0029 (child 0003), AC-18: BMS expedite requests waiting for an answer
+  const expedites = useExpediteRequests(canRespond);
+  // The tile links to the list below by its anchor; the router doesn't scroll to one on its own
+  const { hash } = useLocation();
+  const expeditesShown = expedites.items.length > 0;
+  useEffect(() => {
+    if (hash === '#expedite-requests' && expeditesShown) {
+      document.getElementById('expedite-requests')?.scrollIntoView({ block: 'start' });
+    }
+  }, [hash, expeditesShown]);
   const { active, history, fetchedAt, state, errorMessage, refreshFailed, truncated, retry } = useDashboardData({
     includeHistory: true,
   });
@@ -48,6 +61,10 @@ export function AdminDashboard() {
       ...(canRespond && waitingCount !== null
         ? [{ caption: 'Referrals waiting', value: waitingCount, href: '/repairs?view=referrals' }]
         : []),
+      // Child 0003: shown only while BMS is waiting on an answer
+      ...(expedites.waitingCount
+        ? [{ caption: 'Expedite requests', value: expedites.waitingCount, href: '#expedite-requests', hot: true }]
+        : []),
       // Spec 0029, AC-35: rare, so the card shows only while there is one
       ...(removed > 0 ? [{ caption: 'Trucks removed in VMMS', value: removed, href: '/repairs?removed=1' }] : []),
     ];
@@ -57,7 +74,7 @@ export function AdminDashboard() {
       attention: attentionList(active, fetchedAt, ATTENTION_LIMIT),
       pipeline: pipelineCounts(active, history, fetchedAt),
     };
-  }, [active, history, fetchedAt, canVerify, canRespond, waitingCount]);
+  }, [active, history, fetchedAt, canVerify, canRespond, waitingCount, expedites.waitingCount]);
 
   return (
     <div>
@@ -85,6 +102,10 @@ export function AdminDashboard() {
             <AttentionTiles tiles={derived.tiles} />
             {truncated && <TruncationNote rows={derived.all.length} />}
           </div>
+
+          {expedites.items.length > 0 && (
+            <ExpediteRequestsList items={expedites.items} total={expedites.waitingCount ?? 0} now={fetchedAt} />
+          )}
 
           <section aria-labelledby="needs-attention-heading" className="flex flex-col gap-3">
             <div>

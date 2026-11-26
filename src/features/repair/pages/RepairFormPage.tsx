@@ -10,6 +10,7 @@ import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getDriverExists, getOdometerProblem, getOpenTicketExists } from '../../../lib/api/errors';
 import { createRepair } from '../../../lib/api/repairApi';
 import { useVehicleSummary } from '../hooks/useVehicleSummary';
+import { useVehicleSchedule } from '../hooks/useVehicleSchedule';
 import { formatShortDate } from '../../../lib/utils/format';
 import { getRepairFormOptions } from '../../../lib/repairOptions';
 import { useAuthStore } from '../../../store/authStore';
@@ -103,6 +104,8 @@ export function RepairFormPage() {
   const plate = useWatch({ control, name: 'vehiclePlate' });
   const vehicleId = options.vehicles.data?.find((v) => v.plateNumber === plate)?.id ?? '';
   const vehicleSummary = useVehicleSummary(vehicleId);
+  // Spec 0029, AC-16: read live from BMS; saving never waits on it
+  const vehicleTrips = useVehicleSchedule(vehicleId);
   const lastDriver = vehicleSummary.summary?.lastDriver ?? null;
   useEffect(() => {
     // A truck VMMS referred keeps an empty driver: whoever drove it last isn't bringing it in
@@ -278,6 +281,7 @@ export function RepairFormPage() {
             vehicles={options.vehicles}
             garages={options.garages}
             summary={vehicleSummary}
+            trips={vehicleTrips}
             setValue={setValue}
             clearErrors={clearErrors}
             driverOptional={!!referralId}
