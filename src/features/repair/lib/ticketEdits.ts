@@ -83,7 +83,8 @@ export function detailsDefaults(ticket: DetailsTicket, corporationId = ''): Deta
   return {
     addingDriver: false,
     driverId: ticket.driverId ?? '',
-    driverLabel: ticket.driverName,
+    // A VMMS referral ticket has no driver yet; the picker starts empty (spec 0029)
+    driverLabel: ticket.driverName ?? '',
     newDriverName: '',
     newDriverLicense: '',
     odometer: ticket.odometerReading != null ? String(ticket.odometerReading) : '',

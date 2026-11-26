@@ -163,6 +163,14 @@ describe('ticketEditLines', () => {
     ]);
   });
 
+  it('writes the due date as a date and time, or None (spec 0029, child 0003)', () => {
+    const at = '2026-12-01T01:00:00.000Z';
+    const [line] = ticketEditLines({ changes: [c('dueAt', null, at)] });
+    expect(line.startsWith('Due: None → ')).toBe(true);
+    expect(line).toContain('2026');
+    expect(ticketEditLines({ changes: [c('dueAt', at, null)] })[0].endsWith('→ None')).toBe(true);
+  });
+
   it('names a corporation swap on its own', () => {
     expect(ticketEditLines({ changes: [c('corporation', 'Acme', 'Beta')] })).toEqual(['Corporation: Acme → Beta']);
   });
@@ -197,6 +205,14 @@ describe('eventText (spec 0024, AC-15)', () => {
     expect(eventText({ type: 'CREATED', actor: { ...actor, name: '' } })).toBe('v@welinc.com created this ticket');
     expect(eventText({ type: 'CREATED', actor: null })).toBe('This ticket was created');
     expect(eventText({ type: 'STEP_CHECKED', actor: null })).toBe('A step was ticked on this ticket');
+  });
+  it('names BMS and VRMS on the expedite rows (spec 0029, AC-25)', () => {
+    const bms = { id: null, name: 'BMS', email: null, role: 'SYSTEM' };
+    expect(eventText({ type: 'EXPEDITE_REQUESTED', actor: bms })).toBe('BMS asked to speed up this ticket');
+    expect(eventText({ type: 'EXPEDITE_DECLINED', actor: { ...bms, name: 'VRMS' } })).toBe(
+      'VRMS declined a BMS expedite request on this ticket',
+    );
+    expect(eventText({ type: 'EXPEDITE_ACCEPTED', actor })).toBe('Victor Ramos accepted a BMS expedite request on this ticket');
   });
   it('reads an unknown type by its name', () => {
     expect(eventText({ type: 'SOMETHING_NEW', actor })).toBe('Victor Ramos SOMETHING_NEW on this ticket');

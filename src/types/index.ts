@@ -80,7 +80,8 @@ export type RepairStatus =
   | 'PENDING_APPROVAL'
   | 'CLOSED'
   | 'CANCELLED';
-export type VehicleStatus = 'AVAILABLE' | 'UNDER_REPAIR' | 'UNDER_MAINTENANCE' | 'DISABLED';
+/** VMMS's values, copied by the fleet sync (spec 0029, AC-4). */
+export type VehicleStatus = 'AVAILABLE' | 'UNDER_REPAIR' | 'UNDER_MAINTENANCE';
 export type DueAtSource = 'PRIORITY' | 'ISSUE_TYPE' | 'MANUAL';
 export type AccountType = 'ONLINE' | 'CORPORATE';
 export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -197,14 +198,39 @@ export interface TicketRejection {
   at: string;
 }
 
+/** Spec 0029 (child 0003), AC-18: a BMS request to hurry the repair for one Job Order. */
+export interface ExpediteRequest {
+  id: string;
+  jobOrderNumber: string;
+  reason: string;
+  /** YYYY-MM-DD, or null when BMS gave no date. */
+  neededBy: string | null;
+  receivedAt: string;
+  repairTicketId: string;
+  repairNumber: string;
+  vehiclePlate: string;
+  ticketPriority: PriorityLevel;
+}
+
 export interface RepairTicket {
   id: string;
   repairNumber: string;
+  /** Spec 0029, AC-16: VRMS's own vehicle id, for the Upcoming trips card. */
+  vehicleId?: string;
   vehiclePlate: string;
   vehicleModel?: string;
-  driverName: string;
+  /** Null on a ticket opened from a VMMS referral (spec 0029, AC-12): show `driverLabel()`. */
+  driverName: string | null;
   /** Spec 0019, AC-4: the details edit compares it to tell a swap from the same driver. */
-  driverId?: string;
+  driverId?: string | null;
+  /** Spec 0029, AC-12: the VMMS work order a ticket was opened from, else null. */
+  fromVmmsWorkOrder?: string | null;
+  /** Spec 0029, AC-35: open, and VMMS removed its truck. The Admin cancels it, or VMMS adds the truck back. */
+  truckRemoved?: boolean;
+  /** Spec 0029, AC-36: the outside shop the truck went to, from VMMS's list, else null. */
+  outsideShopName?: string | null;
+  /** Spec 0029, AC-36: Outsourced or Pending approval with no shop picked (from before the picker). */
+  needsOutsideShop?: boolean;
   issueDescription: string;
   status: RepairStatus;
   createdAt: string;
@@ -214,6 +240,8 @@ export interface RepairTicket {
   statusChangedAt: string;
   /** Spec 0018: when work first started; set on single ticket responses only. Decides Before or After. */
   workStartedAt?: string | null;
+  /** Spec 0029, AC-18: waiting BMS expedite requests, oldest first; single ticket responses only. */
+  expediteRequests?: ExpediteRequest[];
   /** Set on the move to Closed or Cancelled. */
   closedAt?: string | null;
   totalCost?: number | null;
@@ -258,7 +286,7 @@ export interface RepairTicket {
 
 export interface CreateRepairPayload {
   vehiclePlate: string;
-  /** Exactly one of driverId and newDriver (spec 0016, AC-6). */
+  /** Exactly one of driverId and newDriver (spec 0016, AC-6); neither for a VMMS referral (spec 0029). */
   driverId?: string;
   newDriver?: { name: string; licenseNumber: string };
   accountType: AccountType;
@@ -272,6 +300,8 @@ export interface CreateRepairPayload {
   mechanics?: { id: string }[];
   priority: PriorityLevel;
   issues: CreateRepairIssue[];
+  /** Spec 0029, AC-8: the VMMS referral the ticket is opened from. */
+  referralId?: string;
 }
 
 /** A closed ticket as `GET /vrms/repairs/history` sends it (spec 0003). Mechanics get no `totalCost`. */
@@ -320,7 +350,8 @@ export interface AuditEvent {
   category: string | null;
   at: string;
   actor: { id: string | null; name: string | null; email: string | null; role: string | null } | null;
-  ticket: { id: string; repairNumber: string };
+  /** Null only for a row about no ticket: a VMMS referral rejection or its message (spec 0029). */
+  ticket: { id: string; repairNumber: string } | null;
   changes: AuditChange[];
   /** A reason or comment: the cancel reason, the unlock reason, or the remarks sent with a move. */
   note: string | null;

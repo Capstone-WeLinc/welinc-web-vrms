@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 
@@ -10,6 +10,7 @@ import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getDriverExists, getOdometerProblem, getOpenTicketExists } from '../../../lib/api/errors';
 import { createRepair } from '../../../lib/api/repairApi';
 import { useVehicleSummary } from '../hooks/useVehicleSummary';
+import { useVehicleSchedule } from '../hooks/useVehicleSchedule';
 import { formatShortDate } from '../../../lib/utils/format';
 import { getRepairFormOptions } from '../../../lib/repairOptions';
 import { useAuthStore } from '../../../store/authStore';
@@ -21,6 +22,9 @@ import { RepairSummaryDialog } from '../components/repair-form/RepairSummaryDial
 import { VehicleSection } from '../components/repair-form/VehicleSection';
 import { useLeaveGuard } from '../../../hooks/useLeaveGuard';
 import { blocksSubmit, useRepairFormOptions } from '../hooks/useRepairFormOptions';
+import { useReferral } from '../hooks/useReferral';
+import { ReferralFormBanner } from '../components/referrals/ReferralFormBanner';
+import { referralBlocker, referralFormValues } from '../lib/referralPrefill';
 import {
   buildRepairFormSchema,
   REPAIR_FORM_DEFAULTS,
@@ -38,11 +42,16 @@ export function RepairFormPage() {
   const [openedAt] = useState(() => new Date());
   const options = useRepairFormOptions();
   const { getCheckLists, refetchAll } = options;
+  // Spec 0029, AC-8: opened from a VMMS referral (?referral=<id>): prefilled, and no driver needed
+  const [searchParams] = useSearchParams();
+  const referralId = searchParams.get('referral');
+  const referral = useReferral(referralId);
+  const blocker = referral.state === 'ready' ? referralBlocker(referral.referral) : null;
   // The schema is built per validation from the lists as they are now, so "still in its list" holds on every submit (AC-20).
   const resolver = useMemo<Resolver<RepairFormInput, unknown, RepairFormValues>>(
     () => (values, context, resolverOptions) =>
-      zodResolver(buildRepairFormSchema(getCheckLists()))(values, context, resolverOptions),
-    [getCheckLists],
+      zodResolver(buildRepairFormSchema({ ...getCheckLists(), driverOptional: !!referralId }))(values, context, resolverOptions),
+    [getCheckLists, referralId],
   );
 
   const {
@@ -67,7 +76,7 @@ export function RepairFormPage() {
   const prefilled = useRef(false);
   const listsReady = [options.vehicles, options.garages, options.categories, options.mechanics, options.corporations].every((l) => l.data);
   useEffect(() => {
-    if (!import.meta.env.DEV || prefilled.current || !listsReady) return;
+    if (!import.meta.env.DEV || referralId || prefilled.current || !listsReady) return;
     prefilled.current = true;
     void import('../../dev-ui/worst-case/formPrefill').then(({ devFormPrefill }) => {
       const values = devFormPrefill({
@@ -80,21 +89,33 @@ export function RepairFormPage() {
       });
       if (values) reset(values);
     });
-  }, [listsReady, options.vehicles.data, options.garages.data, options.categories.data, options.mechanics.data, options.corporations.data, reset]);
+  }, [listsReady, referralId, options.vehicles.data, options.garages.data, options.categories.data, options.mechanics.data, options.corporations.data, reset]);
+
+  // Spec 0029, AC-8: fill the form from the referral once, after the lists are in
+  const referralFilled = useRef(false);
+  const readyReferral = referral.state === 'ready' ? referral.referral : null;
+  useEffect(() => {
+    if (!readyReferral || !listsReady || referralFilled.current) return;
+    referralFilled.current = true;
+    reset(referralFormValues(readyReferral), { keepDefaultValues: true });
+  }, [readyReferral, listsReady, reset]);
 
   // Facts about the picked truck, and its usual driver in the empty driver field (spec 0016, AC-12)
   const plate = useWatch({ control, name: 'vehiclePlate' });
   const vehicleId = options.vehicles.data?.find((v) => v.plateNumber === plate)?.id ?? '';
   const vehicleSummary = useVehicleSummary(vehicleId);
+  // Spec 0029, AC-16: read live from BMS; saving never waits on it
+  const vehicleTrips = useVehicleSchedule(vehicleId);
   const lastDriver = vehicleSummary.summary?.lastDriver ?? null;
   useEffect(() => {
-    if (!lastDriver) return;
+    // A truck VMMS referred keeps an empty driver: whoever drove it last isn't bringing it in
+    if (!lastDriver || referralId) return;
     const current = getValues();
     if (current.addingDriver || current.driverId) return;
     setValue('driverId', lastDriver.id, { shouldDirty: true });
     setValue('driverLabel', lastDriver.name);
     clearErrors('driverId');
-  }, [lastDriver, getValues, setValue, clearErrors]);
+  }, [lastDriver, referralId, getValues, setValue, clearErrors]);
 
   const [summaryValues, setSummaryValues] = useState<RepairFormValues | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -162,12 +183,20 @@ export function RepairFormPage() {
     savingRef.current = true;
     setSaving(true);
     try {
-      const ticket = await createRepair(toCreatePayload(summaryValues, { confirmOdometerJump: jumpConfirmed }));
+      const ticket = await createRepair(
+        toCreatePayload(summaryValues, { confirmOdometerJump: jumpConfirmed, referralId: referralId ?? undefined }),
+      );
       submittedRef.current = true;
       savingRef.current = false;
       if (!mountedRef.current) return;
       setSummaryOpen(false);
       showToast(`${ticket.repairNumber} created.`, 'success');
+      // Spec 0029, AC-5: saved on the last copy of the truck; the sync catches up later
+      if (ticket.fleetStale) {
+        showToast('VMMS can’t be reached, using the last copy', 'warning', {
+          body: 'The truck’s details on this ticket come from VRMS’s last copy and update once VMMS is back.',
+        });
+      }
       navigate(`/repairs/${ticket.id}`, { replace: true });
     } catch (err) {
       savingRef.current = false;
@@ -228,10 +257,15 @@ export function RepairFormPage() {
 
   return (
     <div className="pb-action-bar lg:pb-0">
-      <PageHeader title="New repair ticket" context="Log a vehicle repair and assign it." />
+      <PageHeader
+        title="New repair ticket"
+        context={referralId ? 'Open a repair ticket from a VMMS referral.' : 'Log a vehicle repair and assign it.'}
+      />
       <p className="-mt-3 mb-6 text-body text-muted-foreground">
         Reported by {reporter} · {formatShortDate(openedAt)}
       </p>
+
+      {referral.state !== 'none' && <ReferralFormBanner referral={referral} blocker={blocker} />}
 
       <form
         ref={formRef}
@@ -247,8 +281,10 @@ export function RepairFormPage() {
             vehicles={options.vehicles}
             garages={options.garages}
             summary={vehicleSummary}
+            trips={vehicleTrips}
             setValue={setValue}
             clearErrors={clearErrors}
+            driverOptional={!!referralId}
           />
           <IssueLoggingSection
             control={control}
@@ -291,7 +327,18 @@ export function RepairFormPage() {
         )}
 
         <div className="xl:col-span-3">
-          <RepairFormActions saving={saving} listsBlocked={listsBlocked} openTicketBlocked={!!vehicleSummary.summary?.openTicket} onCancel={() => navigate('/repairs')} />
+          <RepairFormActions
+            saving={saving}
+            // A referral that hasn't loaded, or can't be opened, blocks the save like a failed list
+            listsBlocked={listsBlocked || (!!referralId && (referral.state !== 'ready' || !!blocker))}
+            blockedNote={
+              listsBlocked
+                ? undefined
+                : blocker ?? (referral.state === 'error' ? 'The VMMS referral didn’t load.' : referral.state === 'loading' ? 'Loading the VMMS referral…' : undefined)
+            }
+            openTicketBlocked={!!vehicleSummary.summary?.openTicket}
+            onCancel={() => navigate(referralId ? '/repairs?view=referrals' : '/repairs')}
+          />
         </div>
       </form>
 

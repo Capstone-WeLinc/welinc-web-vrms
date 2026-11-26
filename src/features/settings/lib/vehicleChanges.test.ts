@@ -47,3 +47,26 @@ describe('describeChange', () => {
     expect(describeChange(row({ actorName: '  ' })).who).toBe('System');
   });
 });
+
+describe('describeChange for fleet sync rows (spec 0029, AC-3)', () => {
+  const sync = (field: string, before: unknown, after: unknown) =>
+    describeChange({ id: 's', field, before, after, note: null, actorName: 'VMMS', createdAt: '2026-11-27T00:00:00.000Z', ticket: null });
+
+  it('names VMMS and never says Ticket removed on a status row', () => {
+    expect(sync('status', 'AVAILABLE', 'UNDER_MAINTENANCE')).toEqual({
+      what: 'Status',
+      before: 'Available',
+      after: 'Under maintenance',
+      who: 'VMMS',
+      detail: null,
+    });
+  });
+
+  it('words each copied field', () => {
+    expect(sync('plateNumber', 'ABC 123', 'ABC 124')).toMatchObject({ what: 'Plate', before: 'ABC 123', after: 'ABC 124' });
+    expect(sync('garage', null, { id: 'g', name: 'Pasig' })).toMatchObject({ what: 'Garage', before: 'Not set', after: 'Pasig' });
+    expect(sync('capacity', 4000, 12500)).toMatchObject({ what: 'Capacity', before: '4,000 kg', after: '12,500 kg' });
+    expect(sync('truckSizeCategory', '6 wheeler', null)).toMatchObject({ what: 'Size', before: '6 wheeler', after: 'Not set' });
+    expect(sync('isActive', true, false)).toMatchObject({ what: 'In VMMS', before: 'In the fleet', after: 'Removed in VMMS' });
+  });
+});

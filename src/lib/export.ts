@@ -1,4 +1,5 @@
 import { RepairTicket } from '../types';
+import { driverLabel } from '../features/repair/lib/ticketDriver';
 
 function toCSV(rows: Record<string, unknown>[]) {
   if (!rows || rows.length === 0) return '';
@@ -13,7 +14,7 @@ export function downloadRepairsCSV(items: RepairTicket[]) {
     id: r.id,
     repairNumber: r.repairNumber,
     vehiclePlate: r.vehiclePlate,
-    driverName: r.driverName,
+    driverName: driverLabel(r.driverName),
     status: r.status,
     updatedAt: r.updatedAt,
     totalCost: r.totalCost ?? 0,

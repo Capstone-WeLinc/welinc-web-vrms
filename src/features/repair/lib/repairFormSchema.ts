@@ -27,6 +27,8 @@ export interface RepairFormLists {
   mechanicIds: string[] | null;
   /** Active ids of the corporation list (spec 0016, AC-4). */
   corporationIds: string[] | null;
+  /** Spec 0029, AC-8: a ticket opened from a VMMS referral needs no driver. */
+  driverOptional?: boolean;
 }
 
 const ODOMETER_PATTERN = /^\d{1,7}$/;
@@ -133,7 +135,7 @@ export function buildRepairFormSchema(lists: RepairFormLists) {
         } else if (!LICENSE_PATTERN.test(license)) {
           ctx.addIssue({ code: 'custom', path: ['newDriverLicense'], message: LICENSE_FORMAT_MESSAGE });
         }
-      } else if (!values.driverId) {
+      } else if (!values.driverId && !lists.driverOptional) {
         ctx.addIssue({ code: 'custom', path: ['driverId'], message: 'Choose or add a driver.' });
       }
     }, { when: () => true });
@@ -170,6 +172,8 @@ export const REPAIR_FORM_DEFAULTS: RepairFormInput = {
 /** Extra flags the summary dialog sets (spec 0016, AC-7). */
 export interface CreateExtras {
   confirmOdometerJump?: boolean;
+  /** Spec 0029, AC-8: the VMMS referral this ticket is opened from. */
+  referralId?: string;
 }
 
 /** AC-18: no repairNumber (the server makes it). The driver goes as an id or a new driver, never both. */
@@ -183,12 +187,16 @@ export function toCreatePayload(values: RepairFormValues, extras: CreateExtras =
             licenseNumber: values.newDriverLicense.trim().toUpperCase(),
           },
         }
-      : { driverId: values.driverId }),
+      : // A referral ticket may have no driver at all (spec 0029); never send an empty id
+        values.driverId
+        ? { driverId: values.driverId }
+        : {}),
     accountType: values.accountType,
     corporationId: values.accountType === 'CORPORATE' ? values.corporationId : undefined,
     garageLocation: values.garageLocation,
     odometerReading: values.odometerReading,
     ...(extras.confirmOdometerJump && { confirmOdometerJump: true }),
+    ...(extras.referralId && { referralId: extras.referralId }),
     mechanics: values.mechanics.map(({ id }) => ({ id })),
     priority: values.priority,
     issues: values.issues.map(({ knowledgeEntryId, categoryId, rootCause, description }) => ({

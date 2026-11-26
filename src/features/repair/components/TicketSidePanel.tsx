@@ -10,6 +10,7 @@ import { BadgePill } from '../../../components/shared/BadgePill';
 import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
 import { MoreMenu } from '../../../components/shared/MoreMenu';
 import { PriorityBadge } from '../../../components/shared/PriorityBadge';
+import { driverLabel } from '../lib/ticketDriver';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { useToast } from '../../../context/toast';
 import { useClamped } from '../../../hooks/useClamped';
@@ -251,7 +252,7 @@ export function NotesCard({ ticket }: { ticket: RepairTicket }) {
 function DriverValue({ ticket }: { ticket: RepairTicket }) {
   return (
     <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-      {ticket.driverName}
+      {driverLabel(ticket.driverName)}
       {/* Sent with the cost record only (ticket.costs.view) */}
       {ticket.driverIsVerified != null && (
         <span className={cn('inline-flex items-center gap-1 text-caption font-medium', ticket.driverIsVerified ? 'text-success' : 'text-muted-foreground')}>

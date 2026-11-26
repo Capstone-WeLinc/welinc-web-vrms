@@ -16,6 +16,8 @@ export type RepairListFilterValues = {
   /** A mechanic id, or 'all'. Admins only. */
   mechanicId: string;
   overdue: boolean;
+  /** Spec 0029, AC-35: only open tickets whose truck VMMS removed (`?removed=1`). */
+  truckRemoved: boolean;
 };
 
 export const DEFAULT_REPAIR_LIST_FILTERS: RepairListFilterValues = {
@@ -24,6 +26,7 @@ export const DEFAULT_REPAIR_LIST_FILTERS: RepairListFilterValues = {
   garageId: 'all',
   mechanicId: 'all',
   overdue: false,
+  truckRemoved: false,
 };
 
 export const REPAIR_LIST_PAGE_SIZE = 20;
@@ -54,6 +57,7 @@ export function readListState(params: URLSearchParams, seesAll: boolean) {
     garageId: readId(params.get('garage')),
     mechanicId: seesAll ? readId(params.get('mechanic')) : 'all',
     overdue: params.get('overdue') === '1',
+    truckRemoved: params.get('removed') === '1',
   };
   return { filters, page: readPage(params.get('page')) };
 }
@@ -65,6 +69,7 @@ export function writeListState(filters: RepairListFilterValues, page: number) {
   if (filters.status !== 'all') params.set('status', filters.status);
   if (filters.garageId !== 'all') params.set('garage', filters.garageId);
   if (filters.overdue) params.set('overdue', '1');
+  if (filters.truckRemoved) params.set('removed', '1');
   if (filters.mechanicId !== 'all') params.set('mechanic', filters.mechanicId);
   if (page > 1) params.set('page', String(page));
   return params;
@@ -76,7 +81,8 @@ export function hasActiveFilters(filters: RepairListFilterValues) {
     filters.status !== 'all' ||
     filters.garageId !== 'all' ||
     filters.mechanicId !== 'all' ||
-    filters.overdue
+    filters.overdue ||
+    filters.truckRemoved
   );
 }
 
@@ -87,6 +93,7 @@ export function repairListParams(filters: RepairListFilterValues, page: number):
     garageId: filters.garageId === 'all' ? undefined : filters.garageId,
     mechanicId: filters.mechanicId === 'all' ? undefined : filters.mechanicId,
     overdue: filters.overdue || undefined,
+    truckRemoved: filters.truckRemoved || undefined,
     page,
     limit: REPAIR_LIST_PAGE_SIZE,
   };

@@ -9,11 +9,27 @@ import { ScenePanel } from '../../../components/brand/scenes/ScenePanel';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
-import { getApiErrorMessage, getApiErrorStatus, getDriverExists, getInvalidTransition, getPhotoRequired } from '../../../lib/api/errors';
+import {
+  getApiErrorMessage,
+  getApiErrorStatus,
+  getConflictCode,
+  getDriverExists,
+  getInvalidTransition,
+  getPhotoRequired,
+} from '../../../lib/api/errors';
+import { acceptExpedite, declineExpedite } from '../../../lib/api/expediteApi';
+import { OPEN_STATUSES } from '../../../lib/repairStatus';
+import { DetailSection } from '../../../components/shared/DetailSection';
+import { AcceptExpediteDialog } from '../components/expedite/AcceptExpediteDialog';
+import { ExpediteBanner } from '../components/expedite/ExpediteBanner';
+import { UpcomingTripsList } from '../components/trips/UpcomingTripsList';
+import { useVehicleSchedule } from '../hooks/useVehicleSchedule';
+import { acceptBody, type AcceptExpediteValues } from '../lib/expedite';
 import {
   addTicketIssue,
   editTicketDetails,
   editTicketIssue,
+  pickOutsideShop,
   removeTicketIssue,
   saveIssueChecklist,
   setMechanics,
@@ -24,7 +40,7 @@ import {
 import { useHasTabBar } from '../../../components/layout/useNavSections';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useCan } from '../../../lib/permissions/usePermissions';
-import type { IssueResolution, RepairIssue, RepairStatus, RepairTicket } from '../../../types';
+import type { ExpediteRequest, IssueResolution, RepairIssue, RepairStatus, RepairTicket } from '../../../types';
 import { ActivitySection } from '../components/ActivitySection';
 import { AiDiagnosisSection } from '../components/AiDiagnosisSection';
 import { Callout } from '../../../components/shared/Callout';
@@ -41,6 +57,7 @@ import { TicketHeader } from '../components/TicketHeader';
 import { DocumentsCard } from '../components/DocumentsCard';
 import { EditDetailsDialog } from '../components/edit/EditDetailsDialog';
 import { IssueEditDialog, type IssueSave } from '../components/edit/IssueEditDialog';
+import { OutsideShopDialog } from '../components/edit/OutsideShopDialog';
 import { ChecklistEditDialog, type ChecklistSave } from '../components/edit/ChecklistEditDialog';
 import { canEditChecklist, STALE_CHECKLIST_MESSAGE } from '../lib/checklist';
 import { confirm } from '../../../components/shared/confirm/confirm';
@@ -89,15 +106,21 @@ export function RepairDetailPage() {
   // Spec 0012: ai.use shows the AI panel (its key leaves while AI is off, AC-13). Whether the
   // "What fixed it" step runs comes from the move's `needs` (spec 0014, AC-13)
   const usesAi = useCan('ai.use');
+  // Spec 0029 (child 0003), AC-11 and AC-19: who may answer BMS's expedite requests
+  const respondsToSystems = useCan('integration.respond');
   const hasTabBar = useHasTabBar();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [dialog, setDialog] = useState<DialogKind>(null);
+  // Spec 0029, AC-36: the late outside shop pick
+  const [shopOpen, setShopOpen] = useState(false);
+  // Spec 0029 (child 0003), AC-19: the expedite request being answered, and how
+  const [expedite, setExpedite] = useState<{ request: ExpediteRequest; kind: 'accept' | 'decline' } | null>(null);
   // Spec 0024, AC-18: from 1024px the sidebar sits on the right; below, one column in the phone order
   const wide = useMediaQuery('(min-width: 1024px)');
   const { state, ticket, loadedAt, errorCode, errorMessage, replace, reload, retry } = useRepairTicket(repairId, {
     // The status dialogs are keyed on the ticket's version, so a refetch would clear a typed note
-    paused: dialog !== null,
+    paused: dialog !== null || expedite !== null,
     // Spec 0019, AC-23: removed from the ticket (403) or the ticket is gone (404) while it was open
     onGone: (code) => {
       showToast(
@@ -109,6 +132,9 @@ export function RepairDetailPage() {
   });
   // Spec 0019: the edit dialogs, one at a time, each with the ticket it opened with (AC-22)
   const edits = useEditSession();
+  // Spec 0029 (child 0003), AC-16: an open ticket's truck, read live from BMS once per visit
+  const tripsVehicleId = ticket && OPEN_STATUSES.includes(ticket.status) ? (ticket.vehicleId ?? '') : '';
+  const trips = useVehicleSchedule(tripsVehicleId);
 
   const back = backLink(ticket, (location.state as { from?: unknown } | null)?.from);
 
@@ -162,6 +188,40 @@ export function RepairDetailPage() {
     showToast(STALE_TICKET_MESSAGE, 'error');
     void reload();
   };
+
+  /**
+   * Spec 0029 (child 0003), AC-19: an answer to BMS. A request someone else answered first closes
+   * the dialog and reloads; a stale ticket goes the usual way; anything else stays in the dialog.
+   */
+  const answerExpedite = async (request: ExpediteRequest, send: () => Promise<RepairTicket>, done: string) => {
+    try {
+      const updated = await send();
+      setExpedite(null);
+      replace(updated);
+      showToast(done, 'success');
+    } catch (err) {
+      if (getConflictCode(err) === 'EXPEDITE_ALREADY_DECIDED') {
+        setExpedite(null);
+        showToast(`${request.jobOrderNumber} was already answered.`, 'warning');
+        void reload();
+        return;
+      }
+      if (getApiErrorStatus(err) === 409) {
+        setExpedite(null);
+        handleStale();
+        return;
+      }
+      throw err;
+    }
+  };
+  const acceptRequest = (request: ExpediteRequest, values: AcceptExpediteValues) =>
+    answerExpedite(
+      request,
+      () => acceptExpedite(request.id, acceptBody(values, ticket)),
+      `Accepted ${request.jobOrderNumber}. BMS is told.`,
+    );
+  const declineRequest = (request: ExpediteRequest, reason: string) =>
+    answerExpedite(request, () => declineExpedite(request.id, reason), `Declined ${request.jobOrderNumber}. BMS is told.`);
 
   /** AC-19: a move the server no longer allows closes the dialog, says why and reloads. */
   const handleRefused = (err: unknown) => {
@@ -245,6 +305,22 @@ export function RepairDetailPage() {
       showToast(`Mechanics on ${rep} are updated.`, 'success');
     } catch (err) {
       if (getApiErrorStatus(err) === 409) return handleStale();
+      throw err;
+    }
+  };
+
+  // Spec 0029, AC-36: the outside shop on a ticket outsourced before the picker
+  const saveShop = async (opened: RepairTicket, vmmsProviderId: string) => {
+    try {
+      const updated = await pickOutsideShop(ticket.id, { lastUpdatedAt: opened.updatedAt, vmmsProviderId });
+      setShopOpen(false);
+      replace(updated);
+      showToast(`Outside shop saved on ${rep}.`, 'success');
+    } catch (err) {
+      if (getApiErrorStatus(err) === 409) {
+        setShopOpen(false);
+        return handleStale();
+      }
       throw err;
     }
   };
@@ -344,8 +420,39 @@ export function RepairDetailPage() {
     // Keyed by ticket, so a link to another ticket (similar repairs) starts every section fresh.
     <div key={ticket.id} className={barLabel ? (barSecondary ? 'pb-36 md:pb-20 lg:pb-0' : 'pb-20 lg:pb-0') : undefined}>
       <BackLink to={back.to} label={back.label} />
-      <TicketHeader ticket={ticket} />
+      <TicketHeader ticket={ticket} onPickShop={ticket.can.edit ? () => setShopOpen(true) : undefined} />
+      {shopOpen && (
+        <OutsideShopDialog open onOpenChange={setShopOpen} repairNumber={ticket.repairNumber} onSave={(id) => saveShop(ticket, id)} />
+      )}
       {ticket.lastRejection && <SendBackBanner key={ticket.lastRejection.at} rejection={ticket.lastRejection} now={loadedAt} />}
+      <ExpediteBanner
+        requests={ticket.expediteRequests ?? []}
+        now={loadedAt}
+        onAccept={respondsToSystems ? (request) => setExpedite({ request, kind: 'accept' }) : null}
+        onDecline={respondsToSystems ? (request) => setExpedite({ request, kind: 'decline' }) : null}
+      />
+      {expedite?.kind === 'accept' && (
+        <AcceptExpediteDialog
+          open
+          onOpenChange={(open) => !open && setExpedite(null)}
+          request={expedite.request}
+          ticket={{ priority: ticket.priority ?? expedite.request.ticketPriority, dueAt: ticket.dueAt }}
+          onSave={(values) => acceptRequest(expedite.request, values)}
+        />
+      )}
+      {expedite?.kind === 'decline' && (
+        <TicketNoteDialog
+          open
+          onOpenChange={(open) => !open && setExpedite(null)}
+          title={`Decline ${expedite.request.jobOrderNumber}`}
+          description="BMS sees your reason and keeps planning around the current date."
+          fieldLabel="Why"
+          requiredMessage="Say why you can’t speed it up."
+          minLength={5}
+          confirmLabel="Decline request"
+          onSubmit={(reason) => declineRequest(expedite.request, reason)}
+        />
+      )}
 
       {/* Spec 0017: one file list and one upload queue for the photos and the Documents card. Spec 0018: a
           file change reloads the ticket (its photo rules), and photos still in the queue hold Start work. */}
@@ -393,6 +500,13 @@ export function RepairDetailPage() {
           );
           // Spec 0017, AC-27: receipts and other documents are cost paperwork
           const documents = seesCosts ? <DocumentsCard /> : null;
+          // Spec 0029 (child 0003), AC-16: what this repair puts at risk, while it is open
+          const upcoming = tripsVehicleId ? (
+            <DetailSection title="Upcoming trips">
+              <p className="-mt-3 text-caption text-muted-foreground">From BMS, the next 14 days</p>
+              <UpcomingTripsList state={trips} />
+            </DetailSection>
+          ) : null;
           return (
             <>
               {/* The main column keeps its place in the tree at every width, so a resize never resets the issue rows */}
@@ -403,6 +517,7 @@ export function RepairDetailPage() {
                     {notes}
                     {people}
                     {details}
+                    {upcoming}
                     {documents}
                   </aside>
                 )}
@@ -433,6 +548,7 @@ export function RepairDetailPage() {
                   {seesCosts && <CostsSection ticket={ticket} readOnly={readOnly} onSaved={replace} onReload={reload} />}
                   {!wide && people}
                   {!wide && details}
+                  {!wide && upcoming}
                   {!wide && documents}
                   {seesActivity && <ActivitySection ticketId={ticket.id} />}
                 </div>

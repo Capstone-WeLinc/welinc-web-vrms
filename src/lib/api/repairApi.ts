@@ -20,6 +20,8 @@ export interface RepairListParams {
   mechanicId?: string;
   /** Open tickets past their due date, by the server's clock. */
   overdue?: boolean;
+  /** Spec 0029, AC-35: open tickets whose truck VMMS removed. */
+  truckRemoved?: boolean;
   /** Neither page nor limit returns every matching row. */
   page?: number;
   limit?: number;
@@ -30,7 +32,7 @@ export async function getRepairs(
   options: { quiet?: boolean } = {},
 ): Promise<{ data: RepairTicket[], total: number }> {
   const response = await api.get<{ data: RepairTicket[], total: number } | RepairTicket[]>('/vrms/repairs', {
-    params: { ...params, search: params.search || undefined, overdue: params.overdue || undefined },
+    params: { ...params, search: params.search || undefined, overdue: params.overdue || undefined, truckRemoved: params.truckRemoved || undefined },
     quiet: options.quiet,
   });
   if (Array.isArray(response.data)) {
@@ -132,8 +134,9 @@ export async function checkIssueStep(repairId: string, issueId: string, stepId: 
   return response.data;
 }
 
-export async function createRepair(payload: CreateRepairPayload): Promise<RepairTicket> {
-  const response = await api.post<RepairTicket>('/vrms/repairs', payload);
+/** Spec 0029, AC-5: `fleetStale` when VMMS couldn't be reached and the truck came from VRMS's copy. */
+export async function createRepair(payload: CreateRepairPayload): Promise<RepairTicket & { fleetStale?: boolean }> {
+  const response = await api.post<RepairTicket & { fleetStale?: boolean }>('/vrms/repairs', payload);
   return response.data;
 }
 
@@ -214,6 +217,12 @@ export interface AddIssuePayload extends TicketEditBase {
 
 export async function addTicketIssue(repairId: string, payload: AddIssuePayload): Promise<RepairTicket> {
   const response = await api.post<RepairTicket>(`/vrms/repairs/${repairId}/issues`, payload);
+  return response.data;
+}
+
+/** Spec 0029, AC-36: the outside shop on a ticket outsourced before the picker existed. */
+export async function pickOutsideShop(repairId: string, payload: TicketEditBase & { vmmsProviderId: string }): Promise<RepairTicket> {
+  const response = await api.put<RepairTicket>(`/vrms/repairs/${repairId}/outside-shop`, payload);
   return response.data;
 }
 

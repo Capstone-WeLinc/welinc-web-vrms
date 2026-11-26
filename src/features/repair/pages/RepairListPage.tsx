@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ClipboardList, Plus, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SegmentedControl, SegmentedControlItem } from '@/components/ui/segmented-control';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { DataTable } from '../../../components/shared/data-table/DataTable';
 import { lastPage, type Column, type RowAction } from '../../../components/shared/data-table/types';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
+import { FromVmmsChip } from '../../../components/shared/FromVmmsChip';
+import { TruckRemovedChip } from '../../../components/shared/TruckRemovedChip';
 import { PlateChip } from '../../../components/shared/PlateChip';
 import { PriorityBadge } from '../../../components/shared/PriorityBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
@@ -19,6 +22,10 @@ import type { RepairTicket } from '../../../types';
 import { RepairListFilters } from '../components/RepairListFilters';
 import { useRepairList } from '../hooks/useRepairList';
 import { useRepairListFilters } from '../hooks/useRepairListFilters';
+import { useReferrals } from '../hooks/useReferrals';
+import { ReferralsView } from '../components/referrals/ReferralsView';
+import { referralStatusParam, repairsView, type RepairsView } from '../lib/referrals';
+import type { ReferralStatus } from '../../../lib/api/referralsApi';
 import { hasActiveFilters, REPAIR_LIST_PAGE_SIZE, repairListParams } from '../lib/repairListFilters';
 
 function DueCell({ ticket, now }: { ticket: RepairTicket; now: number }) {
@@ -42,6 +49,18 @@ function TruckCell({ ticket }: { ticket: RepairTicket }) {
         {ticket.vehicleModel && <span className="text-body font-normal text-foreground">{ticket.vehicleModel}</span>}
       </span>
       <span translate="no" className="text-caption font-normal whitespace-nowrap text-muted-foreground tabular-nums">{ticket.repairNumber}</span>
+      {/* Spec 0029, AC-12 */}
+      {ticket.fromVmmsWorkOrder && (
+        <span>
+          <FromVmmsChip workOrderNumber={ticket.fromVmmsWorkOrder} />
+        </span>
+      )}
+      {/* Spec 0029, AC-35 */}
+      {ticket.truckRemoved && (
+        <span>
+          <TruckRemovedChip />
+        </span>
+      )}
     </span>
   );
 }
@@ -101,8 +120,18 @@ export function RepairListPage() {
   // Spec 0011: ticket.view_all reads every ticket and can filter by mechanic
   const seesAll = useCan('ticket.view_all');
   const canCreate = useCan('ticket.create');
+  // Spec 0029, AC-7: VMMS referrals are a second view of this page, for integration.respond only
+  const canRespond = useCan('integration.respond');
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = repairsView(searchParams.get('view'), canRespond);
+  const referralStatus = referralStatusParam(searchParams.get('referralStatus'));
+  // On the Tickets view it loads the waiting ones, for the tab's count
+  const referrals = useReferrals(view === 'referrals' ? referralStatus : 'WAITING', canRespond);
+  const showView = (next: RepairsView) => setSearchParams(next === 'referrals' ? { view: 'referrals' } : {}, { replace: true });
+  const showReferralStatus = (next: ReferralStatus) =>
+    setSearchParams(next === 'WAITING' ? { view: 'referrals' } : { view: 'referrals', referralStatus: next }, { replace: true });
   const { filters, page, searchText, setSearchText, setFilters, setPage, clearFilters } = useRepairListFilters(seesAll);
   const list = useRepairList(repairListParams(filters, page));
   const [garages, setGarages] = useState<GarageOption[]>([]);
@@ -177,10 +206,32 @@ export function RepairListPage() {
     <div>
       <PageHeader
         title="Repair tickets"
-        context={seesAll ? 'Open repair tickets across every garage.' : 'Open repair tickets assigned to you.'}
-        action={canCreate ? newTicket : undefined}
+        context={
+          view === 'referrals'
+            ? 'Trucks VMMS inspections sent for repair. Open a ticket from each one.'
+            : seesAll
+              ? 'Open repair tickets across every garage.'
+              : 'Open repair tickets assigned to you.'
+        }
+        action={canCreate && view === 'tickets' ? newTicket : undefined}
       />
 
+      {canRespond && (
+        <SegmentedControl aria-label="View" value={view} onValueChange={(next) => showView(next as RepairsView)} className="mb-4">
+          <SegmentedControlItem value="tickets">Tickets</SegmentedControlItem>
+          <SegmentedControlItem value="referrals">
+            Referrals
+            {referrals.waitingCount !== null && referrals.waitingCount > 0 && (
+              <span className="font-mono text-caption">{referrals.waitingCount.toLocaleString()}</span>
+            )}
+          </SegmentedControlItem>
+        </SegmentedControl>
+      )}
+
+      {view === 'referrals' ? (
+        <ReferralsView status={referralStatus} onStatusChange={showReferralStatus} list={referrals} />
+      ) : (
+        <>
       <RepairListFilters
         value={filters}
         searchText={searchText}
@@ -209,6 +260,8 @@ export function RepairListPage() {
           pagination={{ page, pageSize: REPAIR_LIST_PAGE_SIZE, total: list.total, onPageChange: setPage }}
           empty={empty}
         />
+      )}
+        </>
       )}
     </div>
   );

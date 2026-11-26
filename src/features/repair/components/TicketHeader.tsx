@@ -1,3 +1,7 @@
+import { Store } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Callout } from '../../../components/shared/Callout';
+import { FromVmmsChip } from '../../../components/shared/FromVmmsChip';
 import { PlateChip } from '../../../components/shared/PlateChip';
 import type { RepairTicket } from '../../../types';
 import { issueDisplayText, stripSystem } from '../lib/issueRow';
@@ -6,7 +10,7 @@ import { issueDisplayText, stripSystem } from '../lib/issueRow';
  * Spec 0024, AC-11 (`docs/context/vrms/design.md`, Naming a ticket): the plate leads, then the model,
  * then the main issue; the ticket ID sits alone below, never breaking. The garage is in Details (Record).
  */
-export function TicketHeader({ ticket }: { ticket: RepairTicket }) {
+export function TicketHeader({ ticket, onPickShop }: { ticket: RepairTicket; onPickShop?: () => void }) {
   const first = ticket.issues?.[0];
   return (
     <header className="mb-4 flex flex-col gap-1.5 border-b border-border pb-4 md:mb-6">
@@ -17,7 +21,37 @@ export function TicketHeader({ ticket }: { ticket: RepairTicket }) {
         </span>
         {first && <span className="line-clamp-1 text-heading font-semibold break-words md:text-title">{issueDisplayText(stripSystem(first.description))}</span>}
       </h1>
-      <p className="text-body whitespace-nowrap text-muted-foreground tabular-nums">{ticket.repairNumber}</p>
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-muted-foreground tabular-nums">
+        <span className="whitespace-nowrap">{ticket.repairNumber}</span>
+        {/* Spec 0029, AC-12 */}
+        {ticket.fromVmmsWorkOrder && <FromVmmsChip workOrderNumber={ticket.fromVmmsWorkOrder} />}
+        {/* Spec 0029, AC-36 */}
+        {ticket.outsideShopName && (
+          <span className="inline-flex items-center gap-1 text-muted-strong">
+            <Store aria-hidden="true" className="size-4" />
+            At {ticket.outsideShopName}
+          </span>
+        )}
+      </p>
+      {ticket.needsOutsideShop && (
+        <Callout tone="warning" title="Pick the outside shop" className="mt-2">
+          <span className="flex flex-col items-start gap-2">
+            This ticket went to an outside shop before VRMS kept which one. VMMS needs the shop for the truck’s repair.
+            {onPickShop && (
+              <Button variant="outline" size="sm" onClick={onPickShop}>
+                Pick the shop
+              </Button>
+            )}
+          </span>
+        </Callout>
+      )}
+      {/* Spec 0029, AC-35: worked out by the server on every read, so it clears on the next sync */}
+      {ticket.truckRemoved && (
+        <Callout tone="warning" title="Truck removed in VMMS" className="mt-2">
+          VMMS no longer lists this truck, so it can’t take repair updates for it. Cancel this ticket, or ask VMMS Operations to add the
+          truck back.
+        </Callout>
+      )}
     </header>
   );
 }

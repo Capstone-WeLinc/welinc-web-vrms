@@ -1,95 +1,50 @@
-import type { ManagedVehicle, ToggleStatus } from '../../../lib/api/vehiclesApi';
+import type { ManagedVehicle } from '../../../lib/api/vehiclesApi';
 
-// Spec 0020, AC-10 and AC-11: which status actions a Vehicles row offers, and their words.
+// Spec 0020, AC-12, and spec 0029, AC-4: the Vehicles list's status chips (kept in ?status=) and
+// search. The statuses are VMMS's; VRMS no longer sets any.
 
-export type StatusAction = {
-  target: ToggleStatus;
-  /** The row menu item, and the dialog's confirm button. */
-  label: string;
-  title: (plate: string) => string;
-  destructive: boolean;
-};
-
-const DISABLE: StatusAction = {
-  target: 'DISABLED',
-  label: 'Disable truck',
-  title: (plate) => `Disable ${plate}?`,
-  destructive: true,
-};
-
-const ENABLE: StatusAction = {
-  target: 'AVAILABLE',
-  label: 'Make available',
-  title: (plate) => `Make ${plate} available?`,
-  destructive: false,
-};
-
-/**
- * Available rows offer Disable, Disabled rows offer Make available. An Under repair row (a stuck
- * truck with no open ticket) offers both; the server has the final say. Under maintenance offers none.
- */
-export function statusActions(vehicle: Pick<ManagedVehicle, 'status'>): StatusAction[] {
-  switch (vehicle.status) {
-    case 'AVAILABLE':
-      return [DISABLE];
-    case 'DISABLED':
-      return [ENABLE];
-    case 'UNDER_REPAIR':
-      return [ENABLE, DISABLE];
-    default:
-      return [];
-  }
-}
-
-export const REASON_MIN = 5;
-
-/** Why a row's status action is off (AC-10), or null when the Admin may toggle it. */
-export type StatusBlock =
-  | { kind: 'ticket'; ticket: { id: string; repairNumber: string } }
-  | { kind: 'maintenance' }
-  | null;
-
-export function statusBlock(vehicle: Pick<ManagedVehicle, 'status' | 'openTicket'>): StatusBlock {
-  if (vehicle.status === 'UNDER_MAINTENANCE') return { kind: 'maintenance' };
-  if (vehicle.openTicket) return { kind: 'ticket', ticket: vehicle.openTicket };
-  return null;
-}
-
-/** The status action a blocked row shows, disabled: the one its status would offer, else Disable. */
-export function blockedAction(vehicle: Pick<ManagedVehicle, 'status'>): StatusAction {
-  return vehicle.status === 'DISABLED' ? ENABLE : DISABLE;
-}
-
-// ── Status chips, kept in the address as ?status= (AC-12) ──────────────────────────
-
-export const STATUS_CHIPS = ['ALL', 'AVAILABLE', 'UNDER_REPAIR', 'DISABLED'] as const;
+export const STATUS_CHIPS = ['ALL', 'AVAILABLE', 'UNDER_REPAIR', 'UNDER_MAINTENANCE'] as const;
 export type StatusChip = (typeof STATUS_CHIPS)[number];
 
-/** The chip a `status` param names; anything else (missing, unknown, Under maintenance) is All. */
+type Searchable = Pick<ManagedVehicle, 'plateNumber' | 'model' | 'make' | 'truckSizeCategory' | 'status' | 'garage'>;
+
+/** The chip a `status` param names; anything else (missing, unknown) is All. */
 export function readStatusChip(param: string | null): StatusChip {
   return STATUS_CHIPS.find((chip) => chip !== 'ALL' && chip === param) ?? 'ALL';
 }
 
 /** Rows matching both the chip and the search text (already trimmed and lower case). */
-export function filterVehicles<T extends Pick<ManagedVehicle, 'plateNumber' | 'model' | 'status' | 'type'>>(
-  rows: T[],
-  chip: StatusChip,
-  needle: string,
-): T[] {
+export function filterVehicles<T extends Searchable>(rows: T[], chip: StatusChip, needle: string): T[] {
   return rows.filter(
     (v) =>
       (chip === 'ALL' || v.status === chip) &&
-      (!needle || `${v.plateNumber} ${v.model} ${v.type?.name ?? ''}`.toLowerCase().includes(needle)),
+      (!needle ||
+        [v.plateNumber, v.make, v.model, v.truckSizeCategory, v.garage?.name]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(needle)),
   );
 }
 
 /** How many rows each chip would show under the current search. */
-export function chipCounts<T extends Pick<ManagedVehicle, 'plateNumber' | 'model' | 'status' | 'type'>>(
-  rows: T[],
-  needle: string,
-): Record<StatusChip, number> {
+export function chipCounts<T extends Searchable>(rows: T[], needle: string): Record<StatusChip, number> {
   const searched = filterVehicles(rows, 'ALL', needle);
-  const counts: Record<StatusChip, number> = { ALL: searched.length, AVAILABLE: 0, UNDER_REPAIR: 0, DISABLED: 0 };
+  const counts: Record<StatusChip, number> = { ALL: searched.length, AVAILABLE: 0, UNDER_REPAIR: 0, UNDER_MAINTENANCE: 0 };
   for (const v of searched) if (v.status in counts && v.status !== 'ALL') counts[v.status as StatusChip] += 1;
   return counts;
+}
+
+/** The newest `syncedAt` in the list: when VRMS last heard from VMMS about any truck. */
+export function lastSynced(rows: Pick<ManagedVehicle, 'syncedAt'>[]): string | null {
+  let newest: string | null = null;
+  for (const { syncedAt } of rows) if (syncedAt && (!newest || syncedAt > newest)) newest = syncedAt;
+  return newest;
+}
+
+/** "Make Model", without repeating a make VMMS already put at the start of the model. */
+export function makeAndModel(v: Pick<ManagedVehicle, 'make' | 'model'>): string {
+  const make = v.make?.trim();
+  if (!make || v.model.toLowerCase().startsWith(make.toLowerCase())) return v.model;
+  return `${make} ${v.model}`;
 }

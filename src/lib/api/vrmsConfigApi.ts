@@ -199,3 +199,15 @@ export async function updateLookupValue(
   const response = await api.patch<LookupValue>(`/vrms/lookups/${list}/${id}`, change, { quiet: true });
   return response.data;
 }
+
+/** Spec 0029, AC-36: one of VMMS's active outside shops. */
+export interface OutsideShop {
+  id: string;
+  name: string;
+}
+
+/** VMMS's list, or the last one read in 24 hours (`stale`) while VMMS can't be reached; 503 with none. */
+export async function getOutsideShops(): Promise<{ shops: OutsideShop[]; stale: boolean }> {
+  const response = await api.get<{ shops: OutsideShop[]; stale: boolean }>('/vrms/config/outside-shops', { quiet: true });
+  return response.data;
+}

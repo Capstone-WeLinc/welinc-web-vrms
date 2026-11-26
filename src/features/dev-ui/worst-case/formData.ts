@@ -13,7 +13,7 @@ const NAME_VIET = 'Đặng Thị Ngọc Hân';
 const TYPE_LONG = 'Refrigerated wing van, long wheelbase, double axle rear'.padEnd(100, ' x').slice(0, 100).trim();
 const CORP_LONG = 'Northwind Industries Holdings and Subsidiaries Philippines Incorporated';
 const PLATES = ['NAB 12345-TEMP-2026X', 'AB 1', 'NCX 3359', 'CONDUCTION 0042A', 'TGD 908'];
-const STATUSES = ['AVAILABLE', 'UNDER_REPAIR', 'DISABLED', 'AVAILABLE', 'UNDER_REPAIR'];
+const STATUSES = ['AVAILABLE', 'UNDER_REPAIR', 'UNDER_MAINTENANCE', 'AVAILABLE', 'UNDER_REPAIR'];
 
 const plate = (i: number) => (i < PLATES.length ? PLATES[i] : `PLT ${String(1000 + i)}`);
 
@@ -32,8 +32,16 @@ function vehicles(mode: DataMode): VehicleOption[] {
 
 function managed(mode: DataMode): ManagedVehicle[] {
   const types = [{ id: 'fixture-t-0', name: TYPE_LONG }, null, { id: 'fixture-t-1', name: '4 wheeler' }];
+  // Spec 0029, AC-4: VMMS's facts. Limits: make 100, size 50, garage 50 (vehicles, garages)
+  const makes = ['Mitsubishi Fuso Truck and Bus Corporation, Kawasaki Works Assembly'.padEnd(100, '.').slice(0, 100), null, 'Isuzu'];
+  const sizes = ['Refrigerated 10 wheeler wing van, double axle rear'.slice(0, 50), '6 wheeler', null];
+  const garages = [{ id: 'fixture-g-0', name: 'Valenzuela North Logistics Hub and Workshop Annex'.slice(0, 50) }, { id: 'fixture-g-1', name: 'Pasig' }, null];
   return vehicles(mode).map((v, i) => ({
     ...v,
+    make: makes[i % makes.length],
+    truckSizeCategory: sizes[i % sizes.length],
+    garage: garages[i % garages.length],
+    syncedAt: i === 0 ? null : new Date(Date.now() - i * 60_000).toISOString(),
     type: types[i % types.length],
     updatedAt: new Date().toISOString(),
     // Spec 0020: an open ticket on every Under repair row, with a long number
@@ -67,6 +75,12 @@ function changeAt(i: number, mode: DataMode): VehicleChange {
       { ...base, field: 'status', before: 'UNDER_REPAIR', after: 'DISABLED' },
       { ...base, field: 'status', before: 'DISABLED', after: 'AVAILABLE', note: REASON_URL, actorName: 'Jo' },
       { ...base, field: 'status', before: 'AVAILABLE', after: 'DISABLED', note: 'Fixed', createdAt: '2019-01-02T03:04:05.000Z' },
+      // Spec 0029, AC-3: rows the fleet sync writes, actor VMMS
+      { ...base, field: 'plateNumber', before: 'NAB 12345-TEMP-2026X', after: 'NCX 3359', actorName: 'VMMS' },
+      { ...base, field: 'garage', before: null, after: { id: 'fixture-g-0', name: 'Valenzuela North Logistics Hub and Workshop Annex' }, actorName: 'VMMS' },
+      { ...base, field: 'capacity', before: 4000, after: 12500, actorName: 'VMMS' },
+      { ...base, field: 'status', before: 'AVAILABLE', after: 'UNDER_MAINTENANCE', actorName: 'VMMS' },
+      { ...base, field: 'isActive', before: true, after: false, actorName: 'VMMS' },
     ];
     return { ...worst[i % worst.length], id: base.id, createdAt: i % worst.length === 7 ? worst[7].createdAt : base.createdAt };
   }

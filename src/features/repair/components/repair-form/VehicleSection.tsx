@@ -11,6 +11,8 @@ import type { OptionList } from '../../hooks/useRepairFormOptions';
 import { type RepairFormControl, type RepairFormInput } from '../../lib/repairFormSchema';
 import { FieldRow, FormSection } from '../../../../components/shared/FormSection';
 import type { VehicleSummaryState } from '../../hooks/useVehicleSummary';
+import type { VehicleScheduleState } from '../../hooks/useVehicleSchedule';
+import { UpcomingTripsList } from '../trips/UpcomingTripsList';
 import { DriverField } from './DriverField';
 import { VehicleCard } from './VehicleCard';
 import { FieldSkeleton, ListError } from './RepairFormParts';
@@ -22,9 +24,25 @@ interface VehicleSectionProps {
   setValue: UseFormSetValue<RepairFormInput>;
   clearErrors: UseFormClearErrors<RepairFormInput>;
   summary: VehicleSummaryState;
+  /** Spec 0029, AC-16: the picked truck's upcoming trips from BMS, to weigh the priority. */
+  trips: VehicleScheduleState;
+  /** Spec 0029, AC-8: opened from a VMMS referral, so the driver may stay empty. */
+  driverOptional?: boolean;
 }
 
-export function VehicleSection({ control, vehicles, garages, setValue, clearErrors, summary }: VehicleSectionProps) {
+// Spec 0029, AC-5: the trucks come from VMMS, so a missing one is VMMS's to add
+const NOT_IN_VMMS = 'Not in VMMS yet. Ask VMMS Operations to add it.';
+
+export function VehicleSection({
+  control,
+  vehicles,
+  garages,
+  setValue,
+  clearErrors,
+  summary,
+  trips,
+  driverOptional,
+}: VehicleSectionProps) {
 
   const vehicleOptions = useMemo<ComboboxOption[]>(
     () =>
@@ -38,7 +56,8 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
             <Badge variant="outline" className="border-highlight bg-highlight/15 text-foreground">
               Under repair
             </Badge>
-          ) : v.status === 'DISABLED' ? (
+          ) : v.status === 'UNDER_MAINTENANCE' ? (
+            // Spec 0029, AC-5: shown, never blocking
             <StatusBadge status={v.status} />
           ) : undefined,
       })),
@@ -60,7 +79,7 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
               name="vehiclePlate"
               label="Vehicle"
               required
-              description={noVehicles ? 'No vehicles are registered yet.' : undefined}
+              description={noVehicles ? NOT_IN_VMMS : undefined}
               render={({ field, controlProps }) => (
                 <Combobox
                   {...controlProps}
@@ -71,7 +90,7 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
                   onBlur={field.onBlur}
                   placeholder="Choose a vehicle"
                   searchPlaceholder="Search by plate or model"
-                  emptyText="No vehicle matches."
+                  emptyText={NOT_IN_VMMS}
                 />
               )}
             />
@@ -83,7 +102,14 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
 
         <VehicleCard state={summary} />
 
-        <DriverField control={control} setValue={setValue} clearErrors={clearErrors} />
+        {(trips.loading || trips.trips) && (
+          <section aria-label="Upcoming trips in BMS" className="flex flex-col gap-2 sm:col-span-2">
+            <h3 className="text-caption font-medium text-muted-foreground">Upcoming trips in BMS</h3>
+            <UpcomingTripsList state={trips} />
+          </section>
+        )}
+
+        <DriverField control={control} setValue={setValue} clearErrors={clearErrors} optional={driverOptional} />
 
         <div className="flex flex-col gap-2">
           {garages.loading ? (
