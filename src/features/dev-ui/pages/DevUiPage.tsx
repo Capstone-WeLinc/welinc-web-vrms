@@ -3,6 +3,7 @@ import { DataDisplaySection } from '../components/DataDisplaySection';
 import { DataTableSection } from '../components/DataTableSection';
 import { FeedbackSection } from '../components/FeedbackSection';
 import { FormsSection } from '../components/FormsSection';
+import { ScenesSection } from '../components/ScenesSection';
 
 export function DevUiPage() {
   return (
@@ -23,6 +24,7 @@ export function DevUiPage() {
         <FormsSection />
         <DataDisplaySection />
         <DataTableSection />
+        <ScenesSection />
       </main>
     </div>
   );

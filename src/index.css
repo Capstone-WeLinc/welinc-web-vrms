@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+/* The scene kit's tokens and motion (VRMS spec 0028), shared byte for byte with the portal */
+@import './styles/scenes.css';
 
 /*
   Design tokens (suite spec 0016, design.md). This file is the one place color
