@@ -136,6 +136,7 @@ export function UsersPage() {
       />
 
       <DataTable
+        errorKind="page"
         columns={usersColumns(currentUserId, isMobile, workload)}
         rows={pageRows}
         getRowId={(user) => user.id}

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { MessageSquarePlus, SearchX, TriangleAlert } from 'lucide-react';
+import { MessageSquarePlus, TriangleAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { BackLink } from '../../../components/shared/BackLink';
 import { DetailSection } from '../../../components/shared/DetailSection';
-import { EmptyState } from '../../../components/shared/EmptyState';
+import { RecordNotFound } from '../../../components/shared/RecordNotFound';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { PriorityBadge } from '../../../components/shared/PriorityBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
@@ -105,10 +105,10 @@ export function KnowledgeEntryPage() {
     // A mechanic opening a draft or inactive entry gets 404 too.
     const body =
       entry.errorCode === 404 || entry.errorCode === 400 ? (
-        <EmptyState
-          icon={SearchX}
+        <RecordNotFound
+          scenes="drawer"
           title="This entry isn’t available."
-          description="It may have been deactivated, or the link is wrong."
+          line="It may have been deactivated, or the link is wrong."
           action={
             <Button asChild variant="outline">
               <Link to={back}>Back to the knowledge base</Link>
@@ -116,13 +116,13 @@ export function KnowledgeEntryPage() {
           }
         />
       ) : (
-        <ErrorState title="Couldn’t load this entry." message={entry.errorMessage ?? 'Check your connection, then try again.'} onRetry={entry.retry} retryText="Retry" />
+        <ErrorState kind="page" title="Couldn’t load this entry." message={entry.errorMessage ?? 'Check your connection, then try again.'} onRetry={entry.retry} retryText="Retry" />
       );
     return (
       <div>
         <BackLink to={back} label="Knowledge base" />
         <PageHeader title="Knowledge base" />
-        <div className="rounded-2xl border border-transparent bg-card shadow-card">{body}</div>
+        {body}
       </div>
     );
   }

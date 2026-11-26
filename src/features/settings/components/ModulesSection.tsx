@@ -98,7 +98,7 @@ export function ModulesSection() {
     );
   }
   if (state === 'error' || !data) {
-    return <ErrorState title="Couldn’t load the modules." message={errorMessage ?? 'Check your connection, then try again.'} onRetry={retry} retryText="Retry" />;
+    return <ErrorState kind="page" title="Couldn’t load the modules." message={errorMessage ?? 'Check your connection, then try again.'} onRetry={retry} retryText="Retry" />;
   }
 
   return (

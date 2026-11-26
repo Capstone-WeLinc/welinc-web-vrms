@@ -60,6 +60,7 @@ export function AdminDashboard() {
 
       {state === 'error' && (
         <ErrorState
+          kind="page"
           title="We couldn’t load the dashboard"
           message={errorMessage ?? 'The dashboard didn’t load.'}
           onRetry={retry}

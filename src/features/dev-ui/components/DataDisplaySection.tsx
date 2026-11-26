@@ -98,9 +98,11 @@ export function DataDisplaySection() {
             />
           </div>
           <div className="rounded-xl border border-border">
-            <ErrorState message="The repair service did not respond." onRetry={() => undefined} />
+            <ErrorState kind="tile" subject="tickets" title="We couldn’t load the tickets" message="The repair service did not respond." onRetry={() => undefined} />
           </div>
         </div>
+        {/* Spec 0028: a failure that empties the page is the scene panel, which is its own card */}
+        <ErrorState kind="page" title="We couldn’t load repair tickets" message="The repair service did not respond." onRetry={() => undefined} />
       </Row>
     </Section>
   );

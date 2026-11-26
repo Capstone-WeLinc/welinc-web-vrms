@@ -300,12 +300,18 @@ function MobileCards<T>({
 // One columns definition: a table from 768px up, stacked cards below.
 export function DataTable<T>(props: DataTableProps<T>) {
   const isMobile = useIsMobile();
-  const { state, rows, onRetry, errorMessage, empty, pagination } = props;
+  const { state, rows, onRetry, errorMessage, errorKind = 'tile', errorSubject = 'list', empty, pagination } = props;
+  const failed = errorMessage ?? 'We could not load this list.';
+
+  // Previous rows stay hidden, so stale data never looks current. A page's own table fails as the
+  // page panel, which is a card itself, so the table's card goes (spec 0028, AC-3).
+  if (state === 'error' && errorKind === 'page') {
+    return <ErrorState kind="page" message={failed} onRetry={onRetry} />;
+  }
 
   let body;
   if (state === 'error') {
-    // Previous rows stay hidden, so stale data never looks current.
-    body = <ErrorState message={errorMessage ?? 'We could not load this list.'} onRetry={onRetry} />;
+    body = <ErrorState kind="tile" subject={errorSubject} message={failed} onRetry={onRetry} />;
   } else if (state === 'ready' && rows.length === 0) {
     body = <EmptyState title={empty.title} description={empty.description} icon={empty.icon} action={empty.action} />;
   } else {

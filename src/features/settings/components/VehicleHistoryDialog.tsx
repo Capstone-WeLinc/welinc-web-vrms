@@ -120,7 +120,7 @@ export function VehicleHistoryDialog({ vehicle, open, onOpenChange, finalFocusRe
           ))}
         </div>
       )}
-      {first.state === 'error' && <ErrorState message={first.errorMessage ?? 'The history didn’t load.'} onRetry={first.retry} />}
+      {first.state === 'error' && <ErrorState kind="tile" subject="trucks" message={first.errorMessage ?? 'The history didn’t load.'} onRetry={first.retry} />}
       {first.state === 'ready' && items.length === 0 && <EmptyState title="No changes recorded yet." icon={History} />}
       {items.length > 0 && (
         <div className="flex flex-col gap-3">

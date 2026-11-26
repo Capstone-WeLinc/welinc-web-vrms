@@ -191,13 +191,12 @@ export function RepairListPage() {
       />
 
       {list.state === 'error' ? (
-        <div className="rounded-2xl border border-transparent bg-card shadow-card">
-          <ErrorState
-            title="We couldn’t load repair tickets"
-            message={list.errorMessage ?? 'Repair tickets didn’t load.'}
-            onRetry={list.retry}
-          />
-        </div>
+        <ErrorState
+          kind="page"
+          title="We couldn’t load repair tickets"
+          message={list.errorMessage ?? 'Repair tickets didn’t load.'}
+          onRetry={list.retry}
+        />
       ) : (
         <DataTable
           columns={listColumns(list.rows, list.fetchedAt, seesAll)}

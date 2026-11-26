@@ -58,9 +58,7 @@ export function KnowledgeLibraryPage() {
   let body;
   if (list.state === 'error') {
     body = (
-      <div className={PANEL}>
-        <ErrorState title="Couldn’t load the knowledge base." message={list.errorMessage ?? 'Check your connection, then try again.'} onRetry={list.retry} retryText="Retry" />
-      </div>
+      <ErrorState kind="page" title="Couldn’t load the knowledge base." message={list.errorMessage ?? 'Check your connection, then try again.'} onRetry={list.retry} retryText="Retry" />
     );
   } else if (list.state === 'loading' || pastEnd || !list.data) {
     body = <EntryResultsSkeleton />;

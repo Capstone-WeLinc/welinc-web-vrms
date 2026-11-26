@@ -1,12 +1,17 @@
-import { AlertCircle, Copy } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { CrashScene } from '@/components/brand/scenes/CrashScene';
+import { PoleScene } from '@/components/brand/scenes/PoleScene';
+import { SceneBand } from '@/components/brand/scenes/SceneBand';
+import { ScenePanel } from '@/components/brand/scenes/ScenePanel';
+import { BrandMark } from '@/components/layout/BrandMark';
 import { COPIED_MS, COPY_LABEL, copyText, type CopyState } from '@/lib/monitoring/copyText';
 import { crashDetails, type CaughtCrash } from '@/lib/monitoring/crashDetails';
 import { APP_NAME, crashViewerIsAdmin, RELEASE } from '@/lib/monitoring/standing';
-import { cn } from '@/lib/utils';
+
+const TITLE = 'Something went wrong on this page';
 
 interface CrashScreenProps {
   /** What the boundary stored when the page crashed. */
@@ -59,48 +64,52 @@ export function CrashScreen({ crash, code, variant }: CrashScreenProps) {
       </Button>
     );
 
-  return (
-    <div className={cn(variant === 'full' && 'flex min-h-dvh items-center justify-center bg-background px-4')}>
-      <Empty>
-        {/* Only the title and the line are announced; the details box sits outside the alert */}
-        <EmptyHeader role="alert">
-          <EmptyMedia variant="icon" className="bg-destructive/10 text-destructive">
-            <AlertCircle aria-hidden="true" />
-          </EmptyMedia>
-          <EmptyTitle className="text-group font-semibold text-foreground">Something went wrong on this page</EmptyTitle>
-          <EmptyDescription>{line}</EmptyDescription>
-          {!isAdmin && code && (
-            <p className="text-body text-muted-foreground">
-              Reference <span className="font-mono font-semibold text-foreground select-all">{code}</span>
-            </p>
-          )}
-        </EmptyHeader>
-        <EmptyContent className={cn(isAdmin && 'max-w-xl')}>
-          {isAdmin && (
-            <pre
-              aria-label="Crash details"
-              className="w-full overflow-x-auto rounded-md border border-border bg-muted px-3 py-2 text-left font-mono text-caption text-wrap whitespace-pre-wrap break-words text-foreground select-all"
-            >
-              {details}
-            </pre>
-          )}
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button onClick={() => window.location.reload()}>Reload</Button>
-            {backHome}
-            {isAdmin && (
-              <Button variant="outline" onClick={onCopy}>
-                <Copy aria-hidden="true" />
-                {COPY_LABEL[copy]}
-              </Button>
-            )}
-          </div>
-          {isAdmin && (
-            <span role="status" className="sr-only">
-              {copy === 'idle' ? '' : COPY_LABEL[copy]}
-            </span>
-          )}
-        </EmptyContent>
-      </Empty>
-    </div>
+  const actions = (
+    <>
+      <Button onClick={() => window.location.reload()}>Reload</Button>
+      {backHome}
+      {isAdmin && (
+        <Button variant="outline" onClick={onCopy}>
+          <Copy aria-hidden="true" />
+          {COPY_LABEL[copy]}
+        </Button>
+      )}
+    </>
+  );
+
+  // Spec 0028, AC-5: only the title and the line sit in the alert; the code and details stay on screen
+  const extra = (
+    <>
+      {!isAdmin && code && (
+        <p className="mt-2 text-body text-muted-foreground">
+          Reference <span className="font-mono font-semibold text-foreground select-all">{code}</span>
+        </p>
+      )}
+      {isAdmin && (
+        <pre
+          aria-label="Crash details"
+          className="mt-5 w-full overflow-x-auto rounded-md border border-border bg-muted px-3 py-2 text-left font-mono text-caption text-wrap whitespace-pre-wrap break-words text-foreground select-all"
+        >
+          {details}
+        </pre>
+      )}
+      {isAdmin && (
+        <span role="status" className="sr-only">
+          {copy === 'idle' ? '' : COPY_LABEL[copy]}
+        </span>
+      )}
+    </>
+  );
+
+  // Spec 0028: a crash in a page keeps the shell and shows the hazard glow panel (AC-5); a crash of
+  // the shell itself fills the window with the blackout band (AC-6), which renders above the router
+  return variant === 'page' ? (
+    <ScenePanel scene={<CrashScene />} title={TITLE} line={line} actions={actions}>
+      {extra}
+    </ScenePanel>
+  ) : (
+    <SceneBand lockup={<BrandMark tone="sidebar" />} scene={<PoleScene />} title={TITLE} line={line} actions={actions}>
+      {extra}
+    </SceneBand>
   );
 }

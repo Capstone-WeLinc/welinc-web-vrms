@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { SearchX, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { BackLink } from '../../../components/shared/BackLink';
-import { EmptyState } from '../../../components/shared/EmptyState';
+import { RecordNotFound } from '../../../components/shared/RecordNotFound';
+import { GateScene } from '../../../components/brand/scenes/GateScene';
+import { ScenePanel } from '../../../components/brand/scenes/ScenePanel';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { statusLabel } from '../../../components/shared/statusLabels';
 import { useToast } from '../../../context/toast';
@@ -116,23 +117,30 @@ export function RepairDetailPage() {
     if (state === 'loading') {
       return <RepairDetailSkeleton />;
     } else if (errorCode === 404) {
-      body = <EmptyState title="Repair ticket not found" icon={SearchX} action={<Button asChild variant="outline"><Link to="/repairs">Back to repairs</Link></Button>} />;
-    } else if (errorCode === 403) {
       body = (
-        <EmptyState
-          title="This ticket isn’t assigned to you"
-          icon={ShieldAlert}
+        <RecordNotFound
+          scenes="pair"
+          title="Repair ticket not found"
+          line="It may have been deleted, or the link has a typo. Check the ticket number and try again."
           action={<Button asChild variant="outline"><Link to="/repairs">Back to repairs</Link></Button>}
         />
       );
+    } else if (errorCode === 403) {
+      body = (
+        <ScenePanel
+          scene={<GateScene />}
+          title="This ticket isn’t assigned to you"
+          actions={<Button asChild variant="outline"><Link to="/repairs">Back to repairs</Link></Button>}
+        />
+      );
     } else {
-      body = <ErrorState title="We couldn’t load this ticket" message={errorMessage ?? 'This repair ticket didn’t load.'} onRetry={retry} />;
+      body = <ErrorState kind="page" reassure={false} title="We couldn’t load this ticket" message={errorMessage ?? 'This repair ticket didn’t load.'} onRetry={retry} />;
     }
     return (
       <div>
         <BackLink to="/repairs" label="Back to repairs" />
         <PageHeader title="Repair ticket" />
-        <div className="rounded-2xl border border-transparent bg-card shadow-card">{body}</div>
+        {body}
       </div>
     );
   }

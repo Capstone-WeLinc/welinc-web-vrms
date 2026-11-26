@@ -89,6 +89,7 @@ export function LookupListPanel({ list, title, noun, deactivateNote }: LookupLis
       }
     >
       <DataTable
+        errorKind="page"
         columns={COLUMNS}
         rows={rows}
         getRowId={(v) => v.id}

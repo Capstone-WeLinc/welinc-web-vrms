@@ -21,8 +21,9 @@ import { SessionToastHost } from './components/feedback/SessionToast';
 import { ConfirmProvider } from './components/shared/confirm/ConfirmProvider';
 import { TooltipProvider } from './components/ui/tooltip';
 import { PermissionsProvider } from './lib/permissions/PermissionsProvider';
-import { CenteredPage, PermissionsGate, ShellSkeleton } from './components/layout/PermissionsGate';
-import { ErrorState } from './components/shared/ErrorState';
+import { DoorBand, PermissionsGate, ShellSkeleton } from './components/layout/PermissionsGate';
+import { Button } from './components/ui/button';
+import { useScenePick } from './components/brand/scenes/useScenePick';
 import { boot } from './lib/session/session';
 import { useCan, usePermissions } from './lib/permissions/usePermissions';
 import type { ModuleName, PermissionKey } from './lib/permissions/keys';
@@ -51,20 +52,22 @@ const SentryTestPage =
 /**
  * Spec 0003, AC-20: the app shows its shell outline until the first refresh answers. Without a
  * session the boot itself goes to the login, so there is no local login page.
+ * Spec 0028, AC-14: when the sign in service can't be reached, the staff door band (picked once,
+ * above the early return, so Try again keeps the picture). No Sign out: it needs that service.
  */
 function RequireAuth({ children }: { children: ReactElement }) {
   const status = useAuthStore((state) => state.status);
   const signedIn = useAuthStore((state) => state.token !== null);
+  const pick = useScenePick(2);
 
   if (status === 'unavailable') {
     return (
-      <CenteredPage>
-        <ErrorState
-          title="Can't reach the sign in service"
-          message="Check your connection, then try again."
-          onRetry={() => void boot()}
-        />
-      </CenteredPage>
+      <DoorBand
+        pick={pick}
+        title="Can't reach the sign in service"
+        line="Check your connection, then try again."
+        actions={<Button onClick={() => void boot()}>Try again</Button>}
+      />
     );
   }
   return status === 'ready' && signedIn ? children : <ShellSkeleton />;

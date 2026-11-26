@@ -301,6 +301,8 @@ export function TeamSection({
 
           {roster.state === 'error' && (
             <ErrorState
+              kind="tile"
+              subject="people"
               title="We couldn’t load the team"
               message={roster.errorMessage ?? 'Couldn’t load the team.'}
               onRetry={roster.retry}

@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { RotateCw, SearchX } from 'lucide-react';
+import { RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { BackLink } from '../../../components/shared/BackLink';
 import { Callout } from '../../../components/shared/Callout';
 import { confirm } from '../../../components/shared/confirm/confirm';
-import { EmptyState } from '../../../components/shared/EmptyState';
+import { RecordNotFound } from '../../../components/shared/RecordNotFound';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { FormAlert } from '../../../components/shared/FormAlert';
 import { useToast } from '../../../context/toast';
@@ -255,10 +255,9 @@ export function KnowledgeEditorPage() {
       <div>
         <BackLink to="/knowledge-base" label="Knowledge base" />
         <PageHeader title={isNew ? 'New entry' : 'Edit entry'} />
-        <div className="rounded-2xl border border-transparent bg-card shadow-card">
-          {notFound ? (
-            <EmptyState
-              icon={SearchX}
+        {notFound ? (
+            <RecordNotFound
+              scenes="drawer"
               title="This entry isn’t available."
               action={
                 <Button asChild variant="outline">
@@ -268,6 +267,8 @@ export function KnowledgeEditorPage() {
             />
           ) : (
             <ErrorState
+              kind="page"
+              reassure={false}
               title="Couldn’t open the editor."
               message={(categories.state === 'error' ? categories.errorMessage : entry.errorMessage) ?? SAVE_FAILED}
               onRetry={() => {
@@ -277,7 +278,6 @@ export function KnowledgeEditorPage() {
               retryText="Retry"
             />
           )}
-        </div>
       </div>
     );
   }

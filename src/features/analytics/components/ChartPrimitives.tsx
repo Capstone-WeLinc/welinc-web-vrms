@@ -79,7 +79,7 @@ export function SectionGate({ state, onRetry, height = 160, children }: {
     return <div aria-busy="true" style={{ height, borderRadius: 8, background: 'var(--surface-alt)', animation: 'pulse 1.5s ease-in-out infinite' }} />;
   }
   if (state.status === 'error') {
-    return <ErrorState title="This section didn’t load" message={state.error} onRetry={onRetry} retryText="Retry" />;
+    return <ErrorState kind="tile" subject="charts" title="This section didn’t load" message={state.error} onRetry={onRetry} retryText="Retry" />;
   }
   return <>{children}</>;
 }

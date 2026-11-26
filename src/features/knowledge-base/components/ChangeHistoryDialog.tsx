@@ -86,7 +86,7 @@ export function ChangeHistoryDialog({ entryId, version, open, onOpenChange }: Ch
 
   let body;
   if (changes.state === 'error') {
-    body = <ErrorState title="Couldn’t load the change history." message={changes.errorMessage ?? ''} onRetry={changes.retry} retryText="Retry" />;
+    body = <ErrorState kind="tile" subject="history" title="Couldn’t load the change history." message={changes.errorMessage ?? ''} onRetry={changes.retry} retryText="Retry" />;
   } else if (changes.state === 'loading' || !changes.data) {
     body = (
       <div aria-hidden="true" className="flex flex-col gap-4">

@@ -24,7 +24,7 @@ export function RecentActivityCard() {
       </CardHeader>
       <CardContent>
         {state.status === 'loading' && <ActivityRowsSkeleton />}
-        {state.status === 'error' && <ErrorState title="We couldn’t load your activity" message={state.message} onRetry={reload} />}
+        {state.status === 'error' && <ErrorState kind="tile" subject="activity" title="We couldn’t load your activity" message={state.message} onRetry={reload} />}
         {state.status === 'ready' && state.events.length === 0 && (
           <EmptyState icon={History} title="No activity yet" description="Your sign ins and account changes will show here." />
         )}

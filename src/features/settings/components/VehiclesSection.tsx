@@ -234,6 +234,7 @@ export function VehiclesSection() {
         </div>
       </div>
       <DataTable
+        errorKind="page"
         columns={columns}
         rows={shown}
         getRowId={(v) => v.id}

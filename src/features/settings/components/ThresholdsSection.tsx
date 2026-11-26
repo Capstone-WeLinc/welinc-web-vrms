@@ -188,7 +188,7 @@ export function ThresholdsSection() {
     );
   }
   if (state === 'error' || !data) {
-    return <ErrorState title="Couldn’t load the thresholds." message={errorMessage ?? 'Check your connection, then try again.'} onRetry={retry} retryText="Retry" />;
+    return <ErrorState kind="page" title="Couldn’t load the thresholds." message={errorMessage ?? 'Check your connection, then try again.'} onRetry={retry} retryText="Retry" />;
   }
 
   const groups = groupValues(settings);
