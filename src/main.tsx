@@ -23,7 +23,18 @@ installChunkReload();
 // Spec 0003, AC-20: the session boots once per page load, before React needs the token
 void boot();
 
-const router = createBrowserRouter([{ path: '*', element: <App /> }]);
+// The boundary sits inside the route: a data router catches render errors below it and shows its own
+// default error page, so a boundary only around the router never sees a crash in App (spec 0028, AC-6)
+const router = createBrowserRouter([
+  {
+    path: '*',
+    element: (
+      <CrashBoundary variant="full">
+        <App />
+      </CrashBoundary>
+    ),
+  },
+]);
 
 // Spec 0025, AC-7: a crash outside the shell (or in it) shows the full page crash screen
 ReactDOM.createRoot(document.getElementById('root')!, rootErrorHandlers).render(
