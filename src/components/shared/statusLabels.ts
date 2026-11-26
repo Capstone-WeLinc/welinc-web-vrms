@@ -16,6 +16,7 @@ export const STATUS_LABELS: Record<string, string> = {
   AVAILABLE: 'Available',
   UNDER_REPAIR: 'Under repair',
   UNDER_MAINTENANCE: 'Under maintenance',
+  // Gone since spec 0029; kept so old Vehicles history rows still read
   DISABLED: 'Disabled',
   // Account and knowledge entry statuses
   ACTIVE: 'Active',

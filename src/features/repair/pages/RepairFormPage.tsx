@@ -188,6 +188,12 @@ export function RepairFormPage() {
       if (!mountedRef.current) return;
       setSummaryOpen(false);
       showToast(`${ticket.repairNumber} created.`, 'success');
+      // Spec 0029, AC-5: saved on the last copy of the truck; the sync catches up later
+      if (ticket.fleetStale) {
+        showToast('VMMS can’t be reached, using the last copy', 'warning', {
+          body: 'The truck’s details on this ticket come from VRMS’s last copy and update once VMMS is back.',
+        });
+      }
       navigate(`/repairs/${ticket.id}`, { replace: true });
     } catch (err) {
       savingRef.current = false;

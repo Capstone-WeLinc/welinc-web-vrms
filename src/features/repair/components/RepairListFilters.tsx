@@ -116,6 +116,15 @@ export function RepairListFilters({ value, searchText, garages, mechanics, onSea
           Overdue only
         </Label>
       </div>
+      {/* Spec 0029, AC-35: reached from the dashboard card; shown only while on, so it can be turned off */}
+      {value.truckRemoved && (
+        <div className="flex h-10 items-center gap-2 sm:self-end">
+          <Switch id="repairs-truck-removed" checked onCheckedChange={(truckRemoved) => onChange({ truckRemoved })} />
+          <Label htmlFor="repairs-truck-removed" className="text-body font-medium text-foreground">
+            Truck removed in VMMS only
+          </Label>
+        </div>
+      )}
     </div>
   );
 }

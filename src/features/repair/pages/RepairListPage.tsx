@@ -10,6 +10,7 @@ import { lastPage, type Column, type RowAction } from '../../../components/share
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { MechanicProblemBadge } from '../../../components/shared/MechanicProblemBadge';
 import { FromVmmsChip } from '../../../components/shared/FromVmmsChip';
+import { TruckRemovedChip } from '../../../components/shared/TruckRemovedChip';
 import { PlateChip } from '../../../components/shared/PlateChip';
 import { PriorityBadge } from '../../../components/shared/PriorityBadge';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
@@ -52,6 +53,12 @@ function TruckCell({ ticket }: { ticket: RepairTicket }) {
       {ticket.fromVmmsWorkOrder && (
         <span>
           <FromVmmsChip workOrderNumber={ticket.fromVmmsWorkOrder} />
+        </span>
+      )}
+      {/* Spec 0029, AC-35 */}
+      {ticket.truckRemoved && (
+        <span>
+          <TruckRemovedChip />
         </span>
       )}
     </span>

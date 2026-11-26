@@ -54,9 +54,6 @@ export function VehicleCard({ state }: { state: VehicleSummaryState }) {
         <Fact term="Last reading">{summary.lastOdometer > 0 ? `${summary.lastOdometer.toLocaleString('en-US')} km` : 'None yet'}</Fact>
         <Fact term="Last repair">{summary.lastRepairAt ? formatShortDate(summary.lastRepairAt) : 'None yet'}</Fact>
       </dl>
-      {summary.status === 'DISABLED' && (
-        <p className="text-caption text-muted-foreground">This truck is Disabled. It goes back to Disabled after the repair.</p>
-      )}
     </div>
   );
 }

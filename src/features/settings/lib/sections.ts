@@ -37,7 +37,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     path: 'vehicles',
     label: 'Vehicles',
-    description: 'Set the type of each truck.',
+    description: 'The trucks VMMS manages, and their history.',
     icon: Truck,
     permission: 'vehicle.manage',
   },

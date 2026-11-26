@@ -26,6 +26,9 @@ interface VehicleSectionProps {
   driverOptional?: boolean;
 }
 
+// Spec 0029, AC-5: the trucks come from VMMS, so a missing one is VMMS's to add
+const NOT_IN_VMMS = 'Not in VMMS yet. Ask VMMS Operations to add it.';
+
 export function VehicleSection({ control, vehicles, garages, setValue, clearErrors, summary, driverOptional }: VehicleSectionProps) {
 
   const vehicleOptions = useMemo<ComboboxOption[]>(
@@ -40,7 +43,8 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
             <Badge variant="outline" className="border-highlight bg-highlight/15 text-foreground">
               Under repair
             </Badge>
-          ) : v.status === 'DISABLED' ? (
+          ) : v.status === 'UNDER_MAINTENANCE' ? (
+            // Spec 0029, AC-5: shown, never blocking
             <StatusBadge status={v.status} />
           ) : undefined,
       })),
@@ -62,7 +66,7 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
               name="vehiclePlate"
               label="Vehicle"
               required
-              description={noVehicles ? 'No vehicles are registered yet.' : undefined}
+              description={noVehicles ? NOT_IN_VMMS : undefined}
               render={({ field, controlProps }) => (
                 <Combobox
                   {...controlProps}
@@ -73,7 +77,7 @@ export function VehicleSection({ control, vehicles, garages, setValue, clearErro
                   onBlur={field.onBlur}
                   placeholder="Choose a vehicle"
                   searchPlaceholder="Search by plate or model"
-                  emptyText="No vehicle matches."
+                  emptyText={NOT_IN_VMMS}
                 />
               )}
             />

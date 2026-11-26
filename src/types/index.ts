@@ -80,7 +80,8 @@ export type RepairStatus =
   | 'PENDING_APPROVAL'
   | 'CLOSED'
   | 'CANCELLED';
-export type VehicleStatus = 'AVAILABLE' | 'UNDER_REPAIR' | 'UNDER_MAINTENANCE' | 'DISABLED';
+/** VMMS's values, copied by the fleet sync (spec 0029, AC-4). */
+export type VehicleStatus = 'AVAILABLE' | 'UNDER_REPAIR' | 'UNDER_MAINTENANCE';
 export type DueAtSource = 'PRIORITY' | 'ISSUE_TYPE' | 'MANUAL';
 export type AccountType = 'ONLINE' | 'CORPORATE';
 export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -208,6 +209,8 @@ export interface RepairTicket {
   driverId?: string | null;
   /** Spec 0029, AC-12: the VMMS work order a ticket was opened from, else null. */
   fromVmmsWorkOrder?: string | null;
+  /** Spec 0029, AC-35: open, and VMMS removed its truck. The Admin cancels it, or VMMS adds the truck back. */
+  truckRemoved?: boolean;
   issueDescription: string;
   status: RepairStatus;
   createdAt: string;

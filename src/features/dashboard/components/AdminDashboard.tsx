@@ -38,6 +38,7 @@ export function AdminDashboard() {
   const derived = useMemo(() => {
     const all = [...active, ...history];
     const overdue = active.filter((t) => isOverdue(t, fetchedAt)).length;
+    const removed = active.filter((t) => t.truckRemoved).length;
     const tiles: AttentionTile[] = [
       { caption: 'Open', value: active.length, href: '/repairs' },
       { caption: 'Overdue', value: overdue, href: '/repairs?overdue=1' },
@@ -47,6 +48,8 @@ export function AdminDashboard() {
       ...(canRespond && waitingCount !== null
         ? [{ caption: 'Referrals waiting', value: waitingCount, href: '/repairs?view=referrals' }]
         : []),
+      // Spec 0029, AC-35: rare, so the card shows only while there is one
+      ...(removed > 0 ? [{ caption: 'Trucks removed in VMMS', value: removed, href: '/repairs?removed=1' }] : []),
     ];
     return {
       all,

@@ -1,3 +1,4 @@
+import { Callout } from '../../../components/shared/Callout';
 import { FromVmmsChip } from '../../../components/shared/FromVmmsChip';
 import { PlateChip } from '../../../components/shared/PlateChip';
 import type { RepairTicket } from '../../../types';
@@ -23,6 +24,13 @@ export function TicketHeader({ ticket }: { ticket: RepairTicket }) {
         {/* Spec 0029, AC-12 */}
         {ticket.fromVmmsWorkOrder && <FromVmmsChip workOrderNumber={ticket.fromVmmsWorkOrder} />}
       </p>
+      {/* Spec 0029, AC-35: worked out by the server on every read, so it clears on the next sync */}
+      {ticket.truckRemoved && (
+        <Callout tone="warning" title="Truck removed in VMMS" className="mt-2">
+          VMMS no longer lists this truck, so it can’t take repair updates for it. Cancel this ticket, or ask VMMS Operations to add the
+          truck back.
+        </Callout>
+      )}
     </header>
   );
 }
