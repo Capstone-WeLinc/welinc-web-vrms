@@ -10,6 +10,7 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_RELEASE?: string;
   readonly VITE_SENTRY_TUNNEL?: string;
   readonly VITE_SENTRY_TEST_ROUTES?: string;
+  readonly VITE_DEV_UI?: string;
 }
 
 interface ImportMeta {

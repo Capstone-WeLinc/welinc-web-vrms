@@ -167,7 +167,8 @@ jobs:
       # Spec 0010: a plain build refuses missing, http or localhost values. VITE_* values ship to
       # the browser, so only public addresses and the public DSN go here; the upload token is
       # read by vite.config.ts only. VITE_SENTRY_TEST_ROUTES stays unset: staging is the demo
-      # (spec 0008 AC-24), so the test page is never in a hosted build.
+      # (spec 0008 AC-24), so the test page is never in a hosted build. VITE_DEV_UI puts the
+      # /dev/ui kit in the staging build only (behind sign in); production never has it.
       - name: Build with this environment's addresses
         run: npm run build
         env:
@@ -176,6 +177,7 @@ jobs:
           VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN_VRMS_WEB }}
           VITE_SENTRY_ENVIRONMENT: ${{ env.ENVIRONMENT }}
           VITE_SENTRY_TUNNEL: ${{ vars.SENTRY_DSN_VRMS_WEB != '' && format('{0}/monitoring/vrms-web', env.API_URL) || '' }}
+          VITE_DEV_UI: ${{ env.ENVIRONMENT == 'staging' && 'true' || '' }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}

@@ -12,6 +12,8 @@ ARG VITE_SENTRY_ENVIRONMENT
 ARG VITE_SENTRY_RELEASE
 ARG VITE_SENTRY_TUNNEL
 ARG VITE_SENTRY_TEST_ROUTES
+# true only for staging: the /dev/ui kit behind sign in
+ARG VITE_DEV_UI
 RUN npx vite build
 
 FROM nginx:alpine

@@ -28,6 +28,9 @@ export const envSchema = z.object({
   VITE_SENTRY_TUNNEL: optional(httpUrl),
   /** true only in the staging build: the /debug/sentry test page (AC-16). */
   VITE_SENTRY_TEST_ROUTES: optional(z.enum(['true', 'false'], { error: 'must be true or false' })),
+
+  /** true only in the staging build: the /dev/ui kit behind sign in. Development always has it. */
+  VITE_DEV_UI: optional(z.enum(['true', 'false'], { error: 'must be true or false' })),
 });
 
 export type ClientEnv = z.infer<typeof envSchema>;
