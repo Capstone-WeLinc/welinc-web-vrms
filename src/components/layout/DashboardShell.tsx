@@ -3,16 +3,16 @@ import { CrashBoundary } from '../monitoring/CrashBoundary';
 import { cn } from '@/lib/utils';
 import { DataModeToggle } from '../../features/dev-ui/components/DataModeToggle';
 import { BannerHost } from '../feedback/BannerHost';
-import { AppHeader } from './AppHeader';
 import { MobileTabBar } from './MobileTabBar';
 import { Sidebar } from './Sidebar';
+import { TopBar } from './TopBar';
 import { getMobileTabs, usesTabBar } from './navItems';
 import { useNavSections } from './useNavSections';
 import { useSidebarCollapsed } from './useSidebarCollapsed';
 
 export function DashboardShell() {
   const sections = useNavSections();
-  const { collapsed, toggle } = useSidebarCollapsed();
+  const { collapsed, toggle, setCollapsed } = useSidebarCollapsed();
   // design.md: a bottom tab bar on phones when the nav fits in it, else the sheet menu
   const hasTabBar = usesTabBar(sections);
   const { pathname } = useLocation();
@@ -25,14 +25,15 @@ export function DashboardShell() {
       >
         Skip to content
       </a>
-      <Sidebar collapsed={collapsed} onToggleCollapsed={toggle} />
+      <Sidebar collapsed={collapsed} onToggleCollapsed={toggle} onExpand={() => setCollapsed(false)} />
       <div
         className={cn(
           'flex min-h-dvh flex-col transition-all duration-(--duration-fold) ease-enter motion-reduce:transition-none',
           collapsed ? 'md:pl-16' : 'md:pl-60',
         )}
       >
-        <AppHeader />
+        {/* AC-9: the top bar at every size, the banner right under it */}
+        <TopBar sections={sections} hasTabBar={hasTabBar} />
         <BannerHost />
         <main
           id="main"

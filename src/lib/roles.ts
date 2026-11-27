@@ -1,9 +1,10 @@
 import { useSyncExternalStore } from 'react';
 import { getSystems } from './api/authApi';
 
-// Suite spec 0018 child 0002, AC-35: VRMS role names come from welinc-auth's catalog
+// Suite spec 0018 child 0002, AC-35: role names come from welinc-auth's catalog
 // (`GET /auth/systems`, which revalidates with its ETag), so a custom role shows the name a suite
-// admin gave it. Read once on load and again when the window regains focus after 60 seconds.
+// admin gave it. Every system's names are kept: the system switcher tags each card with your role
+// there (spec 0027, AC-9a). Read once on load and again when the window regains focus after 60 seconds.
 // Until the catalog answers, a code reads in title case ("Chief mechanic" from CHIEF_MECHANIC, and
 // a custom C_ code without its prefix). Labels only: nothing decides behaviour by a role.
 
@@ -13,6 +14,7 @@ export const ROLE_NAMES_TTL_MS = 60_000;
 /** welinc-auth's prefix for custom role codes. */
 const CUSTOM_PREFIX = 'C_';
 
+/** Catalog names keyed `SYSTEM:CODE`. */
 let names: ReadonlyMap<string, string> = new Map();
 let readAt = 0;
 let reading: Promise<void> | null = null;
@@ -26,9 +28,16 @@ export function titleCase(code: string): string {
   return words ? words[0].toUpperCase() + words.slice(1) : code;
 }
 
-/** A role code as people read it: the catalog name once loaded, else the code in title case. */
+const nameKey = (system: string, role: string) => `${system}:${role}`;
+
+/** A VRMS role code as people read it: the catalog name once loaded, else the code in title case. */
 export function roleLabel(role: string): string {
-  return names.get(role) ?? titleCase(role);
+  return systemRoleLabel('VRMS', role);
+}
+
+/** A role code of any system as people read it, by the same rule as `roleLabel`. */
+export function systemRoleLabel(system: string, role: string): string {
+  return names.get(nameKey(system, role)) ?? titleCase(role);
 }
 
 /** "Mechanics", "Tire specialists": the role name for the no access line. */
@@ -45,8 +54,9 @@ function emit() {
 export function loadRoleNames(): Promise<void> {
   reading ??= getSystems()
     .then((systems) => {
-      const vrms = systems.find((system) => system.code === 'VRMS');
-      names = new Map((vrms?.roles ?? []).map((role) => [role.code, role.name]));
+      names = new Map(
+        systems.flatMap((system) => system.roles.map((role) => [nameKey(system.code, role.code), role.name] as const)),
+      );
       readAt = Date.now();
       emit();
     })
@@ -75,19 +85,32 @@ function subscribe(listener: () => void) {
   };
 }
 
-/** `roleLabel` that re-renders the component when the catalog names arrive or change. */
-export function useRoleLabel(): (role: string) => string {
-  const current = useSyncExternalStore(
+function useNames(): ReadonlyMap<string, string> {
+  return useSyncExternalStore(
     subscribe,
     () => names,
     () => names,
   );
-  return (role: string) => current.get(role) ?? titleCase(role);
 }
 
-/** Test seam: sets the names as if the catalog had answered, or clears them. */
+/** `roleLabel` that re-renders the component when the catalog names arrive or change. */
+export function useRoleLabel(): (role: string) => string {
+  const current = useNames();
+  return (role: string) => current.get(nameKey('VRMS', role)) ?? titleCase(role);
+}
+
+/** `systemRoleLabel` that re-renders the component when the catalog names arrive or change. */
+export function useSystemRoleLabel(): (system: string, role: string) => string {
+  const current = useNames();
+  return (system: string, role: string) => current.get(nameKey(system, role)) ?? titleCase(role);
+}
+
+/**
+ * Test seam: sets the names as if the catalog had answered, or clears them. Plain codes are
+ * VRMS roles; `SYSTEM:CODE` keys set another system's.
+ */
 export function setRoleNamesForTest(next: Record<string, string> | null): void {
-  names = new Map(Object.entries(next ?? {}));
+  names = new Map(Object.entries(next ?? {}).map(([key, name]) => [key.includes(':') ? key : nameKey('VRMS', key), name]));
   readAt = next ? Date.now() : 0;
   emit();
 }

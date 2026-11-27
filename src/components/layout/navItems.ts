@@ -1,12 +1,10 @@
 import {
   BarChart2,
   BookOpen,
-  ClipboardList,
   History,
   LayoutDashboard,
-  PlusCircle,
+  ScrollText,
   Settings,
-  User,
   Users,
   Wrench,
 } from 'lucide-react';
@@ -14,21 +12,42 @@ import type { LucideIcon } from 'lucide-react';
 import type { PermissionKey } from '../../lib/permissions/keys';
 import { SETTINGS_KEYS } from '../../features/settings/lib/sections';
 
+/** The sidebar's counts (spec 0027, AC-5): only the ones the viewer can see are present. */
+export interface NavCounts {
+  open?: number;
+  signoff?: number;
+  mine?: number;
+  active?: number;
+  sentBack?: number;
+  suggestions?: number;
+}
+
 export interface NavItem {
+  /** A path, or a path with a `view` preset (`/repairs?view=signoff`) for a sub page. */
   to: string;
   label: string;
   /** Shorter label for the phone tab bar. */
   shortLabel?: string;
   icon: LucideIcon;
-  /** A count bubble beside the label (feature 70 feeds these); 0 or none shows nothing. */
+  /** Sub pages (spec 0027, AC-2); a page with them opens and closes. */
+  children?: NavItem[];
+  /** Which of `/vrms/nav/counts` this sub page shows (AC-5). */
+  countKey?: keyof NavCounts;
+  /** The count, filled in from the counts; 0 or none shows nothing. */
   count?: number;
-  /** The count waits on the viewer's role (the VRMS hot list): gold. */
+  /** The count waits on the viewer (AC-6, the VRMS hot list): gold. */
   hot?: boolean;
 }
 
 export interface NavSection {
+  /** Empty for the unlabelled first section. */
   title: string;
   items: NavItem[];
+}
+
+/** What the nav needs beyond the keys (spec 0027): `inRoster` from `/vrms/permissions/me`. */
+export interface NavContext {
+  inRoster: boolean;
 }
 
 type NavEntry = NavItem | false;
@@ -36,48 +55,80 @@ type NavEntry = NavItem | false;
 const present = (entries: NavEntry[]) => entries.filter((entry): entry is NavItem => entry !== false);
 
 /**
- * The nav for what the signed in user may do (spec 0011, AC-22, AC-22a): each item shows with the
- * key its page needs.
+ * The nav for what the signed in user may do (spec 0027, AC-1 and AC-2; spec 0011, AC-22): each
+ * page and sub page shows with the key its page needs, never by role (suite spec 0018). Profile
+ * and New repair are not nav items: Profile is in the account menu (AC-10), New repair in the
+ * dashboard and Repair tickets headers (AC-8).
  */
-export function getNavSections(can: (key: PermissionKey) => boolean): NavSection[] {
+export function getNavSections(can: (key: PermissionKey) => boolean, ctx: NavContext = { inRoster: false }): NavSection[] {
   const seesAll = can('ticket.view_all');
   const seesTickets = seesAll || can('ticket.view');
-  const analytics = can('analytics.view');
+  const editsKnowledge = can('knowledge.edit');
+
+  // AC-2: presets of the repair list; "On hold" joins with feature 31.
+  const ticketPages: NavItem[] = seesAll
+    ? present([
+        { to: '/repairs?view=open', label: 'All open', icon: Wrench, countKey: 'open' },
+        {
+          to: '/repairs?view=signoff',
+          label: 'Waiting for sign off',
+          icon: Wrench,
+          countKey: 'signoff',
+          hot: can('ticket.verify'),
+        },
+        ctx.inRoster && { to: '/repairs?view=mine', label: 'Assigned to me', icon: Wrench, countKey: 'mine' },
+      ])
+    : [
+        { to: '/repairs?view=active', label: 'In progress', icon: Wrench, countKey: 'active' },
+        { to: '/repairs?view=sentBack', label: 'Sent back to me', icon: Wrench, countKey: 'sentBack', hot: true },
+        { to: '/repairs?view=done', label: 'Done', icon: Wrench },
+      ];
+
+  // A single "Guides" page would be a group of one, so without knowledge.edit it is a plain link.
+  const knowledgePages: NavItem[] | undefined = editsKnowledge
+    ? [
+        { to: '/knowledge-base', label: 'Guides', icon: BookOpen },
+        { to: '/knowledge-base/suggestions', label: 'Suggestions', icon: BookOpen, countKey: 'suggestions', hot: true },
+      ]
+    : undefined;
 
   const sections: NavSection[] = [
     {
-      title: 'General',
-      items: [
-        { to: '/dashboard', label: seesAll ? 'Dashboard' : 'My dashboard', shortLabel: 'Dashboard', icon: LayoutDashboard },
-        { to: '/profile', label: 'Profile', icon: User },
-      ],
+      title: '',
+      items: [{ to: '/dashboard', label: seesAll ? 'Dashboard' : 'My dashboard', shortLabel: 'Dashboard', icon: LayoutDashboard }],
     },
     {
-      title: 'Vehicle repairs',
+      title: 'Work',
       items: present([
         seesTickets && {
           to: '/repairs',
           label: seesAll ? 'Repair tickets' : 'My repairs',
           shortLabel: 'Repairs',
           icon: Wrench,
+          children: ticketPages,
         },
-        can('ticket.create') && { to: '/repairs/new', label: 'New repair', icon: PlusCircle },
         seesTickets && { to: '/history', label: 'Repair history', shortLabel: 'History', icon: History },
       ]),
     },
     {
-      title: analytics ? 'Analytics & AI' : 'Knowledge base',
+      title: 'Insights',
       items: present([
-        analytics && { to: '/analytics', label: 'Analytics', icon: BarChart2 },
-        can('knowledge.view') && { to: '/knowledge-base', label: 'Knowledge base', shortLabel: 'Guides', icon: BookOpen },
+        can('analytics.view') && { to: '/analytics', label: 'Analytics', icon: BarChart2 },
+        can('knowledge.view') && {
+          to: '/knowledge-base',
+          label: 'Knowledge base',
+          shortLabel: 'Guides',
+          icon: BookOpen,
+          children: knowledgePages,
+        },
       ]),
     },
     {
-      title: 'Administration',
+      title: 'Admin',
       items: present([
         can('team.manage') && { to: '/users', label: 'Users', icon: Users },
-        can('audit.view') && { to: '/audit-logs', label: 'Audit logs', icon: ClipboardList },
-        // Spec 0012, AC-21: with the key of any one section
+        can('audit.view') && { to: '/audit-logs', label: 'Audit logs', icon: ScrollText },
+        // Spec 0012, AC-21: with the key of any one section; one page, no dropdown (spec 0027, AC-1)
         SETTINGS_KEYS.some(can) && { to: '/settings', label: 'Settings', icon: Settings },
       ]),
     },
@@ -85,40 +136,104 @@ export function getNavSections(can: (key: PermissionKey) => boolean): NavSection
   return sections.filter((section) => section.items.length > 0);
 }
 
-// Phone tab bar order (design.md caps it at 5): the daily screens first, profile last.
-const MOBILE_TAB_ORDER = ['/dashboard', '/repairs', '/history', '/knowledge-base', '/profile'];
-
-export function getMobileTabs(sections: NavSection[]): NavItem[] {
-  const items = sections.flatMap((section) => section.items);
-  return MOBILE_TAB_ORDER.flatMap((to) => items.filter((item) => item.to === to));
+/** The top level pages, sub pages left out. */
+export function topLevelItems(sections: NavSection[]): NavItem[] {
+  return sections.flatMap((section) => section.items);
 }
 
+/** design.md caps the tab bar at 5. */
+export const TAB_BAR_MAX = 5;
+
 /**
- * design.md: a bottom tab bar on phones when every nav item fits in it, else the sheet menu.
- * Read from the nav, not the role, so a granted page is never left out of the phone nav.
+ * Spec 0027, AC-11 (suite spec 0016): the visible top level pages; at most 5 gives the tab bar,
+ * more gives the sheet. There is no Account tab: the top bar's avatar holds Your profile and Sign
+ * out. Read from the nav, not the role.
  */
 export function usesTabBar(sections: NavSection[]): boolean {
-  return getMobileTabs(sections).length === sections.flatMap((section) => section.items).length;
+  return topLevelItems(sections).length <= TAB_BAR_MAX;
 }
 
-/** The section and item for the current path, for the header breadcrumb. */
-export function getActiveNavTrail(pathname: string, sections: NavSection[]) {
-  const activePath = getActiveNavPath(pathname, sections.flatMap((section) => section.items));
-  for (const section of sections) {
-    const item = section.items.find((candidate) => candidate.to === activePath);
-    if (item) return { section, item };
-  }
-  return undefined;
+export function getMobileTabs(sections: NavSection[]): NavItem[] {
+  return topLevelItems(sections);
+}
+
+/** The path part of a nav `to`, and its `view` preset if it has one. */
+function splitTo(to: string) {
+  const [path, query = ''] = to.split('?');
+  return { path, view: new URLSearchParams(query).get('view') };
+}
+
+function under(path: string, base: string) {
+  return path === base || path.startsWith(`${base}/`);
+}
+
+export interface NavMatch {
+  /** The top level page the route is in. */
+  item: NavItem;
+  /** The current sub page, when the route is one; the parent then shows as idle (AC-3). */
+  child?: NavItem;
 }
 
 /**
- * The nav item for the current path: the longest `to` that the path starts with,
- * so /repairs/new picks "New repair" and /repairs/123 picks the repair list.
+ * The page for the current route (spec 0027, AC-3): the longest top level `to` the path is in,
+ * then the sub page whose path (and `view`, when it has one) matches. On a ticket (`/repairs/:id`)
+ * or the plain list no repair sub page matches, so Repair tickets itself is current.
  */
-export function getActiveNavPath(pathname: string, items: NavItem[]): string | undefined {
+export function getNavMatch(pathname: string, search: string, sections: NavSection[]): NavMatch | undefined {
   const path = pathname === '/' ? '/dashboard' : pathname;
-  return items
-    .map((item) => item.to)
-    .filter((to) => path === to || path.startsWith(`${to}/`))
-    .sort((a, b) => b.length - a.length)[0];
+  const item = topLevelItems(sections)
+    .filter((candidate) => under(path, candidate.to))
+    .sort((a, b) => b.to.length - a.to.length)[0];
+  if (!item) return undefined;
+
+  const view = new URLSearchParams(search).get('view');
+  const child = (item.children ?? [])
+    .map((candidate) => ({ candidate, ...splitTo(candidate.to) }))
+    .filter((entry) => (entry.view ? path === entry.path && view === entry.view : under(path, entry.path)))
+    .sort((a, b) => b.path.length - a.path.length)[0]?.candidate;
+  return { item, child };
+}
+
+/** The top level path for the current route (the phone tab bar). */
+export function getActiveNavPath(pathname: string, items: NavItem[]): string | undefined {
+  return getNavMatch(pathname, '', [{ title: '', items }])?.item.to;
+}
+
+/** AC-5: the bubble's text; above 99 reads "99+". */
+export function countText(count: number) {
+  return count > 99 ? '99+' : String(count);
+}
+
+/** What each count says to a screen reader (AC-14): "3 waiting for sign off". */
+const COUNT_PHRASES: Record<keyof NavCounts, string> = {
+  open: 'open',
+  signoff: 'waiting for sign off',
+  mine: 'assigned to you',
+  active: 'in progress',
+  sentBack: 'sent back to you',
+  suggestions: 'suggestions to review',
+};
+
+export function countName(key: keyof NavCounts, count: number) {
+  return `${count} ${COUNT_PHRASES[key]}`;
+}
+
+/** Fills each sub page's count from the counts answer (AC-5). */
+export function withCounts(sections: NavSection[], counts: NavCounts): NavSection[] {
+  const fill = (item: NavItem): NavItem => ({
+    ...item,
+    count: item.countKey ? counts[item.countKey] : item.count,
+    children: item.children?.map(fill),
+  });
+  return sections.map((section) => ({ ...section, items: section.items.map(fill) }));
+}
+
+/** A closed parent's bubble: the sum of its hot counts, else nothing (AC-5). */
+export function hotTotal(item: NavItem) {
+  return (item.children ?? []).reduce((sum, child) => sum + (child.hot && child.count ? child.count : 0), 0);
+}
+
+/** Any count under this parent, hot or not, for the collapsed dot (AC-6). */
+export function anyCount(item: NavItem) {
+  return (item.children ?? []).some((child) => (child.count ?? 0) > 0);
 }

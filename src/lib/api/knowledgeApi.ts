@@ -1,5 +1,6 @@
 import type { AuditChange, RepairStatus } from '../../types';
 import api from './axios';
+import { refreshNavCounts } from '../navCounts';
 
 // Spec 0007: the knowledge base in welinc-backend-vrms (/vrms/knowledge).
 
@@ -239,15 +240,18 @@ export async function getSuggestionCount(): Promise<number> {
 
 export async function createSuggestion(input: { kind: SuggestionKind; body: string; entryId?: string; repairIssueId?: string }) {
   const response = await api.post<{ id: string }>('/vrms/knowledge/suggestions', input);
+  refreshNavCounts(); // spec 0027, AC-7: the sidebar counts follow your own moves
   return response.data;
 }
 
 export async function resolveSuggestion(id: string, status: 'ACCEPTED' | 'DISMISSED') {
   const response = await api.patch<{ id: string }>(`/vrms/knowledge/suggestions/${id}`, { status });
+  refreshNavCounts(); // spec 0027, AC-7: the sidebar counts follow your own moves
   return response.data;
 }
 
 export async function dismissGroup(issueIds: string[]): Promise<number> {
   const response = await api.post<{ dismissed: number }>('/vrms/knowledge/suggestions/dismiss-group', { issueIds });
+  refreshNavCounts(); // spec 0027, AC-7: the sidebar counts follow your own moves
   return response.data.dismissed;
 }

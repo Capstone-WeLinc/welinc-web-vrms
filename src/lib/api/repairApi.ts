@@ -1,4 +1,5 @@
 import api from './axios';
+import { refreshNavCounts } from '../navCounts';
 import type {
   AccountType,
   CreateRepairPayload,
@@ -10,6 +11,7 @@ import type {
   RepairStatus,
   RepairTicket,
 } from '../../types';
+import type { RepairView } from '../../features/repair/lib/repairViews';
 
 export interface RepairListParams {
   search?: string;
@@ -22,6 +24,8 @@ export interface RepairListParams {
   overdue?: boolean;
   /** Spec 0029, AC-35: open tickets whose truck VMMS removed. */
   truckRemoved?: boolean;
+  /** Spec 0027, AC-4: a sidebar preset; the server applies the same rule its count uses. */
+  view?: RepairView;
   /** Neither page nor limit returns every matching row. */
   page?: number;
   limit?: number;
@@ -101,6 +105,7 @@ export async function updateRepairStatus(
     status,
     ...extras,
   });
+  refreshNavCounts(); // spec 0027, AC-7: the sidebar counts follow your own moves
   return response.data;
 }
 
@@ -137,6 +142,7 @@ export async function checkIssueStep(repairId: string, issueId: string, stepId: 
 /** Spec 0029, AC-5: `fleetStale` when VMMS couldn't be reached and the truck came from VRMS's copy. */
 export async function createRepair(payload: CreateRepairPayload): Promise<RepairTicket & { fleetStale?: boolean }> {
   const response = await api.post<RepairTicket & { fleetStale?: boolean }>('/vrms/repairs', payload);
+  refreshNavCounts(); // spec 0027, AC-7: the sidebar counts follow your own moves
   return response.data;
 }
 
@@ -165,6 +171,7 @@ export async function unlockRepairTicket(
     unlockReason,
     lastUpdatedAt,
   });
+  refreshNavCounts(); // spec 0027, AC-7: the sidebar counts follow your own moves
   return response.data;
 }
 
@@ -203,6 +210,7 @@ export async function setMechanics(repairId: string, mechanicIds: string[], base
     ...base,
     mechanics: mechanicIds.map((id) => ({ id })),
   });
+  refreshNavCounts(); // spec 0027, AC-7: the sidebar counts follow your own moves
   return response.data;
 }
 

@@ -10,6 +10,7 @@ interface Loaded {
   ability: typeof NO_PERMISSIONS;
   keys: readonly string[];
   modules: Modules;
+  inRoster: boolean;
   error?: string;
 }
 
@@ -32,6 +33,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     ability: NO_PERMISSIONS,
     keys: [],
     modules: ALL_MODULES_ON,
+    inRoster: false,
   });
   const inFlight = useRef(false);
 
@@ -39,11 +41,14 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     if (inFlight.current) return;
     inFlight.current = true;
     getMyPermissions()
-      .then(({ keys, modules }) => {
+      .then(({ keys, modules, inRoster = false }) => {
         setLoaded((prev) =>
-          prev.status === 'ready' && sameKeys(prev.keys, keys) && sameModules(prev.modules, modules)
+          prev.status === 'ready' &&
+          sameKeys(prev.keys, keys) &&
+          sameModules(prev.modules, modules) &&
+          prev.inRoster === inRoster
             ? prev
-            : { status: 'ready', ability: buildAbility(keys), keys, modules },
+            : { status: 'ready', ability: buildAbility(keys), keys, modules, inRoster },
         );
       })
       .catch((err) => {

@@ -21,6 +21,7 @@ import { LastUpdated } from './LastUpdated';
 import { ReleasedNotice } from './ReleasedNotice';
 import { TeamSection } from './TeamSection';
 import { TruncationNote } from './TruncationNote';
+import { NewRepairAction } from '../../../components/layout/NewRepairAction';
 
 const VERIFY_LIMIT = 8;
 
@@ -120,6 +121,7 @@ function QueueRow({ ticket, now }: { ticket: RepairTicket; now: number }) {
  * in the same order, so reading and tab order never change.
  */
 export function ChiefDashboard() {
+  const canCreate = useCan('ticket.create');
   const user = useAuthStore((state) => state.user);
   const seesTeam = useCan('mechanics.view');
   const { active, fetchedAt, state, errorMessage, refreshFailed, truncated, retry, refresh } = useDashboardData({
@@ -157,6 +159,11 @@ export function ChiefDashboard() {
           {state === 'ready' && <p className="text-body text-muted-foreground">{todayLabel(fetchedAt)}</p>}
         </div>
         {state === 'ready' && <LastUpdated fetchedAt={fetchedAt} refreshFailed={refreshFailed} />}
+        {canCreate && (
+          <div className="max-md:mt-3 max-md:*:w-full">
+            <NewRepairAction />
+          </div>
+        )}
       </header>
 
       {state === 'loading' && <DashboardSkeleton admin={false} tiles={false} />}

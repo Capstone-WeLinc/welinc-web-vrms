@@ -1,4 +1,5 @@
 import type { RepairListParams } from '../../../lib/api/repairApi';
+import { readRepairView, type RepairView } from './repairViews';
 
 // Spec 0004: the list's filters and page live in the URL (AC-5). Defaults are left out of it,
 // and an unknown or malformed value reads as its default.
@@ -18,6 +19,8 @@ export type RepairListFilterValues = {
   overdue: boolean;
   /** Spec 0029, AC-35: only open tickets whose truck VMMS removed (`?removed=1`). */
   truckRemoved: boolean;
+  /** Spec 0027, AC-4: the sidebar sub page this list is (`?view=`), or none. */
+  view: RepairView | null;
 };
 
 export const DEFAULT_REPAIR_LIST_FILTERS: RepairListFilterValues = {
@@ -27,6 +30,7 @@ export const DEFAULT_REPAIR_LIST_FILTERS: RepairListFilterValues = {
   mechanicId: 'all',
   overdue: false,
   truckRemoved: false,
+  view: null,
 };
 
 export const REPAIR_LIST_PAGE_SIZE = 20;
@@ -48,6 +52,15 @@ function readPage(value: string | null) {
   return value && /^\d+$/.test(value) && Number(value) >= 1 ? Number(value) : 1;
 }
 
+/**
+ * AC-4: picking another status clears the preset (it would contradict it); other filters keep it.
+ */
+export function withFilterPatch(filters: RepairListFilterValues, patch: Partial<RepairListFilterValues>): RepairListFilterValues {
+  const next = { ...filters, ...patch };
+  if (patch.status !== undefined && patch.status !== filters.status && patch.view === undefined) next.view = null;
+  return next;
+}
+
 /** Filters and page from the URL. A list of only your own tickets ignores `mechanic`. */
 export function readListState(params: URLSearchParams, seesAll: boolean) {
   const search = params.get('q')?.trim() ?? '';
@@ -58,6 +71,7 @@ export function readListState(params: URLSearchParams, seesAll: boolean) {
     mechanicId: seesAll ? readId(params.get('mechanic')) : 'all',
     overdue: params.get('overdue') === '1',
     truckRemoved: params.get('removed') === '1',
+    view: readRepairView(params.get('view')),
   };
   return { filters, page: readPage(params.get('page')) };
 }
@@ -65,6 +79,7 @@ export function readListState(params: URLSearchParams, seesAll: boolean) {
 /** The URL for these filters and page, with every default left out. */
 export function writeListState(filters: RepairListFilterValues, page: number) {
   const params = new URLSearchParams();
+  if (filters.view) params.set('view', filters.view);
   if (filters.search) params.set('q', filters.search);
   if (filters.status !== 'all') params.set('status', filters.status);
   if (filters.garageId !== 'all') params.set('garage', filters.garageId);
@@ -94,6 +109,7 @@ export function repairListParams(filters: RepairListFilterValues, page: number):
     mechanicId: filters.mechanicId === 'all' ? undefined : filters.mechanicId,
     overdue: filters.overdue || undefined,
     truckRemoved: filters.truckRemoved || undefined,
+    view: filters.view ?? undefined,
     page,
     limit: REPAIR_LIST_PAGE_SIZE,
   };

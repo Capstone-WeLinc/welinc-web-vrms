@@ -8,6 +8,8 @@ export interface MyPermissions {
   keys: string[];
   version: number | null;
   modules: Modules;
+  /** Spec 0027: an active, assignable roster member (the "Assigned to me" sub page); absent reads as false. */
+  inRoster?: boolean;
 }
 
 /** The caller's granted keys, the matrix version and which modules are on (spec 0011, AC-16; spec 0012, AC-12). */

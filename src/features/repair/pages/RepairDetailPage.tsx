@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { BreadcrumbTail } from '../../../components/layout/Breadcrumbs';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { BackLink } from '../../../components/shared/BackLink';
 import { RecordNotFound } from '../../../components/shared/RecordNotFound';
@@ -441,6 +442,8 @@ export function RepairDetailPage() {
   return (
     // Keyed by ticket, so a link to another ticket (similar repairs) starts every section fresh.
     <div key={ticket.id} className={barLabel ? (barSecondary ? 'pb-36 md:pb-20 lg:pb-0' : 'pb-20 lg:pb-0') : undefined}>
+      {/* Spec 0027, AC-9: "VRMS › Repair tickets › REP-…" */}
+      <BreadcrumbTail label={rep} />
       <BackLink to={back.to} label={back.label} />
       <TicketHeader ticket={ticket} onPickShop={ticket.can.edit ? () => setShopOpen(true) : undefined} />
       {shopOpen && (
