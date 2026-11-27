@@ -4,12 +4,15 @@ import { useRoleLabel } from '@/lib/roles';
 import { useAuthStore } from '../../store/authStore';
 import { CollapsedTooltip } from './SidebarNav';
 
-/** The gold W tile (32px) of the VRMS title and the phone top bar. */
+/**
+ * The gold W tile of the VRMS title and the phone top bar: 36px like the portal's built title tile
+ * (`BrandLockup`), since AC-15 lets the portal's built values win over the board's 32px.
+ */
 export function VrmsTile() {
   return (
     <span
       aria-hidden="true"
-      className="flex size-8 shrink-0 items-center justify-center rounded-md bg-highlight font-bold text-highlight-foreground"
+      className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-highlight font-bold text-highlight-foreground"
     >
       W
     </span>

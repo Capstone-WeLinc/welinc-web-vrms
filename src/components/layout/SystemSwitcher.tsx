@@ -14,7 +14,7 @@ import {
   systemRoleTag,
 } from '../../lib/session/switchSystem';
 
-const CARD = 'flex items-center gap-3 rounded-2xl px-3.5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const CARD = 'flex items-center gap-3 rounded-2xl px-3.5 py-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring';
 const TILE = 'flex size-10 shrink-0 items-center justify-center rounded-xl';
 const TAG = 'shrink-0 rounded-md px-2 py-0.5 text-caption font-semibold whitespace-nowrap';
 const OTHER_CARD = cn(CARD, 'border border-border hover:bg-accent');
@@ -48,7 +48,7 @@ export function SystemSwitcher() {
       >
         <Grip aria-hidden="true" className="size-5" />
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-88 max-w-(--radix-popover-content-available-width) rounded-2xl p-0">
+      <PopoverContent aria-label="Switch system" align="end" className="w-88 max-w-(--radix-popover-content-available-width) rounded-2xl p-0">
         <nav aria-label="Switch system" className="flex flex-col">
           <div className="flex items-center px-4 pt-3.5 pb-2.5">
             <span className="flex-1 text-small font-semibold text-muted-strong">Switch to</span>

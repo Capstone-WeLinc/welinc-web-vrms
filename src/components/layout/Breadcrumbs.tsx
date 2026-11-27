@@ -32,7 +32,7 @@ export function Breadcrumbs() {
                 <li className="shrink-0 text-muted-foreground max-sm:hidden">
                   <Link
                     to={crumb.to ?? '/'}
-                    className="rounded-md outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                    className="rounded-md text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {crumb.label}
                   </Link>
