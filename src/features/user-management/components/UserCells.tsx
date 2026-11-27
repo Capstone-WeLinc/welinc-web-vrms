@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { RoleChip } from '@/components/ui/role-chip';
-import { roleLabel } from '@/lib/roles';
+import { useRoleLabel } from '@/lib/roles';
 import type { TeamMember } from '../../../types';
 import { isTemporaryRole, vrmsRoles } from '../lib/accountStatus';
 
@@ -23,6 +23,7 @@ export function UserNameCell({ user, isSelf }: { user: TeamMember; isSelf: boole
  * role comes from a temporary grant (suite spec 0014, task 13a), so nobody takes them for staff.
  */
 export function UserRoleCell({ user }: { user: TeamMember }) {
+  const roleLabel = useRoleLabel();
   const roles = vrmsRoles(user);
   const [first, ...rest] = roles;
   if (!first) return <span>—</span>;

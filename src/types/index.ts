@@ -1,4 +1,8 @@
-export type UserRole = 'ADMIN' | 'MECHANIC' | 'CHIEF_MECHANIC' | 'CUSTOMER_SUPPORT' | 'OPERATIONS';
+/**
+ * A role code from welinc-auth's catalog: a built in role or a custom `C_` role (suite spec 0018
+ * child 0002, AC-34). Names come from `GET /auth/systems` through `src/lib/roles.ts`.
+ */
+export type UserRole = string;
 export type SystemType = 'VRMS' | 'VMMS' | 'BMS' | 'SHARED';
 
 /** One role in a system's catalog, from `GET /auth/systems` (spec 0004, AC-16). */
@@ -7,6 +11,8 @@ export interface CatalogRole {
   name: string;
   description: string;
   isSystemAdmin: boolean;
+  /** Suite spec 0018: false for a custom role a suite admin made. */
+  builtIn: boolean;
 }
 
 /** One system from `GET /auth/systems`, roles in display order (spec 0004, AC-16). */

@@ -9,6 +9,7 @@ import { ErrorState } from '../../../components/shared/ErrorState';
 import { PlateChip } from '../../../components/shared/PlateChip';
 import { ResponsiveDialog } from '../../../components/shared/ResponsiveDialog';
 import type { MechanicRosterRow } from '../../../lib/api/vrmsConfigApi';
+import { useRoleLabel } from '../../../lib/roles';
 import { dueLabel } from '../../../lib/utils/due';
 import { MechanicOpenTickets } from '../../user-management/components/MechanicOpenTickets';
 import type { useMechanicRoster } from '../hooks/useMechanicRoster';
@@ -90,6 +91,7 @@ function PersonRow({
   shared: ReadonlySet<string>;
   onOpen: (person: OpenPerson) => void;
 }) {
+  const roleLabel = useRoleLabel();
   const [expanded, setExpanded] = useState(false);
   const { row, mix } = person;
   const email = row?.email && showsEmail(person, shared) ? row.email : null;
@@ -101,7 +103,8 @@ function PersonRow({
   const sub: { key: string; node: ReactNode }[] = [];
   if (!row) sub.push({ key: 'missing', node: 'Not on the roster yet' });
   else if (isInactive(row)) sub.push({ key: 'inactive', node: 'Inactive' });
-  else if (row.role === 'CHIEF_MECHANIC') sub.push({ key: 'chief', node: 'Chief mechanic' });
+  // Suite spec 0018 child 0002, AC-34: a lead holds ticket.verify; the label is their role's name
+  else if (row.isLead && row.role) sub.push({ key: 'lead', node: roleLabel(row.role) });
   if (email) sub.push({ key: 'email', node: email });
   if (person.onNow.length > 0) {
     sub.push({

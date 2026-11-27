@@ -42,13 +42,11 @@ describe('vrmsRoles and onMechanicRoster', () => {
     expect(vrmsRoles(user)).toEqual(['CHIEF_MECHANIC']);
   });
 
-  it('puts mechanics and chief mechanics on the roster, nobody else', () => {
-    expect(onMechanicRoster(roles([{ role: 'MECHANIC', system: 'VRMS' }]))).toBe(true);
-    expect(onMechanicRoster(roles([{ role: 'CHIEF_MECHANIC', system: 'VRMS' }]))).toBe(true);
-    expect(onMechanicRoster(roles([{ role: 'ADMIN', system: 'VRMS' }]))).toBe(false);
-  });
-
-  it('ignores a mechanic role held in another system', () => {
-    expect(onMechanicRoster(roles([{ role: 'MECHANIC', system: 'VMMS' }]))).toBe(false);
+  // covers: suite spec 0018 child 0002 AC-34 (roster membership, never a role code)
+  it('puts on the roster exactly the people the workload has a row for', () => {
+    const workload = new Map([['u-1', {}]]);
+    expect(onMechanicRoster({ id: 'u-1' }, workload)).toBe(true);
+    expect(onMechanicRoster({ id: 'u-2' }, workload)).toBe(false);
+    expect(onMechanicRoster({ id: 'u-1' }, null)).toBe(false);
   });
 });

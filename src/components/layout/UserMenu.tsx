@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { LayoutGrid, ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { RoleChip } from '@/components/ui/role-chip';
-import { roleLabel } from '@/lib/roles';
+import { useRoleLabel } from '@/lib/roles';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ import { useShellActions } from './useShellActions';
  * The role is `authStore.user.role`, which the login and SSO handoff take from the token.
  */
 export function UserMenu() {
+  const roleLabel = useRoleLabel();
   const user = useAuthStore((state) => state.user);
   const { canSwitchSystem, switchSystem, signOut } = useShellActions();
 

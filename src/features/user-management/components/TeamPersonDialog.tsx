@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { ResponsiveDialog } from '../../../components/shared/ResponsiveDialog';
 import { StatusBadge } from '../../../components/shared/StatusBadge';
 import type { TeamMember } from '../../../types';
-import { getAccountStatus, onMechanicRoster } from '../lib/accountStatus';
+import { getAccountStatus } from '../lib/accountStatus';
 import { manageAccountUrl } from '../lib/portalLinks';
 import { MechanicOpenTickets } from './MechanicOpenTickets';
 import { UserRoleCell } from './UserCells';
@@ -17,6 +17,8 @@ interface TeamPersonDialogProps {
   finalFocusRef?: RefObject<HTMLElement | null>;
   /** After an unassign or reassign lands, so the Work column catches up. */
   onWorkChanged: () => void;
+  /** On the mechanic roster (the workload has a row for them), so their open tickets show. */
+  onRoster: boolean;
 }
 
 /**
@@ -24,7 +26,7 @@ interface TeamPersonDialogProps {
  * Unassign and Reassign) stay in VRMS; every account change is one Manage account link to the
  * portal, opened in a new tab so the list is still here when they come back.
  */
-export function TeamPersonDialog({ open, onOpenChange, user, finalFocusRef, onWorkChanged }: TeamPersonDialogProps) {
+export function TeamPersonDialog({ open, onOpenChange, user, finalFocusRef, onWorkChanged, onRoster }: TeamPersonDialogProps) {
   return (
     <ResponsiveDialog
       open={open}
@@ -54,7 +56,7 @@ export function TeamPersonDialog({ open, onOpenChange, user, finalFocusRef, onWo
               <span className="sr-only"> (opens in a new tab)</span>
             </a>
           </div>
-          {onMechanicRoster(user) && <MechanicOpenTickets user={user} onChanged={onWorkChanged} />}
+          {onRoster && <MechanicOpenTickets user={user} onChanged={onWorkChanged} />}
         </div>
       )}
     </ResponsiveDialog>

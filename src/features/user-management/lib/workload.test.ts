@@ -19,12 +19,21 @@ function person(id: string, role: string): TeamMember {
 }
 
 const zero = { OPEN: 0, ASSIGNED: 0, IN_PROGRESS: 0, ON_HOLD: 0, FOR_VERIFICATION: 0, OUTSOURCED: 0, PENDING_APPROVAL: 0 };
-const row = (authUserId: string, occupied: boolean, byStatus: Partial<typeof zero> = {}): MechanicWorkload => {
+const row = (
+  authUserId: string,
+  occupied: boolean,
+  byStatus: Partial<typeof zero> = {},
+  assignable = true,
+): MechanicWorkload => {
   const counts = { ...zero, ...byStatus };
-  return { authUserId, occupied, byStatus: counts, total: Object.values(counts).reduce((a, b) => a + b, 0) };
+  return { authUserId, occupied, assignable, byStatus: counts, total: Object.values(counts).reduce((a, b) => a + b, 0) };
 };
 
-const workload = workloadMap([row('busy', true, { IN_PROGRESS: 1, ASSIGNED: 2 }), row('idle', false, { ASSIGNED: 1 })]);
+const workload = workloadMap([
+  row('busy', true, { IN_PROGRESS: 1, ASSIGNED: 2 }),
+  row('idle', false, { ASSIGNED: 1 }),
+  row('former', false, { ASSIGNED: 1 }, false),
+]);
 
 describe('workStateOf', () => {
   it('reads Occupied and Free from the server row', () => {
@@ -32,11 +41,14 @@ describe('workStateOf', () => {
     expect(workStateOf(person('idle', 'CHIEF_MECHANIC'), workload)).toBe('free');
   });
 
-  it('treats a mechanic with no row as Free', () => {
-    expect(workStateOf(person('new', 'MECHANIC'), workload)).toBe('free');
+  // covers: suite spec 0018 child 0002 AC-33, AC-34 (roster membership from the server, not the role)
+  it('reads the roster from the server rows, custom roles included', () => {
+    expect(workStateOf(person('busy', 'C_TIRE_SPECIALIST'), workload)).toBe('occupied');
+    expect(workStateOf(person('new', 'MECHANIC'), workload)).toBeNull();
   });
 
-  it('is null for an Admin, or before the workload loads', () => {
+  it('is null for someone who lost ticket.assignable, for an Admin, or before the workload loads', () => {
+    expect(workStateOf(person('former', 'ADMIN'), workload)).toBeNull();
     expect(workStateOf(person('boss', 'ADMIN'), workload)).toBeNull();
     expect(workStateOf(person('busy', 'MECHANIC'), null)).toBeNull();
   });
@@ -96,8 +108,8 @@ describe('Unassign and Reassign payloads', () => {
 });
 
 describe('workStateOf edge cases', () => {
-  it('reads a person who holds a mechanic role next to another role as a mechanic', () => {
-    const both = { ...person('both', 'ADMIN'), roles: [{ role: 'ADMIN', system: 'VRMS' }, { role: 'MECHANIC', system: 'VRMS' }] } as unknown as TeamMember;
+  it('reads a person with a roster row as a mechanic whatever roles they hold', () => {
+    const both = { ...person('idle', 'ADMIN'), roles: [{ role: 'ADMIN', system: 'VRMS' }, { role: 'MECHANIC', system: 'VRMS' }] } as unknown as TeamMember;
     expect(workStateOf(both, workload)).toBe('free');
   });
 
@@ -106,8 +118,8 @@ describe('workStateOf edge cases', () => {
     expect(workStateOf(elsewhere, workload)).toBeNull();
   });
 
-  it('treats every mechanic as Free once an empty workload has loaded', () => {
-    expect(workStateOf(person('idle', 'MECHANIC'), workloadMap([]))).toBe('free');
+  it('shows nothing for someone without a roster row once the workload has loaded', () => {
+    expect(workStateOf(person('idle', 'MECHANIC'), workloadMap([]))).toBeNull();
   });
 });
 

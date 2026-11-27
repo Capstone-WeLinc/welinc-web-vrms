@@ -7,8 +7,10 @@ describe('the no access note', () => {
     expect(noAccessLine(noAccessNote('Analytics', 'MECHANIC'))).toBe("That link was for Analytics, which Mechanics can't open.");
   });
 
-  it('names an unknown role gently', () => {
-    expect(rolePlural('SOMETHING_NEW')).toBe('People with your role');
+  // covers: suite spec 0018 child 0002 AC-35 (names from the catalog, title case until it loads)
+  it('names a role from its catalog name, a custom one too, and no role gently', () => {
+    expect(rolePlural('C_TIRE_SPECIALIST')).toBe('Tire specialists');
+    expect(rolePlural('C_NIGHT_SHIFT_LEAD')).toBe('Night shift leads');
     expect(rolePlural(undefined)).toBe('People with your role');
   });
 

@@ -24,16 +24,17 @@ export function workloadMap(rows: readonly MechanicWorkload[]) {
 }
 
 /**
- * Occupied or Free for a person on the mechanic roster, or null: not a mechanic, the workload has
- * not loaded, or the account is deactivated or deleted (Free would say they can take work, and they
- * cannot; their open tickets still show in the dialog so an Admin can move them). A mechanic with
- * no row yet (never synced) holds no tickets, so is Free.
+ * Occupied or Free for a person on the mechanic roster, or null: not on the roster, the workload
+ * has not loaded, they can't be assigned tickets now (suite spec 0018 child 0002, AC-33), or the
+ * account is deactivated or deleted (Free would say they can take work, and they cannot; their
+ * open tickets still show in the dialog so an Admin can move them).
  */
 export function workStateOf(user: TeamMember, workload: ReadonlyMap<string, MechanicWorkload> | null): WorkState | null {
-  if (!workload || !onMechanicRoster(user)) return null;
+  const row = workload?.get(user.id);
+  if (!row || !onMechanicRoster(user, workload) || !row.assignable) return null;
   const account = getAccountStatus(user);
   if (account !== 'ACTIVE') return null;
-  return workload.get(user.id)?.occupied ? 'occupied' : 'free';
+  return row.occupied ? 'occupied' : 'free';
 }
 
 /** "1 in progress, 2 assigned", or "No open tickets". */

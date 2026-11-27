@@ -132,7 +132,7 @@ function ticketsOf(profile: Profile, i: number): MechanicOpenTicket[] {
 function workloadOf(profile: Profile, i: number): MechanicWorkload {
   const byStatus = Object.fromEntries(OPEN.map((s) => [s, profile.tickets?.[s] ?? 0])) as Record<string, number>;
   const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
-  return { authUserId: userId(i), total, byStatus, occupied: byStatus.IN_PROGRESS > 0 };
+  return { authUserId: userId(i), total, byStatus, occupied: byStatus.IN_PROGRESS > 0, assignable: true };
 }
 
 function pickerOf(profiles: Profile[], mode: DataMode): MechanicOption[] {
