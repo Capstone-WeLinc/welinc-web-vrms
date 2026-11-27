@@ -32,7 +32,7 @@ export function SidebarTitle({ collapsed = false, onNavigate }: { collapsed?: bo
         onClick={onNavigate}
         aria-label={collapsed ? `VRMS, ${role}, dashboard` : undefined}
         className={cn(
-          'flex w-full items-center gap-2.5 rounded-lg px-1 py-1.5 text-left outline-none hover:bg-sidebar-hover focus-visible:ring-2 focus-visible:ring-ring-on-dark',
+          'flex w-full items-center gap-2.5 rounded-lg px-1 py-1.5 text-left text-sidebar-foreground outline-none hover:bg-sidebar-hover focus-visible:ring-2 focus-visible:ring-ring-on-dark',
           collapsed && 'justify-center px-0',
         )}
       >
