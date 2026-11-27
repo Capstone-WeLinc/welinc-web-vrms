@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ClipboardList, Plus, SearchX } from 'lucide-react';
+import { AlertTriangle, ClipboardList, Clock, Plus, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SegmentedControl, SegmentedControlItem } from '@/components/ui/segmented-control';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,6 +31,15 @@ import { hasActiveFilters, REPAIR_LIST_PAGE_SIZE, repairListParams } from '../li
 function DueCell({ ticket, now }: { ticket: RepairTicket; now: number }) {
   const due = dueLabel(ticket, now);
   if (!due) return <span className="text-muted-foreground">—</span>;
+  // Spec 0030, AC-12
+  if (due.dueSoon) {
+    return (
+      <span className="inline-flex items-start gap-1.5 font-medium text-warning">
+        <Clock aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+        {due.text}
+      </span>
+    );
+  }
   if (!due.overdue) return <span>{due.text}</span>;
   return (
     <span className="inline-flex items-start gap-1.5 font-medium text-destructive">

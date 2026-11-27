@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import type { RepairTicket } from '../../../types';
 
 /** One muted fact after the ticket number; `overdue` shows it in the destructive color. */
-export type RowFact = { text: string; overdue?: boolean; title?: string };
+export type RowFact = { text: string; overdue?: boolean; dueSoon?: boolean; title?: string };
 
 /**
  * Spec 0022, AC-8: the Chief dashboard's one ticket row. Line 1 the plate and status, line 2 the
@@ -40,7 +40,7 @@ export function DashboardTicketRow({
               <span
                 key={fact.text}
                 title={fact.title}
-                className={cn('wrap-anywhere', fact.overdue && 'font-medium text-destructive')}
+                className={cn('wrap-anywhere', fact.overdue && 'font-medium text-destructive', fact.dueSoon && 'font-medium text-warning')}
               >
                 <span aria-hidden="true">· </span>
                 {fact.text}

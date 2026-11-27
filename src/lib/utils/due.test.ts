@@ -87,7 +87,7 @@ describe('isDueSoon (spec 0030, AC-11)', () => {
     expect(isDueSoon({ status: 'OPEN', dueAt: at(HOUR) }, now)).toBe(false);
   });
   it('carries into dueLabel', () => {
-    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(3 * HOUR), dueSoonAt: at(-HOUR) }, now)).toEqual({ text: 'Due in 3 h', overdue: false, dueSoon: true });
+    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(3 * HOUR), dueSoonAt: at(-HOUR) }, now)).toEqual({ text: 'Due soon, in 3 h', overdue: false, dueSoon: true });
   });
 });
 

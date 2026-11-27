@@ -64,7 +64,9 @@ export type DueLabel = { text: string; overdue: boolean; dueSoon: boolean } | nu
 export function dueLabel(ticket: DueTicket, now: number): DueLabel {
   if (isOverdue(ticket, now)) return { text: overdueText(ticket, now), overdue: true, dueSoon: false };
   if (toTime(ticket.dueAt) === null) return null;
-  return { text: dueSoonText(ticket, now), overdue: false, dueSoon: isDueSoon(ticket, now) };
+  // Spec 0030, AC-12: said in words too, so it never rests on color alone
+  if (isDueSoon(ticket, now)) return { text: `Due soon, in ${spanText((toTime(ticket.dueAt) ?? now) - now)}`, overdue: false, dueSoon: true };
+  return { text: dueSoonText(ticket, now), overdue: false, dueSoon: false };
 }
 
 /** "Nov 4", with the year only when it differs from the year of `now`, in the browser's timezone. */
