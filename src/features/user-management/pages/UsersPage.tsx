@@ -73,7 +73,7 @@ export function UsersPage() {
   const dialogFocus = useMemo(() => (dialog.user ? rowFocusRef(dialog.user.id) : undefined), [dialog.user]);
 
   const rowActions = (user: TeamMember): RowAction[] => [
-    ...(onMechanicRoster(user) ? [{ label: 'Open tickets', onSelect: () => openDialog(user) }] : []),
+    ...(onMechanicRoster(user, workload) ? [{ label: 'Open tickets', onSelect: () => openDialog(user) }] : []),
     { label: 'Manage account', hint: 'Opens the portal', externalHref: manageAccountUrl(user.id) },
   ];
 
@@ -162,6 +162,7 @@ export function UsersPage() {
         user={dialog.user}
         finalFocusRef={dialogFocus}
         onWorkChanged={reloadWorkload}
+        onRoster={dialog.user ? onMechanicRoster(dialog.user, workload) : false}
       />
     </div>
   );

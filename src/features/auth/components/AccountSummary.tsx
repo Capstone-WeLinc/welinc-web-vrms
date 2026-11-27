@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { RoleChip } from '@/components/ui/role-chip';
-import { roleLabel } from '@/lib/roles';
+import { useRoleLabel } from '@/lib/roles';
 import { getInitials } from '../../../lib/utils/format';
 import type { UserRoleAssignment } from '../../../types';
 
@@ -13,6 +13,7 @@ interface AccountSummaryProps {
 
 /** Who you are and what you can open across WeLinc. */
 export function AccountSummary({ name, email, roles }: AccountSummaryProps) {
+  const roleLabel = useRoleLabel();
   return (
     <Card className="gap-5 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
       <div className="flex min-w-0 items-center gap-4">

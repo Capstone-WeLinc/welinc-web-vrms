@@ -42,11 +42,15 @@ export function isTemporaryRole(user: Pick<TeamMember, 'temporaryRoles'>, role: 
 }
 
 /**
- * True when the account is on the mechanic roster (a mechanic or chief mechanic in VRMS). This
- * describes the managed account, not what the signed in user may do.
+ * True when the account is on the mechanic roster: the workload list has a row for them (suite
+ * spec 0018 child 0002, AC-34: roster membership, decided on the server by ticket.assignable, never
+ * by a role code). This describes the managed account, not what the signed in user may do.
  */
-export function onMechanicRoster(user: Pick<TeamMember, 'roles'>): boolean {
-  return vrmsRoles(user).some((role) => role === 'MECHANIC' || role === 'CHIEF_MECHANIC');
+export function onMechanicRoster(
+  user: Pick<TeamMember, 'id'>,
+  workload: ReadonlyMap<string, unknown> | null,
+): boolean {
+  return workload?.has(user.id) ?? false;
 }
 
 /**

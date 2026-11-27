@@ -2,7 +2,7 @@ import type { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 
 import api from '../api/axios';
 import { showToast } from '../../context/toast';
 import { useAuthStore } from '../../store/authStore';
-import type { User, UserRole, UserRoleAssignment } from '../../types';
+import type { User, UserRoleAssignment } from '../../types';
 import { afterBootRefused, BOOT_FLAG, refreshDelayMs, returnPath } from './bootGuard';
 import {
   activityDelayMs,
@@ -100,13 +100,15 @@ const endedUrl = (cutoff: number) => loginUrl(isMaxAge(cutoff) ? 'maxage' : 'idl
 
 const noAccessUrl = () => `${PORTAL_URL}/?error=NO_SYSTEM_ACCESS&system=VRMS`;
 
-function toUser(answer: RefreshAnswer['user']): User {
+/** The answer's user, or null when it holds no VRMS role (suite spec 0018 child 0002, AC-34). */
+function toUser(answer: RefreshAnswer['user']): User | null {
   const vrms = answer.roles.find((r) => r.system === 'VRMS');
+  if (!vrms) return null;
   return {
     id: answer.id,
     name: answer.name,
     email: answer.email,
-    role: (vrms?.role ?? 'MECHANIC') as UserRole,
+    role: vrms.role,
     system: 'VRMS',
     roles: answer.roles,
     systems: Array.isArray(answer.systems) ? answer.systems : [],
@@ -170,13 +172,16 @@ async function callRefresh(): Promise<RefreshOutcome> {
       sessionCall: true,
       quiet: true,
     });
+    // No VRMS role at all shows the no access page, never a guessed role
+    const user = toUser(data.user);
+    if (!user) return 'no_access';
     const message: TokenMessage = {
       type: 'token',
       accessToken: data.accessToken,
       expiresAt: Date.now() + data.expiresIn * 1000,
       sessionExpiresAt: data.sessionExpiresAt,
       sessionAbsoluteExpiresAt: data.sessionAbsoluteExpiresAt ?? null,
-      user: toUser(data.user),
+      user,
     };
     apply(message);
     // Other VRMS tabs take this token instead of refreshing themselves; same origin, memory only

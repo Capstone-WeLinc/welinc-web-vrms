@@ -8,7 +8,7 @@ import { ErrorState } from '@/components/shared/ErrorState';
 import { KpiCard } from '@/components/shared/KpiCard';
 import { PriorityBadge } from '@/components/shared/PriorityBadge';
 import { RoleChip } from '@/components/ui/role-chip';
-import { roleLabel } from '@/lib/roles';
+import { titleCase as roleLabel } from '@/lib/roles';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Row, Section } from './ShowcaseLayout';
 

@@ -82,6 +82,8 @@ export interface MechanicWorkload extends OpenWork {
   authUserId: string;
   /** At least one open ticket is In Progress (feature 57, the same rule as the picker's `busy`). */
   occupied: boolean;
+  /** Holds ticket.assignable now (suite spec 0018 child 0002, AC-33); false keeps them off pickers. */
+  assignable: boolean;
 }
 
 /** Every mechanic's open work, for the Users page (team.manage, feature 57). */
@@ -90,8 +92,6 @@ export async function getMechanicWorkload(): Promise<MechanicWorkload[]> {
   return response.data;
 }
 
-/** A roster person's VRMS role; null until their next sign in or Admin sync fills it (spec 0022, AC-4). */
-export type RosterRole = 'MECHANIC' | 'CHIEF_MECHANIC';
 
 /** One person on the Chief dashboard's Team section (spec 0022, AC-2). */
 export interface MechanicRosterRow extends MechanicWorkload {
@@ -99,7 +99,12 @@ export interface MechanicRosterRow extends MechanicWorkload {
   mechanicId: string;
   name: string;
   email: string | null;
-  role: RosterRole | null;
+  /** Their VRMS role code (built in or custom); null until the roster first fills it. */
+  role: string | null;
+  /** Holds ticket.verify: the lead mark (suite spec 0018 child 0002, AC-34). */
+  isLead: boolean;
+  /** Holds ticket.assignable: offered in assign pickers (child 0002, AC-33). */
+  assignable: boolean;
   isActive: boolean;
 }
 

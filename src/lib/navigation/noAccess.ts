@@ -1,4 +1,4 @@
-import type { UserRole } from '../../types';
+import { rolePluralLabel } from '../roles';
 
 /*
   Suite spec 0016 AC-12: opening a page you can't use sends you home with a banner that names the
@@ -13,21 +13,15 @@ export type NoAccessNote = {
   home: string;
 };
 
-const ROLE_PLURALS: Record<string, string> = {
-  ADMIN: 'Admins',
-  CHIEF_MECHANIC: 'Chief mechanics',
-  MECHANIC: 'Mechanics',
-  OPERATIONS: 'Operations staff',
-  CUSTOMER_SUPPORT: 'Customer support staff',
-  DRIVER: 'Drivers',
-};
-
-/** A role's plural for the no access note; an unknown role reads as "People with your role". */
-export function rolePlural(role: UserRole | string | undefined): string {
-  return (role && ROLE_PLURALS[role]) || 'People with your role';
+/**
+ * A role's plural for the no access note, from its catalog name (suite spec 0018 child 0002,
+ * AC-35); no role reads as "People with your role".
+ */
+export function rolePlural(role: string | undefined): string {
+  return role ? rolePluralLabel(role) : 'People with your role';
 }
 
-export function noAccessNote(page: string, role: UserRole | string | undefined, home = 'dashboard'): NoAccessNote {
+export function noAccessNote(page: string, role: string | undefined, home = 'dashboard'): NoAccessNote {
   return { page, rolePlural: rolePlural(role), home };
 }
 

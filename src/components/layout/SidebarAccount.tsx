@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { roleLabel } from '@/lib/roles';
+import { useRoleLabel } from '@/lib/roles';
 import { getInitials } from '../../lib/utils/format';
 import { useAuthStore } from '../../store/authStore';
 import { CollapsedTooltip } from './SidebarNav';
@@ -59,6 +59,7 @@ export function SystemSwitcher({ collapsed = false }: { collapsed?: boolean }) {
 
 /** The account menu at the bottom of the sidebar: you, your role, Profile and Sign out. */
 export function SidebarAccount({ collapsed = false }: { collapsed?: boolean }) {
+  const roleLabel = useRoleLabel();
   const user = useAuthStore((state) => state.user);
   const { canSwitchSystem, switchSystem, signOut } = useShellActions();
   if (!user) return null;

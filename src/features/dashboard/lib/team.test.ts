@@ -18,6 +18,8 @@ function row(id: string, overrides: Partial<MechanicRosterRow> = {}): MechanicRo
     name: `Name ${id}`,
     email: `${id}@welinc.com`,
     role: 'MECHANIC',
+    isLead: false,
+    assignable: true,
     isActive: true,
     occupied: false,
     total: 0,
