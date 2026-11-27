@@ -1,6 +1,6 @@
 import type { RepairStatus, RepairTicket } from '../../../types';
 import { hasNoMechanic } from '../../../lib/mechanicProblem';
-import { dayCount, type DueLabel, isOpen, isOverdue, overdueText, toTime, wholeDays } from '../../../lib/utils/due';
+import { dayCount, type DueLabel, isDueSoon, isOpen, isOverdue, overdueText, toTime, wholeDays } from '../../../lib/utils/due';
 
 // Spec 0002. Every helper takes `now` (the hook's fetchedAt) and never reads the clock,
 // so tiles and lists built from one fetch always agree. The due rules live in lib/utils/due.
@@ -40,8 +40,8 @@ export function needsStaffing(ticket: RepairTicket) {
 
 /** Admin Needs attention rows: overdue text, else the updated text (waiting rows). */
 export function attentionDueLabel(ticket: RepairTicket, now: number): DueLabel {
-  if (isOverdue(ticket, now)) return { text: overdueText(ticket, now), overdue: true };
-  return { text: updatedText(ticket, now), overdue: false };
+  if (isOverdue(ticket, now)) return { text: overdueText(ticket, now), overdue: true, dueSoon: false };
+  return { text: updatedText(ticket, now), overdue: false, dueSoon: false };
 }
 
 const byTime = (pick: (t: RepairTicket) => string | null | undefined, direction: 1 | -1) =>
@@ -134,6 +134,19 @@ export function mechanicWorkList(active: RepairTicket[], now: number) {
       }
       return byTime((t) => t.updatedAt, -1)(a, b);
     });
+}
+
+/**
+ * Spec 0030, AC-12: the mechanic's work as groups, Overdue, then Due soon, then the rest, each in
+ * the work list's order. Due soon comes from the row's `dueSoonAt` against the fetch time.
+ */
+export function mechanicWorkGroups(active: RepairTicket[], now: number) {
+  const work = mechanicWorkList(active, now);
+  return {
+    overdue: work.filter((t) => isOverdue(t, now)),
+    dueSoon: work.filter((t) => isDueSoon(t, now)),
+    rest: work.filter((t) => !isOverdue(t, now) && !isDueSoon(t, now)),
+  };
 }
 
 export function countMechanicOverdue(active: RepairTicket[], now: number) {

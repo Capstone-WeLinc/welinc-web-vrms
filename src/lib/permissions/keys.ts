@@ -16,6 +16,8 @@ export type PermissionKey =
   | 'ticket.costs.edit'
   | 'ticket.assign'
   | 'ticket.edit'
+  // Spec 0030, AC-8: the due date hand change and reset
+  | 'ticket.due_date.edit'
   | 'ticket.unlock'
   | 'ticket.checklist.edit'
   | 'ticket.files.add'

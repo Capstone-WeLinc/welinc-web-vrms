@@ -27,7 +27,9 @@ import { useVehicleSchedule } from '../hooks/useVehicleSchedule';
 import { acceptBody, type AcceptExpediteValues } from '../lib/expedite';
 import {
   addTicketIssue,
+  changeDueDate,
   editTicketDetails,
+  resetDueDate,
   editTicketIssue,
   pickOutsideShop,
   removeTicketIssue,
@@ -56,6 +58,8 @@ import { DetailsCard, NotesCard, PeopleCard, StatusCard } from '../components/Ti
 import { TicketHeader } from '../components/TicketHeader';
 import { DocumentsCard } from '../components/DocumentsCard';
 import { EditDetailsDialog } from '../components/edit/EditDetailsDialog';
+import { DueDateDialog } from '../components/due/DueDateDialog';
+import { localToIso, type DueDateValues } from '../lib/dueDateEdit';
 import { IssueEditDialog, type IssueSave } from '../components/edit/IssueEditDialog';
 import { OutsideShopDialog } from '../components/edit/OutsideShopDialog';
 import { ChecklistEditDialog, type ChecklistSave } from '../components/edit/ChecklistEditDialog';
@@ -296,6 +300,24 @@ export function RepairDetailPage() {
     }
   };
 
+  // Spec 0030, AC-8 and AC-9: a hand date or back to automatic, from the ticket as the dialog opened
+  const saveDueDate = async (opened: RepairTicket, values: DueDateValues) => {
+    const base = { reason: values.reason, lastUpdatedAt: opened.updatedAt };
+    try {
+      const updated =
+        values.mode === 'automatic'
+          ? await resetDueDate(opened.id, base)
+          : await changeDueDate(opened.id, { ...base, dueAt: localToIso(values.dueAt) });
+      edits.close();
+      replace(updated);
+      showToast(`Due date on ${rep} is saved.`, 'success');
+    } catch (err) {
+      // TICKET_NOT_OPEN and NOT_MANUAL are 409s too: the ticket changed under the dialog, so reload
+      if (getApiErrorStatus(err) === 409) return handleStale();
+      throw err;
+    }
+  };
+
   // Spec 0019, AC-9: the full list, from the ticket as the dialog opened
   const saveMechanics = async (opened: RepairTicket, mechanicIds: string[], reason?: string) => {
     try {
@@ -470,6 +492,7 @@ export function RepairDetailPage() {
               onSecondary={() => setDialog('secondary')}
               onCancel={() => setDialog('cancel')}
               onPhotosBlocked={goToPhotos}
+              onChangeDue={!readOnly && ticket.can.editDueDate ? () => edits.open('dueDate', ticket) : undefined}
             />
           );
           const notes = <NotesCard ticket={ticket} />;
@@ -667,6 +690,16 @@ export function RepairDetailPage() {
           onOpenChange={(open) => !open && edits.close()}
           ticket={edits.session.ticket}
           onSave={saveDetails}
+        />
+      )}
+
+      {edits.session?.kind === 'dueDate' && (
+        <DueDateDialog
+          key={edits.session.n}
+          open={edits.session.open}
+          onOpenChange={(open) => !open && edits.close()}
+          ticket={edits.session.ticket}
+          onSave={(values) => saveDueDate(edits.session!.ticket, values)}
         />
       )}
 

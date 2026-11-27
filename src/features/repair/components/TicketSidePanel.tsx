@@ -33,6 +33,8 @@ interface StatusCardProps {
   onPhotosBlocked: () => void;
   /** Spec 0024, AC-18: `line` is the slim status line on phones and tablets; the fixed bar holds the buttons. */
   variant?: 'card' | 'line';
+  /** Spec 0030, AC-8: the Due row's Change action; omitted when the caller may not change it. */
+  onChangeDue?: () => void;
 }
 
 /**
@@ -102,7 +104,7 @@ function BlockedReason({ id, actions, onPhotos }: { id: string; actions: TicketA
  * wide, stacked with the primary on top below that, and the blocked reason under them. The phone line
  * (AC-18) has the same row and reason; the fixed bar holds its buttons.
  */
-export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecondary, onCancel, onPhotosBlocked, variant = 'card' }: StatusCardProps) {
+export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecondary, onCancel, onPhotosBlocked, variant = 'card', onChangeDue }: StatusCardProps) {
   const { primary, secondary, cancel } = actions;
   const hasButton = !!(primary || secondary || cancel);
   const line = variant === 'line';
@@ -142,8 +144,15 @@ export function StatusCard({ ticket, now, readOnly, actions, onPrimary, onSecond
             {/* Under the date, never trailing it */}
             {due.overdue ? (
               <span className="block text-caption font-medium text-destructive">{due.note ?? 'Past due'}</span>
+            ) : due.dueSoon ? (
+              <span className="block text-caption font-medium text-warning">Due soon, {due.note}</span>
             ) : (
               due.note && <span className="block text-caption text-muted-foreground">{due.note}</span>
+            )}
+            {onChangeDue && (
+              <Button variant="link" size="sm" className="h-auto p-0 text-caption" aria-label="Change due date" onClick={onChangeDue}>
+                Change
+              </Button>
             )}
           </StatusRow>
         )}

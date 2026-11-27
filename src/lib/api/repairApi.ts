@@ -241,3 +241,31 @@ export async function removeTicketIssue(repairId: string, issueId: string, base:
   const response = await api.post<RepairTicket>(`/vrms/repairs/${repairId}/issues/${issueId}/remove`, base);
   return response.data;
 }
+
+/** Spec 0030, AC-9: the date a reset would set now, and where each issue's hours came from. */
+export interface DueDatePreview {
+  dueAt: string;
+  source: 'PRIORITY' | 'ISSUE_TYPE';
+  priorityHours: number;
+  issueHours: number;
+  /** The worked out date had passed, so it is now plus the priority hours (AC-6). */
+  escalated: boolean;
+  issues: { id: string; description: string; hours: number; from: 'KNOWLEDGE' | 'ESTIMATE' | 'CATEGORY' | 'NONE' }[];
+}
+
+/** PUT /due-date: a hand date with a reason (ticket.due_date.edit, spec 0030, AC-8). */
+export async function changeDueDate(repairId: string, payload: { dueAt: string; reason: string; lastUpdatedAt: string }): Promise<RepairTicket> {
+  const response = await api.put<RepairTicket>(`/vrms/repairs/${repairId}/due-date`, payload);
+  return response.data;
+}
+
+export async function getAutomaticDueDate(repairId: string): Promise<DueDatePreview> {
+  const response = await api.get<DueDatePreview>(`/vrms/repairs/${repairId}/due-date/automatic`);
+  return response.data;
+}
+
+/** POST /due-date/automatic: back to the automatic date, worked out again on save (spec 0030, AC-9). */
+export async function resetDueDate(repairId: string, payload: { reason: string; lastUpdatedAt: string }): Promise<RepairTicket> {
+  const response = await api.post<RepairTicket>(`/vrms/repairs/${repairId}/due-date/automatic`, payload);
+  return response.data;
+}

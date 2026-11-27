@@ -15,9 +15,11 @@ interface TicketAttentionTableProps {
   dueLabel: (ticket: RepairTicket) => DueLabel;
   label: string;
   empty: { title: string; description?: string; icon?: LucideIcon };
+  /** The View all repairs link under the table; off for all but the last of several groups. */
+  showAllLink?: boolean;
 }
 
-export function TicketAttentionTable({ rows, dueLabel, label, empty }: TicketAttentionTableProps) {
+export function TicketAttentionTable({ rows, dueLabel, label, empty, showAllLink = true }: TicketAttentionTableProps) {
   const navigate = useNavigate();
 
   const columns: Column<RepairTicket>[] = [
@@ -37,7 +39,7 @@ export function TicketAttentionTable({ rows, dueLabel, label, empty }: TicketAtt
       cell: (t) => {
         const due = dueLabel(t);
         if (!due) return null;
-        return <span className={cn(due.overdue && 'font-medium text-destructive')}>{due.text}</span>;
+        return <span className={cn(due.overdue && 'font-medium text-destructive', due.dueSoon && 'font-medium text-warning')}>{due.text}</span>;
       },
     },
   ];
@@ -53,12 +55,14 @@ export function TicketAttentionTable({ rows, dueLabel, label, empty }: TicketAtt
         empty={empty}
         onRowClick={(t) => navigate(`/repairs/${t.id}`)}
       />
-      <Button asChild variant="link" className="self-end px-0">
-        <Link to="/repairs">
-          View all repairs
-          <ArrowRight aria-hidden="true" />
-        </Link>
-      </Button>
+      {showAllLink && (
+        <Button asChild variant="link" className="self-end px-0">
+          <Link to="/repairs">
+            View all repairs
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }

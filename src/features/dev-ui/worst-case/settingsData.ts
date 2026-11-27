@@ -212,13 +212,13 @@ function settingChanges(mode: DataMode, params: Record<string, unknown>) {
 
 // ---------- GET /vrms/knowledge/categories ----------
 
-function category(id: string, partial: Omit<IssueCategory, 'id' | 'updatedAt'>): IssueCategory {
-  return { id, updatedAt: minutesAgo(60), ...partial };
+function category(id: string, partial: Omit<IssueCategory, 'id' | 'updatedAt' | 'fixHours'> & { fixHours?: number | null }): IssueCategory {
+  return { id, updatedAt: minutesAgo(60), fixHours: null, ...partial };
 }
 
 const worstCategories = (): IssueCategory[] => [
   // 50 characters, the column limit
-  category('c1', { name: 'Air conditioning, heating and ventilation (HVAC/R)', description: null, isActive: true, sortOrder: 1, entryCount: 1284 }),
+  category('c1', { name: 'Air conditioning, heating and ventilation (HVAC/R)', description: null, isActive: true, sortOrder: 1, entryCount: 1284, fixHours: 720 }),
   category('c2', {
     name: 'AC',
     // 200 characters, the column limit
@@ -227,10 +227,11 @@ const worstCategories = (): IssueCategory[] => [
     isActive: true,
     sortOrder: 2,
     entryCount: 1,
+    fixHours: 0.25,
   }),
   category('c3', { name: 'Turbocharger/intercooler/wastegate', description: 'See https://example.com/welinc/kb/turbo-intercooler-wastegate-diagnosis-flowchart-v3', isActive: false, sortOrder: 3, entryCount: 0 }),
   category('c4', { name: 'Đèn và hệ thống điện', description: 'Lights and electrical, from the Vietnamese supplier sheet', isActive: true, sortOrder: 4, entryCount: 42 }),
-  category('c5', { name: 'Brakes <rear> & "ABS"', description: 'Rear drums and ABS wheel sensors', isActive: true, sortOrder: 5, entryCount: 7 }),
+  category('c5', { name: 'Brakes <rear> & "ABS"', description: 'Rear drums and ABS wheel sensors', isActive: true, sortOrder: 5, entryCount: 7, fixHours: 12.75 }),
 ];
 
 const SYSTEMS = ['Brakes', 'Suspension', 'Steering', 'Engine cooling', 'Fuel system', 'Exhaust', 'Transmission', 'Clutch', 'Electrical', 'Body and glass'];

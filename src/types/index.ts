@@ -177,6 +177,8 @@ export interface TicketCan {
   edit: boolean;
   /** Add, reword, remove and reorder an issue's steps (ticket.checklist.edit, spec 0023, AC-2). */
   editChecklist: boolean;
+  /** Change the due date by hand or put it back to automatic (ticket.due_date.edit, spec 0030, AC-8); open tickets only. */
+  editDueDate: boolean;
 }
 
 /** One status move the server lets this caller make now (spec 0014, AC-13). */
@@ -252,9 +254,11 @@ export interface RepairTicket {
   mechanics?: MechanicAssignment[];
   priority?: PriorityLevel;
   issues?: RepairIssue[];
-  /** Empty until feature 42 sets due dates. */
+  /** Set on create from priority and issue times (spec 0030); empty only on old tickets before the backfill. */
   dueAt?: string | null;
   dueAtSource?: DueAtSource | null;
+  /** When the ticket turns Due soon (spec 0030, AC-11); null when closed, cancelled or undated. */
+  dueSoonAt?: string | null;
   reportedByName?: string | null;
   /** Who closed (verified) the ticket, and when. */
   verifiedByName?: string | null;

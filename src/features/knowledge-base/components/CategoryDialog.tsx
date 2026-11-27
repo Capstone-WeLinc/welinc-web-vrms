@@ -13,10 +13,19 @@ import { useToast } from '../../../context/toast';
 import { getApiErrorMessage, getConflictCode } from '../../../lib/api/errors';
 import { createCategory, updateCategory, type IssueCategory } from '../../../lib/api/knowledgeApi';
 
-// Spec 0007, AC-22: name 2 to 50, description up to 200 (category.dto.ts).
+const FIX_HOURS_MESSAGE = 'Fix time must be 0.25 to 720 hours.';
+
+// Spec 0007, AC-22: name 2 to 50, description up to 200 (category.dto.ts). Spec 0030, AC-4: an
+// optional fix time of 0.25 to 720 hours, at most two decimals; blank clears it.
 const categorySchema = z.object({
   name: z.string().trim().min(2, 'Name must be 2 to 50 characters.').max(50, 'Name must be 2 to 50 characters.'),
   description: z.string().trim().max(200, 'Description can be up to 200 characters.'),
+  fixHours: z
+    .string()
+    .trim()
+    .refine((v) => v === '' || /^\d+(\.\d{1,2})?$/.test(v), 'Use a number of hours, like 6 or 1.5.')
+    .transform((v) => (v === '' ? null : Number(v)))
+    .refine((v) => v === null || (v >= 0.25 && v <= 720), FIX_HOURS_MESSAGE),
 });
 type CategoryForm = z.input<typeof categorySchema>;
 type CategoryValues = z.output<typeof categorySchema>;
@@ -48,7 +57,11 @@ export function CategoryDialog({ category, open, onOpenChange, onSaved, onReload
   } = useForm<CategoryForm, unknown, CategoryValues>({
     resolver,
     mode: 'onTouched',
-    defaultValues: { name: category?.name ?? '', description: category?.description ?? '' },
+    defaultValues: {
+      name: category?.name ?? '',
+      description: category?.description ?? '',
+      fixHours: category?.fixHours == null ? '' : String(category.fixHours),
+    },
   });
 
   const save = async (values: CategoryValues) => {
@@ -61,8 +74,8 @@ export function CategoryDialog({ category, open, onOpenChange, onSaved, onReload
     try {
       const description = values.description || null;
       const saved = category
-        ? await updateCategory(category.id, { name: values.name, description }, category.updatedAt)
-        : await createCategory(values.name, description);
+        ? await updateCategory(category.id, { name: values.name, description, fixHours: values.fixHours }, category.updatedAt)
+        : await createCategory(values.name, description, values.fixHours);
       showToast(category ? 'Category saved' : 'Category added', 'success');
       onSaved(saved);
       onOpenChange(false);
@@ -112,6 +125,15 @@ export function CategoryDialog({ category, open, onOpenChange, onSaved, onReload
           name="description"
           label="Description"
           render={({ field, controlProps }) => <Textarea {...field} {...controlProps} rows={3} maxLength={200} />}
+        />
+        <FormField
+          control={control}
+          name="fixHours"
+          label="Fix time (hours)"
+          description="Usual hours of shop work for an issue in this category. It sets due dates on new tickets; existing dates stay."
+          render={({ field, controlProps }) => (
+            <Input {...field} {...controlProps} inputMode="decimal" autoComplete="off" placeholder="None" className="max-w-40" />
+          )}
         />
         {stale && (
           <FormAlert

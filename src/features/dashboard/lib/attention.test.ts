@@ -14,6 +14,7 @@ import {
   verificationQueue,
   waitingText,
   waitTone,
+  mechanicWorkGroups,
 } from './attention';
 
 // Spec 0002 dashboard rules in the spec 0010 statuses (AC-16, AC-4a).
@@ -155,7 +156,7 @@ describe('verificationQueue', () => {
       id,
       status: 'FOR_VERIFICATION',
       statusChangedAt,
-      can: { work: false, administer: false, verify: true, editCosts: false, unlock: false, assign: false, edit: false, editChecklist: false },
+      can: { work: false, administer: false, verify: true, editCosts: false, unlock: false, assign: false, edit: false, editChecklist: false, editDueDate: false },
       ...over,
     });
 
@@ -239,5 +240,22 @@ describe('waitTone', () => {
   it('never alarms on a missing or unreadable date', () => {
     expect(waitTone(null, now)).toBe('fresh');
     expect(waitTone('not a date', now)).toBe('fresh');
+  });
+});
+
+describe('mechanicWorkGroups (spec 0030, AC-12)', () => {
+  const now = Date.parse('2026-11-27T08:00:00.000Z');
+  const at = (hours: number) => new Date(now + hours * 3_600_000).toISOString();
+
+  it('splits the work into Overdue, then Due soon, then the rest', () => {
+    const late = ticket({ id: 'late', status: 'IN_PROGRESS', dueAt: at(-2), dueSoonAt: at(-6) });
+    const soon = ticket({ id: 'soon', status: 'ASSIGNED', dueAt: at(3), dueSoonAt: at(-1) });
+    const later = ticket({ id: 'later', status: 'ASSIGNED', dueAt: at(48), dueSoonAt: at(24) });
+    const waiting = ticket({ id: 'waiting', status: 'FOR_VERIFICATION', dueAt: at(1), dueSoonAt: at(-1) });
+    const groups = mechanicWorkGroups([later, waiting, soon, late], now);
+    expect(groups.overdue.map((t) => t.id)).toEqual(['late']);
+    expect(groups.dueSoon.map((t) => t.id)).toEqual(['soon']);
+    // Waiting for sign off is not the mechanic's work (as mechanicWorkList)
+    expect(groups.rest.map((t) => t.id)).toEqual(['later']);
   });
 });

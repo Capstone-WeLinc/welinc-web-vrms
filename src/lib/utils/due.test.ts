@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { RepairTicket } from '../../types';
-import { dayCount, dueLabel, dueValue, isOverdue, toTime, wholeDays } from './due';
+import { dayCount, dueLabel, dueValue, isDueSoon, isOverdue, spanText, toTime, wholeDays } from './due';
 
 // Spec 0002 due rules. Every helper takes `now`, so the tests never touch the clock.
 
-const DAY = 24 * 60 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
 const now = Date.parse('2026-10-29T08:00:00.000Z');
 const at = (offsetMs: number) => new Date(now + offsetMs).toISOString();
 
@@ -51,19 +52,21 @@ describe('isOverdue', () => {
 });
 
 describe('dueLabel', () => {
-  it('is null without a parsable due date (nothing sets dueAt until feature 42)', () => {
+  it('is null without a parsable due date', () => {
     expect(dueLabel({ status: 'ASSIGNED', dueAt: null }, now)).toBeNull();
     expect(dueLabel({ status: 'ASSIGNED', dueAt: 'junk' }, now)).toBeNull();
   });
 
-  it('reads overdue text, with Due today inside the first day', () => {
-    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(-3 * DAY - 5) }, now)).toEqual({ text: 'Overdue by 3 days', overdue: true });
-    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(-1000) }, now)).toEqual({ text: 'Due today', overdue: true });
+  it('reads overdue in days, and in hours inside the first day (spec 0030, AC-12)', () => {
+    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(-3 * DAY - 5) }, now)).toEqual({ text: 'Overdue by 3 days', overdue: true, dueSoon: false });
+    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(-5 * HOUR - 5) }, now)).toEqual({ text: 'Overdue by 5 h', overdue: true, dueSoon: false });
+    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(-1000) }, now)).toEqual({ text: 'Overdue by under 1 h', overdue: true, dueSoon: false });
   });
 
-  it('reads due soon text for a future date', () => {
-    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(2 * DAY + 5) }, now)).toEqual({ text: 'Due in 2 days', overdue: false });
-    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(DAY + 1) }, now)).toEqual({ text: 'Due in 1 day', overdue: false });
+  it('reads the time left in days, and in hours under 24 h', () => {
+    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(2 * DAY + 5) }, now)).toEqual({ text: 'Due in 2 days', overdue: false, dueSoon: false });
+    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(DAY + 1) }, now)).toEqual({ text: 'Due in 1 day', overdue: false, dueSoon: false });
+    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(5 * HOUR + 5) }, now)?.text).toBe('Due in 5 h');
   });
 
   it('still labels a finished ticket by its date but never as overdue', () => {
@@ -71,32 +74,59 @@ describe('dueLabel', () => {
   });
 });
 
-describe('dueValue (spec 0024, AC-17)', () => {
+describe('isDueSoon (spec 0030, AC-11)', () => {
+  it('turns on once the fetch time passes dueSoonAt', () => {
+    expect(isDueSoon({ status: 'IN_PROGRESS', dueAt: at(4 * HOUR), dueSoonAt: at(-1) }, now)).toBe(true);
+    expect(isDueSoon({ status: 'IN_PROGRESS', dueAt: at(4 * HOUR), dueSoonAt: at(0) }, now)).toBe(true);
+    expect(isDueSoon({ status: 'IN_PROGRESS', dueAt: at(30 * HOUR), dueSoonAt: at(6 * HOUR) }, now)).toBe(false);
+  });
+  it('is never on for an overdue, finished or undated ticket', () => {
+    expect(isDueSoon({ status: 'IN_PROGRESS', dueAt: at(-1), dueSoonAt: at(-HOUR) }, now)).toBe(false);
+    expect(isDueSoon({ status: 'CLOSED', dueAt: at(HOUR), dueSoonAt: at(-HOUR) }, now)).toBe(false);
+    expect(isDueSoon({ status: 'OPEN', dueAt: null, dueSoonAt: null }, now)).toBe(false);
+    expect(isDueSoon({ status: 'OPEN', dueAt: at(HOUR) }, now)).toBe(false);
+  });
+  it('carries into dueLabel', () => {
+    expect(dueLabel({ status: 'ASSIGNED', dueAt: at(3 * HOUR), dueSoonAt: at(-HOUR) }, now)).toEqual({ text: 'Due soon, in 3 h', overdue: false, dueSoon: true });
+  });
+});
+
+describe('spanText', () => {
+  it('counts hours under a day and days after', () => {
+    expect(spanText(-5)).toBe('under 1 h');
+    expect(spanText(HOUR - 1)).toBe('under 1 h');
+    expect(spanText(HOUR)).toBe('1 h');
+    expect(spanText(DAY - 1)).toBe('23 h');
+    expect(spanText(DAY)).toBe('1 day');
+  });
+});
+
+describe('dueValue (spec 0024, AC-17; spec 0030, AC-12)', () => {
   const now = new Date(2026, 10, 6, 12, 0).getTime();
   const at = (y: number, m: number, d: number, h = 12) => new Date(y, m, d, h).toISOString();
-  const value = (status: RepairTicket['status'], dueAt: string | null) => dueValue({ status, dueAt }, now);
+  const value = (status: RepairTicket['status'], dueAt: string | null, dueSoonAt: string | null = null) => dueValue({ status, dueAt, dueSoonAt }, now);
 
-  it('reads overdue as days overdue under the date', () => {
-    expect(value('IN_PROGRESS', at(2026, 10, 4))).toEqual({ date: 'Nov 4', note: '2 days overdue', overdue: true });
-    expect(value('FOR_VERIFICATION', at(2026, 10, 5))).toEqual({ date: 'Nov 5', note: '1 day overdue', overdue: true });
+  it('reads overdue as days overdue under the date and time', () => {
+    expect(value('IN_PROGRESS', at(2026, 10, 4))).toEqual({ date: 'Nov 4, 12:00 PM', note: '2 days overdue', overdue: true, dueSoon: false });
+    expect(value('FOR_VERIFICATION', at(2026, 10, 5))).toEqual({ date: 'Nov 5, 12:00 PM', note: '1 day overdue', overdue: true, dueSoon: false });
   });
-  it('reads Today within the same 24 hours, a few hours past due still overdue', () => {
-    expect(value('IN_PROGRESS', at(2026, 10, 6, 9))).toEqual({ date: 'Today', note: null, overdue: true });
-    expect(value('IN_PROGRESS', at(2026, 10, 6, 18))).toEqual({ date: 'Today', note: null, overdue: false });
+  it('reads hours within 24 h either side', () => {
+    expect(value('IN_PROGRESS', at(2026, 10, 6, 9))).toEqual({ date: 'Nov 6, 9:00 AM', note: '3 h overdue', overdue: true, dueSoon: false });
+    expect(value('IN_PROGRESS', at(2026, 10, 6, 18), at(2026, 10, 6, 6))).toEqual({ date: 'Nov 6, 6:00 PM', note: 'in 6 h', overdue: false, dueSoon: true });
   });
   it('reads a later date with the days left', () => {
-    expect(value('ASSIGNED', at(2026, 10, 9))).toEqual({ date: 'Nov 9', note: 'in 3 days', overdue: false });
+    expect(value('ASSIGNED', at(2026, 10, 9))).toEqual({ date: 'Nov 9, 12:00 PM', note: 'in 3 days', overdue: false, dueSoon: false });
   });
   it('uses the singular for one day either side', () => {
-    expect(value('IN_PROGRESS', at(2026, 10, 5))).toEqual({ date: 'Nov 5', note: '1 day overdue', overdue: true });
-    expect(value('ASSIGNED', at(2026, 10, 7))).toEqual({ date: 'Nov 7', note: 'in 1 day', overdue: false });
+    expect(value('IN_PROGRESS', at(2026, 10, 5))?.note).toBe('1 day overdue');
+    expect(value('ASSIGNED', at(2026, 10, 7))?.note).toBe('in 1 day');
   });
   it('adds the year only when it differs', () => {
-    expect(value('OPEN', at(2027, 0, 5))?.date).toBe('Jan 5, 2027');
+    expect(value('OPEN', at(2027, 0, 5))?.date).toBe('Jan 5, 2027, 12:00 PM');
   });
   it('shows the date alone on Closed and Cancelled', () => {
-    expect(value('CLOSED', at(2026, 10, 4))).toEqual({ date: 'Nov 4', note: null, overdue: false });
-    expect(value('CANCELLED', at(2026, 10, 4))).toEqual({ date: 'Nov 4', note: null, overdue: false });
+    expect(value('CLOSED', at(2026, 10, 4))).toEqual({ date: 'Nov 4, 12:00 PM', note: null, overdue: false, dueSoon: false });
+    expect(value('CANCELLED', at(2026, 10, 4), at(2026, 10, 3))).toEqual({ date: 'Nov 4, 12:00 PM', note: null, overdue: false, dueSoon: false });
   });
   it('has no value without a due date', () => {
     expect(value('OPEN', null)).toBeNull();
