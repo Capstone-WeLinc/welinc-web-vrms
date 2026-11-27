@@ -12,6 +12,8 @@ export interface IssueCategory {
   id: string;
   name: string;
   description: string | null;
+  /** Spec 0030, AC-4: usual shop hours for its issues; null adds nothing to a due date. */
+  fixHours: number | null;
   isActive: boolean;
   sortOrder: number;
   /** Entries in every status. */
@@ -178,14 +180,14 @@ export async function getEntryChanges(id: string): Promise<EntryChange[]> {
   return response.data;
 }
 
-export async function createCategory(name: string, description: string | null) {
-  const response = await api.post<IssueCategory>('/vrms/knowledge/categories', { name, description });
+export async function createCategory(name: string, description: string | null, fixHours: number | null = null) {
+  const response = await api.post<IssueCategory>('/vrms/knowledge/categories', { name, description, fixHours });
   return response.data;
 }
 
 export async function updateCategory(
   id: string,
-  patch: { name?: string; description?: string | null; isActive?: boolean; sortOrder?: number },
+  patch: { name?: string; description?: string | null; fixHours?: number | null; isActive?: boolean; sortOrder?: number },
   lastUpdatedAt: string,
 ) {
   const response = await api.patch<IssueCategory>(`/vrms/knowledge/categories/${id}`, { ...patch, lastUpdatedAt });

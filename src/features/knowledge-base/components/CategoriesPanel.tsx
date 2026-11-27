@@ -22,6 +22,13 @@ const COLUMNS: Column<IssueCategory>[] = [
     mobile: 'subtitle',
     cell: (c) => <span className="text-muted-foreground">{c.description ?? '—'}</span>,
   },
+  // Spec 0030, AC-4
+  {
+    id: 'fixHours',
+    header: 'Fix time',
+    align: 'end',
+    cell: (c) => <span className="tabular-nums">{c.fixHours == null ? '—' : `${countFormat.format(c.fixHours)} h`}</span>,
+  },
   { id: 'entries', header: 'Entries', align: 'end', cell: (c) => <span className="tabular-nums">{countFormat.format(c.entryCount)}</span> },
   { id: 'status', header: 'Status', mobile: 'badge', cell: (c) => <StatusBadge status={c.isActive ? 'ACTIVE' : 'INACTIVE'} /> },
 ];

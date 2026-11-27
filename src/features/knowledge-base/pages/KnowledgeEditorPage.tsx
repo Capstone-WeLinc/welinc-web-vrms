@@ -226,7 +226,7 @@ function pickerCategories(active: IssueCategory[], entry: KnowledgeEntryDetail |
   if (!entry || active.some((c) => c.id === entry.category.id)) return active;
   return [
     ...active,
-    { id: entry.category.id, name: entry.category.name, isActive: false, description: null, sortOrder: 0, entryCount: 0, updatedAt: '' },
+    { id: entry.category.id, name: entry.category.name, isActive: false, description: null, fixHours: null, sortOrder: 0, entryCount: 0, updatedAt: '' },
   ];
 }
 
