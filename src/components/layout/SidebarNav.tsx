@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, type LucideIcon } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { anyCount, countName, countText, getNavMatch, hotTotal, type NavItem, type NavSection } from './navItems';
@@ -249,25 +249,5 @@ function NavGroup({ item, collapsed, current, currentChild, open, onOpenChange, 
         </ul>
       )}
     </div>
-  );
-}
-
-interface SidebarActionProps {
-  icon: LucideIcon;
-  label: string;
-  onClick: () => void;
-  collapsed?: boolean;
-  'aria-expanded'?: boolean;
-}
-
-/** A button styled like a nav item, for the sidebar footer and the phone sheet. */
-export function SidebarAction({ icon: Icon, label, onClick, collapsed = false, ...aria }: SidebarActionProps) {
-  return (
-    <CollapsedTooltip label={label} collapsed={collapsed}>
-      <button type="button" onClick={onClick} className={cn(ITEM_CLASSES, collapsed && 'justify-center px-0')} {...aria}>
-        <Icon aria-hidden="true" className="size-4.5 shrink-0" />
-        <span className={cn('truncate', collapsed && 'sr-only')}>{label}</span>
-      </button>
-    </CollapsedTooltip>
   );
 }

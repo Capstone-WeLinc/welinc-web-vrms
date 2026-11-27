@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { getActiveNavPath, hotTotal, type NavItem } from './navItems';
 
-/** Phone navigation when every top level page plus Account fits in 5 tabs (below 768px; spec 0027, AC-11). */
+/** Phone navigation when every top level page fits in 5 tabs (below 768px; spec 0027, AC-11). */
 export function MobileTabBar({ items }: { items: NavItem[] }) {
   const { pathname } = useLocation();
   const activePath = getActiveNavPath(pathname, items);

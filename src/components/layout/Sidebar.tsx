@@ -1,10 +1,11 @@
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SidebarAccount, SystemSwitcher } from './SidebarAccount';
-import { SidebarAction, SidebarNav } from './SidebarNav';
-import { useNavSections } from './useNavSections';
-import { NewRepairButton } from './NewRepairButton';
 import { useCan } from '../../lib/permissions/usePermissions';
+import { NewRepairButton } from './NewRepairButton';
+import { SidebarFooter } from './SidebarFooter';
+import { CollapsedTooltip, SidebarNav } from './SidebarNav';
+import { SidebarTitle } from './SidebarTitle';
+import { useNavSections } from './useNavSections';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -13,14 +14,18 @@ interface SidebarProps {
   onExpand: () => void;
 }
 
+const FOOTER_BUTTON =
+  'flex size-8 shrink-0 items-center justify-center rounded-lg text-sidebar-idle outline-none hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-ring-on-dark';
+
 /**
- * Desktop navigation from 768px up (suite spec 0016 AC-16, design.md Layout and navigation):
- * navy, 240px, the system switcher at the top and the account menu at the bottom; the toggle
- * above it collapses it to a 64px icon strip with a tooltip on each icon.
+ * Desktop navigation from 768px up (suite spec 0016 AC-16; spec 0027, AC-8, AC-10a, AC-10b): navy,
+ * 240px, the VRMS title with your role at the top, New repair under it, the sections, and the
+ * footer strip whose button collapses it to a 64px icon strip with a tooltip on each icon.
  */
 export function Sidebar({ collapsed, onToggleCollapsed, onExpand }: SidebarProps) {
   const sections = useNavSections();
   const canCreate = useCan('ticket.create');
+  const toggleLabel = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
 
   return (
     <aside
@@ -30,9 +35,9 @@ export function Sidebar({ collapsed, onToggleCollapsed, onExpand }: SidebarProps
       )}
     >
       <div className={cn('shrink-0 pt-3', collapsed ? 'px-2' : 'px-3')}>
-        <SystemSwitcher collapsed={collapsed} />
+        <SidebarTitle collapsed={collapsed} />
         <hr aria-hidden="true" className="mx-0.5 mt-3.5 border-sidebar-line" />
-        {/* AC-8: New repair under the switcher; without the key the line and 12px of space stay */}
+        {/* AC-8: New repair under the title; without the key the line and 12px of space stay */}
         {canCreate && (
           <div className="pt-3">
             <NewRepairButton collapsed={collapsed} />
@@ -44,16 +49,23 @@ export function Sidebar({ collapsed, onToggleCollapsed, onExpand }: SidebarProps
         <SidebarNav sections={sections} collapsed={collapsed} onExpand={onExpand} />
       </div>
 
-      <div className={cn('flex shrink-0 flex-col gap-1 border-t border-sidebar-line py-3', collapsed ? 'px-2' : 'px-3')}>
-        <SidebarAction
-          icon={collapsed ? PanelLeftOpen : PanelLeftClose}
-          label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          onClick={onToggleCollapsed}
-          collapsed={collapsed}
-          aria-expanded={!collapsed}
-        />
-        <SidebarAccount collapsed={collapsed} />
-      </div>
+      <SidebarFooter collapsed={collapsed}>
+        <CollapsedTooltip label={toggleLabel} collapsed={collapsed}>
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label={toggleLabel}
+            aria-expanded={!collapsed}
+            className={FOOTER_BUTTON}
+          >
+            {collapsed ? (
+              <PanelLeftOpen aria-hidden="true" className="size-4.5" />
+            ) : (
+              <PanelLeftClose aria-hidden="true" className="size-4.5" />
+            )}
+          </button>
+        </CollapsedTooltip>
+      </SidebarFooter>
     </aside>
   );
 }

@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   ScrollText,
   Settings,
-  User,
   Users,
   Wrench,
 } from 'lucide-react';
@@ -141,22 +140,20 @@ export function topLevelItems(sections: NavSection[]): NavItem[] {
   return sections.flatMap((section) => section.items);
 }
 
-/** The phone tab bar's last tab: it opens Profile (spec 0027, AC-11). */
-export const ACCOUNT_TAB: NavItem = { to: '/profile', label: 'Account', icon: User };
-
 /** design.md caps the tab bar at 5. */
 export const TAB_BAR_MAX = 5;
 
 /**
- * Spec 0027, AC-11 (suite spec 0016): the visible top level pages plus one Account tab; at most
- * 5 gives the tab bar, more gives the sheet. Read from the nav, not the role.
+ * Spec 0027, AC-11 (suite spec 0016): the visible top level pages; at most 5 gives the tab bar,
+ * more gives the sheet. There is no Account tab: the top bar's avatar holds Your profile and Sign
+ * out. Read from the nav, not the role.
  */
 export function usesTabBar(sections: NavSection[]): boolean {
-  return topLevelItems(sections).length + 1 <= TAB_BAR_MAX;
+  return topLevelItems(sections).length <= TAB_BAR_MAX;
 }
 
 export function getMobileTabs(sections: NavSection[]): NavItem[] {
-  return [...topLevelItems(sections), ACCOUNT_TAB];
+  return topLevelItems(sections);
 }
 
 /** The path part of a nav `to`, and its `view` preset if it has one. */
@@ -194,14 +191,6 @@ export function getNavMatch(pathname: string, search: string, sections: NavSecti
     .filter((entry) => (entry.view ? path === entry.path && view === entry.view : under(path, entry.path)))
     .sort((a, b) => b.path.length - a.path.length)[0]?.candidate;
   return { item, child };
-}
-
-/** The section and item for the current path, for the header breadcrumb. */
-export function getActiveNavTrail(pathname: string, sections: NavSection[]) {
-  const match = getNavMatch(pathname, '', sections);
-  if (!match) return undefined;
-  const section = sections.find((candidate) => candidate.items.includes(match.item));
-  return section ? { section, item: match.item } : undefined;
 }
 
 /** The top level path for the current route (the phone tab bar). */

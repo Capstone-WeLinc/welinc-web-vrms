@@ -3,7 +3,6 @@ import type { PermissionKey } from '../../lib/permissions/keys';
 import {
   countName,
   countText,
-  getActiveNavTrail,
   getMobileTabs,
   getNavMatch,
   getNavSections,
@@ -114,18 +113,22 @@ describe('getNavSections', () => {
 
 // covers: spec 0027 AC-11
 describe('the phone tab bar', () => {
-  it('holds the top level pages plus Account, which opens Profile', () => {
+  it('holds the top level pages only, with no Account tab', () => {
     const tabs = getMobileTabs(nav(MECHANIC));
 
-    expect(tabs.map((t) => t.to)).toEqual(['/dashboard', '/repairs', '/history', '/knowledge-base', '/profile']);
-    expect(tabs[tabs.length - 1].label).toBe('Account');
+    expect(tabs.map((t) => t.to)).toEqual(['/dashboard', '/repairs', '/history', '/knowledge-base']);
+    expect(tabs.some((t) => t.to === '/profile')).toBe(false);
   });
 
-  it('is used when the pages plus Account fit in 5, else the sheet', () => {
+  it('is used when the top level pages fit in 5, else the sheet', () => {
     expect(usesTabBar(nav(MECHANIC))).toBe(true);
     expect(usesTabBar(nav(CHIEF))).toBe(true);
+    // Five pages: someone who also sees Analytics keeps the tab bar
+    expect(usesTabBar(nav([...MECHANIC, 'analytics.view']))).toBe(true);
+    expect(usesTabBar(nav([...CHIEF, 'analytics.view']))).toBe(true);
+    // Any Admin page makes it six or more
     expect(usesTabBar(nav(ADMIN))).toBe(false);
-    expect(usesTabBar(nav([...CHIEF, 'analytics.view']))).toBe(false);
+    expect(usesTabBar(nav([...CHIEF, 'analytics.view', 'audit.view']))).toBe(false);
   });
 });
 
@@ -152,9 +155,8 @@ describe('getNavMatch', () => {
     expect(getNavMatch('/knowledge-base/42', '', sections)?.child?.label).toBe('Guides');
   });
 
-  it('reads / as the dashboard and keeps the breadcrumb on the top level page', () => {
+  it('reads / as the dashboard', () => {
     expect(getNavMatch('/', '', sections)?.item.to).toBe('/dashboard');
-    expect(getActiveNavTrail('/repairs', sections)).toMatchObject({ section: { title: 'Work' }, item: { to: '/repairs' } });
   });
 });
 
