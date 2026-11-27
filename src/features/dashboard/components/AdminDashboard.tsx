@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import { PageHeader } from '../../../components/layout/PageHeader';
+import { PhoneNewRepairAction } from '../../../components/layout/NewRepairButton';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { useAuthStore } from '../../../store/authStore';
 import { useDashboardData } from '../hooks/useDashboardData';
@@ -31,6 +32,7 @@ const ATTENTION_LIMIT = 8;
 export function AdminDashboard() {
   const user = useAuthStore((state) => state.user);
   const canVerify = useCan('ticket.verify');
+  const canCreate = useCan('ticket.create');
   // Spec 0029, AC-7: VMMS referrals waiting for a decision
   const canRespond = useCan('integration.respond');
   const { waitingCount } = useReferrals('WAITING', canRespond);
@@ -81,6 +83,7 @@ export function AdminDashboard() {
       <PageHeader
         title="Dashboard"
         context={`${greeting(user?.name)} Here's what needs your attention.`}
+        action={canCreate ? <PhoneNewRepairAction /> : undefined}
       />
 
       {state === 'loading' && <DashboardSkeleton admin />}

@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useCan } from '../../lib/permissions/usePermissions';
 import { CollapsedTooltip } from './SidebarNav';
 
 /**
@@ -24,5 +26,22 @@ export function NewRepairButton({ collapsed = false, onNavigate }: { collapsed?:
         {!collapsed && 'New repair'}
       </Link>
     </CollapsedTooltip>
+  );
+}
+
+/**
+ * Spec 0027, AC-8: on phones New repair is the primary action in the header of the dashboard and
+ * the Repair tickets page; from 768px up the sidebar's button holds it.
+ */
+export function PhoneNewRepairAction() {
+  const canCreate = useCan('ticket.create');
+  if (!canCreate) return null;
+  return (
+    <Button asChild className="max-md:h-11 md:hidden">
+      <Link to="/repairs/new">
+        <Plus aria-hidden="true" />
+        New repair
+      </Link>
+    </Button>
   );
 }

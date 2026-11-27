@@ -25,6 +25,7 @@ import { useRepairListFilters } from '../hooks/useRepairListFilters';
 import { useReferrals } from '../hooks/useReferrals';
 import { ReferralsView } from '../components/referrals/ReferralsView';
 import { referralStatusParam, repairsView, type RepairsView } from '../lib/referrals';
+import { RepairViewChips } from '../components/RepairViewChips';
 import { REPAIR_VIEW_CONTEXT, REPAIR_VIEW_TITLES, viewAllowed } from '../lib/repairViews';
 import type { ReferralStatus } from '../../../lib/api/referralsApi';
 import { hasActiveFilters, REPAIR_LIST_PAGE_SIZE, repairListParams } from '../lib/repairListFilters';
@@ -248,6 +249,7 @@ export function RepairListPage() {
         <ReferralsView status={referralStatus} onStatusChange={showReferralStatus} list={referrals} />
       ) : (
         <>
+      <RepairViewChips />
       <RepairListFilters
         value={filters}
         searchText={searchText}
