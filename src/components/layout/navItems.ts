@@ -57,7 +57,8 @@ const present = (entries: NavEntry[]) => entries.filter((entry): entry is NavIte
 /**
  * The nav for what the signed in user may do (spec 0027, AC-1 and AC-2; spec 0011, AC-22): each
  * page and sub page shows with the key its page needs, never by role (suite spec 0018). Profile
- * and New repair are not nav items: they live in the account menu and above the nav (AC-8, AC-10).
+ * and New repair are not nav items: Profile is in the account menu (AC-10), New repair in the
+ * dashboard and Repair tickets headers (AC-8).
  */
 export function getNavSections(can: (key: PermissionKey) => boolean, ctx: NavContext = { inRoster: false }): NavSection[] {
   const seesAll = can('ticket.view_all');

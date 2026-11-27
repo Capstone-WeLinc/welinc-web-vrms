@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { useCan } from '../../../lib/permissions/usePermissions';
 import { PageHeader } from '../../../components/layout/PageHeader';
-import { PhoneNewRepairAction } from '../../../components/layout/NewRepairButton';
+import { NewRepairAction } from '../../../components/layout/NewRepairAction';
 import { ErrorState } from '../../../components/shared/ErrorState';
 import { useAuthStore } from '../../../store/authStore';
 import { useDashboardData } from '../hooks/useDashboardData';
@@ -83,7 +83,7 @@ export function AdminDashboard() {
       <PageHeader
         title="Dashboard"
         context={`${greeting(user?.name)} Here's what needs your attention.`}
-        action={canCreate ? <PhoneNewRepairAction /> : undefined}
+        action={canCreate ? <NewRepairAction /> : undefined}
       />
 
       {state === 'loading' && <DashboardSkeleton admin />}

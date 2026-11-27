@@ -1,7 +1,5 @@
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCan } from '../../lib/permissions/usePermissions';
-import { NewRepairButton } from './NewRepairButton';
 import { SidebarFooter } from './SidebarFooter';
 import { CollapsedTooltip, SidebarNav } from './SidebarNav';
 import { SidebarTitle } from './SidebarTitle';
@@ -19,12 +17,10 @@ const FOOTER_BUTTON =
 
 /**
  * Desktop navigation from 768px up (suite spec 0016 AC-16; spec 0027, AC-8, AC-10a, AC-10b): navy,
- * 240px, the VRMS title with your role at the top, New repair under it, the sections, and the
- * footer strip whose button collapses it to a 64px icon strip with a tooltip on each icon.
+ * 240px, the VRMS title with your role at the top, a line, the sections, and the footer strip whose button collapses it to a 64px icon strip with a tooltip on each icon.
  */
 export function Sidebar({ collapsed, onToggleCollapsed, onExpand }: SidebarProps) {
   const sections = useNavSections();
-  const canCreate = useCan('ticket.create');
   const toggleLabel = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
 
   return (
@@ -36,13 +32,8 @@ export function Sidebar({ collapsed, onToggleCollapsed, onExpand }: SidebarProps
     >
       <div className={cn('shrink-0 pt-3', collapsed ? 'px-2' : 'px-3')}>
         <SidebarTitle collapsed={collapsed} />
+        {/* AC-8 (2026-11-28): no New repair here; a line and 12px of space sit under the title */}
         <hr aria-hidden="true" className="mx-0.5 mt-3.5 border-sidebar-line" />
-        {/* AC-8: New repair under the title; without the key the line and 12px of space stay */}
-        {canCreate && (
-          <div className="pt-3">
-            <NewRepairButton collapsed={collapsed} />
-          </div>
-        )}
       </div>
 
       <div className={cn('flex-1 overflow-x-hidden overflow-y-auto py-3', collapsed ? 'px-2' : 'px-3')}>

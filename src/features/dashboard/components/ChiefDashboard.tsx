@@ -21,7 +21,7 @@ import { LastUpdated } from './LastUpdated';
 import { ReleasedNotice } from './ReleasedNotice';
 import { TeamSection } from './TeamSection';
 import { TruncationNote } from './TruncationNote';
-import { PhoneNewRepairAction } from '../../../components/layout/NewRepairButton';
+import { NewRepairAction } from '../../../components/layout/NewRepairAction';
 
 const VERIFY_LIMIT = 8;
 
@@ -160,8 +160,8 @@ export function ChiefDashboard() {
         </div>
         {state === 'ready' && <LastUpdated fetchedAt={fetchedAt} refreshFailed={refreshFailed} />}
         {canCreate && (
-          <div className="mt-3 *:w-full md:hidden">
-            <PhoneNewRepairAction />
+          <div className="max-md:mt-3 max-md:*:w-full">
+            <NewRepairAction />
           </div>
         )}
       </header>
