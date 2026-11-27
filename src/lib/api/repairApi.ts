@@ -10,6 +10,7 @@ import type {
   RepairStatus,
   RepairTicket,
 } from '../../types';
+import type { RepairView } from '../../features/repair/lib/repairViews';
 
 export interface RepairListParams {
   search?: string;
@@ -22,6 +23,8 @@ export interface RepairListParams {
   overdue?: boolean;
   /** Spec 0029, AC-35: open tickets whose truck VMMS removed. */
   truckRemoved?: boolean;
+  /** Spec 0027, AC-4: a sidebar preset; the server applies the same rule its count uses. */
+  view?: RepairView;
   /** Neither page nor limit returns every matching row. */
   page?: number;
   limit?: number;

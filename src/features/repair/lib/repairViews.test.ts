@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readRepairView, viewAllowed } from './repairViews';
-import { DEFAULT_REPAIR_LIST_FILTERS, readListState, withFilterPatch, writeListState } from './repairListFilters';
+import { DEFAULT_REPAIR_LIST_FILTERS, readListState, repairListParams, withFilterPatch, writeListState } from './repairListFilters';
 
 // covers: spec 0027 AC-2, AC-4
 describe('repair list view presets', () => {
@@ -35,5 +35,10 @@ describe('repair list view presets', () => {
     expect(withFilterPatch(signoff, { status: 'ASSIGNED' }).view).toBeNull();
     expect(withFilterPatch(signoff, { overdue: true }).view).toBe('signoff');
     expect(withFilterPatch(signoff, { status: 'all' }).view).toBe('signoff');
+  });
+
+  it('sends the preset to the server, which applies the rule its count uses', () => {
+    expect(repairListParams({ ...DEFAULT_REPAIR_LIST_FILTERS, view: 'sentBack' }, 1).view).toBe('sentBack');
+    expect(repairListParams(DEFAULT_REPAIR_LIST_FILTERS, 1).view).toBeUndefined();
   });
 });

@@ -109,6 +109,7 @@ export function repairListParams(filters: RepairListFilterValues, page: number):
     mechanicId: filters.mechanicId === 'all' ? undefined : filters.mechanicId,
     overdue: filters.overdue || undefined,
     truckRemoved: filters.truckRemoved || undefined,
+    view: filters.view ?? undefined,
     page,
     limit: REPAIR_LIST_PAGE_SIZE,
   };
