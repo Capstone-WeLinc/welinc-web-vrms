@@ -18,7 +18,7 @@ describe('the avatar menu button', () => {
   });
 
   it('shows initials only and speaks them with a hidden name, with no aria-label', () => {
-    state.user = { id: 'u1', name: 'Alberto Santiago', email: 'alberto@welinc.com', role: 'MECHANIC', system: 'VRMS', systems: ['VRMS'] };
+    state.user = { id: 'u1', name: 'Alberto Santiago', email: 'alberto@welinc.com', role: 'MECHANIC', system: 'VRMS', systems: ['VRMS'], systemRoles: [], suiteAdmin: false };
     const html = renderToStaticMarkup(createElement(AccountMenu));
 
     expect(html).toContain('>AS<');

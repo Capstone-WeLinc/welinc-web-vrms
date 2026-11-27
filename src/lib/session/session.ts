@@ -12,6 +12,7 @@ import {
   statusCheckDelayMs,
 } from './timing';
 import { setMonitoringUser } from '../monitoring/sentry';
+import { withGrantFields } from './grantFields';
 import { clearUserDrafts } from '../drafts/drafts';
 
 /**
@@ -55,6 +56,9 @@ type RefreshAnswer = {
     roles: UserRoleAssignment[];
     /** Missing from an older welinc-auth: counts as none (spec 0007, AC-8). */
     systems?: string[];
+    /** Spec 0027 step 6a; missing from an older welinc-auth: `[]` and `false` (`withGrantFields`). */
+    systemRoles?: unknown;
+    suiteAdmin?: unknown;
   };
 };
 
@@ -104,15 +108,17 @@ const noAccessUrl = () => `${PORTAL_URL}/?error=NO_SYSTEM_ACCESS&system=VRMS`;
 function toUser(answer: RefreshAnswer['user']): User | null {
   const vrms = answer.roles.find((r) => r.system === 'VRMS');
   if (!vrms) return null;
-  return {
+  return withGrantFields({
     id: answer.id,
     name: answer.name,
     email: answer.email,
     role: vrms.role,
-    system: 'VRMS',
+    system: 'VRMS' as const,
     roles: answer.roles,
     systems: Array.isArray(answer.systems) ? answer.systems : [],
-  };
+    systemRoles: answer.systemRoles as User['systemRoles'] | undefined,
+    suiteAdmin: answer.suiteAdmin as boolean | undefined,
+  });
 }
 
 function apply(message: Omit<TokenMessage, 'type'>) {
@@ -464,7 +470,8 @@ channel?.addEventListener('message', (event: MessageEvent<ChannelMessage>) => {
   if (leaving) return;
   const message = event.data;
   // Another tab refreshed: take its token (AC-21)
-  if (message?.type === 'token') apply(message);
+  // An older tab's message has no systemRoles or suiteAdmin: read as [] and false (spec 0027)
+  if (message?.type === 'token') apply({ ...message, user: withGrantFields(message.user) });
   // Another tab logged out: the session is gone here too (AC-24)
   else if (message?.type === 'logout') leave(loginUrl('logout'));
   // Another tab chose Stay signed in: check the new cutoff now

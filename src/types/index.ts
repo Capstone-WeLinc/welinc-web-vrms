@@ -38,6 +38,19 @@ export interface User {
   roles?: UserRoleAssignment[];
   /** Every system the user holds, from welinc-auth (spec 0007, AC-8). */
   systems: string[];
+  /**
+   * Spec 0027 step 6a: the role codes held in each of `systems`, catalog order. Display only (the
+   * switcher's tags): never read for access. `[]` from an older welinc-auth.
+   */
+  systemRoles: SystemRoles[];
+  /** Spec 0027 step 6a: a suite admin (the switcher's Suite management card). Display only. */
+  suiteAdmin: boolean;
+}
+
+/** One `user.systemRoles` entry (spec 0027, step 6a). */
+export interface SystemRoles {
+  system: string;
+  roles: string[];
 }
 
 export interface ManagedUser {
