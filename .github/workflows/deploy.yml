@@ -14,6 +14,8 @@ name: Deploy
 on:
   push:
     branches: [development]
+    # Docs and tests can't change what runs, so they skip the build and the staging deploy
+    paths-ignore: ['**.md', '**/*.spec.ts', '**/*.test.ts', '**/*.test.tsx']
   workflow_dispatch:
     inputs:
       sha:
