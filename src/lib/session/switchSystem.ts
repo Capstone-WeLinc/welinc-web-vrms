@@ -15,3 +15,19 @@ export function canSwitchSystem(user: Pick<User, 'systems' | 'role'> | null): bo
 export function switchSystemUrl(portal: string = PORTAL_URL): string {
   return `${portal.replace(/\/+$/, '')}/?from=VRMS`;
 }
+
+/** Spec 0027, AC-9: the launcher starts that system's handoff at once (`open`, AC-13). */
+export function openSystemUrl(system: string, portal: string = PORTAL_URL): string {
+  return `${switchSystemUrl(portal)}&open=${encodeURIComponent(system)}`;
+}
+
+const SYSTEM_ORDER = ['VRMS', 'VMMS', 'BMS'];
+
+/**
+ * The switcher menu's systems (spec 0027, AC-9): the person's systems in VRMS, VMMS, BMS order.
+ * VRMS is always there (you're in it), and a system code the suite doesn't know is left out.
+ */
+export function switcherSystems(user: Pick<User, 'systems'> | null): string[] {
+  const held = new Set(['VRMS', ...(user?.systems ?? [])]);
+  return SYSTEM_ORDER.filter((system) => held.has(system));
+}

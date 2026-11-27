@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
   DEFAULT_REPAIR_LIST_FILTERS,
   readListState,
+  withFilterPatch,
   writeListState,
   type RepairListFilterValues,
 } from '../lib/repairListFilters';
@@ -27,9 +28,11 @@ export function useRepairListFilters(seesAll: boolean) {
     setSearchParams(
       (current) => {
         const state = readListState(current, seesAll);
-        const next = { ...state.filters, ...patch };
+        const next = withFilterPatch(state.filters, patch);
         const keys = Object.keys(patch) as (keyof RepairListFilterValues)[];
-        return keys.some((k) => next[k] !== state.filters[k]) ? writeListState(next, 1) : current;
+        return keys.some((k) => next[k] !== state.filters[k]) || next.view !== state.filters.view
+          ? writeListState(next, 1)
+          : current;
       },
       { replace: true },
     );
@@ -46,7 +49,11 @@ export function useRepairListFilters(seesAll: boolean) {
   const clearFilters = () => {
     window.clearTimeout(timer.current);
     setSearchTextState('');
-    setSearchParams(writeListState(DEFAULT_REPAIR_LIST_FILTERS, 1), { replace: true });
+    // The sidebar preset stays: Clear filters clears what was added on top of it.
+    setSearchParams(
+      (current) => writeListState({ ...DEFAULT_REPAIR_LIST_FILTERS, view: readListState(current, seesAll).filters.view }, 1),
+      { replace: true },
+    );
   };
 
   return { filters, page, searchText, setSearchText, setFilters, setPage, clearFilters };

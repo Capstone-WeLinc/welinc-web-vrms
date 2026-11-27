@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { LayoutGrid, ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
+import { ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { RoleChip } from '@/components/ui/role-chip';
 import { useRoleLabel } from '@/lib/roles';
@@ -21,7 +21,7 @@ import { useShellActions } from './useShellActions';
 export function UserMenu() {
   const roleLabel = useRoleLabel();
   const user = useAuthStore((state) => state.user);
-  const { canSwitchSystem, switchSystem, signOut } = useShellActions();
+  const { signOut } = useShellActions();
 
   if (!user) return null;
   const name = user.name || user.email;
@@ -56,12 +56,6 @@ export function UserMenu() {
             Profile
           </Link>
         </DropdownMenuItem>
-        {canSwitchSystem && (
-          <DropdownMenuItem onSelect={switchSystem}>
-            <LayoutGrid aria-hidden="true" />
-            Switch system
-          </DropdownMenuItem>
-        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => void signOut()}>
           <LogOut aria-hidden="true" />

@@ -2,14 +2,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { getActiveNavPath, type NavItem } from './navItems';
 
-/** Phone navigation for mechanics and other non admin roles (below 768px). */
+/** Phone navigation when every top level page plus Account fits in 5 tabs (below 768px; spec 0027, AC-11). */
 export function MobileTabBar({ items }: { items: NavItem[] }) {
   const { pathname } = useLocation();
   const activePath = getActiveNavPath(pathname, items);
 
   return (
     <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card pb-safe md:hidden">
-      <ul className="grid grid-cols-5">
+      <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
         {items.map((item) => {
           const active = item.to === activePath;
           return (

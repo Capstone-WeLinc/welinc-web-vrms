@@ -10,6 +10,8 @@ export interface PermissionsState {
   keys: readonly string[];
   /** Which modules are on (spec 0012, AC-12). */
   modules: Modules;
+  /** Spec 0027: the caller is an active, assignable roster member. */
+  inRoster: boolean;
   /** Why the first fetch failed, for the error state. */
   error?: string;
   retry: () => void;
@@ -24,6 +26,7 @@ export const PermissionsContext = createContext<PermissionsState>({
   ability: NO_PERMISSIONS,
   keys: [],
   modules: ALL_MODULES_ON,
+  inRoster: false,
   retry: () => {},
   refresh: () => {},
 });

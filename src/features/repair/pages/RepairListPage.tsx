@@ -17,7 +17,7 @@ import { StatusBadge } from '../../../components/shared/StatusBadge';
 import { getAvailableMechanics, getGarages, type GarageOption, type MechanicOption } from '../../../lib/api/vrmsConfigApi';
 import { dueLabel } from '../../../lib/utils/due';
 import { Can } from '../../../lib/permissions/Can';
-import { useCan } from '../../../lib/permissions/usePermissions';
+import { useCan, usePermissions } from '../../../lib/permissions/usePermissions';
 import type { RepairTicket } from '../../../types';
 import { RepairListFilters } from '../components/RepairListFilters';
 import { useRepairList } from '../hooks/useRepairList';
@@ -25,6 +25,7 @@ import { useRepairListFilters } from '../hooks/useRepairListFilters';
 import { useReferrals } from '../hooks/useReferrals';
 import { ReferralsView } from '../components/referrals/ReferralsView';
 import { referralStatusParam, repairsView, type RepairsView } from '../lib/referrals';
+import { REPAIR_VIEW_CONTEXT, REPAIR_VIEW_TITLES, viewAllowed } from '../lib/repairViews';
 import type { ReferralStatus } from '../../../lib/api/referralsApi';
 import { hasActiveFilters, REPAIR_LIST_PAGE_SIZE, repairListParams } from '../lib/repairListFilters';
 
@@ -141,7 +142,11 @@ export function RepairListPage() {
   const showView = (next: RepairsView) => setSearchParams(next === 'referrals' ? { view: 'referrals' } : {}, { replace: true });
   const showReferralStatus = (next: ReferralStatus) =>
     setSearchParams(next === 'WAITING' ? { view: 'referrals' } : { view: 'referrals', referralStatus: next }, { replace: true });
-  const { filters, page, searchText, setSearchText, setFilters, setPage, clearFilters } = useRepairListFilters(seesAll);
+  const { filters: urlFilters, page, searchText, setSearchText, setFilters, setPage, clearFilters } = useRepairListFilters(seesAll);
+  const { inRoster } = usePermissions();
+  // Spec 0027, AC-4: a preset this viewer's sidebar doesn't offer (an old link) reads as none.
+  const preset = urlFilters.view && viewAllowed(urlFilters.view, { seesAll, inRoster }) ? urlFilters.view : null;
+  const filters = preset === urlFilters.view ? urlFilters : { ...urlFilters, view: null };
   const list = useRepairList(repairListParams(filters, page));
   const [garages, setGarages] = useState<GarageOption[]>([]);
   const [mechanics, setMechanics] = useState<MechanicOption[]>([]);
@@ -214,11 +219,13 @@ export function RepairListPage() {
   return (
     <div>
       <PageHeader
-        title="Repair tickets"
+        title={view === 'tickets' && preset ? REPAIR_VIEW_TITLES[preset] : seesAll ? 'Repair tickets' : 'My repairs'}
         context={
           view === 'referrals'
             ? 'Trucks VMMS inspections sent for repair. Open a ticket from each one.'
-            : seesAll
+            : preset
+              ? REPAIR_VIEW_CONTEXT[preset]
+              : seesAll
               ? 'Open repair tickets across every garage.'
               : 'Open repair tickets assigned to you.'
         }

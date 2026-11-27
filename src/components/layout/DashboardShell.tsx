@@ -12,7 +12,7 @@ import { useSidebarCollapsed } from './useSidebarCollapsed';
 
 export function DashboardShell() {
   const sections = useNavSections();
-  const { collapsed, toggle } = useSidebarCollapsed();
+  const { collapsed, toggle, setCollapsed } = useSidebarCollapsed();
   // design.md: a bottom tab bar on phones when the nav fits in it, else the sheet menu
   const hasTabBar = usesTabBar(sections);
   const { pathname } = useLocation();
@@ -25,7 +25,7 @@ export function DashboardShell() {
       >
         Skip to content
       </a>
-      <Sidebar collapsed={collapsed} onToggleCollapsed={toggle} />
+      <Sidebar collapsed={collapsed} onToggleCollapsed={toggle} onExpand={() => setCollapsed(false)} />
       <div
         className={cn(
           'flex min-h-dvh flex-col transition-all duration-(--duration-fold) ease-enter motion-reduce:transition-none',
