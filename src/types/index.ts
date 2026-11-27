@@ -177,6 +177,8 @@ export interface TicketCan {
   edit: boolean;
   /** Add, reword, remove and reorder an issue's steps (ticket.checklist.edit, spec 0023, AC-2). */
   editChecklist: boolean;
+  /** Change the due date by hand or put it back to automatic (ticket.due_date.edit, spec 0030, AC-8); open tickets only. */
+  editDueDate: boolean;
 }
 
 /** One status move the server lets this caller make now (spec 0014, AC-13). */

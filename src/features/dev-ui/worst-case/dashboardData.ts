@@ -8,7 +8,7 @@ import type { DataMode } from './dataMode';
 
 const DASHBOARD_LIMIT = 10000; // useDashboardData's ADMIN_LIMIT; the repair list page never sends it
 
-const CAN: TicketCan = { work: false, administer: false, verify: true, editCosts: false, unlock: false, assign: false, edit: false, editChecklist: false };
+const CAN: TicketCan = { work: false, administer: false, verify: true, editCosts: false, unlock: false, assign: false, edit: false, editChecklist: false, editDueDate: false };
 
 const MECHANIC_100 = 'Maria Cristina Esperanza de la Cruz-Villanueva y Fernandez-Montgomery de los Santos, Jr.'.padEnd(100, '.').slice(0, 100);
 
