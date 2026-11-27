@@ -55,7 +55,8 @@ export function AccountMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link to="/profile">
+          {/* Foreground like Sign out, not the base link navy */}
+          <Link to="/profile" className="text-foreground hover:text-foreground">
             <UserRound aria-hidden="true" />
             Your profile
           </Link>

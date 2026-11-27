@@ -77,7 +77,7 @@ interface SidebarNavProps {
 export function SidebarNav({ sections, collapsed = false, onNavigate, onExpand }: SidebarNavProps) {
   const { pathname, search } = useLocation();
   const match = getNavMatch(pathname, search, sections);
-  const { isOpen, setOpen } = useNavOpen(match?.child ? match.item.to : null);
+  const { isOpen, setOpen } = useNavOpen();
 
   return (
     <nav aria-label="Main" className="flex flex-col">
@@ -155,8 +155,8 @@ interface NavGroupProps {
 }
 
 /**
- * A page with sub pages (spec 0027, AC-3): the chevron or the name opens and closes it, and the
- * name also goes to its first sub page. Closed, it shows the sum of its hot counts (AC-5).
+ * A page with sub pages (spec 0027, AC-3): the name goes to its first sub page and never folds it;
+ * only the chevron opens and closes it. Closed, it shows the sum of its hot counts (AC-5).
  */
 function NavGroup({ item, collapsed, current, currentChild, open, onOpenChange, onNavigate, onExpand }: NavGroupProps) {
   const children = item.children ?? [];
@@ -186,8 +186,6 @@ function NavGroup({ item, collapsed, current, currentChild, open, onOpenChange, 
     );
   }
 
-  // Choosing the name while you are already in the group closes it; otherwise it opens.
-  const inGroup = current || currentChild !== undefined;
   return (
     <div className="flex flex-col gap-0.5">
       <div
@@ -198,10 +196,7 @@ function NavGroup({ item, collapsed, current, currentChild, open, onOpenChange, 
       >
         <Link
           to={first.to}
-          onClick={() => {
-            onOpenChange(!(open && inGroup));
-            onNavigate?.();
-          }}
+          onClick={onNavigate}
           aria-current={current ? 'page' : undefined}
           className={cn(ITEM_CLASSES, 'min-w-0 flex-1 hover:bg-transparent', current && 'font-semibold text-sidebar-foreground')}
         >

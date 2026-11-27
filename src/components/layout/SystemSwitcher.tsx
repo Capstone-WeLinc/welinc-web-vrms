@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Grip, House, ShieldCheck } from 'lucide-react';
+import { Grip, LayoutGrid, ShieldCheck } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useSystemRoleLabel } from '@/lib/roles';
@@ -57,8 +57,8 @@ export function SystemSwitcher() {
               href={switchSystemUrl()}
               className="flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-small font-semibold text-primary outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <House aria-hidden="true" className="size-3.5" />
-              Home
+              <LayoutGrid aria-hidden="true" className="size-3.5" />
+              Launcher
             </a>
           </div>
           <ul className="flex flex-col gap-2 px-3 pb-3">
