@@ -252,9 +252,11 @@ export interface RepairTicket {
   mechanics?: MechanicAssignment[];
   priority?: PriorityLevel;
   issues?: RepairIssue[];
-  /** Empty until feature 42 sets due dates. */
+  /** Set on create from priority and issue times (spec 0030); empty only on old tickets before the backfill. */
   dueAt?: string | null;
   dueAtSource?: DueAtSource | null;
+  /** When the ticket turns Due soon (spec 0030, AC-11); null when closed, cancelled or undated. */
+  dueSoonAt?: string | null;
   reportedByName?: string | null;
   /** Who closed (verified) the ticket, and when. */
   verifiedByName?: string | null;

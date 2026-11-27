@@ -3,11 +3,13 @@ import { OPEN_STATUSES } from '../repairStatus';
 
 // Spec 0002 due rules, shared by the dashboard and the repair list (spec 0004). Every helper
 // takes `now` (the time of the last successful fetch) and never reads the clock, so a row
-// never changes its label without new data.
+// never changes its label without new data. Spec 0030: under 24 h the text counts hours, and
+// Due soon comes from the backend's `dueSoonAt` (the browser can't read the settings behind it).
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
-type DueTicket = Pick<RepairTicket, 'status' | 'dueAt'>;
+type DueTicket = Pick<RepairTicket, 'status' | 'dueAt'> & Partial<Pick<RepairTicket, 'dueSoonAt'>>;
 
 /** Milliseconds since the epoch, or null when the value is missing or unparsable. */
 export function toTime(value: string | null | undefined): number | null {
@@ -34,23 +36,35 @@ export function isOverdue(ticket: DueTicket, now: number) {
   return isOpen(ticket) && due !== null && due < now;
 }
 
+/** Spec 0030, AC-11: open, not overdue, and past the backend's `dueSoonAt`. */
+export function isDueSoon(ticket: DueTicket, now: number) {
+  const soon = toTime(ticket.dueSoonAt);
+  return isOpen(ticket) && !isOverdue(ticket, now) && soon !== null && soon <= now;
+}
+
+/** Spec 0030, AC-12: "5 h" under a day ("under 1 h" below an hour), else "2 days". */
+export function spanText(ms: number) {
+  const span = Math.max(0, ms);
+  if (span < HOUR_MS) return 'under 1 h';
+  if (span < DAY_MS) return `${Math.floor(span / HOUR_MS)} h`;
+  return dayCount(wholeDays(0, span));
+}
+
 export function overdueText(ticket: DueTicket, now: number) {
-  const days = wholeDays(toTime(ticket.dueAt) ?? now, now);
-  return days === 0 ? 'Due today' : `Overdue by ${dayCount(days)}`;
+  return `Overdue by ${spanText(now - (toTime(ticket.dueAt) ?? now))}`;
 }
 
 export function dueSoonText(ticket: DueTicket, now: number) {
-  const days = wholeDays(now, toTime(ticket.dueAt) ?? now);
-  return days === 0 ? 'Due today' : `Due in ${dayCount(days)}`;
+  return `Due in ${spanText((toTime(ticket.dueAt) ?? now) - now)}`;
 }
 
-export type DueLabel = { text: string; overdue: boolean } | null;
+export type DueLabel = { text: string; overdue: boolean; dueSoon: boolean } | null;
 
-/** Overdue text, due soon text, or nothing without a parsable due date. */
+/** Overdue text, due text, or nothing without a parsable due date. */
 export function dueLabel(ticket: DueTicket, now: number): DueLabel {
-  if (isOverdue(ticket, now)) return { text: overdueText(ticket, now), overdue: true };
+  if (isOverdue(ticket, now)) return { text: overdueText(ticket, now), overdue: true, dueSoon: false };
   if (toTime(ticket.dueAt) === null) return null;
-  return { text: dueSoonText(ticket, now), overdue: false };
+  return { text: dueSoonText(ticket, now), overdue: false, dueSoon: isDueSoon(ticket, now) };
 }
 
 /** "Nov 4", with the year only when it differs from the year of `now`, in the browser's timezone. */
@@ -60,22 +74,23 @@ export function dueDate(value: string, now: number) {
   return due.toLocaleDateString('en-US', sameYear ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+/** "Nov 4, 3:00 PM": the Status card shows the time too, since a date can be hours away (spec 0030). */
+export function dueDateTime(value: string, now: number) {
+  const time = new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${dueDate(value, now)}, ${time}`;
+}
+
 /**
- * Spec 0024, AC-17: the Status card's Due row: the date ("Today" within the same 24 hour block), then a short note,
- * "4 days overdue" or "in 2 days". Closed and Cancelled get the date alone. Day counts reuse the 24 hour
- * block math above, so a ticket a few hours past due reads "Today" while `overdue` is still true.
+ * Spec 0024, AC-17 and spec 0030, AC-12: the Status card's Due row: the date and time, then a short note,
+ * "4 days overdue", "5 h overdue", "in 2 days" or "in 5 h". Closed and Cancelled get the date alone.
  */
-export type DueValue = { date: string; note: string | null; overdue: boolean };
+export type DueValue = { date: string; note: string | null; overdue: boolean; dueSoon: boolean };
 
 export function dueValue(ticket: DueTicket, now: number): DueValue | null {
   const due = toTime(ticket.dueAt);
   if (due === null || !ticket.dueAt) return null;
-  const date = dueDate(ticket.dueAt, now);
-  if (!isOpen(ticket)) return { date, note: null, overdue: false };
-  if (isOverdue(ticket, now)) {
-    const days = wholeDays(due, now);
-    return days === 0 ? { date: 'Today', note: null, overdue: true } : { date, note: `${dayCount(days)} overdue`, overdue: true };
-  }
-  const days = wholeDays(now, due);
-  return days === 0 ? { date: 'Today', note: null, overdue: false } : { date, note: `in ${dayCount(days)}`, overdue: false };
+  const date = dueDateTime(ticket.dueAt, now);
+  if (!isOpen(ticket)) return { date, note: null, overdue: false, dueSoon: false };
+  if (isOverdue(ticket, now)) return { date, note: `${spanText(now - due)} overdue`, overdue: true, dueSoon: false };
+  return { date, note: `in ${spanText(due - now)}`, overdue: false, dueSoon: isDueSoon(ticket, now) };
 }

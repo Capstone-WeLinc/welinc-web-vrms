@@ -40,8 +40,8 @@ export function needsStaffing(ticket: RepairTicket) {
 
 /** Admin Needs attention rows: overdue text, else the updated text (waiting rows). */
 export function attentionDueLabel(ticket: RepairTicket, now: number): DueLabel {
-  if (isOverdue(ticket, now)) return { text: overdueText(ticket, now), overdue: true };
-  return { text: updatedText(ticket, now), overdue: false };
+  if (isOverdue(ticket, now)) return { text: overdueText(ticket, now), overdue: true, dueSoon: false };
+  return { text: updatedText(ticket, now), overdue: false, dueSoon: false };
 }
 
 const byTime = (pick: (t: RepairTicket) => string | null | undefined, direction: 1 | -1) =>
