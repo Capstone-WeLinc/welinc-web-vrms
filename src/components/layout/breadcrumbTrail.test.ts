@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PermissionKey } from '../../lib/permissions/keys';
-import { breadcrumbTrail } from './breadcrumbTrail';
+import { breadcrumbTrail, trailTitle } from './breadcrumbTrail';
 import { getNavSections } from './navItems';
 
 const CHIEF: PermissionKey[] = ['ticket.view', 'ticket.view_all', 'ticket.work', 'ticket.verify', 'config.read', 'knowledge.view', 'knowledge.suggest', 'knowledge.edit'];
@@ -42,5 +42,16 @@ describe('the top bar breadcrumb', () => {
     ]);
     const dashboard = breadcrumbTrail('/dashboard', '', nav(CHIEF));
     expect(dashboard[dashboard.length - 1]).toEqual({ label: 'Dashboard' });
+  });
+});
+
+describe('the tab title', () => {
+  it('names where you are, the most specific part first, ending in VRMS', () => {
+    const title = (pathname: string, search = '', tail: string | null = null) => trailTitle(breadcrumbTrail(pathname, search, nav(CHIEF), tail));
+    expect(title('/dashboard')).toBe('Dashboard · VRMS');
+    expect(title('/repairs', '?view=signoff')).toBe('Waiting for sign off · Repair tickets · VRMS');
+    expect(title('/repairs/0b0', '', 'REP-20261126-7J6W')).toBe('REP-20261126-7J6W · Repair tickets · VRMS');
+    expect(title('/profile')).toBe('Profile · VRMS');
+    expect(title('/nowhere')).toBe('VRMS');
   });
 });

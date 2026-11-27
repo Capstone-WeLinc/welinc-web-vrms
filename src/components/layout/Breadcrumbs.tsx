@@ -1,7 +1,7 @@
 import { Fragment, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { breadcrumbTrail, setBreadcrumbTail, useBreadcrumbTail } from './breadcrumbTrail';
+import { breadcrumbTrail, setBreadcrumbTail, trailTitle, useBreadcrumbTail } from './breadcrumbTrail';
 import { useNavSections } from './useNavSections';
 
 /**
@@ -11,6 +11,11 @@ import { useNavSections } from './useNavSections';
 export function Breadcrumbs() {
   const { pathname, search } = useLocation();
   const crumbs = breadcrumbTrail(pathname, search, useNavSections(), useBreadcrumbTail());
+  const title = trailTitle(crumbs);
+  // The tab names where you are, from the same trail ("People · Admin" style, most specific first)
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
 
   return (
     <nav aria-label="Breadcrumb" className="min-w-0 flex-1">

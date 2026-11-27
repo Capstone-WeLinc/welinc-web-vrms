@@ -32,6 +32,11 @@ export function breadcrumbTrail(pathname: string, search: string, sections: NavS
   return crumbs.map((crumb, index) => (index === crumbs.length - 1 ? { label: crumb.label } : crumb));
 }
 
+/** The tab title for a trail, the most specific part first: "Waiting for sign off · Repair tickets · VRMS". */
+export function trailTitle(crumbs: readonly Crumb[]): string {
+  return [...crumbs].reverse().map((crumb) => crumb.label).join(' · ');
+}
+
 // The record a page names in the trail (the ticket number), set while that page is mounted.
 let tail: string | null = null;
 const listeners = new Set<() => void>();
